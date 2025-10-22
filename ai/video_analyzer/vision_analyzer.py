@@ -25,7 +25,8 @@ class VisionAnalyzer:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # gemini-2.0-flash 사용 (빠르고 비용 효율적: $0.10/1M input, $0.40/1M output)
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
 
     def analyze_frame(
         self,

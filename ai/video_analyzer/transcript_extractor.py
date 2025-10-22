@@ -53,39 +53,40 @@ class TranscriptExtractor:
             }
 
         try:
-            # 유튜브 API로 자막 추출 시도
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            # 유튜브 API로 자막 추출 시도 (v1.2.3+ 인스턴스 메서드 사용)
+            api = YouTubeTranscriptApi()
 
-            # 수동 자막 우선, 자동 생성 자막은 백업
-            transcript = None
+            # 우선순위대로 언어 시도
+            fetched_transcript = None
             detected_language = None
 
-            # 1순위: 수동 업로드 자막
             for lang in languages:
                 try:
-                    transcript = transcript_list.find_manually_created_transcript([lang])
+                    fetched_transcript = api.fetch(video_id, languages=[lang])
                     detected_language = lang
                     break
                 except:
                     continue
 
-            # 2순위: 자동 생성 자막
-            if not transcript:
-                for lang in languages:
-                    try:
-                        transcript = transcript_list.find_generated_transcript([lang])
-                        detected_language = lang
-                        break
-                    except:
-                        continue
+            # 지정 언어가 없으면 영어 시도
+            if not fetched_transcript:
+                try:
+                    fetched_transcript = api.fetch(video_id, languages=['en'])
+                    detected_language = 'en'
+                except:
+                    pass
 
-            # 3순위: 아무 자막이나
-            if not transcript:
-                transcript = transcript_list.find_transcript(transcript_list._manually_created_transcripts.keys())
-                detected_language = transcript.language_code
+            if not fetched_transcript:
+                raise NoTranscriptFound("No transcript available")
 
-            # 자막 데이터 가져오기
-            segments = transcript.fetch()
+            # FetchedTranscript를 iterable로 변환
+            segments = []
+            for snippet in fetched_transcript:
+                segments.append({
+                    'text': snippet.text,
+                    'start': snippet.start,
+                    'duration': snippet.duration
+                })
 
             # 전체 텍스트 생성
             full_text = ' '.join([seg['text'] for seg in segments])
