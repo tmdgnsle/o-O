@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# HF_TRANSFER 비활성화 (hf_transfer 패키지가 없으면 오류 발생)
+os.environ['HF_HUB_ENABLE_HF_TRANSFER'] = '0'
+
 
 def analyze_youtube_video(
     youtube_url: str,
@@ -62,18 +65,31 @@ def analyze_youtube_video(
     frame_extractor = FrameExtractor(output_dir=output_dir)
 
     try:
-        video_path = frame_extractor.download_youtube_video(youtube_url)
-        print(f"✅ 영상 다운로드 완료: {video_path}")
+        download_result = frame_extractor.download_video(youtube_url)
+        if not download_result['success']:
+            print(f"❌ 영상 다운로드 실패: {download_result['error']}")
+            return None
+
+        video_path = download_result['path']
+        print(f"✅ 영상 다운로드 완료: {download_result['title']}")
+        print(f"⏱️  길이: {download_result['duration']:.0f}초")
     except Exception as e:
         print(f"❌ 영상 다운로드 실패: {e}")
         return None
 
     try:
-        frames = frame_extractor.extract_frames(
+        frames_result = frame_extractor.extract_frames_scene_detect(
             video_path,
-            max_frames=max_frames,
-            method="scenedetect"
+            max_frames=max_frames
         )
+
+        if not frames_result['success']:
+            print(f"❌ 프레임 추출 실패: {frames_result['error']}")
+            if cleanup_files and video_path and os.path.exists(video_path):
+                os.remove(video_path)
+            return None
+
+        frames = [frame['path'] for frame in frames_result['frames']]
         print(f"✅ 프레임 추출 완료: {len(frames)}개")
 
         # 영상 파일 즉시 삭제
@@ -95,12 +111,17 @@ def analyze_youtube_video(
     print("2️⃣  자막/음성 텍스트 추출")
     print("=" * 80)
 
-    transcript_extractor = TranscriptExtractor()
-
     try:
-        transcript = transcript_extractor.extract(youtube_url)
-        print(f"✅ 자막 추출 완료: {len(transcript)} 글자")
-        print(f"📝 자막 미리보기: {transcript[:200]}...\n")
+        transcript_result = TranscriptExtractor.get_transcript(youtube_url, languages=['ko', 'en'])
+
+        if transcript_result['success']:
+            transcript = transcript_result['full_text']
+            print(f"✅ 자막 추출 완료: {len(transcript)} 글자")
+            print(f"📝 언어: {transcript_result['language']}")
+            print(f"📝 자막 미리보기: {transcript[:200]}...\n")
+        else:
+            print(f"⚠️  자막 추출 실패: {transcript_result.get('error', 'Unknown error')}")
+            transcript = "[자막 없음]"
     except Exception as e:
         print(f"⚠️  자막 추출 실패: {e}")
         transcript = "[자막 없음]"
