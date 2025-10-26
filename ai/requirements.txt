@@ -35,10 +35,7 @@ ffmpeg-python>=0.2.0
 # Whisper (로컬 음성 인식)
 openai-whisper>=20231117
 
-# Google Gemini Vision API
-google-generativeai>=0.3.0
-
-# LLaVA (로컬 비전 모델)
+# Llama 3.2 Vision 모델용 추가 의존성
 protobuf
 
 # 유틸리티
