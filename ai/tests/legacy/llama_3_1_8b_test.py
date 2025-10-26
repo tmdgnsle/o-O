@@ -2,7 +2,10 @@
 Llama 3.1 8B 테스트
 RTX A6000 48GB VRAM 최적화
 """
+import logging
 import torch
+
+logger = logging.getLogger(__name__)
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import os
 from dotenv import load_dotenv
@@ -20,9 +23,9 @@ class Llama31Chat:
             quantization: "int4", "int8", "fp16", None
         """
         self.model_name = model_name
-        print(f"🚀 모델 로딩 중: {model_name}")
-        print(f"📊 양자화: {quantization if quantization else 'FP16'}")
-        print(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
+        logger.info(f"🚀 모델 로딩 중: {model_name}")
+        logger.info(f"📊 양자화: {quantization if quantization else 'FP16'}")
+        logger.info(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
 
         # 토크나이저 로드
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -32,7 +35,7 @@ class Llama31Chat:
 
         # 양자화 설정
         if quantization == "int4" and torch.cuda.is_available():
-            print("⚙️  INT4 양자화 설정 (VRAM ~4GB)")
+            logger.info("⚙️  INT4 양자화 설정 (VRAM ~4GB)")
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
@@ -46,7 +49,7 @@ class Llama31Chat:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         elif quantization == "int8" and torch.cuda.is_available():
-            print("⚙️  INT8 양자화 설정 (VRAM ~8GB)")
+            logger.info("⚙️  INT8 양자화 설정 (VRAM ~8GB)")
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -55,7 +58,7 @@ class Llama31Chat:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         else:
-            print("⚙️  FP16 설정 (VRAM ~16GB)")
+            logger.info("⚙️  FP16 설정 (VRAM ~16GB)")
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch.float16,
@@ -67,11 +70,11 @@ class Llama31Chat:
 
         # VRAM 사용량 출력
         if torch.cuda.is_available():
-            print(f"✅ 모델 로딩 완료!")
-            print(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-            print(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
+            logger.info(f"✅ 모델 로딩 완료!")
+            logger.info(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+            logger.info(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
         else:
-            print("✅ 모델 로딩 완료! (CPU 모드)\n")
+            logger.info("✅ 모델 로딩 완료! (CPU 모드)\n")
 
     def chat(self, user_message, max_tokens=512, temperature=0.7):
         """사용자 메시지에 대한 응답 생성"""
@@ -126,7 +129,7 @@ class Llama31Chat:
     def reset(self):
         """대화 히스토리 초기화"""
         self.conversation_history = []
-        print("🔄 대화 히스토리 초기화\n")
+        logger.info("🔄 대화 히스토리 초기화\n")
 
     def get_vram_usage(self):
         """현재 VRAM 사용량 반환"""
@@ -138,14 +141,14 @@ class Llama31Chat:
 
 
 def main():
-    print("=" * 50)
-    print("🦙 Llama 3.1 8B 대화형 챗봇")
-    print("=" * 50)
-    print("\n명령어:")
-    print("  'exit' / 'quit': 종료")
-    print("  'reset': 대화 초기화")
-    print("  'history': 대화 히스토리")
-    print("  'vram': VRAM 사용량\n")
+    logger.info("=" * 50)
+    logger.info("🦙 Llama 3.1 8B 대화형 챗봇")
+    logger.info("=" * 50)
+    logger.info("\n명령어:")
+    logger.info("  'exit' / 'quit': 종료")
+    logger.info("  'reset': 대화 초기화")
+    logger.info("  'history': 대화 히스토리")
+    logger.info("  'vram': VRAM 사용량\n")
 
     # 챗봇 초기화 (INT4 양자화 - 48GB VRAM에 최적)
     chatbot = Llama31Chat(quantization="int4")
@@ -156,7 +159,7 @@ def main():
             user_input = input("You: ").strip()
 
             if user_input.lower() in ['exit', 'quit']:
-                print("\n👋 채팅 종료")
+                logger.info("\n👋 채팅 종료")
                 break
 
             if user_input.lower() == 'reset':
@@ -164,31 +167,31 @@ def main():
                 continue
 
             if user_input.lower() == 'vram':
-                print(f"📊 VRAM: {chatbot.get_vram_usage()}\n")
+                logger.info(f"📊 VRAM: {chatbot.get_vram_usage()}\n")
                 continue
 
             if user_input.lower() == 'history':
-                print("\n" + "=" * 50)
-                print("📜 대화 히스토리")
-                print("=" * 50)
+                logger.info("\n" + "=" * 50)
+                logger.info("📜 대화 히스토리")
+                logger.info("=" * 50)
                 for msg in chatbot.conversation_history:
                     role = "You" if msg["role"] == "user" else "🤖"
-                    print(f"{role}: {msg['content']}\n")
+                    logger.info(f"{role}: {msg['content']}\n")
                 continue
 
             if not user_input:
                 continue
 
             # 응답 생성
-            print("🤖: ", end="", flush=True)
+            logger.info("🤖: ", end="", flush=True)
             response = chatbot.chat(user_input)
-            print(f"{response}\n")
+            logger.info(f"{response}\n")
 
         except KeyboardInterrupt:
-            print("\n\n👋 채팅 종료")
+            logger.info("\n\n👋 채팅 종료")
             break
         except Exception as e:
-            print(f"\n❌ 오류: {e}\n")
+            logger.info(f"\n❌ 오류: {e}\n")
 
 
 if __name__ == "__main__":

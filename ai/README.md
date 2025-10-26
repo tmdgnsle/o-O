@@ -1,10 +1,27 @@
 # YouTube 영상 분석 AI 시스템
 
-Llama 3.2 Vision과 Llama 3.1을 활용한 YouTube 영상 자동 분석 시스템
+Llama 3.2 Vision과 Llama 3.1을 활용한 YouTube 영상 자동 분석 시스템 + FastAPI 서버
+
+## 📁 프로젝트 구조
+
+```
+ai/
+├── src/                    # 소스 코드
+│   ├── api/               # FastAPI 서버
+│   ├── core/              # 핵심 분석 로직
+│   └── utils/             # 유틸리티
+├── tests/                 # 테스트 파일
+├── scripts/               # 실행 스크립트
+├── docs/                  # 문서
+├── deprecated/            # 사용 중단 코드
+└── requirements.txt
+```
 
 ## 개요
 
 YouTube 영상을 다운로드하고, 주요 프레임 추출, 자막/음성 분석, 비전 AI 분석을 통해 종합적인 요약 리포트를 자동으로 생성합니다.
+
+**FastAPI 기반 REST API**로 제공되어 쉽게 통합 가능합니다.
 
 ## 주요 기능
 
@@ -67,62 +84,69 @@ VRAM이 부족한 경우:
 - Vision과 Text 모델이 순차적으로 실행되므로 피크 메모리는 ~10GB입니다
 - 더 낮은 VRAM 환경에서는 한 번에 하나의 모델만 로드됩니다
 
-## 사용법
+## 🚀 빠른 시작
 
-### 기본 사용
+### 1. API 서버 실행
 
 ```bash
+# 스크립트로 실행
+./scripts/run_server.sh
+
+# 또는 직접 실행
+python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+서버 실행 후:
+- **API 문서**: http://localhost:8000/docs
+- **상세 가이드**: [docs/API_GUIDE.md](docs/API_GUIDE.md)
+
+### 2. API 사용 예시
+
+```bash
+# 영상 분석 요청
+curl -X POST "http://localhost:8000/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
+    "max_frames": 8
+  }'
+
+# 응답: {"task_id": "xxx-xxx-xxx", "status": "pending", ...}
+
+# 작업 상태 조회
+curl "http://localhost:8000/tasks/{task_id}"
+```
+
+### 3. Python으로 API 호출
+
+```python
+import requests
+import time
+
+API_URL = "http://localhost:8000"
+
+# 분석 요청
+response = requests.post(f"{API_URL}/analyze", json={
+    "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
+    "max_frames": 8
+})
+task_id = response.json()["task_id"]
+
+# 완료 대기
+while True:
+    result = requests.get(f"{API_URL}/tasks/{task_id}").json()
+    if result["status"] == "completed":
+        print("✅ 완료!")
+        print(result["summary"])
+        break
+    time.sleep(5)
+```
+
+### 4. 직접 테스트 (API 없이)
+
+```bash
+cd tests
 python test_llama_video_analyzer.py
-```
-
-프롬프트에 YouTube URL 입력:
-
-```
-YouTube URL을 입력하세요: https://www.youtube.com/watch?v=XXXXXXXXX
-```
-
-### 프로그래밍 방식 사용
-
-```python
-from test_llama_video_analyzer import analyze_youtube_video
-
-result = analyze_youtube_video(
-    youtube_url="https://www.youtube.com/watch?v=XXXXXXXXX",
-    output_dir="output",
-    max_frames=8,
-    vision_quantization="int4",
-    text_quantization="int4"
-)
-
-print(f"리포트 경로: {result['report_path']}")
-```
-
-### 개별 모듈 사용
-
-```python
-from video_analyzer import (
-    FrameExtractor,
-    TranscriptExtractor,
-    LlamaVisionAnalyzer,
-    LlamaTextAnalyzer
-)
-
-# 1. 프레임 추출
-extractor = FrameExtractor()
-video_path = extractor.download_youtube_video(url)
-frames = extractor.extract_frames(video_path, max_frames=10)
-
-# 2. 자막 추출
-transcript_extractor = TranscriptExtractor()
-transcript = transcript_extractor.extract(url)
-
-# 3. 이미지 분석
-vision = LlamaVisionAnalyzer(quantization="int4")
-analysis = vision.analyze_image("frame.jpg", "이 이미지를 설명해주세요")
-
-# 4. 텍스트 요약
-text = LlamaTextAnalyzer(quantization="int4")
-summary = text.summarize_video(frame_analyses, transcript)
 ```
 
 ## 프로젝트 구조

@@ -3,10 +3,13 @@
 - youtube-transcript-api 우선
 - 실패시 Whisper 백업
 """
+import logging
 from typing import List, Dict, Optional
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 import re
+
+logger = logging.getLogger(__name__)
 
 
 class TranscriptExtractor:
@@ -149,12 +152,12 @@ if __name__ == "__main__":
     result = extractor.get_transcript(test_url)
 
     if result['success']:
-        print(f"✅ 자막 추출 성공!")
-        print(f"방법: {result['method']}")
-        print(f"언어: {result['language']}")
-        print(f"세그먼트 수: {len(result['segments'])}")
-        print(f"\n첫 3줄:")
+        logger.info(f"✅ 자막 추출 성공!")
+        logger.info(f"방법: {result['method']}")
+        logger.info(f"언어: {result['language']}")
+        logger.info(f"세그먼트 수: {len(result['segments'])}")
+        logger.info(f"\n첫 3줄:")
         for seg in result['segments'][:3]:
-            print(f"  [{seg['start']:.1f}s] {seg['text']}")
+            logger.info(f"  [{seg['start']:.1f}s] {seg['text']}")
     else:
-        print(f"❌ 실패: {result['error']}")
+        logger.info(f"❌ 실패: {result['error']}")

@@ -3,6 +3,7 @@ Llama 3.2 11B Vision Analyzer
 이미지 분석을 위한 Llama 3.2 Vision 모델 래퍼
 """
 import torch
+import logging
 from transformers import MllamaForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 from PIL import Image
 from typing import List, Dict, Union, Optional
@@ -10,6 +11,8 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class LlamaVisionAnalyzer:
@@ -28,9 +31,9 @@ class LlamaVisionAnalyzer:
             quantization: "int4", "int8", "fp16", None
         """
         self.model_name = model_name
-        print(f"🚀 Llama Vision 모델 로딩 중: {model_name}")
-        print(f"📊 양자화: {quantization if quantization else 'BF16'}")
-        print(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
+        logger.info(f"🚀 Llama Vision 모델 로딩 중: {model_name}")
+        logger.info(f"📊 양자화: {quantization if quantization else 'BF16'}")
+        logger.info(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
 
         # Processor (토크나이저 + 이미지 프로세서) 로드
         self.processor = AutoProcessor.from_pretrained(
@@ -40,7 +43,7 @@ class LlamaVisionAnalyzer:
 
         # 양자화 설정에 따른 모델 로드
         if quantization == "int4" and torch.cuda.is_available():
-            print("⚙️  INT4 양자화 설정 (VRAM ~10GB)")
+            logger.info("⚙️  INT4 양자화 설정 (VRAM ~10GB)")
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
@@ -54,7 +57,7 @@ class LlamaVisionAnalyzer:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         elif quantization == "int8" and torch.cuda.is_available():
-            print("⚙️  INT8 양자화 설정 (VRAM ~15GB)")
+            logger.info("⚙️  INT8 양자화 설정 (VRAM ~15GB)")
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
             self.model = MllamaForConditionalGeneration.from_pretrained(
                 model_name,
@@ -63,7 +66,7 @@ class LlamaVisionAnalyzer:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         else:
-            print("⚙️  BF16 설정 (VRAM ~22GB)")
+            logger.info("⚙️  BF16 설정 (VRAM ~22GB)")
             self.model = MllamaForConditionalGeneration.from_pretrained(
                 model_name,
                 torch_dtype=torch.bfloat16,
@@ -73,17 +76,17 @@ class LlamaVisionAnalyzer:
 
         # VRAM 사용량 출력
         if torch.cuda.is_available():
-            print(f"✅ 모델 로딩 완료!")
-            print(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-            print(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
+            logger.info(f"✅ 모델 로딩 완료!")
+            logger.info(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+            logger.info(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
         else:
-            print("✅ 모델 로딩 완료! (CPU 모드)\n")
+            logger.info("✅ 모델 로딩 완료! (CPU 모드)\n")
 
     def analyze_image(
         self,
         image: Union[str, Image.Image],
         prompt: str = "이 이미지에 대해 자세히 설명해주세요.",
-        max_tokens: int = 512,
+        max_tokens: int = 1024,
         temperature: float = 0.7
     ) -> str:
         """
@@ -150,7 +153,7 @@ class LlamaVisionAnalyzer:
         self,
         images: List[Union[str, Image.Image]],
         prompt: str = "이 이미지에 대해 자세히 설명해주세요.",
-        max_tokens: int = 512,
+        max_tokens: int = 1024,
         temperature: float = 0.7
     ) -> List[str]:
         """
@@ -167,7 +170,7 @@ class LlamaVisionAnalyzer:
         """
         results = []
         for i, image in enumerate(images):
-            print(f"📸 이미지 {i+1}/{len(images)} 분석 중...")
+            logger.info(f"📸 이미지 {i+1}/{len(images)} 분석 중...")
             result = self.analyze_image(image, prompt, max_tokens, temperature)
             results.append(result)
 
@@ -178,7 +181,7 @@ class LlamaVisionAnalyzer:
         image: Union[str, Image.Image],
         prompt: str,
         context: str,
-        max_tokens: int = 512,
+        max_tokens: int = 1024,
         temperature: float = 0.7
     ) -> str:
         """
@@ -264,14 +267,14 @@ class LlamaVisionAnalyzer:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        print("🧹 메모리 정리 완료")
+        logger.info("🧹 메모리 정리 완료")
 
 
 def main():
     """테스트 예제"""
-    print("=" * 60)
-    print("🦙 Llama 3.2 11B Vision Analyzer 테스트")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("🦙 Llama 3.2 11B Vision Analyzer 테스트")
+    logger.info("=" * 60)
 
     # Analyzer 초기화
     analyzer = LlamaVisionAnalyzer(quantization="int4")
@@ -281,19 +284,19 @@ def main():
 
     if os.path.exists(test_image):
         # 기본 분석
-        print("\n📸 이미지 분석 중...")
+        logger.info("\n📸 이미지 분석 중...")
         result = analyzer.analyze_image(
             test_image,
             prompt="이 이미지에서 무엇이 보이나요? 자세히 설명해주세요."
         )
-        print(f"\n🤖 분석 결과:\n{result}\n")
+        logger.info(f"\n🤖 분석 결과:\n{result}\n")
 
         # VRAM 사용량 확인
         vram = analyzer.get_vram_usage()
-        print(f"📊 VRAM 사용량: {vram['allocated_gb']:.2f} GB")
+        logger.info(f"📊 VRAM 사용량: {vram['allocated_gb']:.2f} GB")
     else:
-        print(f"\n⚠️  테스트 이미지 '{test_image}'를 찾을 수 없습니다.")
-        print("실제 이미지 경로를 지정하여 테스트하세요.")
+        logger.info(f"\n⚠️  테스트 이미지 '{test_image}'를 찾을 수 없습니다.")
+        logger.info("실제 이미지 경로를 지정하여 테스트하세요.")
 
     # 메모리 정리
     analyzer.cleanup()

@@ -7,9 +7,12 @@
 import os
 import cv2
 import yt_dlp
+import logging
 from typing import List, Dict, Optional
 from pathlib import Path
 import tempfile
+
+logger = logging.getLogger(__name__)
 
 
 class FrameExtractor:
@@ -193,7 +196,7 @@ class FrameExtractor:
 
         except Exception as e:
             # scenedetect 실패시 uniform 방식으로 fallback
-            print(f"Scene detection failed: {e}, falling back to uniform extraction")
+            logger.info(f"Scene detection failed: {e}, falling back to uniform extraction")
             return self.extract_frames_uniform(video_path, max_frames=max_frames)
 
     def get_thumbnail(self, video_path: str) -> Optional[str]:
@@ -219,7 +222,7 @@ class FrameExtractor:
             return None
 
         except Exception as e:
-            print(f"Thumbnail extraction failed: {e}")
+            logger.info(f"Thumbnail extraction failed: {e}")
             return None
 
     def cleanup(self):
@@ -234,21 +237,21 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python frame_extractor.py <youtube_url>")
+        logger.info("Usage: python frame_extractor.py <youtube_url>")
         sys.exit(1)
 
     url = sys.argv[1]
 
     extractor = FrameExtractor()
 
-    print("📥 영상 다운로드 중...")
+    logger.info("📥 영상 다운로드 중...")
     result = extractor.download_video(url)
 
     if result['success']:
-        print(f"✅ 다운로드 완료: {result['title']}")
-        print(f"⏱️  길이: {result['duration']:.0f}초")
+        logger.info(f"✅ 다운로드 완료: {result['title']}")
+        logger.info(f"⏱️  길이: {result['duration']:.0f}초")
 
-        print("\n🎞️  프레임 추출 중...")
+        logger.info("\n🎞️  프레임 추출 중...")
         frames_result = extractor.extract_frames_uniform(
             result['path'],
             interval_seconds=30,
@@ -256,10 +259,10 @@ if __name__ == "__main__":
         )
 
         if frames_result['success']:
-            print(f"✅ {frames_result['total_frames']}개 프레임 추출 완료")
+            logger.info(f"✅ {frames_result['total_frames']}개 프레임 추출 완료")
             for frame in frames_result['frames']:
-                print(f"  [{frame['timestamp']:.1f}s] {frame['path']}")
+                logger.info(f"  [{frame['timestamp']:.1f}s] {frame['path']}")
         else:
-            print(f"❌ 프레임 추출 실패: {frames_result['error']}")
+            logger.info(f"❌ 프레임 추출 실패: {frames_result['error']}")
     else:
-        print(f"❌ 다운로드 실패: {result['error']}")
+        logger.info(f"❌ 다운로드 실패: {result['error']}")

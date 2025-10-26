@@ -5,20 +5,34 @@ Llama 기반 YouTube 영상 분석 파이프라인
 - 사용한 파일 자동 삭제
 """
 import os
+import sys
 import shutil
 import torch
-from video_analyzer import (
+import logging
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 프로젝트 루트를 PYTHONPATH에 추가
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.core import (
     FrameExtractor,
     TranscriptExtractor,
     LlamaVisionAnalyzer,
     LlamaTextAnalyzer
 )
-from dotenv import load_dotenv
 
 load_dotenv()
 
 # HF_TRANSFER 비활성화 (hf_transfer 패키지가 없으면 오류 발생)
 os.environ['HF_HUB_ENABLE_HF_TRANSFER'] = '0'
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def analyze_youtube_video(
@@ -43,13 +57,13 @@ def analyze_youtube_video(
     Returns:
         분석 결과 딕셔너리
     """
-    print("=" * 80)
-    print("🎬 Llama 기반 YouTube 영상 분석 시작")
-    print("=" * 80)
-    print(f"📺 영상 URL: {youtube_url}")
-    print(f"📁 임시 경로: {output_dir}")
-    print(f"🖼️  최대 프레임: {max_frames}")
-    print(f"🧹 자동 삭제: {'활성화' if cleanup_files else '비활성화'}\n")
+    logger.info("=" * 80)
+    logger.info("🎬 Llama 기반 YouTube 영상 분석 시작")
+    logger.info("=" * 80)
+    logger.info(f"📺 영상 URL: {youtube_url}")
+    logger.info(f"📁 임시 경로: {output_dir}")
+    logger.info(f"🖼️  최대 프레임: {max_frames}")
+    logger.info(f"🧹 자동 삭제: {'활성화' if cleanup_files else '비활성화'}\n")
 
     os.makedirs(output_dir, exist_ok=True)
     video_path = None
@@ -58,23 +72,23 @@ def analyze_youtube_video(
     # =========================================================================
     # 1단계: 영상 다운로드 및 프레임 추출
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("1️⃣  영상 다운로드 및 프레임 추출")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("1️⃣  영상 다운로드 및 프레임 추출")
+    logger.info("=" * 80)
 
     frame_extractor = FrameExtractor(output_dir=output_dir)
 
     try:
         download_result = frame_extractor.download_video(youtube_url)
         if not download_result['success']:
-            print(f"❌ 영상 다운로드 실패: {download_result['error']}")
+            logger.info(f"❌ 영상 다운로드 실패: {download_result['error']}")
             return None
 
         video_path = download_result['path']
-        print(f"✅ 영상 다운로드 완료: {download_result['title']}")
-        print(f"⏱️  길이: {download_result['duration']:.0f}초")
+        logger.info(f"✅ 영상 다운로드 완료: {download_result['title']}")
+        logger.info(f"⏱️  길이: {download_result['duration']:.0f}초")
     except Exception as e:
-        print(f"❌ 영상 다운로드 실패: {e}")
+        logger.info(f"❌ 영상 다운로드 실패: {e}")
         return None
 
     try:
@@ -84,21 +98,21 @@ def analyze_youtube_video(
         )
 
         if not frames_result['success']:
-            print(f"❌ 프레임 추출 실패: {frames_result['error']}")
+            logger.info(f"❌ 프레임 추출 실패: {frames_result['error']}")
             if cleanup_files and video_path and os.path.exists(video_path):
                 os.remove(video_path)
             return None
 
         frames = [frame['path'] for frame in frames_result['frames']]
-        print(f"✅ 프레임 추출 완료: {len(frames)}개")
+        logger.info(f"✅ 프레임 추출 완료: {len(frames)}개")
 
         # 영상 파일 즉시 삭제
         if cleanup_files and video_path and os.path.exists(video_path):
             os.remove(video_path)
-            print(f"🧹 영상 파일 삭제: {video_path}")
+            logger.info(f"🧹 영상 파일 삭제: {video_path}")
 
     except Exception as e:
-        print(f"❌ 프레임 추출 실패: {e}")
+        logger.info(f"❌ 프레임 추출 실패: {e}")
         # 실패해도 영상 파일은 삭제
         if cleanup_files and video_path and os.path.exists(video_path):
             os.remove(video_path)
@@ -107,37 +121,37 @@ def analyze_youtube_video(
     # =========================================================================
     # 2단계: 자막/음성 텍스트 추출
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("2️⃣  자막/음성 텍스트 추출")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("2️⃣  자막/음성 텍스트 추출")
+    logger.info("=" * 80)
 
     try:
         transcript_result = TranscriptExtractor.get_transcript(youtube_url, languages=['ko', 'en'])
 
         if transcript_result['success']:
             transcript = transcript_result['full_text']
-            print(f"✅ 자막 추출 완료: {len(transcript)} 글자")
-            print(f"📝 언어: {transcript_result['language']}")
-            print(f"📝 자막 미리보기: {transcript[:200]}...\n")
+            logger.info(f"✅ 자막 추출 완료: {len(transcript)} 글자")
+            logger.info(f"📝 언어: {transcript_result['language']}")
+            logger.info(f"📝 자막 미리보기: {transcript[:200]}...\n")
         else:
-            print(f"⚠️  자막 추출 실패: {transcript_result.get('error', 'Unknown error')}")
+            logger.info(f"⚠️  자막 추출 실패: {transcript_result.get('error', 'Unknown error')}")
             transcript = "[자막 없음]"
     except Exception as e:
-        print(f"⚠️  자막 추출 실패: {e}")
+        logger.info(f"⚠️  자막 추출 실패: {e}")
         transcript = "[자막 없음]"
 
     # =========================================================================
     # 3단계: 프레임 시각 분석 (Llama 3.2 11B Vision)
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("3️⃣  프레임 시각 분석 (Llama 3.2 11B Vision)")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("3️⃣  프레임 시각 분석 (Llama 3.2 11B Vision)")
+    logger.info("=" * 80)
 
     vision_analyzer = LlamaVisionAnalyzer(quantization=vision_quantization)
 
     frame_analyses = []
     for i, frame_path in enumerate(frames):
-        print(f"\n📸 프레임 {i+1}/{len(frames)} 분석 중...")
+        logger.info(f"\n📸 프레임 {i+1}/{len(frames)} 분석 중...")
 
         try:
             # 자막 컨텍스트와 함께 분석
@@ -158,34 +172,34 @@ def analyze_youtube_video(
                 )
 
             frame_analyses.append(analysis)
-            print(f"✅ 분석 완료")
-            print(f"   {analysis[:150]}...")
+            logger.info(f"✅ 분석 완료")
+            logger.info(f"   {analysis}")
 
         except Exception as e:
-            print(f"❌ 분석 실패: {e}")
+            logger.info(f"❌ 분석 실패: {e}")
             frame_analyses.append(f"[분석 실패: {e}]")
 
         finally:
             # 프레임 이미지 즉시 삭제
             if cleanup_files and os.path.exists(frame_path):
                 os.remove(frame_path)
-                print(f"   🧹 프레임 삭제: {os.path.basename(frame_path)}")
+                logger.info(f"   🧹 프레임 삭제: {os.path.basename(frame_path)}")
 
     # Vision 모델 메모리 정리
     vram_after_vision = vision_analyzer.get_vram_usage()
-    print(f"\n📊 Vision 모델 VRAM 사용량: {vram_after_vision['allocated_gb']:.2f} GB")
+    logger.info(f"\n📊 Vision 모델 VRAM 사용량: {vram_after_vision['allocated_gb']:.2f} GB")
     vision_analyzer.cleanup()
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-        print(f"🧹 메모리 정리 후 VRAM: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+        logger.info(f"🧹 메모리 정리 후 VRAM: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
 
     # =========================================================================
     # 4단계: 종합 요약 생성 (Llama 3.1 8B)
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("4️⃣  종합 요약 생성 (Llama 3.1 8B)")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("4️⃣  종합 요약 생성 (Llama 3.1 8B)")
+    logger.info("=" * 80)
 
     text_analyzer = LlamaTextAnalyzer(quantization=text_quantization)
 
@@ -196,9 +210,9 @@ def analyze_youtube_video(
             max_tokens=2048,
             temperature=0.3
         )
-        print("✅ 요약 생성 완료\n")
+        logger.info("✅ 요약 생성 완료\n")
     except Exception as e:
-        print(f"❌ 요약 생성 실패: {e}")
+        logger.info(f"❌ 요약 생성 실패: {e}")
         summary = "[요약 생성 실패]"
 
     # 핵심 포인트 추출
@@ -207,75 +221,75 @@ def analyze_youtube_video(
             transcript if transcript != "[자막 없음]" else "\n".join(frame_analyses),
             max_points=5
         )
-        print("✅ 핵심 포인트 추출 완료\n")
+        logger.info("✅ 핵심 포인트 추출 완료\n")
     except Exception as e:
-        print(f"⚠️  핵심 포인트 추출 실패: {e}")
+        logger.info(f"⚠️  핵심 포인트 추출 실패: {e}")
         key_points = []
 
     # Text 모델 메모리 정리
     vram_after_text = text_analyzer.get_vram_usage()
-    print(f"📊 Text 모델 VRAM 사용량: {vram_after_text['allocated_gb']:.2f} GB")
+    logger.info(f"📊 Text 모델 VRAM 사용량: {vram_after_text['allocated_gb']:.2f} GB")
     text_analyzer.cleanup()
 
     # =========================================================================
     # 5단계: 결과 출력
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("5️⃣  분석 결과 출력")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("5️⃣  분석 결과 출력")
+    logger.info("=" * 80)
 
     # 콘솔에 결과 출력
-    print("\n" + "=" * 80)
-    print("📊 YouTube 영상 분석 결과")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("📊 YouTube 영상 분석 결과")
+    logger.info("=" * 80)
 
-    print(f"\n📺 영상 URL: {youtube_url}")
-    print(f"🖼️  분석된 프레임: {len(frames)}개")
-    print(f"📝 자막 길이: {len(transcript)} 글자")
+    logger.info(f"\n📺 영상 URL: {youtube_url}")
+    logger.info(f"🖼️  분석된 프레임: {len(frames)}개")
+    logger.info(f"📝 자막 길이: {len(transcript)} 글자")
 
-    print("\n" + "-" * 80)
-    print("📝 종합 요약")
-    print("-" * 80)
-    print(summary)
+    logger.info("\n" + "-" * 80)
+    logger.info("📝 종합 요약")
+    logger.info("-" * 80)
+    logger.info(summary)
 
-    print("\n" + "-" * 80)
-    print("🔑 핵심 포인트")
-    print("-" * 80)
+    logger.info("\n" + "-" * 80)
+    logger.info("🔑 핵심 포인트")
+    logger.info("-" * 80)
     for i, point in enumerate(key_points, 1):
-        print(f"{i}. {point}")
+        logger.info(f"{i}. {point}")
 
-    print("\n" + "-" * 80)
-    print("🖼️  프레임별 시각 분석")
-    print("-" * 80)
+    logger.info("\n" + "-" * 80)
+    logger.info("🖼️  프레임별 시각 분석")
+    logger.info("-" * 80)
     for i, analysis in enumerate(frame_analyses, 1):
-        print(f"\n[프레임 {i}]")
-        print(analysis)
-        print()
+        logger.info(f"\n[프레임 {i}]")
+        logger.info(analysis)
+        logger.info()
 
-    print("-" * 80)
-    print("📄 전체 자막")
-    print("-" * 80)
-    print(transcript)
+    logger.info("-" * 80)
+    logger.info("📄 전체 자막")
+    logger.info("-" * 80)
+    logger.info(transcript)
 
-    print("\n" + "=" * 80)
-    print(f"⏰ 분석 일시: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"🤖 분석 모델: Llama 3.2 11B Vision + Llama 3.1 8B")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info(f"⏰ 분석 일시: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"🤖 분석 모델: Llama 3.2 11B Vision + Llama 3.1 8B")
+    logger.info("=" * 80)
 
     # 임시 디렉토리 삭제
     if cleanup_files and os.path.exists(output_dir):
         try:
             shutil.rmtree(output_dir)
-            print(f"\n🧹 임시 디렉토리 삭제: {output_dir}")
+            logger.info(f"\n🧹 임시 디렉토리 삭제: {output_dir}")
         except Exception as e:
-            print(f"\n⚠️  임시 디렉토리 삭제 실패: {e}")
+            logger.info(f"\n⚠️  임시 디렉토리 삭제 실패: {e}")
 
     # =========================================================================
     # 완료
     # =========================================================================
-    print("\n" + "=" * 80)
-    print("✅ 영상 분석 완료!")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("✅ 영상 분석 완료!")
+    logger.info("=" * 80)
 
     return {
         "transcript": transcript,
@@ -291,7 +305,7 @@ def main():
     youtube_url = input("YouTube URL을 입력하세요: ").strip()
 
     if not youtube_url:
-        print("❌ URL이 입력되지 않았습니다.")
+        logger.info("❌ URL이 입력되지 않았습니다.")
         return
 
     # 분석 실행
@@ -305,9 +319,9 @@ def main():
     )
 
     if result:
-        print("\n🎉 분석이 성공적으로 완료되었습니다!")
+        logger.info("\n🎉 분석이 성공적으로 완료되었습니다!")
     else:
-        print("\n❌ 분석 중 오류가 발생했습니다.")
+        logger.info("\n❌ 분석 중 오류가 발생했습니다.")
 
 
 if __name__ == "__main__":

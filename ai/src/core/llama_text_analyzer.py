@@ -3,12 +3,15 @@ Llama 3.1 8B Text Analyzer
 텍스트 요약 및 합성을 위한 Llama 3.1 8B 모델 래퍼
 """
 import torch
+import logging
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from typing import List, Dict, Optional
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class LlamaTextAnalyzer:
@@ -27,9 +30,9 @@ class LlamaTextAnalyzer:
             quantization: "int4", "int8", "fp16", None
         """
         self.model_name = model_name
-        print(f"🚀 Llama Text 모델 로딩 중: {model_name}")
-        print(f"📊 양자화: {quantization if quantization else 'FP16'}")
-        print(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
+        logger.info(f"🚀 Llama Text 모델 로딩 중: {model_name}")
+        logger.info(f"📊 양자화: {quantization if quantization else 'FP16'}")
+        logger.info(f"💾 GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}\n")
 
         # 토크나이저 로드
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -39,7 +42,7 @@ class LlamaTextAnalyzer:
 
         # 양자화 설정에 따른 모델 로드
         if quantization == "int4" and torch.cuda.is_available():
-            print("⚙️  INT4 양자화 설정 (VRAM ~4GB)")
+            logger.info("⚙️  INT4 양자화 설정 (VRAM ~4GB)")
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
@@ -53,7 +56,7 @@ class LlamaTextAnalyzer:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         elif quantization == "int8" and torch.cuda.is_available():
-            print("⚙️  INT8 양자화 설정 (VRAM ~8GB)")
+            logger.info("⚙️  INT8 양자화 설정 (VRAM ~8GB)")
             quantization_config = BitsAndBytesConfig(load_in_8bit=True)
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -62,7 +65,7 @@ class LlamaTextAnalyzer:
                 token=os.getenv("HUGGINGFACE_TOKEN")
             )
         else:
-            print("⚙️  FP16 설정 (VRAM ~16GB)")
+            logger.info("⚙️  FP16 설정 (VRAM ~16GB)")
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 torch_dtype=torch.float16,
@@ -72,11 +75,11 @@ class LlamaTextAnalyzer:
 
         # VRAM 사용량 출력
         if torch.cuda.is_available():
-            print(f"✅ 모델 로딩 완료!")
-            print(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
-            print(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
+            logger.info(f"✅ 모델 로딩 완료!")
+            logger.info(f"📊 VRAM 사용량: {torch.cuda.memory_allocated() / 1024**3:.2f} GB")
+            logger.info(f"📊 VRAM 예약: {torch.cuda.memory_reserved() / 1024**3:.2f} GB\n")
         else:
-            print("✅ 모델 로딩 완료! (CPU 모드)\n")
+            logger.info("✅ 모델 로딩 완료! (CPU 모드)\n")
 
     def generate(
         self,
@@ -329,32 +332,32 @@ class LlamaTextAnalyzer:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        print("🧹 메모리 정리 완료")
+        logger.info("🧹 메모리 정리 완료")
 
 
 def main():
     """테스트 예제"""
-    print("=" * 60)
-    print("🦙 Llama 3.1 8B Text Analyzer 테스트")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("🦙 Llama 3.1 8B Text Analyzer 테스트")
+    logger.info("=" * 60)
 
     # Analyzer 초기화
     analyzer = LlamaTextAnalyzer(quantization="int4")
 
     # 간단한 생성 테스트
-    print("\n📝 텍스트 생성 테스트...")
+    logger.info("\n📝 텍스트 생성 테스트...")
     result = analyzer.generate(
         "인공지능의 미래에 대해 3문장으로 설명해주세요.",
         temperature=0.7
     )
-    print(f"\n🤖 생성 결과:\n{result}\n")
+    logger.info(f"\n🤖 생성 결과:\n{result}\n")
 
     # VRAM 사용량 확인
     vram = analyzer.get_vram_usage()
-    print(f"📊 VRAM 사용량: {vram['allocated_gb']:.2f} GB")
+    logger.info(f"📊 VRAM 사용량: {vram['allocated_gb']:.2f} GB")
 
     # 핵심 포인트 추출 테스트
-    print("\n📌 핵심 포인트 추출 테스트...")
+    logger.info("\n📌 핵심 포인트 추출 테스트...")
     sample_text = """
     인공지능은 현대 사회에서 점점 더 중요한 역할을 하고 있습니다.
     의료, 교육, 금융, 제조업 등 다양한 분야에서 AI가 활용되고 있으며,
@@ -362,9 +365,9 @@ def main():
     하지만 AI 윤리와 개인정보 보호 문제도 함께 고려해야 합니다.
     """
     points = analyzer.extract_key_points(sample_text, max_points=3)
-    print("핵심 포인트:")
+    logger.info("핵심 포인트:")
     for i, point in enumerate(points, 1):
-        print(f"{i}. {point}")
+        logger.info(f"{i}. {point}")
 
     # 메모리 정리
     analyzer.cleanup()
