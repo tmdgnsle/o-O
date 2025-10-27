@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 실시간 스트리밍 STT (Speech-to-Text)
 말하면서 바로바로 텍스트로 변환
 """
+import os
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
+import sys
+import io
+
+# Windows에서 UTF-8 강제 설정
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 import whisper
 import sounddevice as sd
 import numpy as np
 import queue
 import threading
-import sys
 from datetime import datetime
 
 
@@ -65,21 +80,36 @@ class StreamingSTT:
                     if np.abs(audio_chunk).max() < 0.01:
                         continue
 
-                    # Whisper로 인식
+                    # Whisper로 인식 (한글 강제)
                     try:
                         result = self.model.transcribe(
                             audio_chunk,
-                            language=self.language,
+                            language=self.language,  # 'ko' 강제
                             fp16=False,
                             verbose=False,
-                            task='transcribe'
+                            task='transcribe',
+                            no_speech_threshold=0.6,  # 음성 감지 임계값 상향 (노이즈 감소)
+                            compression_ratio_threshold=2.4,  # 압축률 체크
+                            temperature=0.0,  # 온도 0으로 설정 (가장 확실한 결과만)
+                            beam_size=5,  # 빔 서치 크기
+                            best_of=5,  # 최상의 결과 선택
                         )
 
                         text = result['text'].strip()
-                        if text:
-                            timestamp = datetime.now().strftime("%H:%M:%S")
-                            print(f"[{timestamp}] {text}")
-                            sys.stdout.flush()
+
+                        # 필터링: initial_prompt와 같거나 너무 짧으면 무시
+                        if text and text != "한국어로 말하고 있습니다." and len(text) > 1:
+                            # 한글 비율 체크 (최소 50% 이상 한글이어야 함)
+                            korean_chars = sum(1 for c in text if '가' <= c <= '힣')
+                            korean_ratio = korean_chars / len(text.replace(' ', ''))
+
+                            if korean_ratio >= 0.3:  # 30% 이상 한글
+                                timestamp = datetime.now().strftime("%H:%M:%S")
+                                confidence = result.get('language_probability', 0)
+                                print(f"[{timestamp}] {text} (신뢰도: {confidence:.2f})")
+                                sys.stdout.flush()
+                            else:
+                                print(f"⚠️  한글 비율 낮음 ({korean_ratio:.1%}): {text}", file=sys.stderr)
 
                     except Exception as e:
                         print(f"⚠️  인식 오류: {e}", file=sys.stderr)
@@ -88,11 +118,24 @@ class StreamingSTT:
             except queue.Empty:
                 continue
             except KeyboardInterrupt:
+                print("\n⚠️  Ctrl+C 감지됨, 종료 중...")
+                self.is_running = False
                 break
 
     def start_streaming(self):
         """실시간 스트리밍 시작"""
         self.is_running = True
+
+        # 현재 사용 중인 마이크 정보 출력
+        try:
+            current_device = sd.query_devices(kind='input')
+            print(f"\n🎤 사용 중인 마이크:")
+            print(f"   이름: {current_device['name']}")
+            print(f"   채널: {current_device['max_input_channels']}")
+            print(f"   샘플레이트: {current_device['default_samplerate']} Hz")
+            print(f"   장치 인덱스: {current_device['index']}")
+        except Exception as e:
+            print(f"\n⚠️  마이크 정보를 가져올 수 없습니다: {e}")
 
         # 오디오 스트림 처리 스레드 시작
         process_thread = threading.Thread(target=self.process_audio_stream)
@@ -108,15 +151,29 @@ class StreamingSTT:
                 callback=self.audio_callback,
                 blocksize=int(self.sample_rate * 0.1)  # 100ms 블록
             ):
-                print("\n🎤 마이크 준비 완료!")
-                process_thread.join()
+                print("\n✅ 마이크 준비 완료! 녹음 시작...")
+                print("   (Ctrl+C를 눌러 종료하세요)\n")
+
+                # KeyboardInterrupt를 제대로 받기 위해 메인 스레드에서 대기
+                try:
+                    while self.is_running:
+                        process_thread.join(timeout=0.1)
+                        if not process_thread.is_alive():
+                            break
+                except KeyboardInterrupt:
+                    print("\n\n⚠️  사용자가 중단했습니다. 종료 중...")
+                    self.is_running = False
 
         except KeyboardInterrupt:
             print("\n\n⚠️  종료 중...")
+            self.is_running = False
         except Exception as e:
             print(f"\n❌ 오류 발생: {e}")
+            self.is_running = False
         finally:
             self.is_running = False
+            if process_thread.is_alive():
+                process_thread.join(timeout=1.0)
 
     def stop(self):
         """스트리밍 중지"""
