@@ -4,7 +4,8 @@ FastAPI 기반 YouTube 영상 분석 API
 - 작업 상태 조회
 - 결과 조회
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, Dict, List
@@ -13,6 +14,8 @@ import os
 import logging
 from datetime import datetime
 from enum import Enum
+import json
+import asyncio
 
 import sys
 from pathlib import Path
@@ -43,6 +46,11 @@ import torch
 
 tasks: Dict[str, AnalysisResult] = {}
 
+# 전역 모델 캐시 (서버 시작 시 한 번만 로드)
+_vision_analyzer: Optional[LlamaVisionAnalyzer] = None
+_text_analyzer: Optional[LlamaTextAnalyzer] = None
+_models_loaded = False
+
 
 # ============================================================================
 # FastAPI 앱 초기화
@@ -65,25 +73,87 @@ app.add_middleware(
 
 
 # ============================================================================
+# 모델 로딩 함수
+# ============================================================================
+
+def load_models(vision_quantization: str = "int4", text_quantization: str = "int4"):
+    """
+    서버 시작 시 모델을 한 번만 로드합니다.
+
+    Args:
+        vision_quantization: Vision 모델 양자화 방식 (int4/int8/bfloat16)
+        text_quantization: Text 모델 양자화 방식 (int4/int8/fp16)
+    """
+    global _vision_analyzer, _text_analyzer, _models_loaded
+
+    if _models_loaded:
+        logger.info("모델이 이미 로드되어 있습니다.")
+        return
+
+    logger.info("=== 모델 로딩 시작 ===")
+
+    # Vision 모델 로드
+    logger.info(f"Vision 모델 로딩 중... (quantization: {vision_quantization})")
+    _vision_analyzer = LlamaVisionAnalyzer(quantization=vision_quantization)
+    logger.info("✅ Vision 모델 로드 완료")
+
+    # Text 모델 로드
+    logger.info(f"Text 모델 로딩 중... (quantization: {text_quantization})")
+    _text_analyzer = LlamaTextAnalyzer(quantization=text_quantization)
+    logger.info("✅ Text 모델 로드 완료")
+
+    _models_loaded = True
+    logger.info("=== 모든 모델 로딩 완료 ===")
+
+
+def get_vision_analyzer() -> LlamaVisionAnalyzer:
+    """Vision 분석기 인스턴스 반환"""
+    if not _models_loaded or _vision_analyzer is None:
+        raise RuntimeError("모델이 로드되지 않았습니다. 서버 시작 시 모델을 로드해주세요.")
+    return _vision_analyzer
+
+
+def get_text_analyzer() -> LlamaTextAnalyzer:
+    """Text 분석기 인스턴스 반환"""
+    if not _models_loaded or _text_analyzer is None:
+        raise RuntimeError("모델이 로드되지 않았습니다. 서버 시작 시 모델을 로드해주세요.")
+    return _text_analyzer
+
+
+@app.on_event("startup")
+async def startup_event():
+    """서버 시작 시 모델 로드"""
+    # 환경 변수로 양자화 방식 설정 가능
+    vision_quant = os.getenv("VISION_QUANTIZATION", "int4")
+    text_quant = os.getenv("TEXT_QUANTIZATION", "int4")
+
+    load_models(vision_quantization=vision_quant, text_quantization=text_quant)
+
+
+# ============================================================================
 # 분석 함수
 # ============================================================================
 
-def analyze_video_task(
-    task_id: str,
+def analyze_video_sync(
     youtube_url: str,
     max_frames: int,
-    vision_quantization: str,
-    text_quantization: str,
     proxy: Optional[str]
-):
+) -> AnalysisResult:
     """
-    백그라운드에서 실행되는 영상 분석 작업
+    영상 분석을 수행하고 결과를 반환합니다.
     """
+    task_id = str(uuid.uuid4())
     output_dir = f"temp_analysis_{task_id}"
 
+    # 초기 결과 객체 생성
+    result = AnalysisResult(
+        task_id=task_id,
+        status=TaskStatus.DOWNLOADING,
+        youtube_url=youtube_url,
+        created_at=datetime.now().isoformat()
+    )
+
     try:
-        # 작업 상태 업데이트
-        tasks[task_id].status = TaskStatus.DOWNLOADING
 
         # 1. 영상 다운로드 및 프레임 추출
         os.makedirs(output_dir, exist_ok=True)
@@ -94,14 +164,14 @@ def analyze_video_task(
             raise Exception(f"영상 다운로드 실패: {download_result['error']}")
 
         video_path = download_result['path']
-        tasks[task_id].video_info = {
+        result.video_info = {
             "title": download_result['title'],
             "duration": download_result['duration'],
             "channel": download_result.get('channel', 'Unknown')
         }
 
         # 프레임 추출
-        tasks[task_id].status = TaskStatus.EXTRACTING_FRAMES
+        result.status = TaskStatus.EXTRACTING_FRAMES
         frames_result = frame_extractor.extract_frames_scene_detect(
             video_path,
             max_frames=max_frames
@@ -117,18 +187,18 @@ def analyze_video_task(
             os.remove(video_path)
 
         # 2. 자막 추출
-        tasks[task_id].status = TaskStatus.EXTRACTING_TRANSCRIPT
+        result.status = TaskStatus.EXTRACTING_TRANSCRIPT
         transcript_result = TranscriptExtractor.get_transcript(
             youtube_url,
             languages=['ko', 'en']
         )
 
         transcript = transcript_result['full_text'] if transcript_result['success'] else "[자막 없음]"
-        tasks[task_id].transcript = transcript
+        result.transcript = transcript
 
-        # 3. Vision 분석
-        tasks[task_id].status = TaskStatus.ANALYZING_VISION
-        vision_analyzer = LlamaVisionAnalyzer(quantization=vision_quantization)
+        # 3. Vision 분석 (캐싱된 모델 사용)
+        result.status = TaskStatus.ANALYZING_VISION
+        vision_analyzer = get_vision_analyzer()
 
         frame_analyses = []
         for i, frame_path in enumerate(frames):
@@ -154,16 +224,11 @@ def analyze_video_task(
             if os.path.exists(frame_path):
                 os.remove(frame_path)
 
-        tasks[task_id].frame_analyses = frame_analyses
+        result.frame_analyses = frame_analyses
 
-        # Vision 모델 메모리 정리
-        vision_analyzer.cleanup()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-
-        # 4. Text 분석
-        tasks[task_id].status = TaskStatus.ANALYZING_TEXT
-        text_analyzer = LlamaTextAnalyzer(quantization=text_quantization)
+        # 4. Text 분석 (캐싱된 모델 사용)
+        result.status = TaskStatus.ANALYZING_TEXT
+        text_analyzer = get_text_analyzer()
 
         summary = text_analyzer.summarize_video(
             frame_analyses=frame_analyses,
@@ -171,25 +236,195 @@ def analyze_video_task(
             max_tokens=2048,
             temperature=0.3
         )
-        tasks[task_id].summary = summary
+        result.summary = summary
 
         key_points = text_analyzer.extract_key_points(
             transcript if transcript != "[자막 없음]" else "\n".join(frame_analyses),
             max_points=5
         )
-        tasks[task_id].key_points = key_points
-
-        # Text 모델 메모리 정리
-        text_analyzer.cleanup()
+        result.key_points = key_points
 
         # 완료
-        tasks[task_id].status = TaskStatus.COMPLETED
-        tasks[task_id].completed_at = datetime.now().isoformat()
+        result.status = TaskStatus.COMPLETED
+        result.completed_at = datetime.now().isoformat()
 
     except Exception as e:
-        tasks[task_id].status = TaskStatus.FAILED
-        tasks[task_id].error = str(e)
-        tasks[task_id].completed_at = datetime.now().isoformat()
+        result.status = TaskStatus.FAILED
+        result.error = str(e)
+        result.completed_at = datetime.now().isoformat()
+
+    finally:
+        # 임시 디렉토리 정리
+        import shutil
+        if os.path.exists(output_dir):
+            try:
+                shutil.rmtree(output_dir)
+            except Exception as e:
+                logger.warning(f"임시 디렉토리 삭제 실패: {e}")
+
+    return result
+
+
+async def analyze_video_stream(
+    youtube_url: str,
+    max_frames: int,
+    proxy: Optional[str]
+):
+    """
+    영상 분석을 수행하면서 실시간으로 진행 상황을 스트리밍합니다.
+    """
+    task_id = str(uuid.uuid4())
+    output_dir = f"temp_analysis_{task_id}"
+
+    try:
+        # 시작 메시지
+        yield f"data: {json.dumps({'status': 'started', 'task_id': task_id, 'progress': 0, 'message': '분석 시작'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 1. 영상 다운로드 및 프레임 추출
+        yield f"data: {json.dumps({'status': 'downloading', 'progress': 10, 'message': '영상 다운로드 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        os.makedirs(output_dir, exist_ok=True)
+        frame_extractor = FrameExtractor(output_dir=output_dir)
+
+        download_result = frame_extractor.download_video(youtube_url)
+        if not download_result['success']:
+            error_msg = f"영상 다운로드 실패: {download_result['error']}"
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
+            return
+
+        video_path = download_result['path']
+        video_info = {
+            "title": download_result['title'],
+            "duration": download_result['duration'],
+            "channel": download_result.get('channel', 'Unknown')
+        }
+
+        message = f"다운로드 완료: {video_info['title']}"
+        yield f"data: {json.dumps({'status': 'download_complete', 'progress': 20, 'message': message, 'video_info': video_info})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 프레임 추출
+        yield f"data: {json.dumps({'status': 'extracting_frames', 'progress': 25, 'message': '프레임 추출 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        frames_result = frame_extractor.extract_frames_scene_detect(
+            video_path,
+            max_frames=max_frames
+        )
+
+        if not frames_result['success']:
+            error_msg = f"프레임 추출 실패: {frames_result['error']}"
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
+            return
+
+        frames = [frame['path'] for frame in frames_result['frames']]
+
+        # 영상 파일 삭제
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+        message = f"{len(frames)}개 프레임 추출 완료"
+        yield f"data: {json.dumps({'status': 'frames_extracted', 'progress': 35, 'message': message})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 2. 자막 추출
+        yield f"data: {json.dumps({'status': 'extracting_transcript', 'progress': 40, 'message': '자막 추출 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        transcript_result = TranscriptExtractor.get_transcript(
+            youtube_url,
+            languages=['ko', 'en']
+        )
+
+        transcript = transcript_result['full_text'] if transcript_result['success'] else "[자막 없음]"
+
+        yield f"data: {json.dumps({'status': 'transcript_extracted', 'progress': 45, 'message': '자막 추출 완료'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 3. Vision 분석
+        yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': 50, 'message': 'Vision 모델로 프레임 분석 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        vision_analyzer = get_vision_analyzer()
+
+        frame_analyses = []
+        for i, frame_path in enumerate(frames):
+            progress = 50 + int((i / len(frames)) * 30)  # 50% ~ 80%
+            message = f"프레임 {i+1}/{len(frames)} 분석 중..."
+            yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': progress, 'message': message})}\n\n"
+            await asyncio.sleep(0.1)
+
+            if transcript and transcript != "[자막 없음]":
+                analysis = vision_analyzer.analyze_with_context(
+                    image=frame_path,
+                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
+                    context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
+                    max_tokens=1024,
+                    temperature=0.5
+                )
+            else:
+                analysis = vision_analyzer.analyze_image(
+                    image=frame_path,
+                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
+                    max_tokens=1024,
+                    temperature=0.5
+                )
+
+            frame_analyses.append(analysis)
+
+            # 프레임 삭제
+            if os.path.exists(frame_path):
+                os.remove(frame_path)
+
+        yield f"data: {json.dumps({'status': 'vision_complete', 'progress': 80, 'message': 'Vision 분석 완료'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 4. Text 분석
+        yield f"data: {json.dumps({'status': 'analyzing_text', 'progress': 85, 'message': 'Text 모델로 요약 생성 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        text_analyzer = get_text_analyzer()
+
+        summary = text_analyzer.summarize_video(
+            frame_analyses=frame_analyses,
+            transcript=transcript,
+            max_tokens=2048,
+            temperature=0.3
+        )
+
+        yield f"data: {json.dumps({'status': 'summary_complete', 'progress': 92, 'message': '요약 생성 완료'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        yield f"data: {json.dumps({'status': 'extracting_keypoints', 'progress': 95, 'message': '핵심 포인트 추출 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        key_points = text_analyzer.extract_key_points(
+            transcript if transcript != "[자막 없음]" else "\n".join(frame_analyses),
+            max_points=5
+        )
+
+        # 최종 결과
+        result = {
+            "task_id": task_id,
+            "status": "completed",
+            "youtube_url": youtube_url,
+            "created_at": datetime.now().isoformat(),
+            "completed_at": datetime.now().isoformat(),
+            "video_info": video_info,
+            "summary": summary,
+            "key_points": key_points,
+            "frame_analyses": frame_analyses,
+            "transcript": transcript
+        }
+
+        yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '분석 완료!', 'result': result})}\n\n"
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"분석 중 오류 발생: {error_msg}")
+        yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
 
     finally:
         # 임시 디렉토리 정리
@@ -213,7 +448,8 @@ def root():
         "version": "1.0.0",
         "description": "Llama 3.2 Vision + Llama 3.1을 사용한 YouTube 영상 분석",
         "endpoints": {
-            "POST /analyze": "영상 분석 작업 시작",
+            "POST /analyze": "영상 분석 (스트리밍)",
+            "POST /analyze/sync": "영상 분석 (동기식)",
             "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
             "GET /tasks": "모든 작업 목록 조회",
             "DELETE /tasks/{task_id}": "작업 삭제"
@@ -221,44 +457,67 @@ def root():
     }
 
 
-@app.post("/analyze", response_model=TaskResponse)
-async def analyze_video(request: AnalyzeRequest, background_tasks: BackgroundTasks):
+@app.post("/analyze")
+async def analyze_video(request: AnalyzeRequest):
     """
-    YouTube 영상 분석 시작
+    YouTube 영상 분석 (스트리밍 - 실시간 진행 상황 + 최종 결과)
+
+    Server-Sent Events (SSE) 형식으로 실시간 진행 상황을 전달합니다.
 
     - **youtube_url**: YouTube 영상 URL
     - **max_frames**: 최대 추출 프레임 수 (기본: 8)
-    - **vision_quantization**: Vision 모델 양자화 (int4/int8/fp16)
-    - **text_quantization**: Text 모델 양자화 (int4/int8/fp16)
     - **proxy**: 프록시 서버 (선택)
-    """
-    # 작업 ID 생성
-    task_id = str(uuid.uuid4())
 
-    # 초기 작업 상태 생성
-    tasks[task_id] = AnalysisResult(
-        task_id=task_id,
-        status=TaskStatus.PENDING,
-        youtube_url=str(request.youtube_url),
-        created_at=datetime.now().isoformat()
+    ### 응답 형식 (SSE)
+    각 이벤트는 다음 형식으로 전달됩니다:
+    ```
+    data: {"status": "...", "progress": 0-100, "message": "...", ...}
+    ```
+
+    ### 상태 종류
+    - `started`: 분석 시작
+    - `downloading`: 영상 다운로드 중
+    - `download_complete`: 다운로드 완료
+    - `extracting_frames`: 프레임 추출 중
+    - `frames_extracted`: 프레임 추출 완료
+    - `extracting_transcript`: 자막 추출 중
+    - `transcript_extracted`: 자막 추출 완료
+    - `analyzing_vision`: Vision 모델 분석 중
+    - `vision_complete`: Vision 분석 완료
+    - `analyzing_text`: Text 모델 분석 중
+    - `summary_complete`: 요약 생성 완료
+    - `extracting_keypoints`: 핵심 포인트 추출 중
+    - `completed`: 분석 완료 (result 포함)
+    - `failed`: 오류 발생 (error 포함)
+    """
+    return StreamingResponse(
+        analyze_video_stream(
+            youtube_url=str(request.youtube_url),
+            max_frames=request.max_frames,
+            proxy=request.proxy
+        ),
+        media_type="text/event-stream"
     )
 
-    # 백그라운드 작업 시작
-    background_tasks.add_task(
-        analyze_video_task,
-        task_id=task_id,
+
+@app.post("/analyze/sync", response_model=AnalysisResult)
+def analyze_video_sync_endpoint(request: AnalyzeRequest):
+    """
+    YouTube 영상 분석 (동기식 - 분석 완료 후 결과 반환)
+
+    타임아웃이 발생할 수 있으므로 /analyze (스트리밍) 사용을 권장합니다.
+
+    - **youtube_url**: YouTube 영상 URL
+    - **max_frames**: 최대 추출 프레임 수 (기본: 8)
+    - **proxy**: 프록시 서버 (선택)
+    """
+    result = analyze_video_sync(
         youtube_url=str(request.youtube_url),
         max_frames=request.max_frames,
-        vision_quantization=request.vision_quantization,
-        text_quantization=request.text_quantization,
         proxy=request.proxy
     )
 
-    return TaskResponse(
-        task_id=task_id,
-        status=TaskStatus.PENDING,
-        message="영상 분석 작업이 시작되었습니다."
-    )
+    return result
 
 
 @app.get("/tasks/{task_id}", response_model=AnalysisResult)
@@ -322,6 +581,9 @@ async def health_check():
         "status": "healthy",
         "gpu_available": gpu_available,
         "gpu_name": torch.cuda.get_device_name(0) if gpu_available else None,
+        "models_loaded": _models_loaded,
+        "vision_model_loaded": _vision_analyzer is not None,
+        "text_model_loaded": _text_analyzer is not None,
         "active_tasks": sum(1 for task in tasks.values() if task.status not in [TaskStatus.COMPLETED, TaskStatus.FAILED])
     }
 

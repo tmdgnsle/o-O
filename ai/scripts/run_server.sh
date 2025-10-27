@@ -24,5 +24,10 @@ echo "Press Ctrl+C to stop the server"
 echo "================================================"
 echo ""
 
-# 서버 실행
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port "$PORT" --reload
+# 서버 실행 (타임아웃 설정: 30분)
+python -m uvicorn src.api.main:app \
+    --host 0.0.0.0 \
+    --port "$PORT" \
+    --reload \
+    --timeout-keep-alive 1800 \
+    --timeout-graceful-shutdown 30

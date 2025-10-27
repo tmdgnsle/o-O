@@ -22,8 +22,6 @@ class AnalyzeRequest(BaseModel):
     """영상 분석 요청"""
     youtube_url: HttpUrl
     max_frames: int = 8
-    vision_quantization: str = "int4"
-    text_quantization: str = "int4"
     proxy: Optional[str] = None
 
 
