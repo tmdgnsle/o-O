@@ -46,7 +46,9 @@ class LlamaStreamer:
                 model_name,
                 quantization_config=quantization_config,
                 device_map="auto",
-                token=os.getenv("HUGGINGFACE_TOKEN")
+                token=os.getenv("HUGGINGFACE_TOKEN"),
+                low_cpu_mem_usage=True,  # CPU 메모리 사용 최소화
+                torch_dtype=torch.bfloat16,  # 로딩 속도 향상
             )
         elif quantization == "int8" and torch.cuda.is_available():
             print("⚙️  INT8 양자화 (VRAM ~8GB)")
