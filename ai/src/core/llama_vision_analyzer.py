@@ -87,7 +87,8 @@ class LlamaVisionAnalyzer:
         image: Union[str, Image.Image],
         prompt: str = "이 이미지에 대해 자세히 설명해주세요.",
         max_tokens: int = 1024,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        repetition_penalty: float = 1.0
     ) -> str:
         """
         단일 이미지 분석
@@ -97,6 +98,7 @@ class LlamaVisionAnalyzer:
             prompt: 분석 프롬프트
             max_tokens: 최대 생성 토큰 수
             temperature: 샘플링 온도
+            repetition_penalty: 반복 억제 (1.0=없음, 1.2-1.5 권장)
 
         Returns:
             분석 결과 텍스트
@@ -138,7 +140,8 @@ class LlamaVisionAnalyzer:
                 temperature=temperature,
                 top_p=0.9,
                 do_sample=True if temperature > 0 else False,
-                pad_token_id=self.processor.tokenizer.pad_token_id
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+                repetition_penalty=repetition_penalty
             )
 
         # 디코딩 (입력 제거하고 생성된 부분만)
@@ -154,25 +157,40 @@ class LlamaVisionAnalyzer:
         images: List[Union[str, Image.Image]],
         prompt: str = "이 이미지에 대해 자세히 설명해주세요.",
         max_tokens: int = 1024,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        repetition_penalty: float = 1.0,
+        batch_size: int = 1
     ) -> List[str]:
         """
-        여러 이미지를 순차적으로 분석
+        여러 이미지를 배치로 분석
+
+        배치 크기가 1보다 크면 동시에 여러 프레임을 처리하지만,
+        VRAM 제약으로 인해 기본값은 1입니다.
 
         Args:
             images: 이미지 파일 경로 또는 PIL Image 객체 리스트
             prompt: 분석 프롬프트
             max_tokens: 최대 생성 토큰 수
             temperature: 샘플링 온도
+            repetition_penalty: 반복 억제 (1.0=없음, 1.2-1.5 권장)
+            batch_size: 배치 크기 (기본: 1, 순차 처리)
 
         Returns:
             각 이미지의 분석 결과 리스트
         """
         results = []
-        for i, image in enumerate(images):
-            logger.info(f"📸 이미지 {i+1}/{len(images)} 분석 중...")
-            result = self.analyze_image(image, prompt, max_tokens, temperature)
-            results.append(result)
+
+        # 배치 단위로 나누어 처리
+        for batch_start in range(0, len(images), batch_size):
+            batch_end = min(batch_start + batch_size, len(images))
+            batch_images = images[batch_start:batch_end]
+
+            logger.info(f"📸 이미지 배치 {batch_start+1}-{batch_end}/{len(images)} 분석 중...")
+
+            # 배치 내 이미지를 순차적으로 처리 (현재 모델이 배치 추론을 지원하지 않음)
+            for i, image in enumerate(batch_images):
+                result = self.analyze_image(image, prompt, max_tokens, temperature, repetition_penalty)
+                results.append(result)
 
         return results
 
@@ -182,7 +200,8 @@ class LlamaVisionAnalyzer:
         prompt: str,
         context: str,
         max_tokens: int = 1024,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        repetition_penalty: float = 1.0
     ) -> str:
         """
         컨텍스트와 함께 이미지 분석
@@ -193,6 +212,7 @@ class LlamaVisionAnalyzer:
             context: 추가 컨텍스트 정보 (예: 영상 자막, 이전 프레임 분석 결과)
             max_tokens: 최대 생성 토큰 수
             temperature: 샘플링 온도
+            repetition_penalty: 반복 억제 (1.0=없음, 1.2-1.5 권장)
 
         Returns:
             분석 결과 텍스트
@@ -237,7 +257,8 @@ class LlamaVisionAnalyzer:
                 temperature=temperature,
                 top_p=0.9,
                 do_sample=True if temperature > 0 else False,
-                pad_token_id=self.processor.tokenizer.pad_token_id
+                pad_token_id=self.processor.tokenizer.pad_token_id,
+                repetition_penalty=repetition_penalty
             )
 
         # 디코딩

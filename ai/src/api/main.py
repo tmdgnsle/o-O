@@ -19,11 +19,59 @@ import asyncio
 
 import sys
 from pathlib import Path
+import re
 
 logger = logging.getLogger(__name__)
 
 # 프로젝트 루트를 PYTHONPATH에 추가
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+
+def remove_repetitive_sentences(text: str, max_repetition: int = 2) -> str:
+    """
+    반복되는 문장을 제거하는 함수
+
+    Args:
+        text: 입력 텍스트
+        max_repetition: 허용할 최대 반복 횟수
+
+    Returns:
+        반복이 제거된 텍스트
+    """
+    if not text:
+        return text
+
+    # 문장 단위로 분리 (마침표, 느낌표, 물음표 기준)
+    sentences = re.split(r'([.!?]\s*)', text)
+
+    # 분리된 문장을 다시 합치기 (구분자 포함)
+    combined = []
+    for i in range(0, len(sentences), 2):
+        if i + 1 < len(sentences):
+            combined.append(sentences[i] + sentences[i + 1])
+        else:
+            combined.append(sentences[i])
+
+    # 연속된 중복 문장 제거
+    result = []
+    prev_sentence = None
+    repeat_count = 0
+
+    for sentence in combined:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        if sentence == prev_sentence:
+            repeat_count += 1
+            if repeat_count < max_repetition:
+                result.append(sentence)
+        else:
+            result.append(sentence)
+            prev_sentence = sentence
+            repeat_count = 0
+
+    return ' '.join(result).strip()
 
 from src.core import (
     FrameExtractor,
@@ -205,20 +253,22 @@ def analyze_video_sync(
             if transcript and transcript != "[자막 없음]":
                 analysis = vision_analyzer.analyze_with_context(
                     image=frame_path,
-                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
+                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
                     context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
-                    max_tokens=1024,
-                    temperature=0.5
+                    max_tokens=150,
+                    temperature=0.0
                 )
             else:
                 analysis = vision_analyzer.analyze_image(
                     image=frame_path,
-                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
-                    max_tokens=1024,
-                    temperature=0.5
+                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    max_tokens=150,
+                    temperature=0.0
                 )
 
-            frame_analyses.append(analysis)
+            # 후처리: 반복 문장 제거
+            cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
+            frame_analyses.append(cleaned_analysis)
 
             # 프레임 삭제
             if os.path.exists(frame_path):
@@ -359,20 +409,22 @@ async def analyze_video_stream(
             if transcript and transcript != "[자막 없음]":
                 analysis = vision_analyzer.analyze_with_context(
                     image=frame_path,
-                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
+                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
                     context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
-                    max_tokens=1024,
-                    temperature=0.5
+                    max_tokens=150,
+                    temperature=0.0
                 )
             else:
                 analysis = vision_analyzer.analyze_image(
                     image=frame_path,
-                    prompt="이 프레임에서 무엇이 일어나고 있나요? 주요 객체, 사람, 텍스트, 행동을 자세히 설명해주세요.",
-                    max_tokens=1024,
-                    temperature=0.5
+                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    max_tokens=150,
+                    temperature=0.0
                 )
 
-            frame_analyses.append(analysis)
+            # 후처리: 반복 문장 제거
+            cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
+            frame_analyses.append(cleaned_analysis)
 
             # 프레임 삭제
             if os.path.exists(frame_path):
