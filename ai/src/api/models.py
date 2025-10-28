@@ -23,6 +23,7 @@ class AnalyzeRequest(BaseModel):
     youtube_url: HttpUrl
     max_frames: int = 8
     proxy: Optional[str] = None
+    user_prompt: Optional[str] = None  # 영상의 목적/주제 설명 (예: "이 영상은 신제품 홍보 영상입니다")
 
 
 class TaskResponse(BaseModel):

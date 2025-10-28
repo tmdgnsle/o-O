@@ -185,7 +185,8 @@ async def startup_event():
 def analyze_video_sync(
     youtube_url: str,
     max_frames: int,
-    proxy: Optional[str]
+    proxy: Optional[str],
+    user_prompt: Optional[str] = None
 ) -> AnalysisResult:
     """
     영상 분석을 수행하고 결과를 반환합니다.
@@ -248,12 +249,20 @@ def analyze_video_sync(
         result.status = TaskStatus.ANALYZING_VISION
         vision_analyzer = get_vision_analyzer()
 
+        # 프롬프트 구성
+        base_prompt = "이 프레임에서 다음을 설명하세요:\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트"
+
+        if user_prompt:
+            final_prompt = f"{user_prompt}\n\n{base_prompt}"
+        else:
+            final_prompt = base_prompt
+
         frame_analyses = []
         for i, frame_path in enumerate(frames):
             if transcript and transcript != "[자막 없음]":
                 analysis = vision_analyzer.analyze_with_context(
                     image=frame_path,
-                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    prompt=final_prompt,
                     context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
                     max_tokens=150,
                     temperature=0.0
@@ -261,7 +270,7 @@ def analyze_video_sync(
             else:
                 analysis = vision_analyzer.analyze_image(
                     image=frame_path,
-                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    prompt=final_prompt,
                     max_tokens=150,
                     temperature=0.0
                 )
@@ -318,7 +327,8 @@ def analyze_video_sync(
 async def analyze_video_stream(
     youtube_url: str,
     max_frames: int,
-    proxy: Optional[str]
+    proxy: Optional[str],
+    user_prompt: Optional[str] = None
 ):
     """
     영상 분석을 수행하면서 실시간으로 진행 상황을 스트리밍합니다.
@@ -399,6 +409,14 @@ async def analyze_video_stream(
 
         vision_analyzer = get_vision_analyzer()
 
+        # 프롬프트 구성
+        base_prompt = "이 프레임에서 다음을 설명하세요:\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트"
+
+        if user_prompt:
+            final_prompt = f"{user_prompt}\n\n{base_prompt}"
+        else:
+            final_prompt = base_prompt
+
         frame_analyses = []
         for i, frame_path in enumerate(frames):
             progress = 50 + int((i / len(frames)) * 30)  # 50% ~ 80%
@@ -409,7 +427,7 @@ async def analyze_video_stream(
             if transcript and transcript != "[자막 없음]":
                 analysis = vision_analyzer.analyze_with_context(
                     image=frame_path,
-                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    prompt=final_prompt,
                     context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
                     max_tokens=150,
                     temperature=0.0
@@ -417,7 +435,7 @@ async def analyze_video_stream(
             else:
                 analysis = vision_analyzer.analyze_image(
                     image=frame_path,
-                    prompt="이 이미지를 간단히 설명하세요 (최대 3문장):\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트",
+                    prompt=final_prompt,
                     max_tokens=150,
                     temperature=0.0
                 )
@@ -471,7 +489,7 @@ async def analyze_video_stream(
             "transcript": transcript
         }
 
-        yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '분석 완료!', 'result': result})}\n\n"
+        yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '분석 완료!', 'result': result}, ensure_ascii=False)}\n\n"
 
     except Exception as e:
         error_msg = str(e)
@@ -546,7 +564,8 @@ async def analyze_video(request: AnalyzeRequest):
         analyze_video_stream(
             youtube_url=str(request.youtube_url),
             max_frames=request.max_frames,
-            proxy=request.proxy
+            proxy=request.proxy,
+            user_prompt=request.user_prompt
         ),
         media_type="text/event-stream"
     )
@@ -566,7 +585,8 @@ def analyze_video_sync_endpoint(request: AnalyzeRequest):
     result = analyze_video_sync(
         youtube_url=str(request.youtube_url),
         max_frames=request.max_frames,
-        proxy=request.proxy
+        proxy=request.proxy,
+        user_prompt=request.user_prompt
     )
 
     return result

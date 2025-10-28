@@ -46,7 +46,17 @@ class FrameExtractor:
                 'format': 'best[ext=mp4]',
                 'outtmpl': str(output_path),
                 'quiet': True,
-                'no_warnings': True
+                'no_warnings': True,
+                # 여러 클라이언트 우선순위 시도 (android_creator가 가장 효과적)
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android_creator', 'android', 'ios', 'web'],
+                        'skip': ['hls', 'dash']
+                    }
+                },
+                # 추가 우회 옵션
+                'nocheckcertificate': True,
+                'no_color': True,
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
