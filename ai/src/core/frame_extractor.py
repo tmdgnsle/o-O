@@ -43,7 +43,7 @@ class FrameExtractor:
             output_path = self.output_dir / "video.mp4"
 
             ydl_opts = {
-                'format': 'best[ext=mp4]',
+                'format': '96/95/94/93/best',  # 1080p > 720p > 480p > 360p > best
                 'outtmpl': str(output_path),
                 'quiet': True,
                 'no_warnings': True,
@@ -51,12 +51,14 @@ class FrameExtractor:
                 'extractor_args': {
                     'youtube': {
                         'player_client': ['android_creator', 'android', 'ios', 'web'],
-                        'skip': ['hls', 'dash']
+                        'skip': ['dash']  # hls는 사용 가능하도록
                     }
                 },
                 # 추가 우회 옵션
                 'nocheckcertificate': True,
                 'no_color': True,
+                # 쿠키 파일 사용
+                'cookiefile': '/workspace/S13P31D202/ai/cookies.txt',
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

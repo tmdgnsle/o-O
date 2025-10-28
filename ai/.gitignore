@@ -35,6 +35,10 @@ venv.bak/
 .env.local
 .env.*.local
 
+# Cookies (보안 중요!)
+cookies.txt
+*.cookies
+
 # IDE
 .vscode/
 .idea/
