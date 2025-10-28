@@ -343,89 +343,145 @@ class LlamaTextAnalyzer:
         ])
 
         # 기본 시스템 프롬프트
-        system_prompt = """당신은 정보를 구조화하는 전문가입니다.
-주어진 영상 내용을 분석하여 마인드맵 구조로 변환합니다.
-마인드맵은 깊이 제한 없이 자유롭게 구성할 수 있습니다.
+        system_prompt = """You are an expert at structuring information into mindmaps.
+Analyze the given video content and convert it into a mindmap structure.
+You can create hierarchies of unlimited depth.
 
-**중요: 반드시 유효한 JSON 형식으로만 응답해야 합니다. 다른 텍스트나 설명을 포함하지 마세요.**"""
+**CRITICAL: You MUST respond ONLY with valid JSON. Do NOT include any explanatory text, backticks, or comments.**"""
 
         # 사용자 쿼리에 따른 프롬프트 구성
         if user_query:
             analysis_instruction = f"""
-사용자의 질문: "{user_query}"
+🎯 **USER'S SPECIFIC REQUEST (THIS IS THE PRIMARY GOAL):**
+"{user_query}"
 
-위 질문에 답하는 형태로 마인드맵을 구성하세요.
-영상에서 나온 내용을 바탕으로 질문에 대한 답, 아이디어, 관련 개념들을 계층적으로 조직화하세요.
+**CRITICAL INSTRUCTIONS:**
+- Your ENTIRE mindmap MUST be focused on answering/explaining this user request
+- The root keyword should reflect this topic (NOT just the video title)
+- ALL children nodes must be directly relevant to this user question
+- Extract ONLY the parts of the video that relate to this topic
+- Ignore unrelated video content
+- If the video doesn't contain enough information about this topic, extract what's available and indicate it
+
+**Example:**
+If user asks "캐나다 관세 인상 이슈에 대해 설명해줘" and video covers Canada tariffs + Argentina + Nike:
+- Root: "캐나다 관세 인상 이슈"
+- Children: Only include Canada tariff content, ignore Argentina and Nike entirely
 """
         else:
             analysis_instruction = """
-영상의 주요 내용을 계층적으로 조직화하여 마인드맵을 구성하세요.
-주요 주제, 하위 개념, 세부 내용 등을 자유롭게 구조화하세요.
+Organize the main content of the video hierarchically into a mindmap.
+Structure main topics, subtopics, and details freely.
 """
 
-        user_prompt = f"""다음은 YouTube 영상 분석 결과입니다:
+        user_prompt = f"""Here is the YouTube video analysis:
 
-**영상 제목:** {video_title}
+**Video Title:** {video_title}
 
-**시각 정보 (주요 프레임):**
+**Visual Information (Key Frames):**
 {frame_summary}
 
-**음성/자막 내용:**
+**Audio/Transcript Content:**
 {transcript}
 
 ---
 
 {analysis_instruction}
 
-**필수 규칙:**
-1. 마인드맵의 루트 노드는 반드시 영상 제목이어야 합니다
-2. 각 노드는 반드시 "keyword"와 "description" 필드를 가져야 합니다
-   - **keyword**: 짧고 명확한 핵심 단어 (3-5 단어)
-   - **description**: 영상에서 나온 구체적인 사실, 수치, 인용문 등 실제 내용 (추상적인 설명 금지!)
-3. "children" 배열로 하위 노드들을 표현합니다 (자식이 없으면 null)
-4. 깊이 제한 없이 필요한 만큼 계층을 만들 수 있습니다
-5. **반드시 유효한 JSON만 출력하세요. 백틱(```), 설명, 주석을 포함하지 마세요**
+**OUTPUT LANGUAGE: You MUST write all "keyword" and "description" fields in KOREAN (한국어).**
 
-**중요: keyword를 JSON의 key로 사용하지 마세요! 반드시 "keyword" 필드를 사용하세요!**
+**MANDATORY RULES:**
+1. Root node keyword:
+   - If user query exists: Use the TOPIC from user's question (e.g., "캐나다 관세 인상 이슈")
+   - If no user query: Use the video title
+   - Root description should always include the YouTube URL
+2. Each node MUST have "keyword" and "description" fields
+   - **keyword**: Short, clear key phrase (3-5 words)
+   - **description**: SPECIFIC FACTS from the video - numbers, dates, quotes, names, concrete details (NO abstract explanations!)
+3. Use "children" array for child nodes (null if no children)
+4. No depth limit - create as many levels as needed
+5. **Output ONLY valid JSON. NO backticks (```), explanations, or comments**
 
-**Description 작성 규칙:**
-- ❌ 나쁜 예: "트럼프의 관세 인상에 대해 설명", "무역 관계에 대해 설명"
-- ✅ 좋은 예: "트럼프가 캐나다에 추가 10% 관세 부과, 레이건 광고를 오도적이라고 비판", "미-캐 무역 규모 $762B, 캐나다는 미국의 2위 무역 파트너"
-- 반드시 영상에서 언급된 **구체적인 사실, 숫자, 날짜, 인물, 인용문**을 포함하세요!
+**DO NOT use keywords as JSON keys! ALWAYS use "keyword" field!**
 
-올바른 형식:
+**Description Writing Rules - THIS IS CRITICAL:**
+❌ BAD Examples (NEVER do this):
+- "트럼프의 관세 인상에 대해 설명" (too abstract, no facts)
+- "무역 관계에 대해 설명" (vague, no specifics)
+- "캐나다와 미국의 무역이 어떻게 캐나다와 미국의 경제에 영향을 미치는지 설명" (just says "explain", no actual content)
+
+✅ GOOD Examples (ALWAYS do this):
+- "트럼프가 캐나다에 추가 10% 관세 부과. 레이건 광고를 오도적이라 비판. 11월 5일 대법원 심리 예정"
+- "미-캐 무역 규모 $762B, 캐나다는 미국의 2위 무역 파트너. USMCA가 $650B 커버"
+- "Ontario가 World Series 중 광고 방영 ($53M 지출), Reagan의 1987년 반관세 연설 인용"
+- "Argentina 선거에서 Milei 41% 득표로 승리. 인플레이션 200%→32% 감소, 빈곤율 여전히 33%"
+- "Nike의 새 전동 신발 2028년 출시 예정, 10-12분 마일 주자 대상"
+
+**KEY PRINCIPLE: Extract WHO, WHAT, WHEN, WHERE, WHY, HOW with actual data from the video!**
+- Include numbers, percentages, dollar amounts
+- Include dates and timeframes
+- Include names of people, companies, places
+- Include direct quotes or paraphrases
+- Include specific events and outcomes
+- NO vague phrases like "에 대해 설명", "에 미치는 영향", "대해 다룸"
+
+Correct format (NO user query):
 {{
-  "keyword": "영상 제목",
-  "description": "영상에 대한 간략한 설명",
+  "keyword": "Video Title Here",
+  "description": "https://www.youtube.com/watch?v=...",
   "children": [
     {{
-      "keyword": "주요 주제 1",
-      "description": "주제에 대한 상세 설명",
+      "keyword": "Main Topic 1",
+      "description": "SPECIFIC DETAILS: names, numbers, dates, quotes from this topic",
       "children": [
         {{
-          "keyword": "하위 개념 1-1",
-          "description": "하위 개념에 대한 설명",
+          "keyword": "Subtopic 1-1",
+          "description": "MORE CONCRETE FACTS: what actually happened, who said what, exact figures",
+          "children": null
+        }}
+      ]
+    }}
+  ]
+}}
+
+Correct format (WITH user query like "캐나다 관세 인상 이슈에 대해 설명해줘"):
+{{
+  "keyword": "캐나다 관세 인상 이슈",
+  "description": "트럼프가 Ontario의 Reagan 광고에 반발하여 캐나다에 추가 10% 관세 부과. 미-캐 무역 $762B, 11월 5일 대법원 심리 예정. https://www.youtube.com/watch?v=...",
+  "children": [
+    {{
+      "keyword": "관세 인상 배경",
+      "description": "Ontario가 World Series 중 $53M 규모 Reagan 반관세 광고 방영. 1987년 연설 인용. Reagan Foundation이 오도 주장, 트럼프 무역협상 중단 후 추가 관세",
+      "children": [
+        {{
+          "keyword": "Reagan 광고 논란",
+          "description": "1987년 Reagan 라디오 연설 인용 (일본 반도체 관세 언급하며 전반적 반대 표명). Reagan Foundation은 오도라 주장하나 구체적 근거 제시 안 함",
           "children": null
         }}
       ]
     }},
     {{
-      "keyword": "주요 주제 2",
-      "description": "주제에 대한 상세 설명",
+      "keyword": "무역 규모와 영향",
+      "description": "미-캐 무역 $762B (캐나다는 미국 2위 파트너). USMCA가 $650B 커버 (85%). 추가 10% 관세는 non-USMCA 품목 대상. 철강/알루미늄은 50% 관세",
+      "children": null
+    }},
+    {{
+      "keyword": "향후 전망",
+      "description": "11월 5일 대법원이 Trump 관세 합법성 심리. 1977년 법 기반 '비상사태' 주장 여부 판단. 위헌 시 미국 기업들에 대규모 환급 발생",
       "children": null
     }}
   ]
 }}
 
-틀린 형식 (절대 사용하지 마세요):
+Wrong format (NEVER use):
 {{
-  "영상 제목": {{
+  "Video Title": {{
     "description": "...",
     "children": [...]
   }}
 }}
 
-이제 위의 올바른 형식에 맞춰 유효한 JSON만 출력하세요:"""
+Now output ONLY valid JSON following the correct format above:"""
 
         result = self.generate(
             user_prompt,
