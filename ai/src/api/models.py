@@ -21,9 +21,9 @@ class TaskStatus(str, Enum):
 class AnalyzeRequest(BaseModel):
     """영상 분석 요청"""
     youtube_url: HttpUrl
-    max_frames: int = 8
+    max_frames: Optional[int] = None  # None이면 영상 길이에 따라 자동 계산 (로그 스케일)
     proxy: Optional[str] = None
-    user_prompt: Optional[str] = None  # 영상의 목적/주제 설명 (예: "이 영상은 신제품 홍보 영상입니다")
+    user_prompt: Optional[str] = None  # 사용자 질문/프롬프트 (예: "캐나다 관세 인상 이슈에 대해 설명해줘")
 
 
 class TaskResponse(BaseModel):

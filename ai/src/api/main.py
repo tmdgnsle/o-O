@@ -352,7 +352,7 @@ async def startup_event():
 
 def analyze_video_sync(
     youtube_url: str,
-    max_frames: int,
+    max_frames: Optional[int],
     proxy: Optional[str],
     user_prompt: Optional[str] = None
 ) -> AnalysisResult:
@@ -381,17 +381,25 @@ def analyze_video_sync(
             raise Exception(f"영상 다운로드 실패: {download_result['error']}")
 
         video_path = download_result['path']
+        video_duration = download_result['duration']
         result.video_info = {
             "title": download_result['title'],
-            "duration": download_result['duration'],
+            "duration": video_duration,
             "channel": download_result.get('channel', 'Unknown')
         }
+
+        # 동적으로 최적 프레임 수 계산 (max_frames가 None이면 자동 계산)
+        if max_frames is None:
+            optimal_frames = FrameExtractor.calculate_optimal_frames(video_duration)
+        else:
+            optimal_frames = max_frames
+            logger.info(f"📌 사용자 지정 프레임 수: {optimal_frames}")
 
         # 프레임 추출
         result.status = TaskStatus.EXTRACTING_FRAMES
         frames_result = frame_extractor.extract_frames_scene_detect(
             video_path,
-            max_frames=max_frames
+            max_frames=optimal_frames
         )
 
         if not frames_result['success']:
@@ -425,8 +433,11 @@ def analyze_video_sync(
         else:
             final_prompt = base_prompt
 
+        # 프레임 분석 (순차 처리)
         frame_analyses = []
         for i, frame_path in enumerate(frames):
+            logger.info(f"📸 프레임 {i+1}/{len(frames)} 분석 중...")
+
             if transcript and transcript != "[자막 없음]":
                 analysis = vision_analyzer.analyze_with_context(
                     image=frame_path,
@@ -443,7 +454,7 @@ def analyze_video_sync(
                     temperature=0.0
                 )
 
-            # 후처리: 반복 문장 제거
+            # 반복 문장 제거
             cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
             frame_analyses.append(cleaned_analysis)
 
@@ -494,7 +505,7 @@ def analyze_video_sync(
 
 async def analyze_video_stream(
     youtube_url: str,
-    max_frames: int,
+    max_frames: Optional[int],
     proxy: Optional[str],
     user_prompt: Optional[str] = None
 ):
@@ -523,23 +534,31 @@ async def analyze_video_stream(
             return
 
         video_path = download_result['path']
+        video_duration = download_result['duration']
         video_info = {
             "title": download_result['title'],
-            "duration": download_result['duration'],
+            "duration": video_duration,
             "channel": download_result.get('channel', 'Unknown')
         }
 
-        message = f"다운로드 완료: {video_info['title']}"
+        # 동적으로 최적 프레임 수 계산 (max_frames가 None이면 자동 계산)
+        if max_frames is None:
+            optimal_frames = FrameExtractor.calculate_optimal_frames(video_duration)
+        else:
+            optimal_frames = max_frames
+            logger.info(f"📌 사용자 지정 프레임 수: {optimal_frames}")
+
+        message = f"다운로드 완료: {video_info['title']} (최적 프레임: {optimal_frames}개)"
         yield f"data: {json.dumps({'status': 'download_complete', 'progress': 20, 'message': message, 'video_info': video_info})}\n\n"
         await asyncio.sleep(0.1)
 
         # 프레임 추출
-        yield f"data: {json.dumps({'status': 'extracting_frames', 'progress': 25, 'message': '프레임 추출 중...'})}\n\n"
+        yield f"data: {json.dumps({'status': 'extracting_frames', 'progress': 25, 'message': f'프레임 {optimal_frames}개 추출 중...'})}\n\n"
         await asyncio.sleep(0.1)
 
         frames_result = frame_extractor.extract_frames_scene_detect(
             video_path,
-            max_frames=max_frames
+            max_frames=optimal_frames
         )
 
         if not frames_result['success']:
@@ -585,8 +604,10 @@ async def analyze_video_stream(
         else:
             final_prompt = base_prompt
 
+        # 프레임 분석 (순차 처리)
         frame_analyses = []
         for i, frame_path in enumerate(frames):
+            # 진행률 업데이트
             progress = 50 + int((i / len(frames)) * 30)  # 50% ~ 80%
             message = f"프레임 {i+1}/{len(frames)} 분석 중..."
             yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': progress, 'message': message})}\n\n"
@@ -608,7 +629,7 @@ async def analyze_video_stream(
                     temperature=0.0
                 )
 
-            # 후처리: 반복 문장 제거
+            # 반복 문장 제거
             cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
             frame_analyses.append(cleaned_analysis)
 

@@ -8,6 +8,7 @@ import os
 import cv2
 import yt_dlp
 import logging
+import math
 from typing import List, Dict, Optional
 from pathlib import Path
 import tempfile
@@ -28,6 +29,52 @@ class FrameExtractor:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.output_dir = Path(tempfile.mkdtemp())
+
+    @staticmethod
+    def calculate_optimal_frames(
+        duration_seconds: int,
+        min_frames: int = 8,
+        max_frames: int = 40,
+        base: int = 10,
+        multiplier: float = 6.0
+    ) -> int:
+        """
+        영상 길이에 따라 최적의 프레임 수를 동적으로 계산 (로그 스케일)
+
+        공식: frames = min(max_frames, max(min_frames, base + log(duration/60) * multiplier))
+
+        예시:
+        - 1분 (60초)    → 10 프레임
+        - 5분 (300초)   → 19 프레임
+        - 10분 (600초)  → 23 프레임
+        - 18분 (1080초) → 27 프레임
+        - 30분 (1800초) → 30 프레임
+        - 60분 (3600초) → 34 프레임
+
+        Args:
+            duration_seconds: 영상 길이 (초)
+            min_frames: 최소 프레임 수
+            max_frames: 최대 프레임 수
+            base: 기본 프레임 수
+            multiplier: 로그 스케일 승수
+
+        Returns:
+            계산된 최적 프레임 수
+        """
+        if duration_seconds <= 0:
+            return min_frames
+
+        # 로그 스케일 계산
+        duration_minutes = duration_seconds / 60.0
+        log_value = math.log(duration_minutes) if duration_minutes > 0 else 0
+        calculated = base + log_value * multiplier
+
+        # min_frames와 max_frames 사이로 제한
+        optimal_frames = int(max(min_frames, min(max_frames, calculated)))
+
+        logger.info(f"📊 영상 길이: {duration_seconds}초 ({duration_minutes:.1f}분) → 최적 프레임 수: {optimal_frames}")
+
+        return optimal_frames
 
     def download_video(self, url: str) -> Optional[str]:
         """

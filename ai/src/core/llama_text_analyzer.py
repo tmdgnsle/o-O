@@ -361,12 +361,49 @@ You can create hierarchies of unlimited depth.
 - ALL children nodes must be directly relevant to this user question
 - Extract ONLY the parts of the video that relate to this topic
 - Ignore unrelated video content
-- If the video doesn't contain enough information about this topic, extract what's available and indicate it
 
-**Example:**
-If user asks "캐나다 관세 인상 이슈에 대해 설명해줘" and video covers Canada tariffs + Argentina + Nike:
+**If user asks to "정리" (organize/list):**
+- Create systematic categorization of items mentioned in video
+- Each item should be a separate child node with specific details
+
+**If user asks to "아이디어 확장" (expand ideas) or "어떻게 활용" (how to use):**
+- You MUST create a separate child node called "활용 아이디어" or "확장 방안"
+- Include minimum 3-5 CONCRETE, ACTIONABLE ideas with SPECIFIC DETAILS
+- Each idea should include:
+  * What to build/create (구체적 제품/서비스명)
+  * How it works (기술적 구현 방법)
+  * Target users/market (타겟 사용자)
+  * Expected benefits (예상 효과 - 수치 포함)
+  * Optional: estimated cost, timeline, technical requirements
+- Be creative but PRACTICAL - avoid vague statements like "AI 도구 결합"
+
+❌ BAD Idea Examples (TOO VAGUE):
+- "AI 도구를 결합해서 사용"
+- "업무 효율성 향상"
+- "다양한 분야에 활용 가능"
+
+✅ GOOD Idea Examples (CONCRETE & SPECIFIC):
+- "Claude Skills + Haiku 4.5 결합 → '자동 코드 리뷰 시스템': GitHub PR 분석 후 버그 리포트 자동 생성, 예상 비용 월 $50, 개발 기간 2주, 팀 코드 품질 30% 향상 예상"
+- "Veo 3.1 영상 생성 + 음성 AI → '5분 자동 뉴스 제작 시스템': 기사 텍스트 입력하면 영상+내레이션 자동 생성, 유튜브 채널 운영자 대상, 제작 시간 2시간→10분으로 단축"
+- "Haiku 4.5 저비용 특성 활용 → '실시간 고객 상담 챗봇': 1000건 상담 비용 $0.5, 기존 GPT 대비 90% 절감, 24시간 자동 응답으로 고객 만족도 향상"
+
+**Examples:**
+
+Example 1 - "캐나다 관세 인상 이슈에 대해 설명해줘":
 - Root: "캐나다 관세 인상 이슈"
-- Children: Only include Canada tariff content, ignore Argentina and Nike entirely
+- Children: Only Canada tariff content (ignore Argentina, Nike)
+
+Example 2 - "영상에서 나온 AI들을 정리해주고 아이디어를 어떻게 확장할 수 있는지 생각해줘":
+- Root: "영상 속 AI 도구 및 활용 아이디어"
+- Children:
+  - "AI 도구 목록" node with children:
+    * "Claude Skills" → "자율 에이전트 프레임워크, 도구 통합 기능 제공, 2025년 출시"
+    * "Haiku 4.5" → "Sonnet 3.5 수준 성능, 비용은 1/10 수준 ($0.4/1M), 속도 50% 향상"
+    * "Veo 3.1" → "Google의 AI 영상 생성 모델, 텍스트→영상 변환, 실사 품질"
+  - "활용 아이디어" node with CONCRETE children:
+    * "자동 코드 리뷰 시스템" → "Claude Skills로 GitHub PR 분석 + Haiku 4.5로 리뷰 생성. 월 $50 비용, 2주 개발, 코드 품질 30% 향상"
+    * "5분 자동 뉴스 제작" → "Veo 3.1로 영상 생성 + 음성 AI 결합. 유튜버 대상, 제작 시간 2시간→10분 단축"
+    * "실시간 상담 챗봇" → "Haiku 4.5 저비용 특성 활용. 1000건 $0.5, GPT 대비 90% 절감, 24시간 자동 응답"
 """
         else:
             analysis_instruction = """

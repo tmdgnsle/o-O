@@ -228,11 +228,49 @@
         border-radius: 10px;
         border: 2px solid #e0e0e0;
         overflow: hidden;
+        position: relative;
       }
 
       #mindmapSvg {
         width: 100%;
         height: 100%;
+        cursor: grab;
+      }
+
+      #mindmapSvg:active {
+        cursor: grabbing;
+      }
+
+      .node-rect {
+        fill: white;
+        stroke: #667eea;
+        stroke-width: 2;
+        rx: 8;
+        ry: 8;
+      }
+
+      .node-rect.root {
+        fill: #764ba2;
+      }
+
+      .node-keyword {
+        font-weight: 600;
+        fill: #333;
+        pointer-events: none;
+      }
+
+      .node-keyword.root {
+        fill: white;
+      }
+
+      .node-description {
+        font-size: 10px;
+        fill: #666;
+        pointer-events: none;
+      }
+
+      .node-description.root {
+        fill: rgba(255, 255, 255, 0.9);
       }
     </style>
   </head>
@@ -252,11 +290,6 @@
             placeholder="https://www.youtube.com/watch?v=..."
             value="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
           />
-        </div>
-
-        <div class="input-group">
-          <label for="maxFrames">Max Frames (1-20)</label>
-          <input type="number" id="maxFrames" min="1" max="20" value="3" />
         </div>
 
         <div class="input-group">
@@ -349,18 +382,39 @@
         // D3 계층 구조 생성
         const root = d3.hierarchy(hierarchyData);
 
-        // 트리 레이아웃 생성
-        const treeLayout = d3.tree().size([height - 100, width - 200]);
+        // 트리의 전체 크기를 계산 (노드 개수 기반)
+        const nodeCount = root.descendants().length;
+        const treeHeight = Math.max(height * 3, nodeCount * 200);
+        const treeWidth = Math.max(width * 3, root.height * 600);
+
+        // 트리 레이아웃 생성 (넓은 공간 확보)
+        const treeLayout = d3
+          .tree()
+          .size([treeHeight, treeWidth])
+          .nodeSize([150, 300]);
 
         treeLayout(root);
 
-        // SVG 그룹 생성
-        const g = d3
+        // SVG 설정
+        const svgElement = d3
           .select(svg)
           .attr("width", width)
-          .attr("height", height)
+          .attr("height", height);
+
+        // 줌 및 팬 기능 추가
+        const zoom = d3
+          .zoom()
+          .scaleExtent([0.1, 3]) // 최소 10%, 최대 300% 줌
+          .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+          });
+
+        svgElement.call(zoom);
+
+        // SVG 그룹 생성
+        const g = svgElement
           .append("g")
-          .attr("transform", "translate(100, 50)");
+          .attr("transform", "translate(250, 150)");
 
         // 링크 그리기
         g.selectAll(".link")
@@ -388,35 +442,85 @@
           .attr("class", "node")
           .attr("transform", (d) => `translate(${d.y},${d.x})`);
 
-        // 노드 원 그리기
-        nodes
-          .append("circle")
-          .attr("r", 8)
-          .attr("fill", (d) => (d.depth === 0 ? "#764ba2" : "#667eea"))
-          .attr("stroke", "white")
-          .attr("stroke-width", 2)
-          .style("cursor", "pointer");
+        // 각 노드의 텍스트 크기 계산
+        nodes.each(function (d) {
+          const isRoot = d.depth === 0;
+          const keyword = d.data.name;
+          const description = d.data.description || "";
 
-        // 노드 텍스트 추가
-        nodes
-          .append("text")
-          .attr("dy", -15)
-          .attr("x", (d) => (d.children ? -12 : 12))
-          .style("text-anchor", (d) => (d.children ? "end" : "start"))
-          .style("font-size", (d) => (d.depth === 0 ? "16px" : "12px"))
-          .style("font-weight", (d) => (d.depth === 0 ? "bold" : "normal"))
-          .style("fill", "#333")
-          .text((d) => d.data.name);
+          // 텍스트 길이 기반으로 사각형 크기 계산
+          const keywordLength = keyword.length;
+          const descLength = description.length;
 
-        // 노드 클릭 시 description 표시
-        nodes.on("click", function (event, d) {
-          alert(
-            `${d.data.name}\n\n${d.data.description || "설명이 없습니다."}`
+          // 설명을 여러 줄로 분할 (30자마다)
+          const descLines = [];
+          if (description) {
+            const maxCharsPerLine = 25;
+            for (let i = 0; i < descLength; i += maxCharsPerLine) {
+              descLines.push(description.substring(i, i + maxCharsPerLine));
+            }
+          }
+
+          d.descLines = descLines;
+          d.rectWidth = Math.max(
+            keywordLength * (isRoot ? 14 : 12) + 40,
+            Math.max(...descLines.map((line) => line.length * 7)) + 40,
+            isRoot ? 180 : 150
           );
+          d.rectHeight = isRoot
+            ? 70 + descLines.length * 16
+            : 60 + descLines.length * 14;
         });
 
-        // 툴팁 추가
-        nodes.append("title").text((d) => d.data.description || d.data.name);
+        // 노드 사각형 그리기
+        nodes
+          .append("rect")
+          .attr("class", (d) =>
+            d.depth === 0 ? "node-rect root" : "node-rect"
+          )
+          .attr("x", (d) => -d.rectWidth / 2)
+          .attr("y", (d) => -d.rectHeight / 2)
+          .attr("width", (d) => d.rectWidth)
+          .attr("height", (d) => d.rectHeight)
+          .style("cursor", "pointer");
+
+        // 키워드 텍스트 추가
+        nodes
+          .append("text")
+          .attr("class", (d) =>
+            d.depth === 0 ? "node-keyword root" : "node-keyword"
+          )
+          .attr("text-anchor", "middle")
+          .attr("dy", (d) => -d.rectHeight / 2 + (d.depth === 0 ? 25 : 20))
+          .style("font-size", (d) => (d.depth === 0 ? "14px" : "12px"))
+          .text((d) => d.data.name);
+
+        // 설명 텍스트 추가 (여러 줄)
+        nodes.each(function (d) {
+          const node = d3.select(this);
+          const isRoot = d.depth === 0;
+
+          d.descLines.forEach((line, i) => {
+            node
+              .append("text")
+              .attr(
+                "class",
+                isRoot ? "node-description root" : "node-description"
+              )
+              .attr("text-anchor", "middle")
+              .attr(
+                "dy",
+                -d.rectHeight / 2 + (isRoot ? 42 : 35) + i * (isRoot ? 14 : 12)
+              )
+              .text(line);
+          });
+        });
+
+        // 초기 줌을 중앙에 맞추기
+        const initialTransform = d3.zoomIdentity
+          .translate(width / 2 - 250, height / 2 - 150)
+          .scale(0.8);
+        svgElement.call(zoom.transform, initialTransform);
       }
 
       function addLog(message, type = "info") {
@@ -469,7 +573,6 @@
 
       async function startAnalysis() {
         const youtubeUrl = document.getElementById("youtubeUrl").value.trim();
-        const maxFrames = parseInt(document.getElementById("maxFrames").value);
         const userPrompt = document.getElementById("userPrompt").value.trim();
         const analyzeBtn = document.getElementById("analyzeBtn");
         const progressSection = document.getElementById("progressSection");
@@ -490,7 +593,6 @@
 
         addLog("Starting analysis...");
         addLog(`URL: ${youtubeUrl}`);
-        addLog(`Max Frames: ${maxFrames}`);
         if (userPrompt) {
           addLog(`User Prompt: ${userPrompt}`);
         }
@@ -499,7 +601,6 @@
           // Use fetch with streaming
           const requestBody = {
             youtube_url: youtubeUrl,
-            max_frames: maxFrames,
           };
 
           // user_prompt가 있으면 추가
@@ -550,6 +651,9 @@
                 try {
                   const data = JSON.parse(jsonStr);
 
+                  // 서버로부터 받은 데이터 console에 출력
+                  console.log("📥 Server Response:", data);
+
                   addLog(`[${data.status}] ${data.message || ""}`);
 
                   if (data.progress !== undefined) {
@@ -557,9 +661,11 @@
                   }
 
                   if (data.status === "completed" && data.result) {
+                    console.log("✅ Final Result:", data.result);
                     displayResult(data.result);
                     addLog("✅ Analysis completed successfully!");
                   } else if (data.status === "failed") {
+                    console.error("❌ Error:", data.error);
                     showError(data.error || "Unknown error");
                   }
                 } catch (e) {
