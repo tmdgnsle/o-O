@@ -83,7 +83,8 @@ from src.api.models import (
     TaskStatus,
     AnalyzeRequest,
     TaskResponse,
-    AnalysisResult
+    AnalysisResult,
+    MindMapNode
 )
 import torch
 
@@ -166,6 +167,173 @@ def get_text_analyzer() -> LlamaTextAnalyzer:
     if not _models_loaded or _text_analyzer is None:
         raise RuntimeError("모델이 로드되지 않았습니다. 서버 시작 시 모델을 로드해주세요.")
     return _text_analyzer
+
+
+def create_fallback_mindmap(
+    video_title: str,
+    frame_analyses: List[str],
+    transcript: str
+) -> MindMapNode:
+    """
+    LLM 실패 시 기본 마인드맵 생성 (폴백)
+
+    Args:
+        video_title: 영상 제목
+        frame_analyses: 프레임 분석 결과 리스트
+        transcript: 영상 자막
+
+    Returns:
+        기본 마인드맵 루트 노드
+    """
+    # 루트 노드
+    root = MindMapNode(
+        keyword=video_title,
+        description="영상 분석 결과",
+        children=[]
+    )
+
+    # 자막 노드
+    if transcript and transcript != "[자막 없음]":
+        transcript_node = MindMapNode(
+            keyword="음성/자막 내용",
+            description=transcript[:500] + "..." if len(transcript) > 500 else transcript,
+            children=None
+        )
+        root.children.append(transcript_node)
+
+    # 프레임 분석 노드
+    frame_children = []
+    for i, analysis in enumerate(frame_analyses):
+        frame_node = MindMapNode(
+            keyword=f"프레임 {i+1}",
+            description=analysis,
+            children=None
+        )
+        frame_children.append(frame_node)
+
+    if frame_children:
+        frames_parent = MindMapNode(
+            keyword="시각 분석",
+            description=f"총 {len(frame_children)}개 프레임 분석",
+            children=frame_children
+        )
+        root.children.append(frames_parent)
+
+    return root
+
+
+def create_mindmap_from_llm(
+    video_title: str,
+    frame_analyses: List[str],
+    transcript: str,
+    user_query: Optional[str] = None,
+    youtube_url: Optional[str] = None
+) -> MindMapNode:
+    """
+    LLM을 사용하여 마인드맵 데이터 생성 (폴백 보장)
+
+    Args:
+        video_title: 영상 제목
+        frame_analyses: 프레임 분석 결과 리스트
+        transcript: 영상 자막
+        user_query: 사용자 질문/프롬프트
+        youtube_url: YouTube URL
+
+    Returns:
+        마인드맵 루트 노드 (항상 None이 아님)
+    """
+    try:
+        text_analyzer = get_text_analyzer()
+
+        # LLM으로 마인드맵 JSON 생성
+        mindmap_json_str = text_analyzer.generate_mindmap(
+            video_title=video_title,
+            frame_analyses=frame_analyses,
+            transcript=transcript,
+            user_query=user_query,
+            max_tokens=4096,
+            temperature=0.7
+        )
+
+        print("=" * 80)
+        print("LLM 마인드맵 생성 원본 출력:")
+        print(mindmap_json_str[:1000])  # 처음 1000자
+        print("=" * 80)
+
+        # JSON 파싱
+        # LLM이 ```json ``` 로 감싸서 반환할 수 있으므로 제거
+        mindmap_json_str = mindmap_json_str.strip()
+        if mindmap_json_str.startswith('```json'):
+            mindmap_json_str = mindmap_json_str[7:]
+        if mindmap_json_str.startswith('```'):
+            mindmap_json_str = mindmap_json_str[3:]
+        if mindmap_json_str.endswith('```'):
+            mindmap_json_str = mindmap_json_str[:-3]
+        mindmap_json_str = mindmap_json_str.strip()
+
+        print("정제 후 JSON:")
+        print(mindmap_json_str[:500])
+        print("=" * 80)
+
+        # JSON을 MindMapNode로 변환
+        def json_to_mindmap_node(data: Dict) -> MindMapNode:
+            children = None
+            if 'children' in data and data['children']:
+                children = [json_to_mindmap_node(child) for child in data['children']]
+
+            return MindMapNode(
+                keyword=data.get('keyword', ''),
+                description=data.get('description', ''),
+                children=children
+            )
+
+        mindmap_data = json.loads(mindmap_json_str)
+
+        # LLM이 잘못된 형식으로 생성한 경우 수정
+        # {"영상 제목": {"description": ..., "children": ...}} 형식을 감지
+        if 'keyword' not in mindmap_data and 'description' not in mindmap_data:
+            # 첫 번째 키를 keyword로 사용
+            first_key = list(mindmap_data.keys())[0]
+            first_value = mindmap_data[first_key]
+
+            print(f"⚠️  잘못된 JSON 형식 감지! 자동 수정 중...")
+            print(f"   키워드: {first_key}")
+
+            # 올바른 형식으로 재구성
+            mindmap_data = {
+                'keyword': first_key,
+                'description': first_value.get('description', ''),
+                'children': first_value.get('children', None)
+            }
+
+        root = json_to_mindmap_node(mindmap_data)
+
+        print(f"생성된 마인드맵 루트: keyword='{root.keyword}', children={len(root.children) if root.children else 0}")
+        print("=" * 80)
+
+        # 유효성 검증
+        if not root.keyword or not root.children:
+            logger.warning(f"LLM 생성 마인드맵이 불완전함. keyword={root.keyword}, children={root.children}")
+            logger.warning("폴백 마인드맵 사용.")
+            return create_fallback_mindmap(video_title, frame_analyses, transcript)
+
+        # 루트 노드 강제 설정: keyword=영상 제목, description=YouTube URL
+        root.keyword = video_title
+        root.description = youtube_url if youtube_url else root.description
+
+        print(f"✅ 루트 노드 설정: keyword='{root.keyword}', description='{root.description[:50]}...'")
+
+        return root
+
+    except json.JSONDecodeError as e:
+        logger.error(f"마인드맵 JSON 파싱 실패: {e}")
+        logger.error(f"LLM 출력: {mindmap_json_str[:500] if 'mindmap_json_str' in locals() else 'N/A'}")
+        logger.info("폴백 마인드맵 생성 중...")
+        return create_fallback_mindmap(video_title, frame_analyses, transcript)
+    except Exception as e:
+        logger.error(f"마인드맵 생성 실패: {e}")
+        logger.info("폴백 마인드맵 생성 중...")
+        return create_fallback_mindmap(video_title, frame_analyses, transcript)
 
 
 @app.on_event("startup")
@@ -451,29 +619,24 @@ async def analyze_video_stream(
         yield f"data: {json.dumps({'status': 'vision_complete', 'progress': 80, 'message': 'Vision 분석 완료'})}\n\n"
         await asyncio.sleep(0.1)
 
-        # 4. Text 분석
-        yield f"data: {json.dumps({'status': 'analyzing_text', 'progress': 85, 'message': 'Text 모델로 요약 생성 중...'})}\n\n"
+        # 4. 마인드맵 생성 (핵심 기능)
+        yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 85, 'message': 'LLM으로 마인드맵 생성 중...'})}\n\n"
         await asyncio.sleep(0.1)
 
-        text_analyzer = get_text_analyzer()
-
-        summary = text_analyzer.summarize_video(
+        mindmap = create_mindmap_from_llm(
+            video_title=video_info['title'],
             frame_analyses=frame_analyses,
             transcript=transcript,
-            max_tokens=2048,
-            temperature=0.3
+            user_query=user_prompt,  # 사용자 프롬프트를 마인드맵 생성에 활용
+            youtube_url=youtube_url
         )
 
-        yield f"data: {json.dumps({'status': 'summary_complete', 'progress': 92, 'message': '요약 생성 완료'})}\n\n"
+        yield f"data: {json.dumps({'status': 'mindmap_complete', 'progress': 95, 'message': '마인드맵 생성 완료'})}\n\n"
         await asyncio.sleep(0.1)
 
-        yield f"data: {json.dumps({'status': 'extracting_keypoints', 'progress': 95, 'message': '핵심 포인트 추출 중...'})}\n\n"
-        await asyncio.sleep(0.1)
-
-        key_points = text_analyzer.extract_key_points(
-            transcript if transcript != "[자막 없음]" else "\n".join(frame_analyses),
-            max_points=5
-        )
+        # Summary와 Key Points는 내부적으로 생성하지만 UI에 표시하지 않음
+        summary = None
+        key_points = None
 
         # 최종 결과
         result = {
@@ -486,7 +649,8 @@ async def analyze_video_stream(
             "summary": summary,
             "key_points": key_points,
             "frame_analyses": frame_analyses,
-            "transcript": transcript
+            "transcript": transcript,
+            "mindmap": mindmap.dict()  # 마인드맵 데이터 (항상 존재)
         }
 
         yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '분석 완료!', 'result': result}, ensure_ascii=False)}\n\n"

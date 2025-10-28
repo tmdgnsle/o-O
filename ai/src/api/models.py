@@ -33,6 +33,13 @@ class TaskResponse(BaseModel):
     message: str
 
 
+class MindMapNode(BaseModel):
+    """마인드맵 노드"""
+    keyword: str  # 노드에 표시될 키워드
+    description: str  # 노드 상세 설명
+    children: Optional[List['MindMapNode']] = None  # 하위 노드들
+
+
 class AnalysisResult(BaseModel):
     """분석 결과"""
     task_id: str
@@ -45,4 +52,9 @@ class AnalysisResult(BaseModel):
     key_points: Optional[List[str]] = None
     frame_analyses: Optional[List[str]] = None
     transcript: Optional[str] = None
+    mindmap: Optional[MindMapNode] = None  # 마인드맵 데이터
     error: Optional[str] = None
+
+
+# Forward reference 해결
+MindMapNode.model_rebuild()

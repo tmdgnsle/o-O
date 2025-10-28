@@ -313,6 +313,129 @@ class LlamaTextAnalyzer:
 
         return points[:max_points]
 
+    def generate_mindmap(
+        self,
+        video_title: str,
+        frame_analyses: List[str],
+        transcript: str,
+        user_query: Optional[str] = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.7
+    ) -> str:
+        """
+        영상 내용을 바탕으로 마인드맵 구조를 JSON 형식으로 생성
+
+        Args:
+            video_title: 영상 제목
+            frame_analyses: 프레임 분석 결과 리스트
+            transcript: 영상 자막
+            user_query: 사용자 질문/프롬프트 (예: "이 기술로 어떤 프로젝트를 만들 수 있을까?")
+            max_tokens: 최대 생성 토큰 수
+            temperature: 샘플링 온도
+
+        Returns:
+            마인드맵 JSON 문자열
+        """
+        # 프레임 분석 요약
+        frame_summary = "\n\n".join([
+            f"[프레임 {i+1}] {analysis}"
+            for i, analysis in enumerate(frame_analyses)
+        ])
+
+        # 기본 시스템 프롬프트
+        system_prompt = """당신은 정보를 구조화하는 전문가입니다.
+주어진 영상 내용을 분석하여 마인드맵 구조로 변환합니다.
+마인드맵은 깊이 제한 없이 자유롭게 구성할 수 있습니다.
+
+**중요: 반드시 유효한 JSON 형식으로만 응답해야 합니다. 다른 텍스트나 설명을 포함하지 마세요.**"""
+
+        # 사용자 쿼리에 따른 프롬프트 구성
+        if user_query:
+            analysis_instruction = f"""
+사용자의 질문: "{user_query}"
+
+위 질문에 답하는 형태로 마인드맵을 구성하세요.
+영상에서 나온 내용을 바탕으로 질문에 대한 답, 아이디어, 관련 개념들을 계층적으로 조직화하세요.
+"""
+        else:
+            analysis_instruction = """
+영상의 주요 내용을 계층적으로 조직화하여 마인드맵을 구성하세요.
+주요 주제, 하위 개념, 세부 내용 등을 자유롭게 구조화하세요.
+"""
+
+        user_prompt = f"""다음은 YouTube 영상 분석 결과입니다:
+
+**영상 제목:** {video_title}
+
+**시각 정보 (주요 프레임):**
+{frame_summary}
+
+**음성/자막 내용:**
+{transcript}
+
+---
+
+{analysis_instruction}
+
+**필수 규칙:**
+1. 마인드맵의 루트 노드는 반드시 영상 제목이어야 합니다
+2. 각 노드는 반드시 "keyword"와 "description" 필드를 가져야 합니다
+   - **keyword**: 짧고 명확한 핵심 단어 (3-5 단어)
+   - **description**: 영상에서 나온 구체적인 사실, 수치, 인용문 등 실제 내용 (추상적인 설명 금지!)
+3. "children" 배열로 하위 노드들을 표현합니다 (자식이 없으면 null)
+4. 깊이 제한 없이 필요한 만큼 계층을 만들 수 있습니다
+5. **반드시 유효한 JSON만 출력하세요. 백틱(```), 설명, 주석을 포함하지 마세요**
+
+**중요: keyword를 JSON의 key로 사용하지 마세요! 반드시 "keyword" 필드를 사용하세요!**
+
+**Description 작성 규칙:**
+- ❌ 나쁜 예: "트럼프의 관세 인상에 대해 설명", "무역 관계에 대해 설명"
+- ✅ 좋은 예: "트럼프가 캐나다에 추가 10% 관세 부과, 레이건 광고를 오도적이라고 비판", "미-캐 무역 규모 $762B, 캐나다는 미국의 2위 무역 파트너"
+- 반드시 영상에서 언급된 **구체적인 사실, 숫자, 날짜, 인물, 인용문**을 포함하세요!
+
+올바른 형식:
+{{
+  "keyword": "영상 제목",
+  "description": "영상에 대한 간략한 설명",
+  "children": [
+    {{
+      "keyword": "주요 주제 1",
+      "description": "주제에 대한 상세 설명",
+      "children": [
+        {{
+          "keyword": "하위 개념 1-1",
+          "description": "하위 개념에 대한 설명",
+          "children": null
+        }}
+      ]
+    }},
+    {{
+      "keyword": "주요 주제 2",
+      "description": "주제에 대한 상세 설명",
+      "children": null
+    }}
+  ]
+}}
+
+틀린 형식 (절대 사용하지 마세요):
+{{
+  "영상 제목": {{
+    "description": "...",
+    "children": [...]
+  }}
+}}
+
+이제 위의 올바른 형식에 맞춰 유효한 JSON만 출력하세요:"""
+
+        result = self.generate(
+            user_prompt,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+
+        return result.strip()
+
     def get_vram_usage(self) -> Dict[str, float]:
         """현재 VRAM 사용량 반환"""
         if torch.cuda.is_available():

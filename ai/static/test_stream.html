@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Video Analysis - Streaming Test</title>
+    <!-- D3.js for mindmap -->
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <!-- Markmap for mindmap visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/markmap-view@0.15.4/dist/browser/index.js"></script>
     <style>
       * {
         margin: 0;
@@ -215,6 +219,21 @@
         border-left-color: #f44336;
         color: #c62828;
       }
+
+      /* 마인드맵 스타일 */
+      #mindmapContainer {
+        width: 100%;
+        height: 600px;
+        background: white;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+        overflow: hidden;
+      }
+
+      #mindmapSvg {
+        width: 100%;
+        height: 100%;
+      }
     </style>
   </head>
   <body>
@@ -281,23 +300,15 @@
 
         <div class="result-section" id="resultSection">
           <div class="result-card">
+            <h3>🗺️ Mind Map</h3>
+            <div id="mindmapContainer">
+              <svg id="mindmapSvg"></svg>
+            </div>
+          </div>
+
+          <div class="result-card">
             <h3>📹 Video Info</h3>
             <p id="videoInfo"></p>
-          </div>
-
-          <div class="result-card">
-            <h3>📝 Summary</h3>
-            <p id="summary"></p>
-          </div>
-
-          <div class="result-card">
-            <h3>🎯 Key Points</h3>
-            <ul id="keyPoints"></ul>
-          </div>
-
-          <div class="result-card">
-            <h3>🖼️ Frame Analyses</h3>
-            <pre id="frameAnalyses"></pre>
           </div>
         </div>
       </div>
@@ -305,6 +316,108 @@
 
     <script>
       let eventSource = null;
+
+      function renderMindMap(mindmapData) {
+        if (!mindmapData) return;
+
+        // MindMapNode를 D3 계층 구조로 변환
+        function convertToD3Hierarchy(node) {
+          const d3Node = {
+            name: node.keyword,
+            description: node.description,
+          };
+
+          if (node.children && node.children.length > 0) {
+            d3Node.children = node.children.map((child) =>
+              convertToD3Hierarchy(child)
+            );
+          }
+
+          return d3Node;
+        }
+
+        const hierarchyData = convertToD3Hierarchy(mindmapData);
+
+        // SVG 초기화
+        const svg = document.getElementById("mindmapSvg");
+        const container = document.getElementById("mindmapContainer");
+        svg.innerHTML = ""; // 기존 내용 제거
+
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // D3 계층 구조 생성
+        const root = d3.hierarchy(hierarchyData);
+
+        // 트리 레이아웃 생성
+        const treeLayout = d3.tree().size([height - 100, width - 200]);
+
+        treeLayout(root);
+
+        // SVG 그룹 생성
+        const g = d3
+          .select(svg)
+          .attr("width", width)
+          .attr("height", height)
+          .append("g")
+          .attr("transform", "translate(100, 50)");
+
+        // 링크 그리기
+        g.selectAll(".link")
+          .data(root.links())
+          .enter()
+          .append("path")
+          .attr("class", "link")
+          .attr("fill", "none")
+          .attr("stroke", "#667eea")
+          .attr("stroke-width", 2)
+          .attr(
+            "d",
+            d3
+              .linkHorizontal()
+              .x((d) => d.y)
+              .y((d) => d.x)
+          );
+
+        // 노드 그룹 생성
+        const nodes = g
+          .selectAll(".node")
+          .data(root.descendants())
+          .enter()
+          .append("g")
+          .attr("class", "node")
+          .attr("transform", (d) => `translate(${d.y},${d.x})`);
+
+        // 노드 원 그리기
+        nodes
+          .append("circle")
+          .attr("r", 8)
+          .attr("fill", (d) => (d.depth === 0 ? "#764ba2" : "#667eea"))
+          .attr("stroke", "white")
+          .attr("stroke-width", 2)
+          .style("cursor", "pointer");
+
+        // 노드 텍스트 추가
+        nodes
+          .append("text")
+          .attr("dy", -15)
+          .attr("x", (d) => (d.children ? -12 : 12))
+          .style("text-anchor", (d) => (d.children ? "end" : "start"))
+          .style("font-size", (d) => (d.depth === 0 ? "16px" : "12px"))
+          .style("font-weight", (d) => (d.depth === 0 ? "bold" : "normal"))
+          .style("fill", "#333")
+          .text((d) => d.data.name);
+
+        // 노드 클릭 시 description 표시
+        nodes.on("click", function (event, d) {
+          alert(
+            `${d.data.name}\n\n${d.data.description || "설명이 없습니다."}`
+          );
+        });
+
+        // 툴팁 추가
+        nodes.append("title").text((d) => d.data.description || d.data.name);
+      }
 
       function addLog(message, type = "info") {
         const logContainer = document.getElementById("logContainer");
@@ -337,6 +450,13 @@
         const resultSection = document.getElementById("resultSection");
         resultSection.classList.add("active");
 
+        // Mind Map (필수)
+        if (result.mindmap) {
+          renderMindMap(result.mindmap);
+        } else {
+          console.error("마인드맵 데이터가 없습니다!");
+        }
+
         // Video Info
         if (result.video_info) {
           document.getElementById("videoInfo").innerHTML = `
@@ -344,29 +464,6 @@
                     <strong>Duration:</strong> ${result.video_info.duration}s<br>
                     <strong>Channel:</strong> ${result.video_info.channel}
                 `;
-        }
-
-        // Summary
-        document.getElementById("summary").textContent =
-          result.summary || "N/A";
-
-        // Key Points
-        const keyPointsList = document.getElementById("keyPoints");
-        keyPointsList.innerHTML = "";
-        if (result.key_points && result.key_points.length > 0) {
-          result.key_points.forEach((point) => {
-            const li = document.createElement("li");
-            li.textContent = point;
-            keyPointsList.appendChild(li);
-          });
-        }
-
-        // Frame Analyses
-        if (result.frame_analyses && result.frame_analyses.length > 0) {
-          document.getElementById("frameAnalyses").textContent =
-            result.frame_analyses
-              .map((analysis, i) => `Frame ${i + 1}:\n${analysis}\n`)
-              .join("\n---\n\n");
         }
       }
 
