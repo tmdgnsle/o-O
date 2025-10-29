@@ -6,14 +6,12 @@ import 'package:o_o/core/constants/app_text_styles.dart';
 class MindmapCard extends StatelessWidget {
   final String title;
   final String imagePath;
-  final bool isLocked;
   final VoidCallback? onTap;
 
   const MindmapCard({
     super.key,
     required this.title,
     required this.imagePath,
-    this.isLocked = false,
     this.onTap,
   });
 
@@ -41,37 +39,17 @@ class MindmapCard extends StatelessWidget {
             // 마인드맵 이미지
             Container(
               width: double.infinity,
-              height: 180,
+              height: 200,
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.asset(imagePath, fit: BoxFit.cover),
               ),
             ),
-            // 자물쇠 아이콘 (왼쪽 상단)
-            if (isLocked)
-              Positioned(
-                top: 6,
-                left: 9,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.deep_blue.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.lock,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
+
             // 하단 텍스트 오버레이
             Positioned(
               bottom: 0,
@@ -80,7 +58,7 @@ class MindmapCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,

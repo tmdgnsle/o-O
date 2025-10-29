@@ -198,8 +198,9 @@ class HomePage extends StatelessWidget {
                             Expanded(
                               child: ListView(
                                 controller: scrollController,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 20),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                ),
                                 children: [
                                   const SizedBox(height: 24),
                                   Text(
@@ -212,24 +213,24 @@ class HomePage extends StatelessWidget {
                                   // 마인드맵 카드 리스트
                                   MindmapCard(
                                     title: '알고리즘 싫어하는 마인드맵',
-                                    imagePath: 'assets/images/dummy_mindmap.png',
-                                    isLocked: true,
+                                    imagePath:
+                                        'assets/images/dummy_mindmap.png',
                                     onTap: () {
                                       // TODO: 마인드맵 상세 페이지로 이동
                                     },
                                   ),
                                   MindmapCard(
                                     title: '알고리즘 싫어하는 마인드맵',
-                                    imagePath: 'assets/images/dummy_mindmap.png',
-                                    isLocked: true,
+                                    imagePath:
+                                        'assets/images/dummy_mindmap.png',
                                     onTap: () {
                                       // TODO: 마인드맵 상세 페이지로 이동
                                     },
                                   ),
                                   MindmapCard(
                                     title: '알고리즘 싫어하는 마인드맵',
-                                    imagePath: 'assets/images/dummy_mindmap.png',
-                                    isLocked: true,
+                                    imagePath:
+                                        'assets/images/dummy_mindmap.png',
                                     onTap: () {
                                       // TODO: 마인드맵 상세 페이지로 이동
                                     },
