@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../widgets/circular_popo_button.dart';
 
 /// 홈 페이지
 class HomePage extends StatelessWidget {
@@ -24,116 +25,75 @@ class HomePage extends StatelessWidget {
             // 메인 컨텐츠
             SafeArea(
               bottom: false,
-              child: Column(
-                children: [
-                  // 상단 헤더
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
-                      vertical: 16.0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 16.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // 로고
+                    Image.asset('assets/images/logo.png', height: 32),
+                    // 오른쪽 아이콘들
+                    Row(
                       children: [
-                        // 로고
-                        Image.asset(
-                          'assets/images/logo.png',
-                          height: 32,
+                        CircularButton(
+                          onTap: () {},
+                          containerSize: 38,
+                          imageSize: 24,
+                          blurRadius: 4,
+                          image:'assets/images/menu_book.png',
                         ),
-                        // 오른쪽 아이콘들
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.notifications_outlined),
-                              onPressed: () {
-                                // 알림 기능
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.person_outline),
-                              onPressed: () {
-                                // 프로필/로그아웃 다이얼로그
-                                showDialog(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    title: const Text('로그아웃'),
-                                    content: const Text('로그아웃 하시겠습니까?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dialogContext),
-                                        child: const Text('취소'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(dialogContext);
-                                          context.read<AuthBloc>().add(
-                                                const AuthEvent.signOut(),
-                                              );
-                                          context.go('/login');
-                                        },
-                                        child: const Text('로그아웃'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                        const SizedBox(width: 14),
+                        CircularButton(
+                          onTap: () {},
+                          containerSize: 38,
+                          imageSize: 24,
+                          blurRadius: 4,
+                          image: 'assets/images/popo4.png',
                         ),
                       ],
                     ),
-                  ),
-
-                  // 중앙 Popo 캐릭터
-                  Expanded(
-                    child: Center(
-                      child: Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/popo_record.png',
-                            width: 120,
-                            height: 120,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: // Popo 캐릭터 (하단에서 2/3 지점)
+                  Align(
+                alignment: const Alignment(0, -0.33),
+                child: CircularButton(
+                  onTap: () {},
+                  containerSize: 220,
+                  imageSize: 170,
+                  blurRadius: 6,
+                  image: 'assets/images/popo_record.png',
+                  showAura: true,
+                ),
               ),
             ),
 
             // 하단 BottomSheet (DraggableScrollableSheet)
             DraggableScrollableSheet(
               initialChildSize: 0.2,
-              minChildSize: 0.2,
-              maxChildSize: 0.8,
+              minChildSize: 0.1,
+              maxChildSize: 0.9,
               builder: (context, scrollController) {
                 return Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(50),
+                      topRight: Radius.circular(50),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        spreadRadius: 2,
+                        color: Colors.black.withOpacity(0.11),
+                        blurRadius: 7.2,
+                        offset: const Offset(0, -4),
+                        spreadRadius: 0,
                       ),
                     ],
                   ),
