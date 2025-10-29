@@ -14,6 +14,7 @@ class AppColors {
   static const Color deep_purple = Color(0xFF4D58A0);
   static const Color semi_white = Color(0xFFF8F9FA);
   static const Color semi_black = Color(0xFF333333);
+  static const Color deep_blue = Color(0xFF263A6B);
   static const Color key_color = Color(0xFF263A6B);
   static const Color circle_pink = Color(0xFFFFD0EA);
   static const Color circle_yellow = Color(0xFFFFEEAC);
@@ -25,6 +26,7 @@ class AppColors {
   static const Color black_gray = Color(0xFF383737);
   static const Color deep_gray = Color(0xFF828181);
   static const Color gray = Color(0xFFD5D5D5);
+  static const Color danger = Color(0xFFE33B2E);
 
   // Common Colors
   static const Color white = Color(0xFFFFFFFF);

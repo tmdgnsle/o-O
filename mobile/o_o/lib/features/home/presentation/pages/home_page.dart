@@ -11,6 +11,7 @@ import '../../../recording/presentation/bloc/recording_event.dart';
 import '../../../recording/presentation/bloc/recording_state.dart';
 import '../widgets/animated_circular_button.dart';
 import '../widgets/circular_popo_button.dart';
+import '../widgets/mindmap_card.dart';
 
 /// 홈 페이지
 class HomePage extends StatelessWidget {
@@ -162,7 +163,7 @@ class HomePage extends StatelessWidget {
                   curve: Curves.easeInOut,
                   child: DraggableScrollableSheet(
                     initialChildSize: 0.2,
-                    minChildSize: 0.1,
+                    minChildSize: 0.2,
                     maxChildSize: 0.9,
                     builder: (context, scrollController) {
                       return Container(
@@ -200,29 +201,40 @@ class HomePage extends StatelessWidget {
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 20),
                                 children: [
-                                  const Text(
+                                  const SizedBox(height: 24),
+                                  Text(
                                     '최근 마인드맵',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                    style: AppTextStyles.semiBold20.copyWith(
+                                      color: AppColors.semi_black,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    width: double.infinity,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[100],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Center(
-                                      child: Icon(
-                                        Icons.add,
-                                        size: 32,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
+                                  const SizedBox(height: 20),
+                                  // 마인드맵 카드 리스트
+                                  MindmapCard(
+                                    title: '알고리즘 싫어하는 마인드맵',
+                                    imagePath: 'assets/images/dummy_mindmap.png',
+                                    isLocked: true,
+                                    onTap: () {
+                                      // TODO: 마인드맵 상세 페이지로 이동
+                                    },
                                   ),
+                                  MindmapCard(
+                                    title: '알고리즘 싫어하는 마인드맵',
+                                    imagePath: 'assets/images/dummy_mindmap.png',
+                                    isLocked: true,
+                                    onTap: () {
+                                      // TODO: 마인드맵 상세 페이지로 이동
+                                    },
+                                  ),
+                                  MindmapCard(
+                                    title: '알고리즘 싫어하는 마인드맵',
+                                    imagePath: 'assets/images/dummy_mindmap.png',
+                                    isLocked: true,
+                                    onTap: () {
+                                      // TODO: 마인드맵 상세 페이지로 이동
+                                    },
+                                  ),
+                                  const SizedBox(height: 50),
                                 ],
                               ),
                             ),

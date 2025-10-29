@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:o_o/core/constants/app_text_styles.dart';
 
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -57,16 +58,16 @@ class LoginPage extends StatelessWidget {
                     Text(
                       '생각을 정리하고 이어주는',
                       textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.grey[600]),
+                      style: AppTextStyles.regular16.copyWith(
+                        color: Colors.black.withOpacity(0.6),
+                      ),
                     ),
                     Text(
                       'AI 기획 파트너',
                       textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.grey[600]),
+                      style: AppTextStyles.regular16.copyWith(
+                        color: Colors.black.withOpacity(0.6),
+                      ),
                     ),
                     const SizedBox(height: 80),
 
