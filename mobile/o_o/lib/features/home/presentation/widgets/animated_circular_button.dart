@@ -64,58 +64,68 @@ class _AnimatedCircularButtonState extends State<AnimatedCircularButton>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 애니메이션 오오라 효과
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Opacity(
-                opacity: _opacityAnimation.value,
-                child: Container(
-                  width: widget.containerSize * _scaleAnimation.value,
-                  height: widget.containerSize * _scaleAnimation.value,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF365EBF).withOpacity(1.0), // 중심: 100%
-                        const Color(0xFF365EBF).withOpacity(0.29), // 68%: 29%
-                        const Color(0xFF365EBF).withOpacity(0.0), // 가장자리: 0%
-                      ],
-                      stops: const [0.0, 0.68, 1.0],
+      child: SizedBox(
+        width: widget.containerSize * 1.5,
+        height: widget.containerSize * 1.5,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // 애니메이션 오오라 효과
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _opacityAnimation.value,
+                  child: Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Container(
+                      width: widget.containerSize,
+                      height: widget.containerSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF365EBF)
+                                .withOpacity(0.8), // 중심: 80%
+                            const Color(0xFF365EBF)
+                                .withOpacity(0.6), // 68%: 60%
+                            const Color(0xFF365EBF)
+                                .withOpacity(0.0), // 가장자리: 0%
+                          ],
+                          stops: const [0.0, 0.68, 1.0],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-          // 메인 버튼
-          Container(
-            width: widget.containerSize,
-            height: widget.containerSize,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  offset: const Offset(0, 4),
-                  blurRadius: widget.blurRadius,
-                  spreadRadius: 0,
-                ),
-              ],
+                );
+              },
             ),
-            child: Center(
-              child: Image.asset(
-                widget.image,
-                width: widget.imageSize,
-                height: widget.imageSize,
+            // 메인 버튼
+            Container(
+              width: widget.containerSize,
+              height: widget.containerSize,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    offset: const Offset(0, 4),
+                    blurRadius: widget.blurRadius,
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Image.asset(
+                  widget.image,
+                  width: widget.imageSize,
+                  height: widget.imageSize,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

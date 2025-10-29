@@ -1,0 +1,19 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'recording_state.freezed.dart';
+
+/// 녹음 상태
+@freezed
+class RecordingState with _$RecordingState {
+  /// 초기 상태
+  const factory RecordingState.initial() = RecordingInitial;
+
+  /// 녹음 중
+  const factory RecordingState.recording() = RecordingInProgress;
+
+  /// 녹음 중지
+  const factory RecordingState.stopped({String? filePath}) = RecordingStopped;
+
+  /// 에러
+  const factory RecordingState.error({required String message}) = RecordingError;
+}

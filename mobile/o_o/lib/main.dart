@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/recording/presentation/bloc/recording_bloc.dart';
 import 'features/user/presentation/bloc/user_bloc.dart';
 
 void main() async {
@@ -40,6 +41,10 @@ class MyApp extends StatelessWidget {
         // UserBloc Provider
         BlocProvider(
           create: (context) => di.sl<UserBloc>(),
+        ),
+        // RecordingBloc Provider
+        BlocProvider(
+          create: (context) => di.sl<RecordingBloc>(),
         ),
       ],
       child: MaterialApp.router(

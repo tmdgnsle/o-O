@@ -81,10 +81,11 @@ class LoginPage extends StatelessWidget {
                                     const AuthEvent.signInWithGoogle(),
                                   );
                                 },
-                        child: Container(
+                        child: SizedBox(
                           width: 75,
                           height: 75,
                           child: Stack(
+                            alignment: Alignment.center,
                             children: [
                               // 구글 로그인 버튼 이미지
                               if (!isLoading)
