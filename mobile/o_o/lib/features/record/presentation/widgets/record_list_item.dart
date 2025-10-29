@@ -87,7 +87,6 @@ class _RecordListItemState extends State<RecordListItem> {
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                height: 48,
                 child: ElevatedButton(
                   onPressed: widget.onTap,
                   style: ElevatedButton.styleFrom(

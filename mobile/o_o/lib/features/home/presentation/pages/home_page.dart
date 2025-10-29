@@ -27,7 +27,13 @@ class HomePage extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-        child: BlocBuilder<RecordingBloc, RecordingState>(
+        child: BlocConsumer<RecordingBloc, RecordingState>(
+          listener: (context, state) {
+            // 녹음 완료 시 RecordListPage로 이동
+            if (state is RecordingStopped) {
+              context.go('/records');
+            }
+          },
           builder: (context, recordingState) {
             final isRecording = recordingState is RecordingInProgress;
 

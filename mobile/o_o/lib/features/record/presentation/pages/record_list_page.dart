@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../recording/presentation/bloc/recording_bloc.dart';
+import '../../../recording/presentation/bloc/recording_event.dart';
 import '../bloc/record_bloc.dart';
 import '../bloc/record_event.dart';
 import '../bloc/record_state.dart';
@@ -20,6 +22,7 @@ class RecordListPage extends StatefulWidget {
 class _RecordListPageState extends State<RecordListPage> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -39,16 +42,20 @@ class _RecordListPageState extends State<RecordListPage> {
       _isSearching = !_isSearching;
       if (!_isSearching) {
         _searchController.clear();
+        _searchQuery = '';
       }
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
     });
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20.0,
-        vertical: 16.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SizedBox(
@@ -144,18 +151,21 @@ class _RecordListPageState extends State<RecordListPage> {
                                         child: TextField(
                                           controller: _searchController,
                                           autofocus: true,
+                                          onChanged: _onSearchChanged,
                                           decoration: InputDecoration(
                                             hintText: '검색어를 입력하세요.',
-                                            hintStyle: AppTextStyles.regular16.copyWith(
-                                              color: AppColors.deep_gray,
-                                            ),
+                                            hintStyle: AppTextStyles.regular16
+                                                .copyWith(
+                                                  color: AppColors.deep_gray,
+                                                ),
                                             border: InputBorder.none,
                                             isDense: true,
                                             contentPadding: EdgeInsets.zero,
                                           ),
-                                          style: AppTextStyles.regular16.copyWith(
-                                            color: AppColors.semi_black,
-                                          ),
+                                          style: AppTextStyles.regular16
+                                              .copyWith(
+                                                color: AppColors.semi_black,
+                                              ),
                                         ),
                                       ),
                                       IconButton(
@@ -214,7 +224,16 @@ class _RecordListPageState extends State<RecordListPage> {
         height: 80,
         child: FloatingActionButton(
           onPressed: () {
-            // TODO: 녹음 시작 기능
+            // 홈으로 이동
+            context.go('/');
+            // 페이지 전환 후 녹음 시작
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.read<RecordingBloc>().add(
+                  const RecordingEvent.toggle(),
+                );
+              }
+            });
           },
           backgroundColor: AppColors.white,
           elevation: 4,
@@ -235,167 +254,269 @@ class _RecordListPageState extends State<RecordListPage> {
         ),
         child: SafeArea(
           child: BlocConsumer<RecordBloc, RecordState>(
-        listener: (context, state) {
-          state.maybeWhen(
-            error: (message, errorCode) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(message),
-                  backgroundColor: AppColors.danger,
-                ),
+            listener: (context, state) {
+              state.maybeWhen(
+                error: (message, errorCode) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      backgroundColor: AppColors.danger,
+                    ),
+                  );
+                },
+                deleted: () {
+                  // 삭제 성공 시 리스트 새로고침
+                  context.read<RecordBloc>().add(
+                    const RecordEvent.getRecords(),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('녹음 기록이 삭제되었습니다'),
+                      backgroundColor: AppColors.deep_blue,
+                    ),
+                  );
+                },
+                orElse: () {},
               );
             },
-            deleted: () {
-              // 삭제 성공 시 리스트 새로고침
-              context.read<RecordBloc>().add(const RecordEvent.getRecords());
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('녹음 기록이 삭제되었습니다'),
-                  backgroundColor: AppColors.deep_blue,
-                ),
-              );
-            },
-            orElse: () {},
-          );
-        },
-        builder: (context, state) {
-          return state.when(
-            initial:
-                () => Column(
-                  children: [
-                    _buildHeader(),
-                    const Expanded(
-                      child: Center(child: Text('녹음 기록을 불러오는 중...')),
-                    ),
-                  ],
-                ),
-            loading:
-                () => Column(
-                  children: [
-                    _buildHeader(),
-                    const Expanded(
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppColors.deep_blue),
-                      ),
-                    ),
-                  ],
-                ),
-            loaded: (records) {
-              if (records.isEmpty) {
-                return Column(
-                  children: [
-                    _buildHeader(),
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.mic_off, size: 64, color: AppColors.gray),
-                            const SizedBox(height: 16),
-                            Text(
-                              '녹음 기록이 없습니다',
-                              style: AppTextStyles.regular16.copyWith(
-                                color: AppColors.deep_gray,
-                              ),
-                            ),
-                          ],
+            builder: (context, state) {
+              return state.when(
+                initial:
+                    () => Column(
+                      children: [
+                        _buildHeader(),
+                        const Expanded(
+                          child: Center(child: Text('녹음 기록을 불러오는 중...')),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                );
-              }
+                loading:
+                    () => Column(
+                      children: [
+                        _buildHeader(),
+                        const Expanded(
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.deep_blue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                loaded: (records) {
+                  // 검색어로 필터링
+                  final filteredRecords =
+                      _searchQuery.isEmpty
+                          ? records
+                          : records.where((record) {
+                            final titleLower = record.title.toLowerCase();
+                            final contentLower = record.content.toLowerCase();
+                            return titleLower.contains(_searchQuery) ||
+                                contentLower.contains(_searchQuery);
+                          }).toList();
 
-              return Column(
-                children: [
-                  _buildHeader(),
-                  // 리스트
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                      itemCount: records.length,
-                      separatorBuilder:
-                          (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final record = records[index];
-                        return RecordListItem(
-                          record: record,
-                          onTap: () {
-                            // TODO: 녹음 기록 상세 페이지로 이동
-                          },
-                          onDelete: () {
-                            _showDeleteDialog(context, record.id);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
-            detailLoaded:
-                (record) => Column(
-                  children: [
-                    _buildHeader(),
-                    const Expanded(
-                      child: Center(child: Text('상세 페이지는 아직 구현되지 않았습니다')),
-                    ),
-                  ],
-                ),
-            deleted:
-                () => Column(
-                  children: [
-                    _buildHeader(),
-                    const Expanded(
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppColors.deep_blue),
-                      ),
-                    ),
-                  ],
-                ),
-            error:
-                (message, errorCode) => Column(
-                  children: [
-                    _buildHeader(),
-                    Expanded(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: AppColors.danger,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              message,
-                              style: AppTextStyles.regular16.copyWith(
-                                color: AppColors.danger,
+                  if (filteredRecords.isEmpty) {
+                    // 검색 중일 때는 기존 UI
+                    if (_searchQuery.isNotEmpty) {
+                      return Column(
+                        children: [
+                          _buildHeader(),
+                          Expanded(
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 64,
+                                    color: AppColors.gray,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    '검색 결과가 없습니다',
+                                    style: AppTextStyles.regular16.copyWith(
+                                      color: AppColors.deep_gray,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<RecordBloc>().add(
-                                  const RecordEvent.getRecords(),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.deep_blue,
-                                foregroundColor: AppColors.white,
-                              ),
-                              child: const Text('다시 시도'),
+                          ),
+                        ],
+                      );
+                    }
+
+                    // 데이터가 완전히 비어있을 때 - 새로운 디자인
+                    return Scaffold(
+                      body: Container(
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/background.png'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24.0,
                             ),
-                          ],
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 20),
+                                // 로고
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    height: 32,
+                                  ),
+                                ),
+                                const Spacer(),
+                                // 메인 텍스트
+                                Text(
+                                  '저장된 아이디어가 없습니다.',
+                                  style: AppTextStyles.semiBold20.copyWith(
+                                    color: AppColors.semi_black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 40),
+                                // Popo 캐릭터 이미지
+                                Image.asset(
+                                  'assets/images/popo_listen.png',
+                                  width: 200,
+                                  height: 200,
+                                  fit: BoxFit.contain,
+                                ),
+                                const SizedBox(height: 40),
+                                // 안내 텍스트
+                                Text(
+                                  '지금 떠오르는 생각을\nPopo에게 말해주세요.',
+                                  style: AppTextStyles.semiBold20.copyWith(
+                                    color: AppColors.semi_black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 32),
+                                // 버튼
+                                ElevatedButton(
+                                  onPressed: () => context.go('/'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.deep_blue,
+                                    foregroundColor: AppColors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    '아이디어 기록하기',
+                                    style: AppTextStyles.semiBold16.copyWith(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(flex: 2),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      _buildHeader(),
+                      // 리스트
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                          itemCount: filteredRecords.length,
+                          separatorBuilder:
+                              (context, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final record = filteredRecords[index];
+                            return RecordListItem(
+                              record: record,
+                              onTap: () {
+                                // TODO: 녹음 기록 상세 페이지로 이동
+                              },
+                              onDelete: () {
+                                _showDeleteDialog(context, record.id);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                detailLoaded:
+                    (record) => Column(
+                      children: [
+                        _buildHeader(),
+                        const Expanded(
+                          child: Center(child: Text('상세 페이지는 아직 구현되지 않았습니다')),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-          );
-        },
+                deleted:
+                    () => Column(
+                      children: [
+                        _buildHeader(),
+                        const Expanded(
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.deep_blue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                error:
+                    (message, errorCode) => Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 64,
+                                  color: AppColors.danger,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  message,
+                                  style: AppTextStyles.regular16.copyWith(
+                                    color: AppColors.danger,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 24),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context.read<RecordBloc>().add(
+                                      const RecordEvent.getRecords(),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.deep_blue,
+                                    foregroundColor: AppColors.white,
+                                  ),
+                                  child: const Text('다시 시도'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+              );
+            },
           ),
         ),
       ),
