@@ -1,10 +1,9 @@
-import "./App.css";
-import { Button } from "./shared/ui/button";
+import { Header } from "./shared/ui/Header";
 
 function App() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <Button>Click me</Button>
+    <div>
+      <Header />
     </div>
   );
 }
