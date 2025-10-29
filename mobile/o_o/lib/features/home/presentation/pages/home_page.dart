@@ -71,7 +71,7 @@ class HomePage extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 CircularButton(
-                                  onTap: () {},
+                                  onTap: () => context.push('/mypage'),
                                   containerSize: 38,
                                   imageSize: 24,
                                   blurRadius: 4,
