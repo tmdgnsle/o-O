@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/record/presentation/pages/record_list_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 
 /// GoRouter 설정
@@ -27,6 +28,11 @@ class AppRouter {
         path: '/users',
         name: 'users',
         builder: (context, state) => const UserPage(),
+      ),
+      GoRoute(
+        path: '/records',
+        name: 'records',
+        builder: (context, state) => const RecordListPage(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

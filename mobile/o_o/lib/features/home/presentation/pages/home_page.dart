@@ -57,7 +57,7 @@ class HomePage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 CircularButton(
-                                  onTap: () {},
+                                  onTap: () => context.push('/records'),
                                   containerSize: 38,
                                   imageSize: 24,
                                   blurRadius: 4,

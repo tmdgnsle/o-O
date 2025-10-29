@@ -3,6 +3,10 @@ import 'package:get_it/get_it.dart';
 import '../../features/auth/data/repositories/auth_repository_mock.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/record/data/repositories/record_repository_mock.dart';
+import '../../features/record/domain/repositories/record_repository.dart';
+import '../../features/record/domain/usecases/get_records.dart';
+import '../../features/record/presentation/bloc/record_bloc.dart';
 import '../../features/recording/data/repositories/recording_repository_mock.dart';
 import '../../features/recording/domain/repositories/recording_repository.dart';
 import '../../features/recording/domain/usecases/start_recording.dart';
@@ -61,6 +65,24 @@ Future<void> init() async {
   // TODO: 실제 녹음 기능 구현 시 RecordingRepositoryImpl로 교체
   sl.registerLazySingleton<RecordingRepository>(
     () => RecordingRepositoryMock(),
+  );
+
+  //! Features - Record
+  // Bloc
+  sl.registerFactory(
+    () => RecordBloc(
+      getRecords: sl(),
+      repository: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetRecords(sl()));
+
+  // Repository (Mock)
+  // TODO: 실제 API 구현 시 RecordRepositoryImpl로 교체
+  sl.registerLazySingleton<RecordRepository>(
+    () => RecordRepositoryMock(),
   );
 
   //! Features - Example
