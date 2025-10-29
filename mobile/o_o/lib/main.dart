@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/user/presentation/bloc/user_bloc.dart';
 
 void main() async {
@@ -21,6 +22,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // AuthBloc Provider
+        BlocProvider(
+          create: (context) => di.sl<AuthBloc>(),
+        ),
         // UserBloc Provider
         BlocProvider(
           create: (context) => di.sl<UserBloc>(),
@@ -31,6 +36,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
+          fontFamily: 'Paperlogy',
         ),
         routerConfig: AppRouter.router,
         debugShowCheckedModeBanner: false,

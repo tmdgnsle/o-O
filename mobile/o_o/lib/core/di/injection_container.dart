@@ -1,5 +1,8 @@
 import 'package:get_it/get_it.dart';
 
+import '../../features/auth/data/repositories/auth_repository_mock.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/user/data/repositories/user_repository_mock.dart';
 import '../../features/user/domain/repositories/user_repository.dart';
 import '../../features/user/presentation/bloc/user_bloc.dart';
@@ -8,6 +11,20 @@ final sl = GetIt.instance;
 
 /// Initialize all dependencies
 Future<void> init() async {
+  //! Features - Auth
+  // Bloc
+  sl.registerFactory(
+    () => AuthBloc(
+      repository: sl(),
+    ),
+  );
+
+  // Repository (Mock)
+  // TODO: 실제 Google Sign-In 구현 시 AuthRepositoryImpl로 교체
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryMock(),
+  );
+
   //! Features - User
   // Bloc
   sl.registerFactory(
