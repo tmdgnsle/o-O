@@ -141,7 +141,7 @@ class MarblePhysicsGame extends Forge2DGame {
     required this.screenSize,
     this.onMarbleTap,
   }) : super(
-          gravity: Vector2(0, 700), // 중력 증가 (더 빠르게 떨어지도록)
+          gravity: Vector2(0, 1000), // 중력 증가 (더 빠르게 떨어지도록)
         );
 
   @override

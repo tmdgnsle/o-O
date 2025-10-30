@@ -17,6 +17,122 @@ import '../widgets/mindmap_card.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  /// 녹음 중단 확인 다이얼로그
+  void _showStopRecordingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (dialogContext) {
+        return PopScope(
+          onPopInvoked: (didPop) {
+            if (didPop) {
+              // 다이얼로그가 닫히면 녹음 재개
+              context.read<RecordingBloc>().add(
+                const RecordingEvent.resume(),
+              );
+            }
+          },
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 다이얼로그 컨텐츠
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 메시지
+                    Text(
+                      '창을 벗어나면',
+                      style: AppTextStyles.semiBold20.copyWith(
+                        color: AppColors.semi_black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Text(
+                      '기록을 되돌릴 수 없어요.',
+                      style: AppTextStyles.semiBold20.copyWith(
+                        color: AppColors.semi_black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    // 홈으로 가기 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          // 녹음 중단 (HomePage에 그대로 남음)
+                          context.read<RecordingBloc>().add(
+                            const RecordingEvent.stop(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.deep_blue,
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          '홈으로 가기',
+                          style: AppTextStyles.semiBold16.copyWith(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // 기록 계속하기 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(dialogContext).pop();
+                          // 녹음 재개
+                          context.read<RecordingBloc>().add(
+                            const RecordingEvent.resume(),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.gray,
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          '기록 계속하기',
+                          style: AppTextStyles.semiBold16.copyWith(
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,15 +143,11 @@ class HomePage extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-        child: BlocConsumer<RecordingBloc, RecordingState>(
-          listener: (context, state) {
-            // 녹음 완료 시 RecordListPage로 이동
-            if (state is RecordingStopped) {
-              context.go('/records');
-            }
-          },
+        child: BlocBuilder<RecordingBloc, RecordingState>(
           builder: (context, recordingState) {
-            final isRecording = recordingState is RecordingInProgress;
+            final isRecording = recordingState is RecordingInProgress ||
+                recordingState is RecordingPaused;
+            final isPaused = recordingState is RecordingPaused;
 
             return Stack(
               children: [
@@ -106,20 +218,24 @@ class HomePage extends StatelessWidget {
                               isRecording
                                   ? AnimatedCircularButton(
                                     key: const ValueKey('recording'),
-                                    onTap:
-                                        () => context.read<RecordingBloc>().add(
-                                          const RecordingEvent.toggle(),
-                                        ),
+                                    onTap: () {
+                                      // 녹음 중단 후 RecordListPage로 이동
+                                      context.read<RecordingBloc>().add(
+                                        const RecordingEvent.stop(),
+                                      );
+                                      context.go('/records');
+                                    },
                                     containerSize: 220,
                                     imageSize: 170,
                                     blurRadius: 6,
                                     image: 'assets/images/popo_listen.png',
+                                    isPaused: isPaused,
                                   )
                                   : CircularButton(
                                     key: const ValueKey('idle'),
                                     onTap:
                                         () => context.read<RecordingBloc>().add(
-                                          const RecordingEvent.toggle(),
+                                          const RecordingEvent.start(),
                                         ),
                                     containerSize: 220,
                                     imageSize: 170,
@@ -128,7 +244,7 @@ class HomePage extends StatelessWidget {
                                     showAura: true,
                                   ),
                         ),
-                        // 녹음 중일 때 텍스트 표시
+                        // 녹음 중일 때 텍스트 및 X 버튼 표시
                         AnimatedSize(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -152,6 +268,38 @@ class HomePage extends StatelessWidget {
                                               color: AppColors.semi_black,
                                             ),
                                         textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      // X 버튼 (녹음 일시정지 및 다이얼로그)
+                                      GestureDetector(
+                                        onTap: () {
+                                          // 녹음 일시정지
+                                          context.read<RecordingBloc>().add(
+                                            const RecordingEvent.pause(),
+                                          );
+                                          // 다이얼로그 표시
+                                          _showStopRecordingDialog(context);
+                                        },
+                                        child: Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.15),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: AppColors.semi_black,
+                                            size: 32,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   )

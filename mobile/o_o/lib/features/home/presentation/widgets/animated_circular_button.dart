@@ -9,6 +9,7 @@ class AnimatedCircularButton extends StatefulWidget {
   final double imageSize;
   final double blurRadius;
   final String image;
+  final bool isPaused;
 
   const AnimatedCircularButton({
     super.key,
@@ -17,6 +18,7 @@ class AnimatedCircularButton extends StatefulWidget {
     required this.imageSize,
     required this.image,
     this.blurRadius = 6,
+    this.isPaused = false,
   });
 
   @override
@@ -35,7 +37,7 @@ class _AnimatedCircularButtonState extends State<AnimatedCircularButton>
     _controller = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
-    )..repeat(reverse: false);
+    );
 
     // 크기 애니메이션: 1.2 → 1.4로 확장
     _scaleAnimation = Tween<double>(begin: 1.2, end: 1.5).animate(
@@ -52,6 +54,24 @@ class _AnimatedCircularButtonState extends State<AnimatedCircularButton>
         curve: Curves.easeOut,
       ),
     );
+
+    // 일시정지 상태가 아니면 애니메이션 시작
+    if (!widget.isPaused) {
+      _controller.repeat(reverse: false);
+    }
+  }
+
+  @override
+  void didUpdateWidget(AnimatedCircularButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // isPaused 상태가 변경되었을 때 애니메이션 제어
+    if (oldWidget.isPaused != widget.isPaused) {
+      if (widget.isPaused) {
+        _controller.stop();
+      } else {
+        _controller.repeat(reverse: false);
+      }
+    }
   }
 
   @override

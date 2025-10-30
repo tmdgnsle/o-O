@@ -20,18 +20,24 @@ mixin _$RecordingEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
     required TResult orElse(),
@@ -39,18 +45,24 @@ mixin _$RecordingEvent {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
     required TResult orElse(),
@@ -123,6 +135,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
   }) {
@@ -133,6 +147,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
   }) {
@@ -143,6 +159,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
     required TResult orElse(),
@@ -157,6 +175,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
   }) {
@@ -167,6 +187,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
   }) {
@@ -177,6 +199,8 @@ class _$RecordingStartImpl implements RecordingStart {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
     required TResult orElse(),
@@ -190,6 +214,256 @@ class _$RecordingStartImpl implements RecordingStart {
 
 abstract class RecordingStart implements RecordingEvent {
   const factory RecordingStart() = _$RecordingStartImpl;
+}
+
+/// @nodoc
+abstract class _$$RecordingPauseImplCopyWith<$Res> {
+  factory _$$RecordingPauseImplCopyWith(
+    _$RecordingPauseImpl value,
+    $Res Function(_$RecordingPauseImpl) then,
+  ) = __$$RecordingPauseImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$RecordingPauseImplCopyWithImpl<$Res>
+    extends _$RecordingEventCopyWithImpl<$Res, _$RecordingPauseImpl>
+    implements _$$RecordingPauseImplCopyWith<$Res> {
+  __$$RecordingPauseImplCopyWithImpl(
+    _$RecordingPauseImpl _value,
+    $Res Function(_$RecordingPauseImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of RecordingEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$RecordingPauseImpl implements RecordingPause {
+  const _$RecordingPauseImpl();
+
+  @override
+  String toString() {
+    return 'RecordingEvent.pause()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$RecordingPauseImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
+    required TResult Function() stop,
+    required TResult Function() toggle,
+  }) {
+    return pause();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
+    TResult? Function()? stop,
+    TResult? Function()? toggle,
+  }) {
+    return pause?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
+    TResult Function()? stop,
+    TResult Function()? toggle,
+    required TResult orElse(),
+  }) {
+    if (pause != null) {
+      return pause();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
+    required TResult Function(RecordingStop value) stop,
+    required TResult Function(RecordingToggle value) toggle,
+  }) {
+    return pause(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
+    TResult? Function(RecordingStop value)? stop,
+    TResult? Function(RecordingToggle value)? toggle,
+  }) {
+    return pause?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
+    TResult Function(RecordingStop value)? stop,
+    TResult Function(RecordingToggle value)? toggle,
+    required TResult orElse(),
+  }) {
+    if (pause != null) {
+      return pause(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RecordingPause implements RecordingEvent {
+  const factory RecordingPause() = _$RecordingPauseImpl;
+}
+
+/// @nodoc
+abstract class _$$RecordingResumeImplCopyWith<$Res> {
+  factory _$$RecordingResumeImplCopyWith(
+    _$RecordingResumeImpl value,
+    $Res Function(_$RecordingResumeImpl) then,
+  ) = __$$RecordingResumeImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$RecordingResumeImplCopyWithImpl<$Res>
+    extends _$RecordingEventCopyWithImpl<$Res, _$RecordingResumeImpl>
+    implements _$$RecordingResumeImplCopyWith<$Res> {
+  __$$RecordingResumeImplCopyWithImpl(
+    _$RecordingResumeImpl _value,
+    $Res Function(_$RecordingResumeImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of RecordingEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$RecordingResumeImpl implements RecordingResume {
+  const _$RecordingResumeImpl();
+
+  @override
+  String toString() {
+    return 'RecordingEvent.resume()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$RecordingResumeImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
+    required TResult Function() stop,
+    required TResult Function() toggle,
+  }) {
+    return resume();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
+    TResult? Function()? stop,
+    TResult? Function()? toggle,
+  }) {
+    return resume?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
+    TResult Function()? stop,
+    TResult Function()? toggle,
+    required TResult orElse(),
+  }) {
+    if (resume != null) {
+      return resume();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
+    required TResult Function(RecordingStop value) stop,
+    required TResult Function(RecordingToggle value) toggle,
+  }) {
+    return resume(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
+    TResult? Function(RecordingStop value)? stop,
+    TResult? Function(RecordingToggle value)? toggle,
+  }) {
+    return resume?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
+    TResult Function(RecordingStop value)? stop,
+    TResult Function(RecordingToggle value)? toggle,
+    required TResult orElse(),
+  }) {
+    if (resume != null) {
+      return resume(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RecordingResume implements RecordingEvent {
+  const factory RecordingResume() = _$RecordingResumeImpl;
 }
 
 /// @nodoc
@@ -236,6 +510,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
   }) {
@@ -246,6 +522,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
   }) {
@@ -256,6 +534,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
     required TResult orElse(),
@@ -270,6 +550,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
   }) {
@@ -280,6 +562,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
   }) {
@@ -290,6 +574,8 @@ class _$RecordingStopImpl implements RecordingStop {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
     required TResult orElse(),
@@ -349,6 +635,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
   }) {
@@ -359,6 +647,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
   }) {
@@ -369,6 +659,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
     required TResult orElse(),
@@ -383,6 +675,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
   }) {
@@ -393,6 +687,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
   }) {
@@ -403,6 +699,8 @@ class _$RecordingToggleImpl implements RecordingToggle {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
     required TResult orElse(),

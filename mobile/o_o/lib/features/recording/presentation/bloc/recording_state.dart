@@ -11,6 +11,9 @@ class RecordingState with _$RecordingState {
   /// 녹음 중
   const factory RecordingState.recording() = RecordingInProgress;
 
+  /// 녹음 일시정지
+  const factory RecordingState.paused() = RecordingPaused;
+
   /// 녹음 중지
   const factory RecordingState.stopped({String? filePath}) = RecordingStopped;
 

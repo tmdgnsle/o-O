@@ -16,6 +16,8 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
     required this.stopRecording,
   }) : super(const RecordingState.initial()) {
     on<RecordingStart>(_onStart);
+    on<RecordingPause>(_onPause);
+    on<RecordingResume>(_onResume);
     on<RecordingStop>(_onStop);
     on<RecordingToggle>(_onToggle);
   }
@@ -30,6 +32,22 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
       (failure) => emit(RecordingState.error(message: '녹음 시작 실패')),
       (_) => emit(const RecordingState.recording()),
     );
+  }
+
+  Future<void> _onPause(
+    RecordingPause event,
+    Emitter<RecordingState> emit,
+  ) async {
+    // 녹음 일시정지 (실제 녹음은 계속되지만 UI 상태만 변경)
+    emit(const RecordingState.paused());
+  }
+
+  Future<void> _onResume(
+    RecordingResume event,
+    Emitter<RecordingState> emit,
+  ) async {
+    // 녹음 재개
+    emit(const RecordingState.recording());
   }
 
   Future<void> _onStop(
@@ -51,6 +69,7 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
     state.when(
       initial: () => add(const RecordingEvent.start()),
       recording: () => add(const RecordingEvent.stop()),
+      paused: () => add(const RecordingEvent.stop()),
       stopped: (_) => add(const RecordingEvent.start()),
       error: (_) => add(const RecordingEvent.start()),
     );

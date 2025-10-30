@@ -21,6 +21,7 @@ mixin _$RecordingState {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() recording,
+    required TResult Function() paused,
     required TResult Function(String? filePath) stopped,
     required TResult Function(String message) error,
   }) => throw _privateConstructorUsedError;
@@ -28,6 +29,7 @@ mixin _$RecordingState {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? recording,
+    TResult? Function()? paused,
     TResult? Function(String? filePath)? stopped,
     TResult? Function(String message)? error,
   }) => throw _privateConstructorUsedError;
@@ -35,6 +37,7 @@ mixin _$RecordingState {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? recording,
+    TResult Function()? paused,
     TResult Function(String? filePath)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -43,6 +46,7 @@ mixin _$RecordingState {
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingInitial value) initial,
     required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
     required TResult Function(RecordingStopped value) stopped,
     required TResult Function(RecordingError value) error,
   }) => throw _privateConstructorUsedError;
@@ -50,6 +54,7 @@ mixin _$RecordingState {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingInitial value)? initial,
     TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
     TResult? Function(RecordingStopped value)? stopped,
     TResult? Function(RecordingError value)? error,
   }) => throw _privateConstructorUsedError;
@@ -57,6 +62,7 @@ mixin _$RecordingState {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingInitial value)? initial,
     TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
     TResult Function(RecordingStopped value)? stopped,
     TResult Function(RecordingError value)? error,
     required TResult orElse(),
@@ -130,6 +136,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() recording,
+    required TResult Function() paused,
     required TResult Function(String? filePath) stopped,
     required TResult Function(String message) error,
   }) {
@@ -141,6 +148,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? recording,
+    TResult? Function()? paused,
     TResult? Function(String? filePath)? stopped,
     TResult? Function(String message)? error,
   }) {
@@ -152,6 +160,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? recording,
+    TResult Function()? paused,
     TResult Function(String? filePath)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -167,6 +176,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingInitial value) initial,
     required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
     required TResult Function(RecordingStopped value) stopped,
     required TResult Function(RecordingError value) error,
   }) {
@@ -178,6 +188,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingInitial value)? initial,
     TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
     TResult? Function(RecordingStopped value)? stopped,
     TResult? Function(RecordingError value)? error,
   }) {
@@ -189,6 +200,7 @@ class _$RecordingInitialImpl implements RecordingInitial {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingInitial value)? initial,
     TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
     TResult Function(RecordingStopped value)? stopped,
     TResult Function(RecordingError value)? error,
     required TResult orElse(),
@@ -250,6 +262,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() recording,
+    required TResult Function() paused,
     required TResult Function(String? filePath) stopped,
     required TResult Function(String message) error,
   }) {
@@ -261,6 +274,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? recording,
+    TResult? Function()? paused,
     TResult? Function(String? filePath)? stopped,
     TResult? Function(String message)? error,
   }) {
@@ -272,6 +286,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? recording,
+    TResult Function()? paused,
     TResult Function(String? filePath)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -287,6 +302,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingInitial value) initial,
     required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
     required TResult Function(RecordingStopped value) stopped,
     required TResult Function(RecordingError value) error,
   }) {
@@ -298,6 +314,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingInitial value)? initial,
     TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
     TResult? Function(RecordingStopped value)? stopped,
     TResult? Function(RecordingError value)? error,
   }) {
@@ -309,6 +326,7 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingInitial value)? initial,
     TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
     TResult Function(RecordingStopped value)? stopped,
     TResult Function(RecordingError value)? error,
     required TResult orElse(),
@@ -322,6 +340,131 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
 
 abstract class RecordingInProgress implements RecordingState {
   const factory RecordingInProgress() = _$RecordingInProgressImpl;
+}
+
+/// @nodoc
+abstract class _$$RecordingPausedImplCopyWith<$Res> {
+  factory _$$RecordingPausedImplCopyWith(
+    _$RecordingPausedImpl value,
+    $Res Function(_$RecordingPausedImpl) then,
+  ) = __$$RecordingPausedImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$RecordingPausedImplCopyWithImpl<$Res>
+    extends _$RecordingStateCopyWithImpl<$Res, _$RecordingPausedImpl>
+    implements _$$RecordingPausedImplCopyWith<$Res> {
+  __$$RecordingPausedImplCopyWithImpl(
+    _$RecordingPausedImpl _value,
+    $Res Function(_$RecordingPausedImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of RecordingState
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$RecordingPausedImpl implements RecordingPaused {
+  const _$RecordingPausedImpl();
+
+  @override
+  String toString() {
+    return 'RecordingState.paused()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$RecordingPausedImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() initial,
+    required TResult Function() recording,
+    required TResult Function() paused,
+    required TResult Function(String? filePath) stopped,
+    required TResult Function(String message) error,
+  }) {
+    return paused();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? initial,
+    TResult? Function()? recording,
+    TResult? Function()? paused,
+    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String message)? error,
+  }) {
+    return paused?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? initial,
+    TResult Function()? recording,
+    TResult Function()? paused,
+    TResult Function(String? filePath)? stopped,
+    TResult Function(String message)? error,
+    required TResult orElse(),
+  }) {
+    if (paused != null) {
+      return paused();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(RecordingInitial value) initial,
+    required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
+    required TResult Function(RecordingStopped value) stopped,
+    required TResult Function(RecordingError value) error,
+  }) {
+    return paused(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(RecordingInitial value)? initial,
+    TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
+    TResult? Function(RecordingStopped value)? stopped,
+    TResult? Function(RecordingError value)? error,
+  }) {
+    return paused?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(RecordingInitial value)? initial,
+    TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
+    TResult Function(RecordingStopped value)? stopped,
+    TResult Function(RecordingError value)? error,
+    required TResult orElse(),
+  }) {
+    if (paused != null) {
+      return paused(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RecordingPaused implements RecordingState {
+  const factory RecordingPaused() = _$RecordingPausedImpl;
 }
 
 /// @nodoc
@@ -401,6 +544,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() recording,
+    required TResult Function() paused,
     required TResult Function(String? filePath) stopped,
     required TResult Function(String message) error,
   }) {
@@ -412,6 +556,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? recording,
+    TResult? Function()? paused,
     TResult? Function(String? filePath)? stopped,
     TResult? Function(String message)? error,
   }) {
@@ -423,6 +568,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? recording,
+    TResult Function()? paused,
     TResult Function(String? filePath)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -438,6 +584,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingInitial value) initial,
     required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
     required TResult Function(RecordingStopped value) stopped,
     required TResult Function(RecordingError value) error,
   }) {
@@ -449,6 +596,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingInitial value)? initial,
     TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
     TResult? Function(RecordingStopped value)? stopped,
     TResult? Function(RecordingError value)? error,
   }) {
@@ -460,6 +608,7 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingInitial value)? initial,
     TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
     TResult Function(RecordingStopped value)? stopped,
     TResult Function(RecordingError value)? error,
     required TResult orElse(),
@@ -560,6 +709,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() recording,
+    required TResult Function() paused,
     required TResult Function(String? filePath) stopped,
     required TResult Function(String message) error,
   }) {
@@ -571,6 +721,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? recording,
+    TResult? Function()? paused,
     TResult? Function(String? filePath)? stopped,
     TResult? Function(String message)? error,
   }) {
@@ -582,6 +733,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? recording,
+    TResult Function()? paused,
     TResult Function(String? filePath)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
@@ -597,6 +749,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult map<TResult extends Object?>({
     required TResult Function(RecordingInitial value) initial,
     required TResult Function(RecordingInProgress value) recording,
+    required TResult Function(RecordingPaused value) paused,
     required TResult Function(RecordingStopped value) stopped,
     required TResult Function(RecordingError value) error,
   }) {
@@ -608,6 +761,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(RecordingInitial value)? initial,
     TResult? Function(RecordingInProgress value)? recording,
+    TResult? Function(RecordingPaused value)? paused,
     TResult? Function(RecordingStopped value)? stopped,
     TResult? Function(RecordingError value)? error,
   }) {
@@ -619,6 +773,7 @@ class _$RecordingErrorImpl implements RecordingError {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(RecordingInitial value)? initial,
     TResult Function(RecordingInProgress value)? recording,
+    TResult Function(RecordingPaused value)? paused,
     TResult Function(RecordingStopped value)? stopped,
     TResult Function(RecordingError value)? error,
     required TResult orElse(),
