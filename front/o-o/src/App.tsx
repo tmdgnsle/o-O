@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Header } from "./shared/ui/Header";
 import "./index.css";
 import { HomePage } from "./features/home/pages/HomePage";
-// import { Button } from "./components/ui/button";
+import { Button } from "./components/ui/button";
 
 function TrendPage() {
   return <div className="container mx-auto px-6 py-8"></div>;
