@@ -12,6 +12,7 @@ class RecordEntity with _$RecordEntity {
     required String content,
     required DateTime createdAt,
     String? audioUrl,
+    String? mindmapId,
   }) = _RecordEntity;
 
   const RecordEntity._();

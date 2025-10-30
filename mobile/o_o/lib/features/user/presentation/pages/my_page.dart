@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flame/game.dart';
+import 'package:flame/events.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -13,17 +14,24 @@ import '../../../../core/constants/app_text_styles.dart';
 class KeywordMarble {
   final String keyword;
   final int weight;
+  final String? mindmapId;
 
-  KeywordMarble({required this.keyword, required this.weight});
+  KeywordMarble({
+    required this.keyword,
+    required this.weight,
+    this.mindmapId,
+  });
 }
 
 /// 구슬 물리 컴포넌트
-class MarbleComponent extends BodyComponent {
+class MarbleComponent extends BodyComponent with TapCallbacks {
   final String keyword;
   final double radius;
   final Color color;
   final Vector2 initialPosition;
   final ui.Image marbleImage;
+  final String? mindmapId;
+  final Function(String?)? onTap;
 
   MarbleComponent({
     required this.keyword,
@@ -31,6 +39,8 @@ class MarbleComponent extends BodyComponent {
     required this.initialPosition,
     required this.marbleImage,
     this.color = Colors.white,
+    this.mindmapId,
+    this.onTap,
   }) : super(
           priority: 1,
         );
@@ -103,15 +113,34 @@ class MarbleComponent extends BodyComponent {
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    // 구슬의 원형 영역 내에 있는지 확인
+    return point.length <= radius;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    // 탭 시 콜백 호출
+    if (onTap != null) {
+      onTap!(mindmapId);
+    }
+  }
 }
 
 /// 구슬 물리 게임
 class MarblePhysicsGame extends Forge2DGame {
   final List<KeywordMarble> marbles;
   final Size screenSize;
+  final Function(String?)? onMarbleTap;
 
-  MarblePhysicsGame({required this.marbles, required this.screenSize})
-      : super(
+  MarblePhysicsGame({
+    required this.marbles,
+    required this.screenSize,
+    this.onMarbleTap,
+  }) : super(
           gravity: Vector2(0, 700), // 중력 증가 (더 빠르게 떨어지도록)
         );
 
@@ -160,6 +189,8 @@ class MarblePhysicsGame extends Forge2DGame {
         initialPosition: Vector2(x, y),
         marbleImage: marbleImage,
         color: colors[i % colors.length],
+        mindmapId: marble.mindmapId,
+        onTap: onMarbleTap,
       );
 
       await add(marbleComponent);
@@ -223,19 +254,23 @@ class _MyPageState extends State<MyPage> {
 
   /// 더미 데이터 생성
   List<KeywordMarble> _generateDummyData() {
-    final keywords = [
-      '쓰레기통',
-      '공항',
-      '중국어',
-      '유아학습\n플랫폼',
-      '완전탐색',
-      '쓰레기통',
+    final keywordsWithMindmap = [
+      {'keyword': '알고리즘', 'mindmapId': '1'},
+      {'keyword': '자료구조', 'mindmapId': '1'},
+      {'keyword': '포포', 'mindmapId': '2'},
+      {'keyword': '프로젝트', 'mindmapId': '2'},
+      {'keyword': '제주여행', 'mindmapId': '3'},
+      {'keyword': '관광지', 'mindmapId': '3'},
     ];
 
-    return keywords.map((keyword) {
+    return keywordsWithMindmap.map((data) {
       // 가중치 1-10 사이 랜덤
       final weight = random.nextInt(10) + 1;
-      return KeywordMarble(keyword: keyword, weight: weight);
+      return KeywordMarble(
+        keyword: data['keyword']!,
+        weight: weight,
+        mindmapId: data['mindmapId'],
+      );
     }).toList();
   }
 
@@ -249,6 +284,19 @@ class _MyPageState extends State<MyPage> {
     game ??= MarblePhysicsGame(
       marbles: marbles,
       screenSize: screenSize,
+      onMarbleTap: (mindmapId) {
+        if (mindmapId != null) {
+          // 마인드맵 페이지로 이동
+          context.push(
+            '/mindmap',
+            extra: {
+              'title': '마인드맵',
+              'imagePath': '',
+              'mindmapId': mindmapId,
+            },
+          );
+        }
+      },
     );
 
     return Scaffold(

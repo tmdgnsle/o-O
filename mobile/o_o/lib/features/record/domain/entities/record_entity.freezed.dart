@@ -22,6 +22,7 @@ mixin _$RecordEntity {
   String get content => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   String? get audioUrl => throw _privateConstructorUsedError;
+  String? get mindmapId => throw _privateConstructorUsedError;
 
   /// Create a copy of RecordEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -43,6 +44,7 @@ abstract class $RecordEntityCopyWith<$Res> {
     String content,
     DateTime createdAt,
     String? audioUrl,
+    String? mindmapId,
   });
 }
 
@@ -66,6 +68,7 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
     Object? content = null,
     Object? createdAt = null,
     Object? audioUrl = freezed,
+    Object? mindmapId = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -94,6 +97,11 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
                     ? _value.audioUrl
                     : audioUrl // ignore: cast_nullable_to_non_nullable
                         as String?,
+            mindmapId:
+                freezed == mindmapId
+                    ? _value.mindmapId
+                    : mindmapId // ignore: cast_nullable_to_non_nullable
+                        as String?,
           )
           as $Val,
     );
@@ -115,6 +123,7 @@ abstract class _$$RecordEntityImplCopyWith<$Res>
     String content,
     DateTime createdAt,
     String? audioUrl,
+    String? mindmapId,
   });
 }
 
@@ -137,6 +146,7 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
     Object? content = null,
     Object? createdAt = null,
     Object? audioUrl = freezed,
+    Object? mindmapId = freezed,
   }) {
     return _then(
       _$RecordEntityImpl(
@@ -165,6 +175,11 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
                 ? _value.audioUrl
                 : audioUrl // ignore: cast_nullable_to_non_nullable
                     as String?,
+        mindmapId:
+            freezed == mindmapId
+                ? _value.mindmapId
+                : mindmapId // ignore: cast_nullable_to_non_nullable
+                    as String?,
       ),
     );
   }
@@ -179,6 +194,7 @@ class _$RecordEntityImpl extends _RecordEntity {
     required this.content,
     required this.createdAt,
     this.audioUrl,
+    this.mindmapId,
   }) : super._();
 
   @override
@@ -191,10 +207,12 @@ class _$RecordEntityImpl extends _RecordEntity {
   final DateTime createdAt;
   @override
   final String? audioUrl;
+  @override
+  final String? mindmapId;
 
   @override
   String toString() {
-    return 'RecordEntity(id: $id, title: $title, content: $content, createdAt: $createdAt, audioUrl: $audioUrl)';
+    return 'RecordEntity(id: $id, title: $title, content: $content, createdAt: $createdAt, audioUrl: $audioUrl, mindmapId: $mindmapId)';
   }
 
   @override
@@ -208,12 +226,21 @@ class _$RecordEntityImpl extends _RecordEntity {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.audioUrl, audioUrl) ||
-                other.audioUrl == audioUrl));
+                other.audioUrl == audioUrl) &&
+            (identical(other.mindmapId, mindmapId) ||
+                other.mindmapId == mindmapId));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, content, createdAt, audioUrl);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    title,
+    content,
+    createdAt,
+    audioUrl,
+    mindmapId,
+  );
 
   /// Create a copy of RecordEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -231,6 +258,7 @@ abstract class _RecordEntity extends RecordEntity {
     required final String content,
     required final DateTime createdAt,
     final String? audioUrl,
+    final String? mindmapId,
   }) = _$RecordEntityImpl;
   const _RecordEntity._() : super._();
 
@@ -244,6 +272,8 @@ abstract class _RecordEntity extends RecordEntity {
   DateTime get createdAt;
   @override
   String? get audioUrl;
+  @override
+  String? get mindmapId;
 
   /// Create a copy of RecordEntity
   /// with the given fields replaced by the non-null parameter values.

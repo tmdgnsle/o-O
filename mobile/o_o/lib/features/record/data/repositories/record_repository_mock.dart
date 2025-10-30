@@ -20,12 +20,23 @@ class RecordRepositoryMock implements RecordRepository {
         '주말에 등산 가는 게 어때? 날씨 좋을 때 운동도 하고 자연도 즐기고!',
       ];
 
+      // 일부 레코드에만 마인드맵 ID 할당
+      String? mindmapId;
+      if (index == 0) {
+        mindmapId = '1'; // 알고리즘 공부 계획
+      } else if (index == 1) {
+        mindmapId = '2'; // 포포 프로젝트
+      } else if (index == 4) {
+        mindmapId = '3'; // 제주도 여행
+      }
+
       return RecordEntity(
         id: 'record_${index + 1}',
         title: '${2025}.${10}.${28} ${10}:00',
         content: contents[index % contents.length],
         createdAt: DateTime(2025, 10, 28, 10, 0).subtract(Duration(days: index)),
         audioUrl: 'https://example.com/audio_${index + 1}.mp3',
+        mindmapId: mindmapId,
       );
     },
   );

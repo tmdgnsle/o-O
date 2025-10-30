@@ -440,7 +440,25 @@ class _RecordListPageState extends State<RecordListPage> {
                             return RecordListItem(
                               record: record,
                               onTap: () {
-                                // TODO: 녹음 기록 상세 페이지로 이동
+                                // 마인드맵 ID가 있으면 마인드맵 페이지로 이동
+                                if (record.mindmapId != null) {
+                                  context.push(
+                                    '/mindmap',
+                                    extra: {
+                                      'title': record.title,
+                                      'imagePath': '',
+                                      'mindmapId': record.mindmapId,
+                                    },
+                                  );
+                                } else {
+                                  // 마인드맵이 없는 경우 안내 메시지
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('아직 마인드맵이 생성되지 않았습니다'),
+                                      backgroundColor: AppColors.deep_gray,
+                                    ),
+                                  );
+                                }
                               },
                               onDelete: () {
                                 _showDeleteDialog(context, record.id);
