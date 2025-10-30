@@ -219,11 +219,11 @@ class HomePage extends StatelessWidget {
                                   ? AnimatedCircularButton(
                                     key: const ValueKey('recording'),
                                     onTap: () {
-                                      // 녹음 중단 후 RecordListPage로 이동
+                                      // 녹음 중단 후 Processing 페이지로 이동
                                       context.read<RecordingBloc>().add(
                                         const RecordingEvent.stop(),
                                       );
-                                      context.go('/records');
+                                      context.go('/processing');
                                     },
                                     containerSize: 220,
                                     imageSize: 170,

@@ -5,6 +5,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/mindmap/presentation/pages/mindmap_page.dart';
 import '../../features/record/presentation/pages/record_list_page.dart';
+import '../../features/recording/presentation/pages/processing_page.dart';
 import '../../features/user/presentation/pages/my_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
 
@@ -35,6 +36,14 @@ class AppRouter {
         path: '/records',
         name: 'records',
         builder: (context, state) => const RecordListPage(),
+      ),
+      GoRoute(
+        path: '/processing',
+        name: 'processing',
+        builder: (context, state) {
+          final recordingPath = state.extra as String?;
+          return ProcessingPage(recordingPath: recordingPath);
+        },
       ),
       GoRoute(
         path: '/mypage',
