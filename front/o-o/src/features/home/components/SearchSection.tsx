@@ -1,9 +1,25 @@
+import { useState } from "react";
 import { SearchInput } from "./SearchInput";
 import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
 import popo from "@/shared/assets/images/popo_chu.png";
 
 export function SearchSection() {
+  const [searchValue, setSearchValue] = useState("");
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
+
+  const handleKeywordClick = (keyword: string) => {
+    setSearchValue(keyword);
+    setSelectedKeyword(keyword);
+  };
+
+  const handleInputChange = (value: string) => {
+    setSearchValue(value);
+    if (value !== selectedKeyword) {
+      setSelectedKeyword(null);
+    }
+  };
+
   return (
     <section
       className="w-full h-screen flex flex-col items-center justify-center relative"
@@ -16,8 +32,11 @@ export function SearchSection() {
         "
       >
         <div className="w-full flex flex-col justify-center items-center gap-8">
-          <SearchInput />
-          <SearchRecommendSection />
+          <SearchInput value={searchValue} onChange={handleInputChange} />
+          <SearchRecommendSection
+            onKeywordClick={handleKeywordClick}
+            selectedKeyword={selectedKeyword}
+          />
         </div>
         <Button
           variant="outline"

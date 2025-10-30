@@ -14,7 +14,7 @@ export default {
         "semi-black": "#333333",
         "black-gray": "#383737",
         "deep-gray": "#828181",
-        "semi-deep-grey": "6F6F6F",
+        "semi-deep-gray": "6F6F6F",
         gray: "#D5D5D5",
         danger: "#E33B2E",
         foreground: "#333333",
