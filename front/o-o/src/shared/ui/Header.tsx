@@ -10,21 +10,41 @@ const MOCK_USER = {
 
 // 네비 링크 스타일 함수
 const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
-  `text-xl ${
-    isActive ? "text-primary font-bold" : "text-semi-black font-semibold"
-  }`;
+  ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
   const isLoggedIn = true;
 
   return (
-    <header className="flex items-center justify-between px-10 py-7 font-paperlogy">
+    <header
+      className="flex items-center justify-between font-paperlogy"
+      style={{
+        paddingLeft: "clamp(1rem, 5vw, 4rem)",
+        paddingRight: "clamp(1rem, 5vw, 4rem)",
+        paddingTop: "clamp(0.5rem, 2vw, 2rem)",
+        paddingBottom: "clamp(0.5rem, 2vw, 2rem)",
+      }}
+    >
       <div className="flex items-center gap-8">
         <Link to="/">
-          <img src={logo} alt="o-O" className="w-30 h-10" />
+          <img
+            src={logo}
+            alt="o-O"
+            style={{
+              width: "clamp(60px, 10vw, 108px)",
+              height: "clamp(20px, 3vw, 40px)",
+            }}
+          />
         </Link>
 
-        <nav className="flex gap-6 items-baseline">
+        <nav
+          className="
+            flex items-baseline"
+          style={{
+            gap: "clamp(2px,2vw,24px)",
+            fontSize: "clamp(15px,1.5vw,36px)",
+          }}
+        >
           <NavLink to="/" className={getNavLinkClass}>
             Home
           </NavLink>
@@ -41,21 +61,49 @@ export function Header() {
 
       {isLoggedIn ? (
         <Link to="/my-page">
-          <div className="flex items-center gap-4 px-4 py-2">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
+          <div
+            className="flex items-center px-2 py-1 sm:px-4 sm:py-2"
+            style={{
+              gap: "clamp(0.5rem, 1vw, 1rem)",
+            }}
+          >
+            <div
+              className="rounded-full bg-white flex items-center justify-center shadow-md"
+              style={{
+                width: "clamp(32px, 5vw, 48px)",
+                height: "clamp(32px, 5vw, 48px)",
+              }}
+            >
               <img
                 src={MOCK_USER.profileImage}
                 alt="profile"
-                className="w-11 h-10 object-cover"
+                className="object-cover"
+                style={{
+                  width: "clamp(28px, 4.5vw, 44px)",
+                  height: "clamp(28px, 4.5vw, 44px)",
+                }}
               />
             </div>
-            <span className="text-base font-medium text-primary">
+            <span
+              className="font-medium text-primary"
+              style={{
+                fontSize: "clamp(14px, 1.2vw, 16px)",
+              }}
+            >
               {MOCK_USER.name}
             </span>
           </div>
         </Link>
       ) : (
-        <button>Sign in with Google</button>
+        <button
+          className="font-medium text-primary"
+          style={{
+            fontSize: "clamp(14px, 1.2vw, 16px)",
+            padding: "clamp(0.5rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem)",
+          }}
+        >
+          Sign in with Google
+        </button>
       )}
     </header>
   );
