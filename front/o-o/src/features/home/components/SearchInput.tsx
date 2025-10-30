@@ -1,4 +1,6 @@
-import { useImageUpload } from "../hooks/custom/useImageUpload";
+// SearchInput.tsx
+import { useMediaUpload } from "../hooks/custom/useMediaUpload";
+import youtube from "@/shared/assets/images/youtube.png";
 
 interface SearchInputProps {
   value: string;
@@ -7,15 +9,14 @@ interface SearchInputProps {
 
 export function SearchInput({ value, onChange }: SearchInputProps) {
   const {
-    previewImage,
-    imageFile,
+    mediaData,
     isDragging,
     handlePaste,
     handleDragOver,
     handleDragLeave,
     handleDrop,
-    clearImage,
-  } = useImageUpload();
+    clearMedia,
+  } = useMediaUpload();
 
   return (
     <div
@@ -24,26 +25,97 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
         bg-white/60 shadow-md transitional-all duration-300 rounded-full
         focus:ring-1 focus:ring-primary border-none
         ${isDragging ? "ring-2 ring-primary bg-white/80" : ""}
-        `}
+      `}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {previewImage && (
-        <div className="w-fit flex items-center gap-2 bg-primary px-2 py-[6px] rounded-full mx-8 mt-3">
+      {/* 이미지 미리보기 */}
+      {mediaData.type === "image" && mediaData.imageUrl && (
+        <div
+          className="w-fit flex items-center bg-primary rounded-full mx-8 mt-3"
+          style={{
+            gap: "clamp(0.25rem, 0.5vw, 0.5rem)",
+            padding:
+              "clamp(0.25rem, 0.5vw, 0.375rem) clamp(0.5rem, 1vw, 0.75rem)",
+          }}
+        >
           <img
-            src={previewImage}
+            src={mediaData.imageUrl}
             alt="pasted"
-            className="w-4 h-4 object-cover rounded-md"
+            className="object-cover rounded-md flex-shrink-0"
+            style={{
+              width: "clamp(14px, 1.5vw, 20px)",
+              height: "clamp(14px, 1.5vw, 20px)",
+            }}
           />
-          <span className="text-xs text-white truncate max-w-[80px]">
-            {imageFile?.name}
+          <span
+            className="text-white truncate font-medium"
+            style={{
+              fontSize: "clamp(10px, 1vw, 12px)",
+              maxWidth: "clamp(100px, 30vw, 400px)",
+            }}
+          >
+            {mediaData.imageFile?.name}
           </span>
           <button
-            onClick={() => {
-              clearImage();
+            onClick={clearMedia}
+            className="bg-white rounded-full text-primary font-extrabold flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "clamp(14px, 1.5vw, 18px)",
+              height: "clamp(14px, 1.5vw, 18px)",
+              fontSize: "clamp(8px, 0.8vw, 10px)",
             }}
-            className="bg-white rounded-full text-primary text-[8px] font-extrabold w-4 h-4 flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* 유튜브 링크 미리보기 */}
+      {mediaData.type === "youtube" && mediaData.youtubeUrl && (
+        <div
+          className="w-fit flex items-center bg-primary rounded-full mx-8 mt-3"
+          style={{
+            gap: "clamp(0.25rem, 0.5vw, 0.5rem)",
+            padding:
+              "clamp(0.25rem, 0.5vw, 0.375rem) clamp(0.5rem, 1vw, 0.75rem)",
+          }}
+        >
+          <div
+            className="rounded flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "clamp(14px, 1.5vw, 20px)",
+              height: "clamp(14px, 1.5vw, 20px)",
+            }}
+          >
+            <img
+              src={youtube}
+              alt="youtube icon"
+              className="object-cover rounded-md flex-shrink-0"
+              style={{
+                width: "clamp(14px, 1.5vw, 20px)",
+                height: "clamp(14px, 1.5vw, 20px)",
+              }}
+            />
+          </div>
+          <span
+            className="text-white truncate font-medium"
+            style={{
+              fontSize: "clamp(10px, 1vw, 12px)",
+              maxWidth: "clamp(100px, 30vw, 400px)",
+            }}
+          >
+            {mediaData.youtubeUrl}
+          </span>
+          <button
+            onClick={clearMedia}
+            className="bg-white rounded-full text-primary font-extrabold flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "clamp(14px, 1.5vw, 18px)",
+              height: "clamp(14px, 1.5vw, 18px)",
+              fontSize: "clamp(8px, 0.8vw, 10px)",
+            }}
           >
             ✕
           </button>
