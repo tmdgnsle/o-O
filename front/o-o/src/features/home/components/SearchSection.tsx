@@ -44,6 +44,7 @@ export function SearchSection() {
             rounded-full border-none bg-white/60 
             text-[clamp(13px,1.5vw,24px)]
             font-semibold shadow-md transitional-all duration-300
+            hover:bg-primary hover:text-white
           "
           style={{
             paddingLeft: "clamp(1rem, 5vw, 3rem)",
