@@ -7,7 +7,7 @@ export function SearchInput() {
         w-[clamp(300px,80%,1200px)] 
         h-[clamp(60px,4vw,100px)] 
         px-6 text-center font-semibold 
-        text-[clamp(18px,1.5vw,36px)] 
+        text-[clamp(16px,1.5vw,36px)] 
         text-semi-deep-grey rounded-full 
         bg-white shadow-md transitional-all duration-300"
     />
