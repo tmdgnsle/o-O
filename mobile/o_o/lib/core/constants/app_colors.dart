@@ -28,6 +28,19 @@ class AppColors {
   static const Color gray = Color(0xFFD5D5D5);
   static const Color danger = Color(0xFFE33B2E);
 
+  // 마인드맵 노드 색상 (편의를 위한 alias)
+  static const Color circle_color1 = circle_pink;
+  static const Color circle_color2 = circle_yellow;
+  static const Color circle_color3 = circle_orange;
+  static const Color circle_color4 = circle_purple;
+  static const Color circle_color5 = circle_skyblue;
+  static const Color circle_color6 = circle_green;
+  static const Color circle_color7 = circle_blue;
+  static const Color circle_color8 = pink;
+  static const Color circle_color9 = blue;
+  static const Color circle_color10 = light_blue;
+  static const Color background_gray = Color(0xFFF5F5F5);
+
   // Common Colors
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);

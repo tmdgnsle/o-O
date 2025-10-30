@@ -218,27 +218,48 @@ class HomePage extends StatelessWidget {
                                   const SizedBox(height: 20),
                                   // 마인드맵 카드 리스트
                                   MindmapCard(
-                                    title: '알고리즘 싫어하는 마인드맵',
+                                    title: '알고리즘 공부 계획',
                                     imagePath:
                                         'assets/images/dummy_mindmap.png',
                                     onTap: () {
-                                      // TODO: 마인드맵 상세 페이지로 이동
+                                      context.push(
+                                        '/mindmap',
+                                        extra: {
+                                          'title': '알고리즘 공부 계획',
+                                          'imagePath': '',
+                                          'mindmapId': '1',
+                                        },
+                                      );
                                     },
                                   ),
                                   MindmapCard(
-                                    title: '알고리즘 싫어하는 마인드맵',
+                                    title: '포포 프로젝트',
                                     imagePath:
                                         'assets/images/dummy_mindmap.png',
                                     onTap: () {
-                                      // TODO: 마인드맵 상세 페이지로 이동
+                                      context.push(
+                                        '/mindmap',
+                                        extra: {
+                                          'title': '포포 프로젝트',
+                                          'imagePath': '',
+                                          'mindmapId': '2',
+                                        },
+                                      );
                                     },
                                   ),
                                   MindmapCard(
-                                    title: '알고리즘 싫어하는 마인드맵',
+                                    title: '제주도 여행',
                                     imagePath:
                                         'assets/images/dummy_mindmap.png',
                                     onTap: () {
-                                      // TODO: 마인드맵 상세 페이지로 이동
+                                      context.push(
+                                        '/mindmap',
+                                        extra: {
+                                          'title': '제주도 여행',
+                                          'imagePath': '',
+                                          'mindmapId': '3',
+                                        },
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 50),

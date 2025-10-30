@@ -23,6 +23,12 @@ class AppTextStyles {
     fontWeight: AppFontWeights.semiBold,
   );
 
+  static const TextStyle semiBold18 = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 18,
+    fontWeight: AppFontWeights.semiBold,
+  );
+
   static const TextStyle semiBold16 = TextStyle(
     fontFamily: _fontFamily,
     fontSize: 16,

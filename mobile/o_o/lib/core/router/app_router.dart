@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/mindmap/presentation/pages/mindmap_page.dart';
 import '../../features/record/presentation/pages/record_list_page.dart';
 import '../../features/user/presentation/pages/my_page.dart';
 import '../../features/user/presentation/pages/user_page.dart';
@@ -39,6 +40,19 @@ class AppRouter {
         path: '/mypage',
         name: 'mypage',
         builder: (context, state) => const MyPage(),
+      ),
+      GoRoute(
+        path: '/mindmap',
+        name: 'mindmap',
+        builder: (context, state) {
+          // extra로 전달된 Map 데이터를 파싱
+          final data = state.extra as Map<String, dynamic>?;
+          return MindmapPage(
+            title: data?['title'] as String? ?? '마인드맵',
+            imagePath: data?['imagePath'] as String? ?? '',
+            mindmapId: data?['mindmapId'] as String?,
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
