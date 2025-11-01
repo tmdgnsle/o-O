@@ -1,0 +1,21 @@
+package com.ssafy.userservice.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
+
+@RedisHash("refreshToken")
+@AllArgsConstructor
+@Getter
+public class RefreshToken {
+
+    @Id
+    private Long userId;  // User 테이블의 PK
+
+    private String token;
+
+    @TimeToLive
+    private Long expiration;  // TTL (초 단위)
+}
