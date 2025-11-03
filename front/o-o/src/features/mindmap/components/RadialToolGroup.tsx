@@ -129,7 +129,7 @@ export default function RadialToolGroup({
   };
 
   return (
-    <div className="absolute inset-0 z-40" style={{ pointerEvents: "none" }}>
+    <div className="absolute inset-0 z-40 overflow-visible" style={{ pointerEvents: "none" }}>
       <div style={centerStyle}>
         {items.map((it, i) => {
           const rad = ((angles[i] ?? 0) * Math.PI) / 180;

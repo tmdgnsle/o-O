@@ -64,6 +64,7 @@ export const ColorPicker = ({
   defaultValue = '#000000',
   onChange,
   className,
+  children,
   ...props
 }: ColorPickerProps) => {
   const selectedColor = Color(value);
@@ -123,7 +124,9 @@ export const ColorPicker = ({
       <div
         className={cn('flex size-full flex-col gap-4', className)}
         {...props}
-      />
+      >
+        {children}
+      </div>
     </ColorPickerContext.Provider>
   );
 };

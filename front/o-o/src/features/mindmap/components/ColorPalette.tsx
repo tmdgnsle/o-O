@@ -8,17 +8,20 @@ import {
   ColorPickerFormat,
 } from "@/components/ui/shadcn-io/color-picker";
 import Color from "color";
+import { cn } from "@/lib/utils";
 
 type ColorPaletteProps = {
   open: boolean;
   onColorChange?: (color: string) => void;
   defaultColor?: string;
+  className?: string;
 };
 
 export default function ColorPalette({
   open,
   onColorChange,
   defaultColor = "#2D71B9",
+  className,
 }: ColorPaletteProps) {
   const handleChange = (value: Parameters<typeof Color>[0]) => {
     try {
@@ -32,12 +35,12 @@ export default function ColorPalette({
 
   return (
     <div
-      className={`absolute left-[calc(100%+20px)] top-1/2 -translate-y-1/2 transition-all duration-300 ${
-        open ? "opacity-100 visible" : "opacity-0 invisible"
-      }`}
-      style={{
-        pointerEvents: open ? "auto" : "none",
-      }}
+      className={cn(
+        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-50",
+        open ? "opacity-100 visible" : "opacity-0 invisible",
+        className
+      )}
+      style={{ pointerEvents: open ? "auto" : "none" }}
     >
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[280px] font-paperlogy">
         <div className="flex flex-col gap-4">
