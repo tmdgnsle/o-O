@@ -109,15 +109,6 @@ export function Header() {
           id="googleSignInDiv"
           className="flex justify-center items-center"
         />
-        // <button
-        //   className="font-medium text-primary"
-        //   style={{
-        //     fontSize: "clamp(14px, 1.2vw, 16px)",
-        //     padding: "clamp(0.5rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem)",
-        //   }}
-        // >
-        //   Sign in with Google
-        // </button>
       )}
     </header>
   );
