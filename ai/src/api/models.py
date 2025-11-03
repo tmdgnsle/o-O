@@ -10,10 +10,12 @@ class TaskStatus(str, Enum):
     """작업 상태"""
     PENDING = "pending"
     DOWNLOADING = "downloading"
+    DOWNLOADING_IMAGE = "downloading_image"  # 이미지 다운로드
     EXTRACTING_FRAMES = "extracting_frames"
     EXTRACTING_TRANSCRIPT = "extracting_transcript"
     ANALYZING_VISION = "analyzing_vision"
     ANALYZING_TEXT = "analyzing_text"
+    CREATING_MINDMAP = "creating_mindmap"  # 마인드맵 생성
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -24,6 +26,12 @@ class AnalyzeRequest(BaseModel):
     max_frames: Optional[int] = None  # None이면 영상 길이에 따라 자동 계산 (로그 스케일)
     proxy: Optional[str] = None
     user_prompt: Optional[str] = None  # 사용자 질문/프롬프트 (예: "캐나다 관세 인상 이슈에 대해 설명해줘")
+
+
+class ImageAnalyzeRequest(BaseModel):
+    """이미지 분석 요청"""
+    image_url: HttpUrl  # 이미지 URL
+    user_prompt: Optional[str] = None  # 사용자 질문/프롬프트 (예: "이 이미지의 주요 내용을 분석해줘")
 
 
 class TaskResponse(BaseModel):
@@ -52,6 +60,19 @@ class AnalysisResult(BaseModel):
     key_points: Optional[List[str]] = None
     frame_analyses: Optional[List[str]] = None
     transcript: Optional[str] = None
+    mindmap: Optional[MindMapNode] = None  # 마인드맵 데이터
+    error: Optional[str] = None
+
+
+class ImageAnalysisResult(BaseModel):
+    """이미지 분석 결과"""
+    task_id: str
+    status: TaskStatus
+    image_url: str
+    created_at: str
+    completed_at: Optional[str] = None
+    image_info: Optional[Dict] = None  # 이미지 메타데이터 (크기, 포맷 등)
+    analysis: Optional[str] = None  # Vision 모델의 이미지 분석 결과
     mindmap: Optional[MindMapNode] = None  # 마인드맵 데이터
     error: Optional[str] = None
 

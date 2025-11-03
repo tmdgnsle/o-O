@@ -79,11 +79,14 @@ from src.core import (
     LlamaVisionAnalyzer,
     LlamaTextAnalyzer
 )
+from src.core.image_analyzer import ImageAnalyzer
 from src.api.models import (
     TaskStatus,
     AnalyzeRequest,
+    ImageAnalyzeRequest,
     TaskResponse,
     AnalysisResult,
+    ImageAnalysisResult,
     MindMapNode
 )
 import torch
@@ -220,6 +223,167 @@ def create_fallback_mindmap(
         root.children.append(frames_parent)
 
     return root
+
+
+def create_mindmap_from_image_llm(
+    image_url: str,
+    image_analysis: str,
+    user_query: Optional[str] = None
+) -> MindMapNode:
+    """
+    이미지 분석으로부터 LLM을 사용하여 마인드맵 생성
+
+    Args:
+        image_url: 이미지 URL
+        image_analysis: Vision 모델의 이미지 분석 결과
+        user_query: 사용자 질문/프롬프트
+
+    Returns:
+        마인드맵 루트 노드
+    """
+    try:
+        text_analyzer = get_text_analyzer()
+
+        # 이미지 분석 기반 마인드맵 생성 프롬프트
+        if user_query:
+            system_prompt = f"""당신은 이미지 분석 결과를 구조화된 마인드맵으로 변환하는 전문가입니다.
+
+사용자 질문: {user_query}
+
+이미지 분석 결과를 바탕으로 사용자 질문에 초점을 맞춘 마인드맵을 생성하세요.
+마인드맵은 반드시 다음 JSON 형식으로 작성해야 합니다:
+
+{{
+  "keyword": "사용자 질문의 핵심 주제",
+  "description": "{image_url}",
+  "children": [
+    {{
+      "keyword": "주요 카테고리 1",
+      "description": "구체적인 사실, 숫자, 특징",
+      "children": [
+        {{
+          "keyword": "세부 항목",
+          "description": "상세 설명",
+          "children": null
+        }}
+      ]
+    }}
+  ]
+}}
+
+**중요 규칙:**
+1. 반드시 "keyword", "description", "children" 키를 사용하세요
+2. keyword를 JSON 키로 사용하지 마세요
+3. description에는 구체적인 사실, 숫자, 특징을 포함하세요
+4. 이미지에서 관찰된 구체적인 내용을 기반으로 작성하세요
+5. JSON만 출력하고, 마크다운 코드 블록(```)은 사용하지 마세요
+"""
+        else:
+            system_prompt = f"""당신은 이미지 분석 결과를 구조화된 마인드맵으로 변환하는 전문가입니다.
+
+이미지 분석 결과를 바탕으로 포괄적인 마인드맵을 생성하세요.
+마인드맵은 반드시 다음 JSON 형식으로 작성해야 합니다:
+
+{{
+  "keyword": "이미지 주요 주제",
+  "description": "{image_url}",
+  "children": [
+    {{
+      "keyword": "주요 카테고리 1",
+      "description": "구체적인 사실, 숫자, 특징",
+      "children": [
+        {{
+          "keyword": "세부 항목",
+          "description": "상세 설명",
+          "children": null
+        }}
+      ]
+    }}
+  ]
+}}
+
+**중요 규칙:**
+1. 반드시 "keyword", "description", "children" 키를 사용하세요
+2. keyword를 JSON 키로 사용하지 마세요
+3. description에는 구체적인 사실, 숫자, 특징을 포함하세요
+4. 이미지에서 관찰된 객체, 색상, 구조, 텍스트 등을 체계적으로 정리하세요
+5. JSON만 출력하고, 마크다운 코드 블록(```)은 사용하지 마세요
+"""
+
+        user_prompt_text = f"""이미지 분석 결과:
+{image_analysis}
+
+위 분석 결과를 바탕으로 마인드맵 JSON을 생성해주세요."""
+
+        mindmap_json_str = text_analyzer.generate(
+            prompt=user_prompt_text,
+            system_prompt=system_prompt,
+            max_tokens=4096,
+            temperature=0.7
+        )
+
+        print("=" * 80)
+        print("이미지 마인드맵 LLM 생성 원본 출력:")
+        print(mindmap_json_str[:1000])
+        print("=" * 80)
+
+        # JSON 파싱 (마크다운 코드 블록 제거)
+        mindmap_json_str = mindmap_json_str.strip()
+        if mindmap_json_str.startswith('```json'):
+            mindmap_json_str = mindmap_json_str[7:]
+        if mindmap_json_str.startswith('```'):
+            mindmap_json_str = mindmap_json_str[3:]
+        if mindmap_json_str.endswith('```'):
+            mindmap_json_str = mindmap_json_str[:-3]
+        mindmap_json_str = mindmap_json_str.strip()
+
+        # JSON을 MindMapNode로 변환
+        def json_to_mindmap_node(data: Dict) -> MindMapNode:
+            children = None
+            if 'children' in data and data['children']:
+                children = [json_to_mindmap_node(child) for child in data['children']]
+
+            return MindMapNode(
+                keyword=data.get('keyword', ''),
+                description=data.get('description', ''),
+                children=children
+            )
+
+        mindmap_data = json.loads(mindmap_json_str)
+
+        # 잘못된 형식 수정
+        if 'keyword' not in mindmap_data and 'description' not in mindmap_data:
+            first_key = list(mindmap_data.keys())[0]
+            first_value = mindmap_data[first_key]
+            mindmap_data = {
+                'keyword': first_key,
+                'description': first_value.get('description', image_url),
+                'children': first_value.get('children', None)
+            }
+
+        root = json_to_mindmap_node(mindmap_data)
+
+        # 루트 노드 description을 이미지 URL로 설정
+        root.description = image_url
+
+        print(f"✅ 이미지 마인드맵 생성: keyword='{root.keyword}', children={len(root.children) if root.children else 0}")
+
+        return root
+
+    except Exception as e:
+        logger.error(f"이미지 마인드맵 생성 실패: {e}")
+        # 폴백: 간단한 마인드맵 생성
+        return MindMapNode(
+            keyword="이미지 분석",
+            description=image_url,
+            children=[
+                MindMapNode(
+                    keyword="분석 결과",
+                    description=image_analysis[:500] if len(image_analysis) > 500 else image_analysis,
+                    children=None
+                )
+            ]
+        )
 
 
 def create_mindmap_from_llm(
@@ -699,15 +863,17 @@ async def analyze_video_stream(
 def root():
     """API 정보"""
     return {
-        "name": "YouTube Video Analysis API",
+        "name": "AI Analysis API - Video & Image",
         "version": "1.0.0",
-        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 YouTube 영상 분석",
+        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 YouTube 영상 및 이미지 분석",
         "endpoints": {
-            "POST /analyze": "영상 분석 (스트리밍)",
-            "POST /analyze/sync": "영상 분석 (동기식)",
+            "POST /analyze": "YouTube 영상 분석 (스트리밍)",
+            "POST /analyze/sync": "YouTube 영상 분석 (동기식)",
+            "POST /analyze/image": "이미지 분석 (스트리밍)",
             "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
             "GET /tasks": "모든 작업 목록 조회",
-            "DELETE /tasks/{task_id}": "작업 삭제"
+            "DELETE /tasks/{task_id}": "작업 삭제",
+            "GET /health": "헬스 체크"
         }
     }
 
@@ -843,6 +1009,166 @@ async def health_check():
         "text_model_loaded": _text_analyzer is not None,
         "active_tasks": sum(1 for task in tasks.values() if task.status not in [TaskStatus.COMPLETED, TaskStatus.FAILED])
     }
+
+
+# ============================================================================
+# 이미지 분석 API
+# ============================================================================
+
+async def analyze_image_stream(
+    image_url: str,
+    user_prompt: Optional[str] = None
+):
+    """
+    이미지 분석을 수행하면서 실시간으로 진행 상황을 스트리밍합니다.
+    """
+    task_id = str(uuid.uuid4())
+    output_dir = f"temp_image_analysis_{task_id}"
+
+    try:
+        # 시작 메시지
+        yield f"data: {json.dumps({'status': 'started', 'task_id': task_id, 'progress': 0, 'message': '이미지 분석 시작'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 1. 이미지 다운로드
+        yield f"data: {json.dumps({'status': 'downloading_image', 'progress': 10, 'message': '이미지 다운로드 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        os.makedirs(output_dir, exist_ok=True)
+        image_analyzer = ImageAnalyzer(output_dir=output_dir)
+
+        image_path = image_analyzer.download_image(image_url)
+        if not image_path:
+            error_msg = "이미지 다운로드 실패"
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
+            return
+
+        # 이미지 메타데이터 추출
+        from PIL import Image
+        with Image.open(image_path) as img:
+            image_info = {
+                "format": img.format,
+                "size": img.size,
+                "mode": img.mode,
+                "width": img.width,
+                "height": img.height
+            }
+
+        message = f"이미지 다운로드 완료: {image_info['width']}x{image_info['height']}, {image_info['format']}"
+        yield f"data: {json.dumps({'status': 'download_complete', 'progress': 30, 'message': message, 'image_info': image_info})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 2. Vision 분석
+        yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': 40, 'message': 'Vision 모델로 이미지 분석 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        vision_analyzer = get_vision_analyzer()
+
+        # 프롬프트 구성
+        if user_prompt:
+            final_prompt = f"""{user_prompt}
+
+다음을 포함하여 상세하게 설명해주세요:
+1. 이미지의 주요 객체와 구성
+2. 색상과 시각적 특징
+3. 텍스트가 있다면 그 내용
+4. 전체적인 분위기와 맥락"""
+        else:
+            final_prompt = """이 이미지를 상세하게 분석해주세요:
+1. 주요 객체와 구성
+2. 색상과 시각적 특징
+3. 화면에 보이는 텍스트
+4. 전체적인 분위기와 맥락"""
+
+        analysis = vision_analyzer.analyze_image(
+            image=image_path,
+            prompt=final_prompt,
+            max_tokens=500,
+            temperature=0.3
+        )
+
+        # 반복 문장 제거
+        cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
+
+        yield f"data: {json.dumps({'status': 'vision_complete', 'progress': 70, 'message': 'Vision 분석 완료'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 3. 마인드맵 생성
+        yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 80, 'message': 'LLM으로 마인드맵 생성 중...'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        mindmap = create_mindmap_from_image_llm(
+            image_url=image_url,
+            image_analysis=cleaned_analysis,
+            user_query=user_prompt
+        )
+
+        yield f"data: {json.dumps({'status': 'mindmap_complete', 'progress': 95, 'message': '마인드맵 생성 완료'})}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 최종 결과
+        result = {
+            "task_id": task_id,
+            "status": "completed",
+            "image_url": image_url,
+            "created_at": datetime.now().isoformat(),
+            "completed_at": datetime.now().isoformat(),
+            "image_info": image_info,
+            "analysis": cleaned_analysis,
+            "mindmap": mindmap.dict()
+        }
+
+        yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '이미지 분석 완료!', 'result': result}, ensure_ascii=False)}\n\n"
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"이미지 분석 중 오류 발생: {error_msg}")
+        yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
+
+    finally:
+        # 임시 디렉토리 정리
+        import shutil
+        if os.path.exists(output_dir):
+            try:
+                shutil.rmtree(output_dir)
+            except Exception as e:
+                logger.warning(f"임시 디렉토리 삭제 실패: {e}")
+
+
+@app.post("/analyze/image")
+async def analyze_image(request: ImageAnalyzeRequest):
+    """
+    이미지 분석 (스트리밍 - 실시간 진행 상황 + 최종 결과)
+
+    Server-Sent Events (SSE) 형식으로 실시간 진행 상황을 전달합니다.
+
+    - **image_url**: 분석할 이미지 URL
+    - **user_prompt**: 사용자 질문/프롬프트 (선택)
+
+    ### 응답 형식 (SSE)
+    각 이벤트는 다음 형식으로 전달됩니다:
+    ```
+    data: {"status": "...", "progress": 0-100, "message": "...", ...}
+    ```
+
+    ### 상태 종류
+    - `started`: 분석 시작
+    - `downloading_image`: 이미지 다운로드 중
+    - `download_complete`: 다운로드 완료
+    - `analyzing_vision`: Vision 모델 분석 중
+    - `vision_complete`: Vision 분석 완료
+    - `creating_mindmap`: 마인드맵 생성 중
+    - `mindmap_complete`: 마인드맵 생성 완료
+    - `completed`: 분석 완료 (result 포함)
+    - `failed`: 오류 발생 (error 포함)
+    """
+    return StreamingResponse(
+        analyze_image_stream(
+            image_url=str(request.image_url),
+            user_prompt=request.user_prompt
+        ),
+        media_type="text/event-stream"
+    )
 
 
 if __name__ == "__main__":
