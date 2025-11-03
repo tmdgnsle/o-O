@@ -46,7 +46,7 @@ export default function AskPopo() {
           {/* 정리하기 버튼 */}
           <Button
             onClick={handleOrganize}
-            className="w-full hover:bg-[#2d4373] text-white font-medium py-6 rounded-xl"
+            className="w-full hover:bg-primary text-white font-medium py-6 rounded-xl"
           >
             정리하기
           </Button>

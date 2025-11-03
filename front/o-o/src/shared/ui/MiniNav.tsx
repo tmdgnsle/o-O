@@ -13,7 +13,7 @@ export default function MiniNav() {
   ];
 
   return (
-    <div className="fixed top-4 left-4 z-50 flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3">
       {/* 햄버거 버튼 */}
       <button
         aria-expanded={open}
@@ -28,7 +28,7 @@ export default function MiniNav() {
       <div
         id="mini-nav"
         className={cn(
-          "w-14 overflow-hidden rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.08)] border border-gray-100 transition-all duration-300",
+          "w-14 overflow-hidden rounded-full bg-white shadow-[0_6px_24px_rgba(0,0,0,0.08)] transition-all duration-300",
           open ? "max-h-[260px] py-4" : "max-h-0 py-0"
         )}
       >
