@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState } from 'react';
 
-export const useNodeColor = (initialColor: string = "#2D71B9") => {
+export const useNodeColorEdit = (initialColor: string = "#2D71B9") => {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [color, setColor] = useState(initialColor);
 

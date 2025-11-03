@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export const useNodeEdit = (initialText: string) => {
+export const useNodeTextEdit = (initialText: string) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(initialText);
 

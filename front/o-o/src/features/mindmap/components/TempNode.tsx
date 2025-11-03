@@ -2,9 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import RadialToolGroup from "./RadialToolGroup";
-import { useNodeEdit } from "../hooks/custom/useNodeEdit";
+import { useNodeTextEdit } from "../hooks/custom/useNodeTextEdit";
 import { useNodeAdd } from "../hooks/custom/useNodeAdd";
-import { useNodeColor } from "../hooks/custom/useNodeColor";
+import { useNodeColorEdit } from "../hooks/custom/useNodeColorEdit";
 import {
   useDeleteNode,
   useEditNode,
@@ -44,7 +44,7 @@ export default function TempNode({
     startEdit,
     cancelEdit,
     confirmEdit,
-  } = useNodeEdit(text);
+  } = useNodeTextEdit(text);
 
   const {
     showAddInput,
@@ -55,7 +55,7 @@ export default function TempNode({
     confirmAdd,
   } = useNodeAdd();
 
-  const { paletteOpen, color, togglePalette, changeColor } = useNodeColor();
+  const { paletteOpen, color, togglePalette, changeColor } = useNodeColorEdit();
 
   const handleClick = () => {
     if (isSelected) {
