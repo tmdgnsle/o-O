@@ -1,22 +1,17 @@
 pipeline {
   agent any
 
-  // NodeJS Plugin: Manage Jenkins > Global Tool Configuration 에서 Name= node20 로 등록돼 있어야 함
-  tools { nodejs 'node20' }
-
   environment {
     // ====== 필수 값 바꿔 넣기 ======
     AWS_REGION = 'ap-northeast-2'
-    S3_BUCKET  = 'o-o-frontend'         // ex) myapp-frontend-prod
+    S3_BUCKET  = 'o-o-frontend'       // ex) myapp-frontend-prod
     CF_DIST_ID = 'E15YK94HXRWQA2'     // ex) E1ABCDEF123456
-    BUILD_DIR  = 'build'                    // React=build, Vite/Next=dist
-    // 메모리 큰 빌드 방지(필요시)
+    BUILD_DIR  = 'dist'              // React=build, Vite/Next=dist
     NODE_OPTIONS = '--max-old-space-size=2048'
   }
 
   options {
     timestamps()
-    ansiColor('xterm')
   }
 
   stages {
@@ -30,28 +25,36 @@ pipeline {
 
     stage('Install & Build') {
       steps {
-        sh '''
-          node -v
-          npm -v
-          npm ci
-          npm run build
-        '''
+        dir('front/o-o') {
+          sh '''
+            echo "=== Node & npm Version ==="
+            node -v
+            npm -v
+
+            echo "=== Install & Build ==="
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+            npm run build
+          '''
+        }
       }
     }
 
     stage('Upload to S3') {
       steps {
         withAWS(credentials: 'aws-frontend-deploy', region: "${AWS_REGION}") {
-          // 해시된 정적 리소스는 1년 캐시
           sh """
-            aws s3 sync ${BUILD_DIR} s3://${S3_BUCKET} \
+            echo "=== Upload static assets to S3 ==="
+            aws s3 sync front/o-o/${BUILD_DIR} s3://${S3_BUCKET} \
               --delete \
               --exclude "index.html" \
               --cache-control "public,max-age=31536000,immutable"
-          """
-          // index.html은 항상 최신 (no-cache)
-          sh """
-            aws s3 cp ${BUILD_DIR}/index.html s3://${S3_BUCKET}/index.html \
+
+            echo "=== Upload index.html (no-cache) ==="
+            aws s3 cp front/o-o/${BUILD_DIR}/index.html s3://${S3_BUCKET}/index.html \
               --cache-control "no-cache,no-store,must-revalidate" \
               --metadata-directive REPLACE \
               --content-type "text/html; charset=utf-8"
@@ -63,8 +66,12 @@ pipeline {
     stage('CloudFront Invalidation') {
       steps {
         withAWS(credentials: 'aws-frontend-deploy', region: "${AWS_REGION}") {
-          // 전체 무효화(간단). 비용/쿼터 고려해 필요 시 "/index.html"만으로 축소 가능
-          sh 'aws cloudfront create-invalidation --distribution-id ${CF_DIST_ID} --paths "/*"'
+          sh '''
+            echo "=== Invalidate CloudFront Cache ==="
+            aws cloudfront create-invalidation \
+              --distribution-id ${CF_DIST_ID} \
+              --paths "/*"
+          '''
         }
       }
     }
@@ -72,10 +79,10 @@ pipeline {
 
   post {
     success {
-      echo '✅ Deploy done: S3 upload + CloudFront invalidation completed.'
+      echo 'Deploy done: S3 upload + CloudFront invalidation completed.'
     }
     failure {
-      echo '❌ Deploy failed. Check console log.'
+      echo 'Deploy failed. Check console log.'
     }
     always {
       cleanWs(deleteDirs: true, notFailBuild: true)
