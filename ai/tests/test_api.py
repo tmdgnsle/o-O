@@ -41,7 +41,7 @@ def test_analyze_video(youtube_url: str):
         "text_quantization": "int4"
     }
 
-    response = requests.post(f"{API_BASE_URL}/analyze", json=payload)
+    response = requests.post(f"{API_BASE_URL}/analyze/youtube", json=payload)
 
     if response.status_code != 200:
         logger.info(f"❌ 요청 실패: {response.status_code}")

@@ -38,7 +38,8 @@ API 정보 및 사용 가능한 엔드포인트 목록 조회
   "version": "1.0.0",
   "description": "Llama 3.2 Vision + Llama 3.1을 사용한 YouTube 영상 분석",
   "endpoints": {
-    "POST /analyze": "영상 분석 작업 시작",
+    "POST /analyze/youtube": "영상 분석 작업 시작 (스트리밍)",
+    "POST /analyze/youtube/sync": "영상 분석 작업 시작 (동기식)",
     "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
     "GET /tasks": "모든 작업 목록 조회",
     "DELETE /tasks/{task_id}": "작업 삭제"
@@ -50,8 +51,8 @@ API 정보 및 사용 가능한 엔드포인트 목록 조회
 
 ### 2. 영상 분석
 
-#### `POST /analyze`
-YouTube 영상 분석 작업 시작 (비동기)
+#### `POST /analyze/youtube`
+YouTube 영상 분석 작업 시작 (스트리밍)
 
 **요청 바디:**
 ```json
@@ -259,7 +260,7 @@ import time
 API_URL = "http://localhost:8000"
 
 # 1. 영상 분석 요청
-response = requests.post(f"{API_URL}/analyze", json={
+response = requests.post(f"{API_URL}/analyze/youtube", json={
     "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
     "max_frames": 8
 })
@@ -336,7 +337,7 @@ python api.py
 ### 프록시 사용
 
 ```python
-response = requests.post(f"{API_URL}/analyze", json={
+response = requests.post(f"{API_URL}/analyze/youtube", json={
     "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
     "max_frames": 8,
     "proxy": "socks5://127.0.0.1:9050"  # SSH 터널 프록시
@@ -346,7 +347,7 @@ response = requests.post(f"{API_URL}/analyze", json={
 ### 양자화 설정
 
 ```python
-response = requests.post(f"{API_URL}/analyze", json={
+response = requests.post(f"{API_URL}/analyze/youtube", json={
     "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
     "vision_quantization": "int8",  # 더 높은 품질 (더 많은 VRAM)
     "text_quantization": "fp16"     # 최고 품질 (가장 많은 VRAM)

@@ -104,7 +104,7 @@ python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # 영상 분석 요청
-curl -X POST "http://localhost:8000/analyze" \
+curl -X POST "http://localhost:8000/analyze/youtube" \
   -H "Content-Type: application/json" \
   -d '{
     "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
@@ -126,7 +126,7 @@ import time
 API_URL = "http://localhost:8000"
 
 # 분석 요청
-response = requests.post(f"{API_URL}/analyze", json={
+response = requests.post(f"{API_URL}/analyze/youtube", json={
     "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
     "max_frames": 8
 })

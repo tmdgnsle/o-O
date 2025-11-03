@@ -1017,8 +1017,8 @@ def root():
         "version": "1.0.0",
         "description": "Llama 3.2 Vision + Llama 3.1을 사용한 멀티모달 분석 및 마인드맵 생성",
         "endpoints": {
-            "POST /analyze": "YouTube 영상 분석 (스트리밍)",
-            "POST /analyze/sync": "YouTube 영상 분석 (동기식)",
+            "POST /analyze/youtube": "YouTube 영상 분석 (스트리밍)",
+            "POST /analyze/youtube/sync": "YouTube 영상 분석 (동기식)",
             "POST /analyze/image": "이미지 URL 분석 (스트리밍)",
             "POST /analyze/text": "텍스트 프롬프트 분석 (스트리밍)",
             "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
@@ -1029,7 +1029,7 @@ def root():
     }
 
 
-@app.post("/analyze")
+@app.post("/analyze/youtube")
 async def analyze_video(request: AnalyzeRequest):
     """
     YouTube 영상 분석 (스트리밍 - 실시간 진행 상황 + 최종 결과)
@@ -1073,12 +1073,12 @@ async def analyze_video(request: AnalyzeRequest):
     )
 
 
-@app.post("/analyze/sync", response_model=AnalysisResult)
+@app.post("/analyze/youtube/sync", response_model=AnalysisResult)
 def analyze_video_sync_endpoint(request: AnalyzeRequest):
     """
     YouTube 영상 분석 (동기식 - 분석 완료 후 결과 반환)
 
-    타임아웃이 발생할 수 있으므로 /analyze (스트리밍) 사용을 권장합니다.
+    타임아웃이 발생할 수 있으므로 /analyze/youtube (스트리밍) 사용을 권장합니다.
 
     - **youtube_url**: YouTube 영상 URL
     - **max_frames**: 최대 추출 프레임 수 (기본: 8)
