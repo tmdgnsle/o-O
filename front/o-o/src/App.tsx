@@ -4,6 +4,8 @@ import { Routes, Route } from "react-router-dom";
 import { HomePage } from "./features/home/pages/HomePage";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GoogleOneTapHandler } from "./shared/components/GoogleOneTapHandler";
+import MindmapPage from "./features/mindmap/pages/MindmapPage";
+
 
 function TrendPage() {
   return <div className="container mx-auto px-6 py-8"></div>;
@@ -25,6 +27,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/trend" element={<TrendPage />} />
           <Route path="/new-project" element={<NewProjectPage />} />
+          <Route path="/mindmap" element={<MindmapPage />} />
         </Routes>
       </div>
     </GoogleOAuthProvider>
