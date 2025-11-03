@@ -64,7 +64,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.setHeader("Authorization", "Bearer " + accessToken);
 
         // Refresh Token은 HttpOnly Cookie로 전달
-        ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken, 7 * 24 * 60 * 60);
+        ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken, refreshTokenExpiration);
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
         // 응답
