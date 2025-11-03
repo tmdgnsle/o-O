@@ -84,9 +84,11 @@ from src.api.models import (
     TaskStatus,
     AnalyzeRequest,
     ImageAnalyzeRequest,
+    TextAnalyzeRequest,
     TaskResponse,
     AnalysisResult,
     ImageAnalysisResult,
+    TextAnalysisResult,
     MindMapNode
 )
 import torch
@@ -380,6 +382,154 @@ def create_mindmap_from_image_llm(
                 MindMapNode(
                     keyword="분석 결과",
                     description=image_analysis[:500] if len(image_analysis) > 500 else image_analysis,
+                    children=None
+                )
+            ]
+        )
+
+
+def create_mindmap_from_text_llm(
+    text_prompt: str,
+    detail_level: str = "medium"
+) -> MindMapNode:
+    """
+    텍스트 프롬프트로부터 LLM을 사용하여 마인드맵 생성
+
+    Args:
+        text_prompt: 사용자 입력 텍스트/주제
+        detail_level: 상세 수준 ("simple", "medium", "detailed")
+
+    Returns:
+        마인드맵 루트 노드
+    """
+    try:
+        text_analyzer = get_text_analyzer()
+
+        # 상세 수준에 따른 토큰 수 및 지시사항 설정
+        if detail_level == "simple":
+            max_tokens = 2048
+            depth_instruction = "최대 2단계 깊이로 간단하게 구성하세요."
+            detail_instruction = "각 노드는 핵심 키워드와 짧은 설명만 포함하세요."
+        elif detail_level == "detailed":
+            max_tokens = 6144
+            depth_instruction = "최대 4-5단계 깊이로 매우 상세하게 구성하세요."
+            detail_instruction = "각 노드에 구체적인 예시, 수치, 근거를 포함하세요."
+        else:  # medium
+            max_tokens = 4096
+            depth_instruction = "최대 3-4단계 깊이로 적절하게 구성하세요."
+            detail_instruction = "각 노드에 중요한 정보와 설명을 포함하세요."
+
+        system_prompt = f"""당신은 텍스트를 구조화된 마인드맵으로 변환하는 전문가입니다.
+
+사용자가 제공한 주제나 텍스트를 분석하여 체계적인 마인드맵을 생성하세요.
+마인드맵은 반드시 다음 JSON 형식으로 작성해야 합니다:
+
+{{
+  "keyword": "주제의 핵심 키워드",
+  "description": "주제에 대한 간단한 설명 또는 정의",
+  "children": [
+    {{
+      "keyword": "주요 카테고리 1",
+      "description": "구체적인 설명, 예시, 특징",
+      "children": [
+        {{
+          "keyword": "세부 항목",
+          "description": "상세 내용",
+          "children": null
+        }}
+      ]
+    }},
+    {{
+      "keyword": "주요 카테고리 2",
+      "description": "구체적인 설명",
+      "children": null
+    }}
+  ]
+}}
+
+**중요 규칙:**
+1. 반드시 "keyword", "description", "children" 키를 사용하세요
+2. keyword를 JSON 키로 사용하지 마세요
+3. {depth_instruction}
+4. {detail_instruction}
+5. 논리적 계층 구조를 만드세요 (상위 개념 → 하위 개념)
+6. 구체적인 사실, 예시, 수치를 포함하세요
+7. JSON만 출력하고, 마크다운 코드 블록(```)은 사용하지 마세요
+
+주제 분석 가이드:
+- 개념/용어인 경우: 정의 → 특징 → 유형 → 예시 → 응용
+- 프로세스/절차인 경우: 단계별 분해 → 각 단계의 세부사항
+- 비교/대조인 경우: 항목별 비교 → 차이점과 공통점
+- 역사/시간순인 경우: 시대별/단계별 구분 → 주요 사건/특징
+- 문제/해결인 경우: 문제 정의 → 원인 → 해결방안 → 기대효과
+"""
+
+        user_prompt_text = f"""주제/텍스트: {text_prompt}
+
+위 내용을 바탕으로 체계적인 마인드맵 JSON을 생성해주세요."""
+
+        mindmap_json_str = text_analyzer.generate(
+            prompt=user_prompt_text,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            temperature=0.7
+        )
+
+        print("=" * 80)
+        print("텍스트 마인드맵 LLM 생성 원본 출력:")
+        print(mindmap_json_str[:1000])
+        print("=" * 80)
+
+        # JSON 파싱 (마크다운 코드 블록 제거)
+        mindmap_json_str = mindmap_json_str.strip()
+        if mindmap_json_str.startswith('```json'):
+            mindmap_json_str = mindmap_json_str[7:]
+        if mindmap_json_str.startswith('```'):
+            mindmap_json_str = mindmap_json_str[3:]
+        if mindmap_json_str.endswith('```'):
+            mindmap_json_str = mindmap_json_str[:-3]
+        mindmap_json_str = mindmap_json_str.strip()
+
+        # JSON을 MindMapNode로 변환
+        def json_to_mindmap_node(data: Dict) -> MindMapNode:
+            children = None
+            if 'children' in data and data['children']:
+                children = [json_to_mindmap_node(child) for child in data['children']]
+
+            return MindMapNode(
+                keyword=data.get('keyword', ''),
+                description=data.get('description', ''),
+                children=children
+            )
+
+        mindmap_data = json.loads(mindmap_json_str)
+
+        # 잘못된 형식 수정
+        if 'keyword' not in mindmap_data and 'description' not in mindmap_data:
+            first_key = list(mindmap_data.keys())[0]
+            first_value = mindmap_data[first_key]
+            mindmap_data = {
+                'keyword': first_key,
+                'description': first_value.get('description', ''),
+                'children': first_value.get('children', None)
+            }
+
+        root = json_to_mindmap_node(mindmap_data)
+
+        print(f"✅ 텍스트 마인드맵 생성: keyword='{root.keyword}', children={len(root.children) if root.children else 0}")
+
+        return root
+
+    except Exception as e:
+        logger.error(f"텍스트 마인드맵 생성 실패: {e}")
+        # 폴백: 간단한 마인드맵 생성
+        return MindMapNode(
+            keyword=text_prompt[:50] if len(text_prompt) <= 50 else text_prompt[:47] + "...",
+            description="AI가 생성한 마인드맵",
+            children=[
+                MindMapNode(
+                    keyword="분석 필요",
+                    description="이 주제에 대한 상세 분석이 필요합니다.",
                     children=None
                 )
             ]
@@ -863,13 +1013,14 @@ async def analyze_video_stream(
 def root():
     """API 정보"""
     return {
-        "name": "AI Analysis API - Video & Image",
+        "name": "AI Analysis API - Video, Image & Text",
         "version": "1.0.0",
-        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 YouTube 영상 및 이미지 분석",
+        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 멀티모달 분석 및 마인드맵 생성",
         "endpoints": {
             "POST /analyze": "YouTube 영상 분석 (스트리밍)",
             "POST /analyze/sync": "YouTube 영상 분석 (동기식)",
-            "POST /analyze/image": "이미지 분석 (스트리밍)",
+            "POST /analyze/image": "이미지 URL 분석 (스트리밍)",
+            "POST /analyze/text": "텍스트 프롬프트 분석 (스트리밍)",
             "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
             "GET /tasks": "모든 작업 목록 조회",
             "DELETE /tasks/{task_id}": "작업 삭제",
@@ -1166,6 +1317,136 @@ async def analyze_image(request: ImageAnalyzeRequest):
         analyze_image_stream(
             image_url=str(request.image_url),
             user_prompt=request.user_prompt
+        ),
+        media_type="text/event-stream"
+    )
+
+
+# ============================================================================
+# 텍스트 분석 API
+# ============================================================================
+
+async def analyze_text_stream(
+    text_prompt: str,
+    detail_level: str = "medium"
+):
+    """
+    텍스트 프롬프트를 분석하여 마인드맵을 생성하면서 실시간으로 진행 상황을 스트리밍합니다.
+    """
+    task_id = str(uuid.uuid4())
+
+    try:
+        # 시작 메시지
+        yield f"data: {json.dumps({'status': 'started', 'task_id': task_id, 'progress': 0, 'message': '텍스트 분석 시작'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 텍스트 검증
+        yield f"data: {json.dumps({'status': 'validating', 'progress': 10, 'message': '입력 텍스트 검증 중...'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        if not text_prompt or len(text_prompt.strip()) < 3:
+            error_msg = "텍스트가 너무 짧습니다. 최소 3자 이상 입력해주세요."
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg}, ensure_ascii=False)}\n\n"
+            return
+
+        if len(text_prompt) > 10000:
+            error_msg = "텍스트가 너무 깁니다. 최대 10,000자까지 지원합니다."
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg}, ensure_ascii=False)}\n\n"
+            return
+
+        # 텍스트 정보
+        text_info = {
+            "length": len(text_prompt),
+            "word_count": len(text_prompt.split()),
+            "detail_level": detail_level
+        }
+
+        message = f"텍스트 검증 완료: {text_info['length']}자, {text_info['word_count']}단어, 상세도={detail_level}"
+        yield f"data: {json.dumps({'status': 'validation_complete', 'progress': 20, 'message': message, 'text_info': text_info}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 마인드맵 생성
+        yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 30, 'message': 'LLM으로 마인드맵 생성 중...'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 상세도에 따라 예상 시간 표시
+        if detail_level == "simple":
+            yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 40, 'message': '간단한 마인드맵 생성 중... (예상 5-10초)'}, ensure_ascii=False)}\n\n"
+        elif detail_level == "detailed":
+            yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 40, 'message': '상세한 마인드맵 생성 중... (예상 15-30초)'}, ensure_ascii=False)}\n\n"
+        else:
+            yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 40, 'message': '표준 마인드맵 생성 중... (예상 10-20초)'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        # LLM으로 마인드맵 생성
+        mindmap = create_mindmap_from_text_llm(
+            text_prompt=text_prompt,
+            detail_level=detail_level
+        )
+
+        yield f"data: {json.dumps({'status': 'mindmap_complete', 'progress': 95, 'message': '마인드맵 생성 완료'}, ensure_ascii=False)}\n\n"
+        await asyncio.sleep(0.1)
+
+        # 최종 결과
+        result = {
+            "task_id": task_id,
+            "status": "completed",
+            "text_prompt": text_prompt[:200] if len(text_prompt) > 200 else text_prompt,  # 응답 크기 제한
+            "created_at": datetime.now().isoformat(),
+            "completed_at": datetime.now().isoformat(),
+            "mindmap": mindmap.dict()
+        }
+
+        yield f"data: {json.dumps({'status': 'completed', 'progress': 100, 'message': '텍스트 분석 완료!', 'result': result}, ensure_ascii=False)}\n\n"
+
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"텍스트 분석 중 오류 발생: {error_msg}")
+        yield f"data: {json.dumps({'status': 'failed', 'error': error_msg}, ensure_ascii=False)}\n\n"
+
+
+@app.post("/analyze/text")
+async def analyze_text(request: TextAnalyzeRequest):
+    """
+    텍스트 프롬프트 분석 및 마인드맵 생성 (스트리밍)
+
+    Server-Sent Events (SSE) 형식으로 실시간 진행 상황을 전달합니다.
+
+    - **text_prompt**: 분석할 텍스트/주제 (예: "인공지능의 역사와 발전")
+    - **detail_level**: 상세 수준 - "simple" (간단), "medium" (보통), "detailed" (상세)
+
+    ### 응답 형식 (SSE)
+    각 이벤트는 다음 형식으로 전달됩니다:
+    ```
+    data: {"status": "...", "progress": 0-100, "message": "...", ...}
+    ```
+
+    ### 상태 종류
+    - `started`: 분석 시작
+    - `validating`: 텍스트 검증 중
+    - `validation_complete`: 검증 완료
+    - `creating_mindmap`: 마인드맵 생성 중
+    - `mindmap_complete`: 마인드맵 생성 완료
+    - `completed`: 분석 완료 (result 포함)
+    - `failed`: 오류 발생 (error 포함)
+
+    ### 사용 예시
+    ```json
+    {
+      "text_prompt": "인공지능의 역사와 주요 발전 단계",
+      "detail_level": "medium"
+    }
+    ```
+
+    ### 상세 수준 설명
+    - **simple**: 2단계 깊이, 핵심 내용만 간단히 (~5-10초)
+    - **medium**: 3-4단계 깊이, 적절한 상세도 (~10-20초)
+    - **detailed**: 4-5단계 깊이, 매우 상세한 내용 (~15-30초)
+    """
+    return StreamingResponse(
+        analyze_text_stream(
+            text_prompt=request.text_prompt,
+            detail_level=request.detail_level or "medium"
         ),
         media_type="text/event-stream"
     )

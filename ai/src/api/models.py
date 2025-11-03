@@ -34,6 +34,12 @@ class ImageAnalyzeRequest(BaseModel):
     user_prompt: Optional[str] = None  # 사용자 질문/프롬프트 (예: "이 이미지의 주요 내용을 분석해줘")
 
 
+class TextAnalyzeRequest(BaseModel):
+    """텍스트 분석 요청"""
+    text_prompt: str  # 분석할 텍스트/주제 (예: "인공지능의 역사와 발전 과정")
+    detail_level: Optional[str] = "medium"  # 상세 수준: "simple", "medium", "detailed"
+
+
 class TaskResponse(BaseModel):
     """작업 응답"""
     task_id: str
@@ -73,6 +79,17 @@ class ImageAnalysisResult(BaseModel):
     completed_at: Optional[str] = None
     image_info: Optional[Dict] = None  # 이미지 메타데이터 (크기, 포맷 등)
     analysis: Optional[str] = None  # Vision 모델의 이미지 분석 결과
+    mindmap: Optional[MindMapNode] = None  # 마인드맵 데이터
+    error: Optional[str] = None
+
+
+class TextAnalysisResult(BaseModel):
+    """텍스트 분석 결과"""
+    task_id: str
+    status: TaskStatus
+    text_prompt: str
+    created_at: str
+    completed_at: Optional[str] = None
     mindmap: Optional[MindMapNode] = None  # 마인드맵 데이터
     error: Optional[str] = None
 
