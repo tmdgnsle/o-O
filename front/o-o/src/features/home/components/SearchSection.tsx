@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SearchInput } from "./SearchInput";
 import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,19 @@ export function SearchSection() {
   const [searchValue, setSearchValue] = useState("");
   const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   // TODO: 실제 로그인 로직으로 교체
-  const isLoggedIn = false;
+  const isLoggedIn = true;
+
+  useEffect(() => {
+    if (isLoginModalOpen && window.google?.accounts?.id) {
+      // 약간의 딜레이 후에 One Tap 프롬프트 표시
+      setTimeout(() => {
+        window.google?.accounts.id.prompt();
+      }, 300);
+    }
+  }, [isLoginModalOpen]);
 
   const handleKeywordClick = (keyword: string) => {
     setSearchValue(keyword);
@@ -29,7 +40,7 @@ export function SearchSection() {
     if (!isLoggedIn) {
       setIsLoginModalOpen(true);
     } else {
-      console.log("아이디어 생성 로직 실행");
+      navigate("/new-project");
     }
   };
 
