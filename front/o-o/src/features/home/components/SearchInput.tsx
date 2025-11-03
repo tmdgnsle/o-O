@@ -1,0 +1,75 @@
+// SearchInput.tsx
+import { useMediaUpload } from "../hooks/custom/useMediaUpload";
+import youtube from "@/shared/assets/images/youtube.png";
+import { MediaPreview } from "./MediaPreviewProps";
+
+interface SearchInputProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function SearchInput({ value, onChange }: SearchInputProps) {
+  const {
+    mediaData,
+    isDragging,
+    handlePaste,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    clearMedia,
+  } = useMediaUpload();
+
+  return (
+    <div
+      className={`
+        w-[clamp(300px,80%,1200px)]
+        bg-white/60 shadow-md transitional-all duration-300 rounded-full
+        focus:ring-1 focus:ring-primary border-none
+        ${isDragging ? "ring-2 ring-primary bg-white/80" : ""}
+      `}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* 이미지 미리보기 */}
+      {mediaData.type === "image" && mediaData.imageUrl && (
+        <MediaPreview
+          type="image"
+          icon={mediaData.imageUrl}
+          label={mediaData.imageFile?.name || "Image"}
+          onClear={clearMedia}
+        />
+      )}
+
+      {/* 유튜브 링크 미리보기 */}
+      {mediaData.type === "youtube" && mediaData.youtubeUrl && (
+        <MediaPreview
+          type="youtube"
+          icon={youtube}
+          label={mediaData.youtubeUrl}
+          onClear={clearMedia}
+        />
+      )}
+
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="마인드맵을 생성할 아이디어를 입력해주세요."
+        onPaste={handlePaste}
+        className="
+          w-full
+          h-[clamp(60px,2vw,100px)] 
+          px-6 text-center font-semibold 
+          text-[clamp(16px,1.5vw,36px)] 
+          text-semi-deep-grey rounded-full
+          bg-transparent 
+          focus:placeholder-transparent"
+        style={{
+          border: "none",
+          outline: "none",
+        }}
+      />
+    </div>
+  );
+}
