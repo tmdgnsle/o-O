@@ -1,6 +1,7 @@
 // SearchInput.tsx
 import { useMediaUpload } from "../hooks/custom/useMediaUpload";
 import youtube from "@/shared/assets/images/youtube.png";
+import { MediaPreview } from "./MediaPreviewProps";
 
 interface SearchInputProps {
   value: string;
@@ -32,94 +33,22 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
     >
       {/* 이미지 미리보기 */}
       {mediaData.type === "image" && mediaData.imageUrl && (
-        <div
-          className="w-fit flex items-center bg-primary rounded-full mx-8 mt-3"
-          style={{
-            gap: "clamp(0.25rem, 0.5vw, 0.5rem)",
-            padding:
-              "clamp(0.25rem, 0.5vw, 0.375rem) clamp(0.5rem, 1vw, 0.75rem)",
-          }}
-        >
-          <img
-            src={mediaData.imageUrl}
-            alt="pasted"
-            className="object-cover rounded-md flex-shrink-0"
-            style={{
-              width: "clamp(14px, 1.5vw, 20px)",
-              height: "clamp(14px, 1.5vw, 20px)",
-            }}
-          />
-          <span
-            className="text-white truncate font-medium"
-            style={{
-              fontSize: "clamp(10px, 1vw, 12px)",
-              maxWidth: "clamp(100px, 30vw, 400px)",
-            }}
-          >
-            {mediaData.imageFile?.name}
-          </span>
-          <button
-            onClick={clearMedia}
-            className="bg-white rounded-full text-primary font-extrabold flex items-center justify-center flex-shrink-0"
-            style={{
-              width: "clamp(14px, 1.5vw, 18px)",
-              height: "clamp(14px, 1.5vw, 18px)",
-              fontSize: "clamp(8px, 0.8vw, 10px)",
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        <MediaPreview
+          type="image"
+          icon={mediaData.imageUrl}
+          label={mediaData.imageFile?.name || "Image"}
+          onClear={clearMedia}
+        />
       )}
 
       {/* 유튜브 링크 미리보기 */}
       {mediaData.type === "youtube" && mediaData.youtubeUrl && (
-        <div
-          className="w-fit flex items-center bg-primary rounded-full mx-8 mt-3"
-          style={{
-            gap: "clamp(0.25rem, 0.5vw, 0.5rem)",
-            padding:
-              "clamp(0.25rem, 0.5vw, 0.375rem) clamp(0.5rem, 1vw, 0.75rem)",
-          }}
-        >
-          <div
-            className="rounded flex items-center justify-center flex-shrink-0"
-            style={{
-              width: "clamp(14px, 1.5vw, 20px)",
-              height: "clamp(14px, 1.5vw, 20px)",
-            }}
-          >
-            <img
-              src={youtube}
-              alt="youtube icon"
-              className="object-cover rounded-md flex-shrink-0"
-              style={{
-                width: "clamp(14px, 1.5vw, 20px)",
-                height: "clamp(14px, 1.5vw, 20px)",
-              }}
-            />
-          </div>
-          <span
-            className="text-white truncate font-medium"
-            style={{
-              fontSize: "clamp(10px, 1vw, 12px)",
-              maxWidth: "clamp(100px, 30vw, 400px)",
-            }}
-          >
-            {mediaData.youtubeUrl}
-          </span>
-          <button
-            onClick={clearMedia}
-            className="bg-white rounded-full text-primary font-extrabold flex items-center justify-center flex-shrink-0"
-            style={{
-              width: "clamp(14px, 1.5vw, 18px)",
-              height: "clamp(14px, 1.5vw, 18px)",
-              fontSize: "clamp(8px, 0.8vw, 10px)",
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        <MediaPreview
+          type="youtube"
+          icon={youtube}
+          label={mediaData.youtubeUrl}
+          onClear={clearMedia}
+        />
       )}
 
       <input
