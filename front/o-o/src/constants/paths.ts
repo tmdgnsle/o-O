@@ -1,6 +1,7 @@
 // 라우트 경로 상수 정의
 export const PATHS = {
   HOME: '/',
+  TREND: '/trend',
   MINDMAP: '/mindmap',
   MYPAGE: '/mypage',
 } as const;
