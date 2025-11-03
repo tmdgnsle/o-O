@@ -3,6 +3,7 @@ export const PATHS = {
   HOME: '/',
   TREND: '/trend',
   MINDMAP: '/mindmap',
+  NEWPROJECT: '/newproject',
   MYPAGE: '/mypage',
 } as const;
 

@@ -13,15 +13,15 @@ function NewProjectPage() {
 
 const routeConfig = [
   {
-    path: "/",
+    path: PATHS.HOME,
     element: <HomePage />,
   },
   {
-    path: "/trend",
+    path: PATHS.TREND,
     element: <TrendPage />,
   },
   {
-    path: "/new-project",
+    path: PATHS.NEWPROJECT,
     element: <NewProjectPage />,
   },
   {
