@@ -14,7 +14,7 @@ const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const isLoggedIn = true;
+  const isLoggedIn = false;
 
   useEffect(() => {
     if (!isLoggedIn && window.google) {

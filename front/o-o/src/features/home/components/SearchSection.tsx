@@ -13,7 +13,7 @@ export function SearchSection() {
   const navigate = useNavigate();
 
   // TODO: 실제 로그인 로직으로 교체
-  const isLoggedIn = true;
+  const isLoggedIn = false;
 
   useEffect(() => {
     if (isLoginModalOpen && window.google?.accounts?.id) {
@@ -62,22 +62,7 @@ export function SearchSection() {
             selectedKeyword={selectedKeyword}
           />
         </div>
-        <Button
-          onClick={handleCreateClick}
-          variant="outline"
-          className="
-            rounded-full border-none bg-white/60 
-            text-[clamp(13px,1.5vw,24px)]
-            font-semibold shadow-md transitional-all duration-300
-            hover:bg-primary hover:text-white
-          "
-          style={{
-            paddingLeft: "clamp(1rem, 5vw, 3rem)",
-            paddingRight: "clamp(1rem, 5vw, 3rem)",
-            paddingTop: "clamp(0.5rem, 2vw, 2rem)",
-            paddingBottom: "clamp(0.5rem, 2vw, 2rem)",
-          }}
-        >
+        <Button onClick={handleCreateClick} variant="primary" size="responsive">
           생성하기
         </Button>
       </div>
