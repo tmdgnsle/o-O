@@ -64,14 +64,14 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(Long userId, String platform) {
+    public void logout(Long userId) {
         // Null 체크
         if (userId == null) {
             throw new IllegalArgumentException("User ID is required");
         }
-        if (platform == null || platform.trim().isEmpty()) {
-            throw new IllegalArgumentException("Platform is required");
-        }
+
+        // 웹 로그아웃은 항상 web 플랫폼
+        String platform = "web";
 
         // Redis에서 Refresh Token 삭제 (userId_platform 형태로)
         String refreshTokenId = userId + "_" + platform;

@@ -39,11 +39,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long userId = oAuth2User.getUserId();
         String role = oAuth2User.getRole();
 
-        // Query parameter에서 platform 정보 추출
-        String platform = request.getParameter("platform");
-        if (platform == null || platform.trim().isEmpty()) {
-            platform = "web";  // 기본값
-        }
+        // 웹 OAuth2 로그인은 항상 web 플랫폼
+        String platform = "web";
 
         log.info("OAuth2 login success - userId: {}, role: {}, platform: {}", userId, role, platform);
 
