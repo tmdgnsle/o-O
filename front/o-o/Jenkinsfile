@@ -6,7 +6,7 @@ pipeline {
     AWS_REGION = 'ap-northeast-2'
     S3_BUCKET  = 'o-o-frontend'       // ex) myapp-frontend-prod
     CF_DIST_ID = 'E15YK94HXRWQA2'     // ex) E1ABCDEF123456
-    BUILD_DIR  = 'build'              // React=build, Vite/Next=dist
+    BUILD_DIR  = 'dist'              // React=build, Vite/Next=dist
     NODE_OPTIONS = '--max-old-space-size=2048'
   }
 
