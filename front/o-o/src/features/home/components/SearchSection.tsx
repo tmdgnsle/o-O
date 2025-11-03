@@ -2,11 +2,16 @@ import { useState } from "react";
 import { SearchInput } from "./SearchInput";
 import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
+import LoginPromptModel from "@/shared/ui/LoginPromptModal";
 import popo from "@/shared/assets/images/popo_chu.png";
 
 export function SearchSection() {
   const [searchValue, setSearchValue] = useState("");
   const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // TODO: 실제 로그인 로직으로 교체
+  const isLoggedIn = false;
 
   const handleKeywordClick = (keyword: string) => {
     setSearchValue(keyword);
@@ -17,6 +22,14 @@ export function SearchSection() {
     setSearchValue(value);
     if (value !== selectedKeyword) {
       setSelectedKeyword(null);
+    }
+  };
+
+  const handleCreateClick = () => {
+    if (!isLoggedIn) {
+      setIsLoginModalOpen(true);
+    } else {
+      console.log("아이디어 생성 로직 실행");
     }
   };
 
@@ -39,6 +52,7 @@ export function SearchSection() {
           />
         </div>
         <Button
+          onClick={handleCreateClick}
           variant="outline"
           className="
             rounded-full border-none bg-white/60 
@@ -66,6 +80,12 @@ export function SearchSection() {
           width: "clamp(220px, 30vw, 400px)",
           height: "auto",
         }}
+      />
+
+      {/* 로그인 모달 */}
+      <LoginPromptModel
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
       />
     </section>
   );
