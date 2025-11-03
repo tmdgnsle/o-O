@@ -24,8 +24,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("X-User-Id") Long userId) {
-        authService.logout(userId);
+    public ResponseEntity<Void> logout(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader("Client-Type") String platform) {
+        authService.logout(userId, platform);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, CookieUtil.deleteRefreshTokenCookie().toString())

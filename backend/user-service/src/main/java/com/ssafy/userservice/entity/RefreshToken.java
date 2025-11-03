@@ -12,7 +12,7 @@ import org.springframework.data.redis.core.TimeToLive;
 public class RefreshToken {
 
     @Id
-    private Long userId;  // User 테이블의 PK
+    private String id;  // userId_platform 형태 (예: "1_web")
 
     private String token;
 

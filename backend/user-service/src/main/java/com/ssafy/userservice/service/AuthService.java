@@ -32,9 +32,7 @@ public class AuthService {
         }
 
         // Refresh Token 만료 확인
-        try {
-            jwtUtil.isExpired(refreshToken);
-        } catch (ExpiredJwtException e) {
+        if (jwtUtil.isExpired(refreshToken)) {
             throw new TokenExpiredException("Refresh token expired");
         }
 
@@ -44,34 +42,40 @@ public class AuthService {
             throw new InvalidTokenException("Invalid refresh token category");
         }
 
-        // userId 추출
+        // userId, role, platform 추출
         Long userId = jwtUtil.getUserId(refreshToken);
         String role = jwtUtil.getRole(refreshToken);
+        String platform = jwtUtil.getPlatform(refreshToken);
 
-        // Redis에 저장된 토큰과 비교
-        RefreshToken storedToken = refreshTokenRepository.findById(userId)
+        // Redis에 저장된 토큰과 비교 (userId_platform 형태로 조회)
+        String refreshTokenId = userId + "_" + platform;
+        RefreshToken storedToken = refreshTokenRepository.findById(refreshTokenId)
                 .orElseThrow(() -> new TokenNotFoundException("Refresh token not found in storage"));
 
         if (!storedToken.getToken().equals(refreshToken)) {
             throw new InvalidTokenException("Refresh token mismatch");
         }
 
-        // 새로운 Access Token 발급
-        String newAccessToken = jwtUtil.generateToken("access", userId, role, accessTokenExpiration);
-        log.info("Access token reissued for userId: {}", userId);
+        // 새로운 Access Token 발급 (platform 정보 포함)
+        String newAccessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
+        log.info("Access token reissued for userId: {}, platform: {}", userId, platform);
 
         return newAccessToken;
     }
 
     @Transactional
-    public void logout(Long userId) {
+    public void logout(Long userId, String platform) {
         // Null 체크
         if (userId == null) {
             throw new IllegalArgumentException("User ID is required");
         }
+        if (platform == null || platform.trim().isEmpty()) {
+            throw new IllegalArgumentException("Platform is required");
+        }
 
-        // Redis에서 Refresh Token 삭제
-        refreshTokenRepository.deleteById(userId);
-        log.info("User logged out - userId: {}", userId);
+        // Redis에서 Refresh Token 삭제 (userId_platform 형태로)
+        String refreshTokenId = userId + "_" + platform;
+        refreshTokenRepository.deleteById(refreshTokenId);
+        log.info("User logged out - userId: {}, platform: {}", userId, platform);
     }
 }

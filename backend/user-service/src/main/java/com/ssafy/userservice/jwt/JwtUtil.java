@@ -22,6 +22,9 @@ public class JwtUtil {
     }
 
     public String getCategory(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -31,6 +34,9 @@ public class JwtUtil {
     }
 
     public Long getUserId(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -40,6 +46,9 @@ public class JwtUtil {
     }
 
     public String getRole(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -48,7 +57,22 @@ public class JwtUtil {
                 .get("role", String.class);
     }
 
+    public String getPlatform(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("platform", String.class);
+    }
+
     public Boolean isExpired(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be null or empty");
+        }
         return Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -58,11 +82,12 @@ public class JwtUtil {
                 .before(new Date());
     }
 
-    public String generateToken(String category, Long userId, String role, Long expiredMs) {
+    public String generateToken(String category, Long userId, String role, String platform, Long expiredMs) {
         return Jwts.builder()
                 .claim("category", category)
                 .claim("userId", userId)
                 .claim("role", role)
+                .claim("platform", platform)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)

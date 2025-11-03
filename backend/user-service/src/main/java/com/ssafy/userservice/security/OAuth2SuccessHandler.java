@@ -39,21 +39,28 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long userId = oAuth2User.getUserId();
         String role = oAuth2User.getRole();
 
-        log.info("OAuth2 login success - userId: {}, role: {}", userId, role);
+        // Query parameter에서 platform 정보 추출
+        String platform = request.getParameter("platform");
+        if (platform == null || platform.trim().isEmpty()) {
+            platform = "web";  // 기본값
+        }
 
-        // Access Token 생성
-        String accessToken = jwtUtil.generateToken("access", userId, role, accessTokenExpiration);
+        log.info("OAuth2 login success - userId: {}, role: {}, platform: {}", userId, role, platform);
 
-        // Refresh Token 생성
-        String refreshToken = jwtUtil.generateToken("refresh", userId, role, refreshTokenExpiration);
+        // Access Token 생성 (platform 정보 포함)
+        String accessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
 
-        // Refresh Token을 Redis에 저장
+        // Refresh Token 생성 (platform 정보 포함)
+        String refreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
+
+        // Refresh Token을 Redis에 저장 (id를 userId_platform 형태로)
+        String refreshTokenId = userId + "_" + platform;
         RefreshToken refreshTokenEntity = new RefreshToken(
-                userId,
+                refreshTokenId,
                 refreshToken,
                 refreshTokenExpiration / 1000  // 밀리초를 초로 변환 (TTL은 초 단위)
         );
-        refreshTokenRepository.deleteById(userId);  // 기존 토큰 삭제
+        refreshTokenRepository.deleteById(refreshTokenId);  // 기존 토큰 삭제
         refreshTokenRepository.save(refreshTokenEntity);
 
         // Access Token은 헤더로 전달
