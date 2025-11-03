@@ -11,6 +11,16 @@ export function useGoogleOneTap(isLoggedIn: boolean) {
       callback: handleCredentialResponse,
     });
     window.google.accounts.id.prompt();
+
+    window.google.accounts.id.renderButton(
+      document.getElementById("googleSignInDiv")!,
+      {
+        theme: "outline", // filled_blue / filled_black / outline
+        size: "large", // small / medium / large
+        text: "continue_with", // signup_with / continue_with / signin
+        shape: "pill", // rectangular / pill / circle
+      }
+    );
   }, []); // 의존성 없음 (한 번만 생성)
 
   useEffect(() => {

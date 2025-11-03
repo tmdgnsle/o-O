@@ -11,6 +11,10 @@ declare global {
             momentListener?: (notification: PromptMomentNotification) => void
           ) => void;
           cancel: () => void;
+          renderButton: (
+            parent: HTMLElement,
+            options: GoogleRenderButtonOptions
+          ) => void;
         };
       };
     };

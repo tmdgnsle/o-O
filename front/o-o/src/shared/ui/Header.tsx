@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
 import logo from "@/shared/assets/images/logo.png";
 import popo1 from "@/shared/assets/images/popo1.png";
+import { useEffect } from "react";
 
 const MOCK_USER = {
   name: "홍길동",
@@ -13,7 +14,16 @@ const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const isLoggedIn = false;
+  const isLoggedIn = true;
+
+  useEffect(() => {
+    if (!isLoggedIn && window.google) {
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: (res) => console.log("로그인 응답:", res),
+      });
+    }
+  }, [isLoggedIn]);
 
   return (
     <header
@@ -95,15 +105,19 @@ export function Header() {
           </div>
         </Link>
       ) : (
-        <button
-          className="font-medium text-primary"
-          style={{
-            fontSize: "clamp(14px, 1.2vw, 16px)",
-            padding: "clamp(0.5rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem)",
-          }}
-        >
-          Sign in with Google
-        </button>
+        <div
+          id="googleSignInDiv"
+          className="flex justify-center items-center"
+        />
+        // <button
+        //   className="font-medium text-primary"
+        //   style={{
+        //     fontSize: "clamp(14px, 1.2vw, 16px)",
+        //     padding: "clamp(0.5rem, 1vw, 1rem) clamp(1rem, 2vw, 1.5rem)",
+        //   }}
+        // >
+        //   Sign in with Google
+        // </button>
       )}
     </header>
   );
