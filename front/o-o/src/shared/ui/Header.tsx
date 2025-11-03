@@ -14,7 +14,7 @@ const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const isLoggedIn = false;
+  const isLoggedIn = true;
 
   useEffect(() => {
     if (!isLoggedIn && window.google) {
@@ -70,7 +70,7 @@ export function Header() {
       </div>
 
       {isLoggedIn ? (
-        <Link to="/my-page">
+        <Link to="/mypage">
           <div
             className="flex items-center px-2 py-1 sm:px-4 sm:py-2"
             style={{

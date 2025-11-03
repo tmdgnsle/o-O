@@ -1,7 +1,12 @@
-import { createBrowserRouter, type RouteObject, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  type RouteObject,
+  RouterProvider,
+} from "react-router-dom";
 import { PATHS } from "@/constants/paths";
 import MindmapPage from "@/features/mindmap/pages/MindmapPage";
 import { HomePage } from "@/features/home/pages/HomePage";
+import { MyPage } from "@/features/mypage/pages/MyPage";
 
 function TrendPage() {
   return <div className="container mx-auto px-6 py-8"></div>;
@@ -28,16 +33,17 @@ const routeConfig = [
     path: PATHS.MINDMAP,
     element: <MindmapPage />,
   },
+  {
+    path: PATHS.MYPAGE,
+    element: <MyPage />,
+  },
 ] as RouteObject[];
 
 // 라우터 설정
-const router = createBrowserRouter(
-  routeConfig
-);
+const router = createBrowserRouter(routeConfig);
 
 const AppRouter = () => {
   return <RouterProvider router={router} />;
 };
-
 
 export default AppRouter;
