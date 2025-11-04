@@ -1,5 +1,7 @@
 package com.ssafy.userservice.security;
 
+import com.ssafy.userservice.enums.Platform;
+import com.ssafy.userservice.enums.TokenCategory;
 import com.ssafy.userservice.jwt.JwtUtil;
 import com.ssafy.userservice.service.RefreshTokenService;
 import com.ssafy.userservice.util.CookieUtil;
@@ -38,20 +40,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long userId = oAuth2User.getUserId();
         String role = oAuth2User.getRole();
 
-        // 웹 OAuth2 로그인은 항상 web 플랫폼
-        String platform = "web";
+        // 웹 OAuth2 로그인은 항상 WEB 플랫폼
+        Platform platform = Platform.WEB;
 
-        log.info("OAuth2 login success - userId: {}, role: {}, platform: {}", userId, role, platform);
+        log.info("OAuth2 login success - userId: {}, role: {}, platform: {}", userId, role, platform.getValue());
 
         // Access Token 생성 (platform 정보 포함)
-        String accessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
+        String accessToken = jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platform, accessTokenExpiration);
 
         // Refresh Token 생성 (platform 정보 포함)
-        String refreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
+        String refreshToken = jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platform, refreshTokenExpiration);
 
         // Refresh Token을 Redis에 저장
         Long ttlSeconds = refreshTokenExpiration / 1000;  // 밀리초를 초로 변환 (TTL은 초 단위)
-        refreshTokenService.saveRefreshToken(userId, platform, refreshToken, ttlSeconds);
+        refreshTokenService.saveRefreshToken(userId, platform.getValue(), refreshToken, ttlSeconds);
 
         // Access Token은 헤더로 전달
         response.setHeader("Authorization", "Bearer " + accessToken);

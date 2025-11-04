@@ -2,6 +2,8 @@ package com.ssafy.userservice.service;
 
 import com.ssafy.userservice.entity.RefreshToken;
 import com.ssafy.userservice.entity.User;
+import com.ssafy.userservice.enums.Platform;
+import com.ssafy.userservice.enums.TokenCategory;
 import com.ssafy.userservice.exception.InvalidTokenException;
 import com.ssafy.userservice.exception.TokenExpiredException;
 import com.ssafy.userservice.exception.TokenNotFoundException;
@@ -59,17 +61,18 @@ public class AuthService {
 
         // category 확인
         String category = jwtUtil.getCategory(refreshToken);
-        if (!"refresh".equals(category)) {
+        if (!TokenCategory.REFRESH.getValue().equals(category)) {
             throw new InvalidTokenException("Invalid refresh token category");
         }
 
         // userId, role, platform 추출
         Long userId = jwtUtil.getUserId(refreshToken);
         String role = jwtUtil.getRole(refreshToken);
-        String platform = jwtUtil.getPlatform(refreshToken);
+        String platformStr = jwtUtil.getPlatform(refreshToken);
+        Platform platform = validateAndConvertPlatform(platformStr);
 
         // Redis에 저장된 토큰과 비교
-        RefreshToken storedToken = refreshTokenService.findRefreshToken(userId, platform)
+        RefreshToken storedToken = refreshTokenService.findRefreshToken(userId, platformStr)
                 .orElseThrow(() -> new TokenNotFoundException("Refresh token not found in storage"));
 
         if (!storedToken.getToken().equals(refreshToken)) {
@@ -77,12 +80,12 @@ public class AuthService {
         }
 
         // RTR: 새로운 Access Token과 Refresh Token 모두 발급
-        String newAccessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
-        String newRefreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
+        String newAccessToken = jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platform, accessTokenExpiration);
+        String newRefreshToken = jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platform, refreshTokenExpiration);
 
         // 기존 Refresh Token 삭제 후 새 토큰 저장
         Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
-        refreshTokenService.saveRefreshToken(userId, platform, newRefreshToken, ttlSeconds);
+        refreshTokenService.saveRefreshToken(userId, platformStr, newRefreshToken, ttlSeconds);
 
         return Map.of(
                 "accessToken", newAccessToken,
@@ -96,25 +99,21 @@ public class AuthService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID is required");
         }
-        validatePlatform(platform);
+        validateAndConvertPlatform(platform);  // 플랫폼 검증
 
         // Redis에서 Refresh Token 삭제
         refreshTokenService.deleteRefreshToken(userId, platform);
     }
 
     /**
-     * 플랫폼 값을 검증합니다.
+     * 플랫폼 문자열을 Platform enum으로 변환하여 검증합니다.
      *
-     * @param platform "web" 또는 "app"
+     * @param platformStr 플랫폼 문자열 ("web" 또는 "app")
+     * @return Platform enum
      * @throws IllegalArgumentException 유효하지 않은 플랫폼 값
      */
-    private void validatePlatform(String platform) {
-        if (platform == null || platform.isBlank()) {
-            throw new IllegalArgumentException("Platform is required");
-        }
-        if (!"web".equals(platform) && !"app".equals(platform)) {
-            throw new IllegalArgumentException("Invalid platform: " + platform + ". Allowed values are: web, app");
-        }
+    private Platform validateAndConvertPlatform(String platformStr) {
+        return Platform.fromString(platformStr);
     }
 
     /**
@@ -133,7 +132,7 @@ public class AuthService {
         if (idToken == null || idToken.isBlank()) {
             throw new IllegalArgumentException("ID token is required");
         }
-        validatePlatform(platform);
+        Platform platformEnum = validateAndConvertPlatform(platform);
 
         // Google ID Token 검증 및 사용자 정보 추출
         Map<String, Object> userInfo = googleTokenVerifier.verifyAndExtract(idToken);
@@ -179,8 +178,8 @@ public class AuthService {
         String role = user.getRole().name();
 
         // JWT 토큰 생성
-        String accessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
-        String refreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
+        String accessToken = jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platformEnum, accessTokenExpiration);
+        String refreshToken = jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platformEnum, refreshTokenExpiration);
 
         // Refresh Token Redis 저장
         Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
