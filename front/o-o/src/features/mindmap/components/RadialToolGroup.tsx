@@ -8,6 +8,7 @@ type RadialToolGroupProps = {
   radius?: number; // distance from node center to button center
   paletteOpen?: boolean;
   currentColor?: string;
+  focusedButton?: "delete" | "add" | "edit" | "palette" | "recommend" | null;
   onDelete?: () => void;
   onEdit?: () => void;
   onAdd?: () => void;
@@ -22,6 +23,7 @@ export default function RadialToolGroup({
   radius = 150,
   paletteOpen = false,
   currentColor = "#2D71B9",
+  focusedButton = null,
   onDelete,
   onEdit,
   onAdd,
@@ -132,6 +134,9 @@ export default function RadialToolGroup({
     <div className="absolute inset-0 z-40 overflow-visible" style={{ pointerEvents: "none" }}>
       <div style={centerStyle}>
         {items.map((it, i) => {
+          // focusedButton이 있으면 해당 버튼만 표시, 없으면 모두 표시
+          const shouldShow = focusedButton === null || focusedButton === it.key;
+
           const rad = ((angles[i] ?? 0) * Math.PI) / 180;
           const x = Math.cos(rad) * radius;
           const y = Math.sin(rad) * radius;
@@ -139,11 +144,11 @@ export default function RadialToolGroup({
             position: "absolute",
             top: "50%",
             left: "50%",
-            transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${open ? 1 : 0.8})`,
-            opacity: open ? 1 : 0,
+            transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${open && shouldShow ? 1 : 0.8})`,
+            opacity: open && shouldShow ? 1 : 0,
             transition: "transform 240ms ease, opacity 240ms ease",
             transitionDelay: `${i * 60}ms`,
-            pointerEvents: open ? "auto" : "none",
+            pointerEvents: open && shouldShow ? "auto" : "none",
           };
           return (
             <div key={it.key} style={style}>

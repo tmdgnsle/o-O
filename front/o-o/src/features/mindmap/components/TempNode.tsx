@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
@@ -57,17 +58,33 @@ export default function TempNode({
 
   const { paletteOpen, color, togglePalette, changeColor } = useNodeColorEdit();
 
+  // focusedButton 상태 관리
+  const [focusedButton, setFocusedButton] = useState<"delete" | "add" | "edit" | "palette" | "recommend" | null>(null);
+
   const handleClick = () => {
     if (isSelected) {
       onDeselect();
+      setFocusedButton(null);
     } else {
       onSelect();
+      setFocusedButton(null);
     }
   };
 
   const handleDelete = () => {
     deleteNodeMutation.mutate(id);
     onDeselect();
+    setFocusedButton(null);
+  };
+
+  const handleEdit = () => {
+    startEdit();
+    setFocusedButton("edit");
+  };
+
+  const handleEditCancel = () => {
+    cancelEdit();
+    setFocusedButton(null);
   };
 
   const handleEditConfirm = () => {
@@ -75,6 +92,17 @@ export default function TempNode({
     if (newText) {
       editNodeMutation.mutate({ nodeId: id, newText });
     }
+    setFocusedButton(null);
+  };
+
+  const handleAdd = () => {
+    openAddInput();
+    setFocusedButton("add");
+  };
+
+  const handleAddCancel = () => {
+    closeAddInput();
+    setFocusedButton(null);
   };
 
   const handleAddConfirm = () => {
@@ -88,6 +116,18 @@ export default function TempNode({
       };
       addNodeMutation.mutate(newNode);
     }
+    setFocusedButton(null);
+  };
+
+  const handlePalette = () => {
+    const willBeOpen = !paletteOpen;
+    togglePalette();
+    setFocusedButton(willBeOpen ? "palette" : null);
+  };
+
+  const handleColorChange = (newColor: string) => {
+    changeColor(newColor);
+    setFocusedButton(null);
   };
 
   return (
@@ -95,9 +135,10 @@ export default function TempNode({
       {/* 노드 원 */}
       <div
         onClick={handleClick}
-        className={`w-56 h-56 rounded-full bg-primary flex items-center justify-center cursor-pointer transition-all ${
+        className={`w-56 h-56 rounded-full flex items-center justify-center cursor-pointer transition-all ${
           isSelected ? "ring-4 ring-primary/30" : ""
         }`}
+        style={{ backgroundColor: color }}
       >
         {isEditing ? (
           <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -107,7 +148,7 @@ export default function TempNode({
               className="w-32 h-10 text-sm text-center bg-white"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleEditConfirm();
-                if (e.key === "Escape") cancelEdit();
+                if (e.key === "Escape") handleEditCancel();
               }}
               autoFocus
             />
@@ -122,7 +163,7 @@ export default function TempNode({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={cancelEdit}
+                onClick={handleEditCancel}
                 className="h-8 px-3"
               >
                 <X className="w-4 h-4" />
@@ -141,11 +182,12 @@ export default function TempNode({
         open={isSelected && !isEditing}
         paletteOpen={paletteOpen}
         currentColor={color}
+        focusedButton={focusedButton}
         onDelete={handleDelete}
-        onEdit={startEdit}
-        onAdd={openAddInput}
-        onPalette={togglePalette}
-        onColorChange={changeColor}
+        onEdit={handleEdit}
+        onAdd={handleAdd}
+        onPalette={handlePalette}
+        onColorChange={handleColorChange}
       />
 
       {/* Add Child Input - 우측에 표시 */}
@@ -161,7 +203,7 @@ export default function TempNode({
             className="w-48"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddConfirm();
-              if (e.key === "Escape") closeAddInput();
+              if (e.key === "Escape") handleAddCancel();
             }}
             autoFocus
           />
@@ -175,7 +217,7 @@ export default function TempNode({
           <Button
             size="sm"
             variant="outline"
-            onClick={closeAddInput}
+            onClick={handleAddCancel}
           >
             <X className="w-4 h-4" />
           </Button>

@@ -14,7 +14,7 @@ export const useNodeColorEdit = (initialColor: string = "#2D71B9") => {
 
   const changeColor = (newColor: string) => {
     setColor(newColor);
-    closePalette();
+    // closePalette();
   };
 
   return {

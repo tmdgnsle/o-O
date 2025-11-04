@@ -26,17 +26,20 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+// CUSTOM : 모드 유니온
+type Mode = 'hex' | 'rgb' | 'css' | 'hsl';
+
 interface ColorPickerContextValue {
   hue: number;
   saturation: number;
   lightness: number;
   alpha: number;
-  mode: string;
-  setHue: (hue: number) => void;
-  setSaturation: (saturation: number) => void;
-  setLightness: (lightness: number) => void;
-  setAlpha: (alpha: number) => void;
-  setMode: (mode: string) => void;
+  mode: Mode;
+  setHue: React.Dispatch<React.SetStateAction<number>>;
+  setSaturation: React.Dispatch<React.SetStateAction<number>>;
+  setLightness: React.Dispatch<React.SetStateAction<number>>;
+  setAlpha: React.Dispatch<React.SetStateAction<number>>;
+  setMode: React.Dispatch<React.SetStateAction<Mode>>; // ✅ 핵심
 }
 
 const ColorPickerContext = createContext<ColorPickerContextValue | undefined>(
@@ -59,6 +62,9 @@ export type ColorPickerProps = HTMLAttributes<HTMLDivElement> & {
   onChange?: (value: Parameters<typeof Color.rgb>[0]) => void;
 };
 
+// --------------------------------------------------------------------------------------------
+// CUSTOMIZED
+// (1) 안전 가드 + nullish 사용
 export const ColorPicker = ({
   value,
   defaultValue = '#000000',
@@ -67,44 +73,43 @@ export const ColorPicker = ({
   children,
   ...props
 }: ColorPickerProps) => {
-  const selectedColor = Color(value);
-  const defaultColor = Color(defaultValue);
+  // 임시로 고쳐보겠은
+  const hasValue = value !== undefined && value !== null;
 
-  const [hue, setHue] = useState(
-    selectedColor.hue() || defaultColor.hue() || 0
-  );
-  const [saturation, setSaturation] = useState(
-    selectedColor.saturationl() || defaultColor.saturationl() || 100
-  );
-  const [lightness, setLightness] = useState(
-    selectedColor.lightness() || defaultColor.lightness() || 50
-  );
-  const [alpha, setAlpha] = useState(
-    selectedColor.alpha() * 100 || defaultColor.alpha() * 100
-  );
-  const [mode, setMode] = useState('hex');
+  const selectedColor = Color(value ?? defaultValue);
+  const defaultColor  = Color(defaultValue);
 
-  // Update color when controlled value changes
+  const [hue, setHue] = useState<number>(selectedColor.hue() ?? defaultColor.hue() ?? 0);
+  const [saturation, setSaturation] = useState<number>(selectedColor.saturationl() ?? defaultColor.saturationl() ?? 100);
+  const [lightness, setLightness] = useState<number>(selectedColor.lightness() ?? defaultColor.lightness() ?? 50);
+  const [alpha, setAlpha] = useState<number>(
+    Math.round((selectedColor.alpha() ?? defaultColor.alpha() ?? 1) * 100)
+  );
+  const [mode, setMode] = useState<Mode>('hex');
+
+  // (2) controlled value 변경 시 HSL로 올바르게 반영
   useEffect(() => {
-    if (value) {
-      const color = Color.rgb(value).rgb().object();
-
-      setHue(color.r);
-      setSaturation(color.g);
-      setLightness(color.b);
-      setAlpha(color.a);
+    if (value != null) {
+      const color = Color.rgb(value);
+      const [h, s, l] = color.hsl().array() as [number, number, number];
+      setHue(h);
+      setSaturation(s);
+      setLightness(l);
+      setAlpha(Math.round(color.alpha() * 100));
     }
   }, [value]);
 
-  // Notify parent of changes
+  // (3) 부모 onChange 통지 (기존 로직 유지)
   useEffect(() => {
     if (onChange) {
-      const color = Color.hsl(hue, saturation, lightness).alpha(alpha / 100);
-      const rgba = color.rgb().array();
-
-      onChange([rgba[0], rgba[1], rgba[2], alpha / 100]);
+      const c = Color.hsl(hue, saturation, lightness).alpha(alpha / 100);
+      const [r, g, b] = c.rgb().array() as [number, number, number];
+      onChange([r, g, b, alpha / 100]);
     }
   }, [hue, saturation, lightness, alpha, onChange]);
+
+  // --------------------------------------------------------------------------------------------
+
 
   return (
     <ColorPickerContext.Provider
@@ -313,16 +318,13 @@ export const ColorPickerEyeDropper = ({
 
 export type ColorPickerOutputProps = ComponentProps<typeof SelectTrigger>;
 
-const formats = ['hex', 'rgb', 'css', 'hsl'];
+const formats: Mode[] = ['hex', 'rgb', 'css', 'hsl'];
 
-export const ColorPickerOutput = ({
-  className,
-  ...props
-}: ColorPickerOutputProps) => {
+export const ColorPickerOutput = ({ className, ...props }: ColorPickerOutputProps) => {
   const { mode, setMode } = useColorPicker();
 
   return (
-    <Select onValueChange={setMode} value={mode}>
+    <Select onValueChange={(v) => setMode(v as Mode)} value={mode}>
       <SelectTrigger className="h-8 w-20 shrink-0 text-xs" {...props}>
         <SelectValue placeholder="Mode" />
       </SelectTrigger>
@@ -421,20 +423,16 @@ export const ColorPickerFormat = ({
     );
   }
 
+  // (4) CSS 출력 모드 알파 수정
   if (mode === 'css') {
-    const rgb = color
-      .rgb()
-      .array()
-      .map((value) => Math.round(value));
-
+    const rgb = color.rgb().array().map((v) => Math.round(v));
     return (
       <div className={cn('w-full rounded-md shadow-sm', className)} {...props}>
         <Input
           className="h-8 w-full bg-secondary px-2 text-xs shadow-none"
           readOnly
           type="text"
-          value={`rgba(${rgb.join(', ')}, ${alpha}%)`}
-          {...props}
+          value={`rgba(${rgb.join(', ')}, ${(alpha / 100).toFixed(2)})`}
         />
       </div>
     );
