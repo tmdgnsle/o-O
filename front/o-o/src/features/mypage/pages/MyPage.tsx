@@ -1,5 +1,6 @@
 import { Header } from "@/shared/ui/Header";
 import background from "@/shared/assets/images/mypage_bg.png";
+import { IdeaSearchSection } from "../components/IdeaSearchSection";
 
 export function MyPage() {
   return (
@@ -8,6 +9,7 @@ export function MyPage() {
       style={{ backgroundImage: `url(${background})` }}
     >
       <Header />
+      <IdeaSearchSection />
     </div>
   );
 }
