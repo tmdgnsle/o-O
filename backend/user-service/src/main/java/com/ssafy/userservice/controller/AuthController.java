@@ -22,12 +22,25 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * RTR(Refresh Token Rotation) 방식으로 토큰을 재발급합니다.
+     * Access Token과 Refresh Token을 모두 새로 발급합니다.
+     *
+     * @param refreshToken 쿠키에서 전달된 Refresh Token
+     * @return ResponseEntity (헤더: Access Token, 쿠키: 새 Refresh Token)
+     */
     @PostMapping("/reissue")
     public ResponseEntity<Void> reissue(@CookieValue("refreshToken") String refreshToken) {
-        String newAccessToken = authService.reissueAccessToken(refreshToken);
+        Map<String, String> tokens = authService.reissueTokens(refreshToken);
 
+        String newAccessToken = tokens.get("accessToken");
+        String newRefreshToken = tokens.get("refreshToken");
+
+        // Access Token: Authorization 헤더
+        // Refresh Token: HttpOnly 쿠키 (RTR 적용)
         return ResponseEntity.ok()
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + newAccessToken)
+                .header(HttpHeaders.SET_COOKIE, CookieUtil.createRefreshTokenCookie(newRefreshToken).toString())
                 .build();
     }
 

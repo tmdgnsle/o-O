@@ -10,7 +10,6 @@ import org.springframework.data.redis.core.TimeToLive;
 @AllArgsConstructor
 @Getter
 public class RefreshToken {
-
     @Id
     private String id;  // userId_platform 형태 (예: "1_web")
 

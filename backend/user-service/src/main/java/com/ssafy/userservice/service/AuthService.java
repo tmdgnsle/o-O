@@ -36,8 +36,18 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
 
+    /**
+     * RTR(Refresh Token Rotation) 방식으로 토큰을 재발급합니다.
+     * Access Token과 Refresh Token을 모두 새로 발급하고, 기존 Refresh Token은 무효화됩니다.
+     *
+     * @param refreshToken 기존 Refresh Token
+     * @return Map containing newAccessToken, newRefreshToken
+     * @throws TokenExpiredException Refresh Token 만료
+     * @throws InvalidTokenException 유효하지 않은 Refresh Token
+     * @throws TokenNotFoundException Redis에 저장된 토큰 없음
+     */
     @Transactional
-    public String reissueAccessToken(String refreshToken) {
+    public Map<String, String> reissueTokens(String refreshToken) {
         // Null 체크
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new IllegalArgumentException("Refresh token is required");
@@ -68,11 +78,26 @@ public class AuthService {
             throw new InvalidTokenException("Refresh token mismatch");
         }
 
-        // 새로운 Access Token 발급 (platform 정보 포함)
+        // RTR: 새로운 Access Token과 Refresh Token 모두 발급
         String newAccessToken = jwtUtil.generateToken("access", userId, role, platform, accessTokenExpiration);
-        log.info("Access token reissued for userId: {}, platform: {}", userId, platform);
+        String newRefreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
 
-        return newAccessToken;
+        // 기존 Refresh Token 삭제 후 새 토큰 저장
+        refreshTokenRepository.deleteById(refreshTokenId);
+        Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
+        RefreshToken newRefreshTokenEntity = new RefreshToken(
+                refreshTokenId,
+                newRefreshToken,
+                ttlSeconds
+        );
+        refreshTokenRepository.save(newRefreshTokenEntity);
+
+        log.info("Tokens reissued with RTR for userId: {}, platform: {}, TTL: {} seconds", userId, platform, ttlSeconds);
+
+        return Map.of(
+                "accessToken", newAccessToken,
+                "refreshToken", newRefreshToken
+        );
     }
 
     @Transactional
@@ -81,14 +106,27 @@ public class AuthService {
         if (userId == null) {
             throw new IllegalArgumentException("User ID is required");
         }
-        if (platform == null || platform.isBlank()) {
-            throw new IllegalArgumentException("Platform is required");
-        }
+        validatePlatform(platform);
 
         // Redis에서 Refresh Token 삭제 (userId_platform 형태로)
         String refreshTokenId = userId + "_" + platform;
         refreshTokenRepository.deleteById(refreshTokenId);
         log.info("User logged out - userId: {}, platform: {}", userId, platform);
+    }
+
+    /**
+     * 플랫폼 값을 검증합니다.
+     *
+     * @param platform "web" 또는 "app"
+     * @throws IllegalArgumentException 유효하지 않은 플랫폼 값
+     */
+    private void validatePlatform(String platform) {
+        if (platform == null || platform.isBlank()) {
+            throw new IllegalArgumentException("Platform is required");
+        }
+        if (!"web".equals(platform) && !"app".equals(platform)) {
+            throw new IllegalArgumentException("Invalid platform: " + platform + ". Allowed values are: web, app");
+        }
     }
 
     /**
@@ -103,18 +141,27 @@ public class AuthService {
     @Transactional
     public Map<String, Object> loginWithGoogleIdToken(String idToken, String platform)
             throws GeneralSecurityException, IOException {
-        // Null 체크
+        // Null 체크 및 플랫폼 검증
         if (idToken == null || idToken.isBlank()) {
             throw new IllegalArgumentException("ID token is required");
         }
-        if (platform == null || platform.isBlank()) {
-            throw new IllegalArgumentException("Platform is required");
-        }
+        validatePlatform(platform);
 
         // Google ID Token 검증 및 사용자 정보 추출
         Map<String, Object> userInfo = googleTokenVerifier.verifyAndExtract(idToken);
+
+        // 필수 정보 추출 및 NULL 체크
         String providerId = (String) userInfo.get("sub");
+        if (providerId == null || providerId.isBlank()) {
+            throw new IllegalArgumentException("Provider ID (sub) not found in ID token");
+        }
+
         String email = (String) userInfo.get("email");
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email not found in ID token");
+        }
+
+        // 선택적 정보 (NULL 허용)
         String name = (String) userInfo.get("name");
         String picture = (String) userInfo.get("picture");
 
@@ -123,12 +170,14 @@ public class AuthService {
                 .orElseGet(() -> {
                     User newUser = User.builder()
                             .email(email)
-                            .nickname(name)
+                            .nickname(name != null ? name : email.split("@")[0])  // name이 없으면 이메일 앞부분 사용
                             .profileImage(picture)
                             .providerId(providerId)
                             .role(User.Role.USER)
                             .build();
-                    return userRepository.save(newUser);
+                    User savedUser = userRepository.save(newUser);
+                    log.info("Created new user with providerId: {}", providerId);
+                    return savedUser;
                 });
 
         Long userId = user.getId();
@@ -143,14 +192,15 @@ public class AuthService {
         // 기존 토큰 삭제 (동일 플랫폼)
         refreshTokenRepository.deleteById(refreshTokenId);
         // 새 토큰 저장
+        Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
         RefreshToken refreshTokenEntity = new RefreshToken(
                 refreshTokenId,
                 refreshToken,
-                refreshTokenExpiration / 1000  // milliseconds to seconds
+                ttlSeconds
         );
         refreshTokenRepository.save(refreshTokenEntity);
 
-        log.info("User logged in with Google ID Token - userId: {}, platform: {}", userId, platform);
+        log.info("User logged in with Google ID Token - userId: {}, platform: {}, TTL: {} seconds", userId, platform, ttlSeconds);
 
         return Map.of(
                 "accessToken", accessToken,
