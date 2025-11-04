@@ -2,20 +2,16 @@ pipeline {
   agent any
 
   environment {
-    // ====== 필수 값 바꿔 넣기 ======
     AWS_REGION = 'ap-northeast-2'
-    S3_BUCKET  = 'o-o-frontend'       // ex) myapp-frontend-prod
-    CF_DIST_ID = 'E15YK94HXRWQA2'     // ex) E1ABCDEF123456
-    BUILD_DIR  = 'dist'              // React=build, Vite/Next=dist
+    S3_BUCKET  = 'o-o-frontend'
+    CF_DIST_ID = 'E15YK94HXRWQA2'
+    BUILD_DIR  = 'dist'
     NODE_OPTIONS = '--max-old-space-size=2048'
   }
 
-  options {
-    timestamps()
-  }
+  options { timestamps() }
 
   stages {
-
     stage('Checkout') {
       steps {
         checkout scm
@@ -35,41 +31,47 @@ pipeline {
         ]) {
           dir('front/o-o') {
             sh '''
+              echo "=== Write .env.production ==="
               cat > .env.production <<EOF
-              VITE_FIREBASE_API_KEY=${FB_API_KEY}
-              VITE_FIREBASE_AUTH_DOMAIN=${FB_AUTH_DOMAIN}
-              VITE_FIREBASE_PROJECT_ID=${FB_PROJECT_ID}
-              VITE_FIREBASE_STORAGE_BUCKET=${FB_STORAGE_BUCKET}
-              VITE_FIREBASE_MESSAGING_SENDER_ID=${FB_MESSAGING_SENDER_ID}
-              VITE_FIREBASE_APP_ID=${FB_APP_ID}
-              EOF
+VITE_FIREBASE_API_KEY=${FB_API_KEY}
+VITE_FIREBASE_AUTH_DOMAIN=${FB_AUTH_DOMAIN}
+VITE_FIREBASE_PROJECT_ID=${FB_PROJECT_ID}
+VITE_FIREBASE_STORAGE_BUCKET=${FB_STORAGE_BUCKET}
+VITE_FIREBASE_MESSAGING_SENDER_ID=${FB_MESSAGING_SENDER_ID}
+VITE_FIREBASE_APP_ID=${FB_APP_ID}
+EOF
 
               node -v && npm -v
               [ -f package-lock.json ] && npm ci || npm install
               npm run build
+
+              echo "=== Build output check ==="
+              ls -lah ${BUILD_DIR} || { echo "❌ ${BUILD_DIR} not found"; exit 1; }
             '''
           }
         }
       }
     }
 
-
     stage('Upload to S3') {
       steps {
-        withAWS(credentials: 'aws-frontend-deploy', region: "${AWS_REGION}") {
-          sh """
-            echo "=== Upload static assets to S3 ==="
-            aws s3 sync front/o-o/${BUILD_DIR} s3://${S3_BUCKET} \
-              --delete \
-              --exclude "index.html" \
-              --cache-control "public,max-age=31536000,immutable"
+        sh 'test -d front/o-o/${BUILD_DIR} || { echo "${BUILD_DIR} not found"; ls -R front/o-o; exit 1; }'
+        dir('front/o-o') {
+          withAWS(credentials: 'aws-frontend-deploy', region: "${AWS_REGION}") {
+            sh """
+              echo "=== Upload static assets to S3 ==="
+              aws s3 sync ${BUILD_DIR} s3://${S3_BUCKET} \
+                --delete \
+                --exclude "index.html" \
+                --cache-control "public,max-age=31536000,immutable"
 
-            echo "=== Upload index.html (no-cache) ==="
-            aws s3 cp front/o-o/${BUILD_DIR}/index.html s3://${S3_BUCKET}/index.html \
-              --cache-control "no-cache,no-store,must-revalidate" \
-              --metadata-directive REPLACE \
-              --content-type "text/html; charset=utf-8"
-          """
+              echo "=== Upload index.html (no-cache) ==="
+              aws s3 cp ${BUILD_DIR}/index.html s3://${S3_BUCKET}/index.html \
+                --cache-control "no-cache,no-store,must-revalidate" \
+                --metadata-directive REPLACE \
+                --content-type "text/html; charset=utf-8"
+            """
+          }
         }
       }
     }
@@ -89,14 +91,8 @@ pipeline {
   }
 
   post {
-    success {
-      echo 'Deploy done: S3 upload + CloudFront invalidation completed.'
-    }
-    failure {
-      echo 'Deploy failed. Check console log.'
-    }
-    always {
-      cleanWs(deleteDirs: true, notFailBuild: true)
-    }
+    success { echo '✅ Deploy done: S3 upload + CloudFront invalidation completed.' }
+    failure { echo '❌ Deploy failed. Check console log.' }
+    always { cleanWs(deleteDirs: true, notFailBuild: true) }
   }
 }
