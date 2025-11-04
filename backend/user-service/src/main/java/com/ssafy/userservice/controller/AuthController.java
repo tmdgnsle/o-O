@@ -59,8 +59,8 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> googleLogin(@Valid @RequestBody GoogleIdTokenRequest request)
             throws GeneralSecurityException, IOException {
         Map<String, Object> result = authService.loginWithGoogleIdToken(
-                request.getIdToken(),
-                request.getPlatform()
+                request.idToken(),
+                request.platform()
         );
 
         String accessToken = (String) result.get("accessToken");

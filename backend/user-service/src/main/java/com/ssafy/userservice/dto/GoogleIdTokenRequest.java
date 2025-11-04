@@ -1,18 +1,15 @@
 package com.ssafy.userservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class GoogleIdTokenRequest {
+/**
+ * Google ID Token 로그인 요청 DTO
+ */
+public record GoogleIdTokenRequest(
+        @NotBlank(message = "ID token is required")
+        String idToken,
 
-    @NotBlank(message = "ID token is required")
-    private String idToken;
-
-    @NotBlank(message = "Platform is required")
-    private String platform;
+        @NotBlank(message = "Platform is required")
+        String platform
+) {
 }
