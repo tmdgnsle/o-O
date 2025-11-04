@@ -15,6 +15,7 @@ export type NodeData = {
   text: string;
   x: number;
   y: number;
+  color: string;
 };
 
 // MindmapPage 전용 QueryClient
@@ -40,6 +41,7 @@ const MindmapPageContent: React.FC = () => {
       text,
       x: Math.random() * 400 - 200, // random position near center
       y: Math.random() * 300 - 150,
+      color: '#263A6B', // 기본 색상
     };
     addNodeMutation.mutate(newNode);
   };
@@ -87,6 +89,7 @@ const MindmapPageContent: React.FC = () => {
               text={node.text}
               x={node.x}
               y={node.y}
+              color={node.color}
               isSelected={selectedNodeId === node.id}
               onSelect={() => setSelectedNodeId(node.id)}
               onDeselect={() => setSelectedNodeId(null)}

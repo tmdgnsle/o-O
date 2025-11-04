@@ -20,7 +20,7 @@ type ColorPaletteProps = {
 export default function ColorPalette({
   open,
   onColorChange,
-  defaultColor = "#2D71B9",
+  defaultColor = "#263A6B",
   className,
 }: ColorPaletteProps) {
   const handleChange = (value: Parameters<typeof Color>[0]) => {
@@ -46,44 +46,44 @@ export default function ColorPalette({
         <div className="flex flex-col gap-4">
           {/* ColorPicker */}
           <ColorPicker defaultValue={defaultColor} onChange={handleChange}>
-            {/* ?�목 */}
+            {/* ?�목 */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-700">
-                ?�상 ?�마
+                ?�상 ?�마
               </span>
               <ColorPickerOutput />
             </div>
 
-            {/* ?�상 ?�택 ?�역 */}
+            {/* ?�상 ?�택 ?�역 */}
             <div className="h-48 w-full">
               <ColorPickerSelection />
             </div>
 
-            {/* Hue ?�라?�더 */}
+            {/* Hue ?�라?�더 */}
             <ColorPickerHue />
 
-            {/* Alpha ?�라?�더 */}
+            {/* Alpha ?�라?�더 */}
             <ColorPickerAlpha />
 
-            {/* ?�상 �??�시 �?EyeDropper */}
+            {/* ?�상 �??�시 �?EyeDropper */}
             <div className="flex items-center gap-2">
               <ColorPickerEyeDropper />
               <ColorPickerFormat className="flex-1" />
             </div>
           </ColorPicker>
 
-          {/* ?�리???�상 */}
+          {/* ?�리???�상 */}
           <div>
-            <span className="text-xs text-gray-600 block mb-2">?�스??/span>
+            <span className="text-xs text-gray-600 block mb-2">?�스??/span>
             <div className="flex gap-2 flex-wrap">
               {[
-                "#FFB3BA", // ?�크
-                "#FFDFBA", // ?�렌지
-                "#FFFFBA", // ?�로??
+                "#FFB3BA", // ?�크
+                "#FFDFBA", // ?�렌지
+                "#FFFFBA", // ?�로??
                 "#BAFFC9", // 그린
                 "#BAE1FF", // 블루
-                "#D4BAFF", // ?�플
-                "#FFB3E6", // 마젠?�
+                "#D4BAFF", // ?�플
+                "#FFB3E6", // 마젠?�
                 "#FFE6F0", // 로즈
               ].map((color) => (
                 <button

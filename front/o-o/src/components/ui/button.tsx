@@ -44,7 +44,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
 
-    // ✅ responsive size일 때 clamp 스타일 적용
+    // responsive size일 때 clamp 스타일 적용
     const responsiveStyle =
       size === "responsive"
         ? {

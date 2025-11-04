@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import RadialToolGroup from "./RadialToolGroup";
+import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import { useNodeTextEdit } from "../hooks/custom/useNodeTextEdit";
 import { useNodeAdd } from "../hooks/custom/useNodeAdd";
 import { useNodeColorEdit } from "../hooks/custom/useNodeColorEdit";
@@ -12,12 +13,14 @@ import {
   useAddNode,
 } from "../hooks/mutation/useNodeMutations";
 import type { NodeData } from "../pages/MindmapPage";
+import { getContrastTextColor } from "@/shared/utils/colorUtils";
 
 type TempNodeProps = {
   id: string;
   text: string;
   x: number;
   y: number;
+  color: string;
   isSelected: boolean;
   onSelect: () => void;
   onDeselect: () => void;
@@ -28,6 +31,7 @@ export default function TempNode({
   text,
   x,
   y,
+  color: initialColor,
   isSelected,
   onSelect,
   onDeselect,
@@ -56,7 +60,7 @@ export default function TempNode({
     confirmAdd,
   } = useNodeAdd();
 
-  const { paletteOpen, color, togglePalette, changeColor } = useNodeColorEdit();
+  const { paletteOpen, togglePalette, closePalette } = useNodeColorEdit(initialColor);
 
   // focusedButton 상태 관리
   const [focusedButton, setFocusedButton] = useState<"delete" | "add" | "edit" | "palette" | "recommend" | null>(null);
@@ -113,6 +117,7 @@ export default function TempNode({
         text: newText,
         x: x + 200, // 우측에 배치
         y: y,
+        color: '#263A6B', // 기본 색상
       };
       addNodeMutation.mutate(newNode);
     }
@@ -125,20 +130,43 @@ export default function TempNode({
     setFocusedButton(willBeOpen ? "palette" : null);
   };
 
-  const handleColorChange = (newColor: string) => {
-    changeColor(newColor);
+  const handleColorChange = useCallback((newColor: string) => {
+    if (newColor === initialColor) {
+      return;
+    }
+
+    // mutation만 호출 - query가 자동으로 업데이트되어 리렌더링됨
+    editNodeMutation.mutate({ nodeId: id, newColor });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, initialColor]);
+
+  const handlePaletteClose = () => {
+    closePalette();
     setFocusedButton(null);
   };
 
+  const handleRecommend = () => {
+    setFocusedButton("recommend");
+  };
+
+  // 배경색에 따른 텍스트 색상 결정
+  const textColor = getContrastTextColor(initialColor);
+
+  // z-index 계산
+  // - 추천 오버레이 활성화 + 선택됨: z-[60] (배경 z-30, 오버레이 컨텐츠 z-40보다 위)
+  // - 선택됨: z-40
+  // - 기본: z-10
+  const zIndex = focusedButton === "recommend" && isSelected ? 'z-[60]' : isSelected ? 'z-40' : 'z-10';
+
   return (
-    <div className="relative inline-block select-none">
+    <div className={`relative inline-block select-none ${zIndex}`}>
       {/* 노드 원 */}
       <div
         onClick={handleClick}
         className={`w-56 h-56 rounded-full flex items-center justify-center cursor-pointer transition-all ${
           isSelected ? "ring-4 ring-primary/30" : ""
         }`}
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: initialColor }}
       >
         {isEditing ? (
           <div className="flex flex-col items-center gap-2" onClick={(e) => e.stopPropagation()}>
@@ -171,7 +199,10 @@ export default function TempNode({
             </div>
           </div>
         ) : (
-          <span className="text-white font-paperlogy font-semibold text-lg px-6 text-center break-words">
+          <span
+            className="font-paperlogy font-semibold text-lg px-6 text-center break-words"
+            style={{ color: textColor }}
+          >
             {text}
           </span>
         )}
@@ -179,14 +210,16 @@ export default function TempNode({
 
       {/* Radial Tool Group */}
       <RadialToolGroup
-        open={isSelected && !isEditing}
+        open={isSelected && !isEditing && focusedButton !== "recommend"}
         paletteOpen={paletteOpen}
-        currentColor={color}
+        currentColor={initialColor}
         focusedButton={focusedButton}
         onDelete={handleDelete}
         onEdit={handleEdit}
         onAdd={handleAdd}
         onPalette={handlePalette}
+        onPaletteClose={handlePaletteClose}
+        onRecommend={handleRecommend}
         onColorChange={handleColorChange}
       />
 
@@ -222,6 +255,25 @@ export default function TempNode({
             <X className="w-4 h-4" />
           </Button>
         </div>
+      )}
+
+      {/* Recommendation Overlay */}
+      {focusedButton === "recommend" && (
+        <RecommendNodeOverlay
+          open={focusedButton === "recommend"}
+          onClose={() => setFocusedButton(null)}
+          onSelectRecommendation={(recommendText) => {
+            const newNode: NodeData = {
+              id: Date.now().toString(),
+              text: recommendText,
+              x: x + 200,
+              y: y,
+              color: '#263A6B',
+            };
+            addNodeMutation.mutate(newNode);
+            setFocusedButton(null);
+          }}
+        />
       )}
     </div>
   );

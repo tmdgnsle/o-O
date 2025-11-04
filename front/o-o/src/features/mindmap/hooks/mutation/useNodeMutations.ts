@@ -43,11 +43,26 @@ export const useEditNode = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ nodeId, newText }: { nodeId: string; newText: string }) => {
+    mutationFn: async ({
+      nodeId,
+      newText,
+      newColor
+    }: {
+      nodeId: string;
+      newText?: string;
+      newColor?: string;
+    }) => {
       const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
-      const updatedNodes = currentNodes.map(node =>
-        node.id === nodeId ? { ...node, text: newText } : node
-      );
+      const updatedNodes = currentNodes.map(node => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            ...(newText !== undefined && { text: newText }),
+            ...(newColor !== undefined && { color: newColor }),
+          };
+        }
+        return node;
+      });
       await saveNodes(updatedNodes);
       return updatedNodes;
     },

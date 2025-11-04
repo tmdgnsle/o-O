@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 'use client';
 
 import Color from 'color';
@@ -73,9 +74,6 @@ export const ColorPicker = ({
   children,
   ...props
 }: ColorPickerProps) => {
-  // 임시로 고쳐보겠은
-  const hasValue = value !== undefined && value !== null;
-
   const selectedColor = Color(value ?? defaultValue);
   const defaultColor  = Color(defaultValue);
 
@@ -87,26 +85,44 @@ export const ColorPicker = ({
   );
   const [mode, setMode] = useState<Mode>('hex');
 
+  // value prop 변경 감지 플래그
+  const isExternalUpdate = useRef(false);
+
   // (2) controlled value 변경 시 HSL로 올바르게 반영
   useEffect(() => {
     if (value != null) {
+      isExternalUpdate.current = true;
       const color = Color.rgb(value);
       const [h, s, l] = color.hsl().array() as [number, number, number];
       setHue(h);
       setSaturation(s);
       setLightness(l);
       setAlpha(Math.round(color.alpha() * 100));
+      // 다음 틱에 플래그 리셋
+      setTimeout(() => {
+        isExternalUpdate.current = false;
+      }, 0);
     }
   }, [value]);
 
-  // (3) 부모 onChange 통지 (기존 로직 유지)
+  // (3) 부모 onChange 통지 - onChange를 ref로 관리하여 무한 루프 방지
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    if (onChange) {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    // 외부(props)에서 온 업데이트는 onChange 호출 안 함
+    if (isExternalUpdate.current) {
+      return;
+    }
+
+    if (onChangeRef.current) {
       const c = Color.hsl(hue, saturation, lightness).alpha(alpha / 100);
       const [r, g, b] = c.rgb().array() as [number, number, number];
-      onChange([r, g, b, alpha / 100]);
+      onChangeRef.current([r, g, b, alpha / 100]);
     }
-  }, [hue, saturation, lightness, alpha, onChange]);
+  }, [hue, saturation, lightness, alpha]);
 
   // --------------------------------------------------------------------------------------------
 
@@ -142,9 +158,7 @@ export const ColorPickerSelection = memo(
   ({ className, ...props }: ColorPickerSelectionProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [positionX, setPositionX] = useState(0);
-    const [positionY, setPositionY] = useState(0);
-    const { hue, setSaturation, setLightness } = useColorPicker();
+    const { hue, saturation, lightness, setSaturation, setLightness } = useColorPicker();
 
     const backgroundGradient = useMemo(() => {
       return `linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0)),
@@ -152,29 +166,41 @@ export const ColorPickerSelection = memo(
             hsl(${hue}, 100%, 50%)`;
     }, [hue]);
 
-    const handlePointerMove = useCallback(
-      (event: PointerEvent) => {
-        if (!(isDragging && containerRef.current)) {
-          return;
-        }
+    // saturation과 lightness로부터 포인터 위치 계산
+    const positionX = saturation / 100;
+    const positionY = useMemo(() => {
+      const topLightness = positionX < 0.01 ? 100 : 50 + 50 * (1 - positionX);
+      return topLightness === 0 ? 0 : 1 - lightness / topLightness;
+    }, [lightness, positionX]);
+
+    const updateColor = useCallback(
+      (clientX: number, clientY: number) => {
+        if (!containerRef.current) return;
+
         const rect = containerRef.current.getBoundingClientRect();
         const x = Math.max(
           0,
-          Math.min(1, (event.clientX - rect.left) / rect.width)
+          Math.min(1, (clientX - rect.left) / rect.width)
         );
         const y = Math.max(
           0,
-          Math.min(1, (event.clientY - rect.top) / rect.height)
+          Math.min(1, (clientY - rect.top) / rect.height)
         );
-        setPositionX(x);
-        setPositionY(y);
+
         setSaturation(x * 100);
         const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x);
-        const lightness = topLightness * (1 - y);
-
-        setLightness(lightness);
+        const newLightness = topLightness * (1 - y);
+        setLightness(newLightness);
       },
-      [isDragging, setSaturation, setLightness]
+      [setSaturation, setLightness]
+    );
+
+    const handlePointerMove = useCallback(
+      (event: PointerEvent) => {
+        if (!isDragging) return;
+        updateColor(event.clientX, event.clientY);
+      },
+      [isDragging, updateColor]
     );
 
     useEffect(() => {
@@ -197,7 +223,8 @@ export const ColorPickerSelection = memo(
         onPointerDown={(e) => {
           e.preventDefault();
           setIsDragging(true);
-          handlePointerMove(e.nativeEvent);
+          // 클릭 즉시 색상 업데이트
+          updateColor(e.clientX, e.clientY);
         }}
         ref={containerRef}
         style={{
@@ -320,6 +347,7 @@ export type ColorPickerOutputProps = ComponentProps<typeof SelectTrigger>;
 
 const formats: Mode[] = ['hex', 'rgb', 'css', 'hsl'];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const ColorPickerOutput = ({ className, ...props }: ColorPickerOutputProps) => {
   const { mode, setMode } = useColorPicker();
 

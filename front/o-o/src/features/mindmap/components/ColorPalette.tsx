@@ -2,28 +2,31 @@ import {
   ColorPicker,
   ColorPickerSelection,
   ColorPickerHue,
-  ColorPickerAlpha,
   ColorPickerEyeDropper,
-  ColorPickerOutput,
   ColorPickerFormat,
 } from "@/components/ui/shadcn-io/color-picker";
 import Color from "color";
 import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useRef } from "react";
 
 type ColorPaletteProps = {
   open: boolean;
   onColorChange?: (color: string) => void;
-  defaultColor?: string;
+  onClose?: () => void;
+  value?: string;
   className?: string;
 };
 
 export default function ColorPalette({
   open,
   onColorChange,
-  defaultColor = "#2D71B9",
+  onClose,
+  value = "#263A6B",
   className,
 }: ColorPaletteProps) {
-  const handleChange = (value: Parameters<typeof Color>[0]) => {
+  const paletteRef = useRef<HTMLDivElement>(null);
+
+  const handleChange = useCallback((value: Parameters<typeof Color>[0]) => {
     try {
       const color = Color(value);
       const hex = color.hex();
@@ -31,12 +34,34 @@ export default function ColorPalette({
     } catch (error) {
       console.error("Color conversion error:", error);
     }
-  };
+  }, [onColorChange]);
+
+  // 외부 클릭 감지
+  useEffect(() => {
+    if (!open || !onClose) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (paletteRef.current && !paletteRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    // 약간의 딜레이 후 이벤트 리스너 등록 (팔레트 버튼 클릭과 충돌 방지)
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
 
   return (
     <div
+      ref={paletteRef}
       className={cn(
-        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-[9999]",
+        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-50",
         open ? "opacity-100 visible" : "opacity-0 invisible",
         className
       )}
@@ -47,13 +72,16 @@ export default function ColorPalette({
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[280px] font-paperlogy">
         <div className="flex flex-col gap-4">
           {/* ColorPicker */}
-          <ColorPicker value={defaultColor} onChange={handleChange}>
+          <ColorPicker
+            key={value}
+            defaultValue={value}
+            onChange={handleChange}
+          >
             {/* 제목 */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-gray-700">
                 색상 테마
               </span>
-              <ColorPickerOutput />
             </div>
 
             {/* 색상 선택 영역 */}
@@ -63,9 +91,6 @@ export default function ColorPalette({
 
             {/* Hue 슬라이더 */}
             <ColorPickerHue />
-
-            {/* Alpha 슬라이더 */}
-            <ColorPickerAlpha />
 
             {/* 색상 값 표시 및 EyeDropper */}
             <div className="flex items-center gap-2">

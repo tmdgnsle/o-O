@@ -13,6 +13,7 @@ type RadialToolGroupProps = {
   onEdit?: () => void;
   onAdd?: () => void;
   onPalette?: () => void;
+  onPaletteClose?: () => void;
   onRecommend?: () => void;
   onColorChange?: (color: string) => void;
 };
@@ -22,12 +23,13 @@ export default function RadialToolGroup({
   open,
   radius = 150,
   paletteOpen = false,
-  currentColor = "#2D71B9",
+  currentColor = "#263A6B",
   focusedButton = null,
   onDelete,
   onEdit,
   onAdd,
   onPalette,
+  onPaletteClose,
   onRecommend,
   onColorChange,
 }: RadialToolGroupProps) {
@@ -157,8 +159,9 @@ export default function RadialToolGroup({
               {it.key === "palette" && (
                 <ColorPalette
                   open={paletteOpen}
-                  defaultColor={currentColor}
+                  value={currentColor}
                   onColorChange={onColorChange}
+                  onClose={onPaletteClose}
                 />
               )}
             </div>
