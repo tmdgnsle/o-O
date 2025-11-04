@@ -26,15 +26,6 @@ public class GoogleTokenVerifier {
                 .build();
     }
 
-    /**
-     * Google ID Token을 검증하고 사용자 정보를 추출합니다.
-     *
-     * @param idTokenString Google ID Token
-     * @return 사용자 정보 Map (sub, email, name, picture 등)
-     * @throws GeneralSecurityException ID Token 검증 실패
-     * @throws IOException 네트워크 오류
-     * @throws IllegalArgumentException ID Token이 유효하지 않음
-     */
     public Map<String, Object> verifyAndExtract(String idTokenString)
             throws GeneralSecurityException, IOException {
         if (idTokenString == null || idTokenString.isBlank()) {
