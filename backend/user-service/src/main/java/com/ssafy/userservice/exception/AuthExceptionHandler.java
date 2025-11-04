@@ -91,4 +91,18 @@ public class AuthExceptionHandler {
         ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_TOKEN);
         return ResponseEntity.status(ErrorCode.INVALID_TOKEN.getStatus()).body(response);
     }
+
+    @ExceptionHandler(java.security.GeneralSecurityException.class)
+    public ResponseEntity<ErrorResponse> handleGeneralSecurityException(java.security.GeneralSecurityException e) {
+        log.warn("Google ID token verification failed: {}", e.getMessage());
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INVALID_TOKEN);
+        return ResponseEntity.status(ErrorCode.INVALID_TOKEN.getStatus()).body(response);
+    }
+
+    @ExceptionHandler(java.io.IOException.class)
+    public ResponseEntity<ErrorResponse> handleIOException(java.io.IOException e) {
+        log.error("Network error during token verification: {}", e.getMessage(), e);
+        ErrorResponse response = ErrorResponse.of(ErrorCode.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
+    }
 }

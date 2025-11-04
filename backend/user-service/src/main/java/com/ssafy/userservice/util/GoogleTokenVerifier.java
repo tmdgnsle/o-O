@@ -1,0 +1,68 @@
+package com.ssafy.userservice.util;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+@Slf4j
+public class GoogleTokenVerifier {
+
+    private final GoogleIdTokenVerifier verifier;
+
+    public GoogleTokenVerifier(@Value("${spring.security.oauth2.client.registration.google.client-id}") String clientId) {
+        this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(clientId))
+                .build();
+    }
+
+    /**
+     * Google ID Token을 검증하고 사용자 정보를 추출합니다.
+     *
+     * @param idTokenString Google ID Token
+     * @return 사용자 정보 Map (sub, email, name, picture 등)
+     * @throws GeneralSecurityException ID Token 검증 실패
+     * @throws IOException 네트워크 오류
+     * @throws IllegalArgumentException ID Token이 유효하지 않음
+     */
+    public Map<String, Object> verifyAndExtract(String idTokenString)
+            throws GeneralSecurityException, IOException {
+        if (idTokenString == null || idTokenString.isBlank()) {
+            throw new IllegalArgumentException("ID token cannot be null or blank");
+        }
+
+        GoogleIdToken idToken = verifier.verify(idTokenString);
+
+        if (idToken == null) {
+            log.error("Invalid ID token: verification failed");
+            throw new IllegalArgumentException("Invalid ID token");
+        }
+
+        GoogleIdToken.Payload payload = idToken.getPayload();
+
+        // 사용자 정보 추출
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("sub", payload.getSubject());  // Google User ID (providerId)
+        userInfo.put("email", payload.getEmail());
+        userInfo.put("email_verified", payload.getEmailVerified());
+        userInfo.put("name", payload.get("name"));
+        userInfo.put("picture", payload.get("picture"));
+        userInfo.put("given_name", payload.get("given_name"));
+        userInfo.put("family_name", payload.get("family_name"));
+        userInfo.put("locale", payload.get("locale"));
+
+        log.info("ID token verified successfully for user: {}", payload.getEmail());
+
+        return userInfo;
+    }
+}

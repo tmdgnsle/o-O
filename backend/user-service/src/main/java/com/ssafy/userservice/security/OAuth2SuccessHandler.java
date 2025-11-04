@@ -52,19 +52,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // Refresh Token을 Redis에 저장 (id를 userId_platform 형태로)
         String refreshTokenId = userId + "_" + platform;
+        Long ttlSeconds = refreshTokenExpiration / 1000;  // 밀리초를 초로 변환 (TTL은 초 단위)
         RefreshToken refreshTokenEntity = new RefreshToken(
                 refreshTokenId,
                 refreshToken,
-                refreshTokenExpiration / 1000  // 밀리초를 초로 변환 (TTL은 초 단위)
+                ttlSeconds
         );
         refreshTokenRepository.deleteById(refreshTokenId);  // 기존 토큰 삭제
         refreshTokenRepository.save(refreshTokenEntity);
+
+        log.info("OAuth2 login - Saved refresh token with TTL: {} seconds", ttlSeconds);
 
         // Access Token은 헤더로 전달
         response.setHeader("Authorization", "Bearer " + accessToken);
 
         // Refresh Token은 HttpOnly Cookie로 전달
-        ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken, refreshTokenExpiration);
+        ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken);
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
         // 응답
