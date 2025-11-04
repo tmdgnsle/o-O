@@ -1,6 +1,6 @@
 package com.ssafy.userservice.dto;
 
-import com.ssafy.userservice.entity.User;
+import com.ssafy.userservice.domain.User;
 
 public record UserResponse(
         String email,

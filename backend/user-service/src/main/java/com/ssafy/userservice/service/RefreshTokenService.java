@@ -1,6 +1,6 @@
 package com.ssafy.userservice.service;
 
-import com.ssafy.userservice.entity.RefreshToken;
+import com.ssafy.userservice.domain.RefreshToken;
 import com.ssafy.userservice.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

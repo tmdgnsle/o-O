@@ -1,6 +1,6 @@
 package com.ssafy.userservice.security;
 
-import com.ssafy.userservice.entity.User;
+import com.ssafy.userservice.domain.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

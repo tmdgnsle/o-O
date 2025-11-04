@@ -1,8 +1,7 @@
 package com.ssafy.userservice.security;
 
-import com.ssafy.userservice.enums.Platform;
-import com.ssafy.userservice.enums.TokenCategory;
-import com.ssafy.userservice.jwt.JwtUtil;
+import com.ssafy.userservice.domain.Platform;
+import com.ssafy.userservice.domain.TokenCategory;
 import com.ssafy.userservice.service.RefreshTokenService;
 import com.ssafy.userservice.util.CookieUtil;
 import jakarta.servlet.ServletException;

@@ -1,7 +1,7 @@
-package com.ssafy.userservice.jwt;
+package com.ssafy.userservice.security;
 
-import com.ssafy.userservice.enums.Platform;
-import com.ssafy.userservice.enums.TokenCategory;
+import com.ssafy.userservice.domain.Platform;
+import com.ssafy.userservice.domain.TokenCategory;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;

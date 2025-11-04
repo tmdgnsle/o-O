@@ -2,7 +2,7 @@ package com.ssafy.userservice.service;
 
 import com.ssafy.userservice.dto.UserResponse;
 import com.ssafy.userservice.dto.UserUpdateRequest;
-import com.ssafy.userservice.entity.User;
+import com.ssafy.userservice.domain.User;
 import com.ssafy.userservice.exception.UserNotFoundException;
 import com.ssafy.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

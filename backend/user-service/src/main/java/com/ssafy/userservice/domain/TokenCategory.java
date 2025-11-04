@@ -1,4 +1,4 @@
-package com.ssafy.userservice.enums;
+package com.ssafy.userservice.domain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

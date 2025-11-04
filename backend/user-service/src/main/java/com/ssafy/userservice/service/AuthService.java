@@ -1,13 +1,13 @@
 package com.ssafy.userservice.service;
 
-import com.ssafy.userservice.entity.RefreshToken;
-import com.ssafy.userservice.entity.User;
-import com.ssafy.userservice.enums.Platform;
-import com.ssafy.userservice.enums.TokenCategory;
+import com.ssafy.userservice.domain.RefreshToken;
+import com.ssafy.userservice.domain.User;
+import com.ssafy.userservice.domain.Platform;
+import com.ssafy.userservice.domain.TokenCategory;
 import com.ssafy.userservice.exception.InvalidTokenException;
 import com.ssafy.userservice.exception.TokenExpiredException;
 import com.ssafy.userservice.exception.TokenNotFoundException;
-import com.ssafy.userservice.jwt.JwtUtil;
+import com.ssafy.userservice.security.JwtUtil;
 import com.ssafy.userservice.repository.UserRepository;
 import com.ssafy.userservice.util.GoogleTokenVerifier;
 import io.jsonwebtoken.ExpiredJwtException;

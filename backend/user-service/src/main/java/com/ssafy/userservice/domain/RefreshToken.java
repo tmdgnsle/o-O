@@ -1,4 +1,4 @@
-package com.ssafy.userservice.entity;
+package com.ssafy.userservice.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

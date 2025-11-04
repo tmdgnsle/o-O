@@ -1,7 +1,8 @@
-package com.ssafy.userservice.security;
+package com.ssafy.userservice.service;
 
-import com.ssafy.userservice.entity.User;
+import com.ssafy.userservice.domain.User;
 import com.ssafy.userservice.repository.UserRepository;
+import com.ssafy.userservice.security.CustomOAuth2User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;

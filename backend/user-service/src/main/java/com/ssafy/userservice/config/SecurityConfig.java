@@ -1,6 +1,6 @@
 package com.ssafy.userservice.config;
 
-import com.ssafy.userservice.security.CustomOAuth2UserService;
+import com.ssafy.userservice.service.CustomOAuth2UserService;
 import com.ssafy.userservice.security.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
