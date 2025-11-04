@@ -1,12 +1,13 @@
 package com.ssafy.userservice.util;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 
 public class CookieUtil {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
     private static final String COOKIE_PATH = "/";
-    private static final int DEFAULT_REFRESH_TOKEN_MAX_AGE = 604800; // 7일 (초 단위)
+    private static final int DEFAULT_REFRESH_TOKEN_MAX_AGE = 604800000; // 7일 (초 단위)
 
     /**
      * Refresh Token 쿠키를 생성합니다.

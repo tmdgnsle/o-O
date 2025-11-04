@@ -1,8 +1,7 @@
 package com.ssafy.userservice.security;
 
-import com.ssafy.userservice.entity.RefreshToken;
 import com.ssafy.userservice.jwt.JwtUtil;
-import com.ssafy.userservice.repository.RefreshTokenRepository;
+import com.ssafy.userservice.service.RefreshTokenService;
 import com.ssafy.userservice.util.CookieUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +22,7 @@ import java.io.IOException;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtUtil jwtUtil;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
 
     @Value("${jwt.access-token-expiration}")
     private Long accessTokenExpiration;
@@ -50,18 +49,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // Refresh Token 생성 (platform 정보 포함)
         String refreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
 
-        // Refresh Token을 Redis에 저장 (id를 userId_platform 형태로)
-        String refreshTokenId = userId + "_" + platform;
+        // Refresh Token을 Redis에 저장
         Long ttlSeconds = refreshTokenExpiration / 1000;  // 밀리초를 초로 변환 (TTL은 초 단위)
-        RefreshToken refreshTokenEntity = new RefreshToken(
-                refreshTokenId,
-                refreshToken,
-                ttlSeconds
-        );
-        refreshTokenRepository.deleteById(refreshTokenId);  // 기존 토큰 삭제
-        refreshTokenRepository.save(refreshTokenEntity);
-
-        log.info("OAuth2 login - Saved refresh token with TTL: {} seconds", ttlSeconds);
+        refreshTokenService.saveRefreshToken(userId, platform, refreshToken, ttlSeconds);
 
         // Access Token은 헤더로 전달
         response.setHeader("Authorization", "Bearer " + accessToken);
