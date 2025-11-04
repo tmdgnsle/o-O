@@ -1,37 +1,92 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../domain/entities/mindmap_node.dart';
 
 /// 마인드맵 노드 위젯
-class MindmapNodeWidget extends StatelessWidget {
+class MindmapNodeWidget extends StatefulWidget {
   final MindmapNode node;
   final VoidCallback? onTap;
 
-  const MindmapNodeWidget({
-    super.key,
-    required this.node,
-    this.onTap,
-  });
+  const MindmapNodeWidget({super.key, required this.node, this.onTap});
+
+  @override
+  State<MindmapNodeWidget> createState() => _MindmapNodeWidgetState();
+}
+
+class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
+  YoutubePlayerController? _youtubeController;
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeYoutubePlayer();
+  }
+
+  @override
+  void dispose() {
+    _youtubeController?.dispose();
+    super.dispose();
+  }
+
+  void _initializeYoutubePlayer() {
+    if (widget.node.contentType == NodeContentType.youtube &&
+        widget.node.contentUrl != null) {
+      final videoId = YoutubePlayer.convertUrlToId(widget.node.contentUrl!);
+      if (videoId != null) {
+        _youtubeController = YoutubePlayerController(
+          initialVideoId: videoId,
+          flags: const YoutubePlayerFlags(
+            autoPlay: false,
+            mute: false,
+            enableCaption: true,
+            controlsVisibleAtStart: true,
+            isLive: false,
+            forceHD: false,
+            useHybridComposition: true,
+          ),
+        );
+      }
+    }
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 노드 크기 (원형이므로 width == height)
-    final size = node.width;
+    switch (widget.node.contentType) {
+      case NodeContentType.text:
+        return _buildTextNode();
+      case NodeContentType.youtube:
+        return _buildYoutubeNodeStack();
+      case NodeContentType.image:
+        return _buildImageNodeStack();
+    }
+  }
+
+  /// 텍스트 노드 빌드 (기존 원형 노드)
+  Widget _buildTextNode() {
+    final size = widget.node.width;
     final glowSize = size * 1.5;
 
     return Positioned(
-      // position은 노드의 중심 좌표이므로, 왼쪽 상단 모서리는 중심에서 glow 크기의 절반만큼 뺀 위치
-      left: node.position.dx - glowSize / 2,
-      top: node.position.dy - glowSize / 2,
+      left: widget.node.position.dx - glowSize / 2,
+      top: widget.node.position.dy - glowSize / 2,
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: SizedBox(
           width: glowSize,
           height: glowSize,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Radial gradient (Figma 설정: 0% ~ 68% 같은 색, 100% 투명)
+              // Radial gradient
               Container(
                 width: glowSize,
                 height: glowSize,
@@ -39,28 +94,28 @@ class MindmapNodeWidget extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      node.color,
-                      node.color,
-                      node.color.withOpacity(0.0),
+                      widget.node.color,
+                      widget.node.color,
+                      widget.node.color.withOpacity(0.0),
                     ],
                     stops: const [0.0, 0.68, 1.0],
                   ),
                 ),
               ),
-              // 실제 노드 (원형)
+              // 실제 노드
               Container(
                 width: size,
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: node.color,
+                  color: widget.node.color,
                 ),
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Text(
-                      node.text,
-                      style: _getTextStyle(node.level),
+                      widget.node.text,
+                      style: _getTextStyle(widget.node.level),
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -75,6 +130,339 @@ class MindmapNodeWidget extends StatelessWidget {
     );
   }
 
+  /// YouTube 노드 빌드 (Stack 사용)
+  Widget _buildYoutubeNodeStack() {
+    // 노드의 기본 크기 (원형)
+    final nodeSize = widget.node.width;
+    final glowSize = nodeSize * 1.5;
+
+    // 확장된 컨텐츠 크기
+    const expandedWidth = 280.0;
+    const expandedHeight = 350.0;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // 원형 노드 (고정 위치)
+        Positioned(
+          left: widget.node.position.dx - glowSize / 2,
+          top: widget.node.position.dy - glowSize / 2,
+          child: GestureDetector(
+            onTap: _toggleExpanded,
+            child: SizedBox(
+              width: glowSize,
+              height: glowSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Radial gradient
+                  Container(
+                    width: glowSize,
+                    height: glowSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          widget.node.color,
+                          widget.node.color,
+                          widget.node.color.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 0.68, 1.0],
+                      ),
+                    ),
+                  ),
+                  // 실제 노드
+                  Container(
+                    width: nodeSize,
+                    height: nodeSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.node.color,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/youtube.png',
+                        height: nodeSize * 0.5,
+                        width: nodeSize * 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // 확장된 컨텐츠 (노드 아래 고정 위치)
+        if (_isExpanded)
+          Positioned(
+            left: widget.node.position.dx - expandedWidth / 2,
+            top: widget.node.position.dy + glowSize / 2 + 8,
+            child: Container(
+              width: expandedWidth,
+              height: expandedHeight,
+              decoration: BoxDecoration(
+                color: widget.node.color,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.node.color.withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  children: [
+                    // YouTube 플레이어
+                    if (_youtubeController != null)
+                      SizedBox(
+                        height: 160,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
+                          child: YoutubePlayer(
+                            controller: _youtubeController!,
+                            showVideoProgressIndicator: true,
+                            progressIndicatorColor: Colors.red,
+                            progressColors: const ProgressBarColors(
+                              playedColor: Colors.red,
+                              handleColor: Colors.redAccent,
+                            ),
+                            onReady: () {
+                              debugPrint('YouTube Player Ready');
+                            },
+                            onEnded: (metaData) {
+                              debugPrint('Video Ended');
+                            },
+                            bottomActions: [
+                              const SizedBox(width: 14.0),
+                              CurrentPosition(),
+                              const SizedBox(width: 8.0),
+                              ProgressBar(isExpanded: true),
+                              RemainingDuration(),
+                              const PlaybackSpeedButton(),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 160,
+                        child: Container(
+                          color: Colors.black,
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/youtube.png',
+                              height: 48,
+                              width: 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        color: widget.node.color,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '🧩 AI 요약 내용',
+                              style: AppTextStyles.semiBold14.copyWith(
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // 설명 텍스트
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Text(
+                                  widget.node.description ?? widget.node.text,
+                                  style: AppTextStyles.regular12.copyWith(
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// 이미지 노드 빌드 (Stack 사용)
+  Widget _buildImageNodeStack() {
+    // 노드의 기본 크기 (원형)
+    final nodeSize = widget.node.width;
+    final glowSize = nodeSize * 1.5;
+
+    // 확장된 컨텐츠 크기
+    const expandedWidth = 250.0;
+    const expandedHeight = 350.0;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // 원형 노드 (고정 위치)
+        Positioned(
+          left: widget.node.position.dx - glowSize / 2,
+          top: widget.node.position.dy - glowSize / 2,
+          child: GestureDetector(
+            onTap: _toggleExpanded,
+            child: SizedBox(
+              width: glowSize,
+              height: glowSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Radial gradient
+                  Container(
+                    width: glowSize,
+                    height: glowSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          widget.node.color,
+                          widget.node.color,
+                          widget.node.color.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 0.68, 1.0],
+                      ),
+                    ),
+                  ),
+                  // 실제 노드
+                  Container(
+                    width: nodeSize,
+                    height: nodeSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.node.color,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/image.png',
+                        width: nodeSize * 0.5,
+                        height: nodeSize * 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // 확장된 컨텐츠 (노드 아래 고정 위치)
+        if (_isExpanded)
+          Positioned(
+            left: widget.node.position.dx - expandedWidth / 2,
+            top: widget.node.position.dy + glowSize / 2 + 8,
+            child: Container(
+              width: expandedWidth,
+              height: expandedHeight,
+              decoration: BoxDecoration(
+                color: widget.node.color,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.node.color.withOpacity(0.3),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Column(
+                  children: [
+                    // 이미지
+                    if (widget.node.contentUrl != null)
+                      SizedBox(
+                        height: 160,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
+                          child: CachedNetworkImage(
+                            imageUrl: widget.node.contentUrl!,
+                            fit: BoxFit.cover,
+                            height: double.infinity,
+                            width: double.infinity,
+                            placeholder:
+                                (context, url) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                            errorWidget:
+                                (context, url, error) => const Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 48,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 160,
+                        child: Container(
+                          color: widget.node.color,
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/image.png',
+                              width: 48,
+                              height: 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        color: widget.node.color,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '🧩 AI 요약 내용',
+                              style: AppTextStyles.semiBold14.copyWith(
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // 설명 텍스트
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: Text(
+                                  widget.node.description ?? widget.node.text,
+                                  style: AppTextStyles.regular12.copyWith(
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   /// 레벨에 따라 텍스트 스타일 반환
   TextStyle _getTextStyle(int level) {
     switch (level) {
@@ -86,14 +474,10 @@ class MindmapNodeWidget extends StatelessWidget {
         );
       case 1:
         // 1차 노드
-        return AppTextStyles.semiBold16.copyWith(
-          color: Colors.black87,
-        );
+        return AppTextStyles.semiBold16.copyWith(color: Colors.black87);
       default:
         // 2차 이상 노드
-        return AppTextStyles.medium14.copyWith(
-          color: Colors.black87,
-        );
+        return AppTextStyles.medium14.copyWith(color: Colors.black87);
     }
   }
 }

@@ -64,6 +64,18 @@ class AppTextStyles {
     fontSize: 14,
     fontWeight: AppFontWeights.medium,
   );
+
+  static const TextStyle semiBold14 = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 14,
+    fontWeight: AppFontWeights.semiBold,
+  );
+
+  static const TextStyle regular12 = TextStyle(
+    fontFamily: _fontFamily,
+    fontSize: 12,
+    fontWeight: AppFontWeights.regular,
+  );
 }
 
 /// 폰트 웨이트 헬퍼

@@ -117,6 +117,34 @@ class DummyMindmapData {
           height: 75,
           level: 2,
         ),
+        // YouTube 노드 예시 (Flutter 공식 영상 - 임베딩 허용)
+        const MindmapNode(
+          id: 'youtube-tutorial',
+          text: 'Flutter 소개',
+          position: Offset(400, 650),
+          color: AppColors.pink,
+          width: 80,
+          height: 80,
+          level: 2,
+          contentType: NodeContentType.youtube,
+          contentUrl: 'https://www.youtube.com/watch?v=fq4N0hgOWzU',
+          description:
+              '해당 영상은 SSAFY 15기 프로젝트 위한 학습 영상으로, AI 기반 자바와 지식 관리 도구인 Popo를 소개합니다. 이 어플리케이션을 통해 지식을 효과적으로 정리할 수 있으며, 추후 필요한 지식을 빠르게 검색할 수 있습니다.',
+        ),
+        // 이미지 노드 예시
+        const MindmapNode(
+          id: 'image-chart',
+          text: '복잡도 비교',
+          position: Offset(50, 420),
+          color: AppColors.circle_skyblue,
+          width: 75,
+          height: 75,
+          level: 2,
+          contentType: NodeContentType.image,
+          contentUrl: 'https://picsum.photos/400/300',
+          description:
+              '여러 이미지는 논은 주차장의 자동차 배치를 보여줍니다. 다양 알고리즘의 공간 및 시간 복잡도를 분석하고, 각각의 트레이드오프를 이해하는 데 도움을 줍니다. 이 이미지를 참고하여 효율적인 알고리즘을 선택할 수 있습니다.여러 이미지는 논은 주차장의 자동차 배치를 보여줍니다. 다양 알고리즘의 공간 및 시간 복잡도를 분석하고, 각각의 트레이드오프를 이해하는 데 도움을 줍니다. 이 이미지를 참고하여 효율적인 알고리즘을 선택할 수 있습니다.여러 이미지는 논은 주차장의 자동차 배치를 보여줍니다. 다양 알고리즘의 공간 및 시간 복잡도를 분석하고, 각각의 트레이드오프를 이해하는 데 도움을 줍니다. 이 이미지를 참고하여 효율적인 알고리즘을 선택할 수 있습니다.여러 이미지는 논은 주차장의 자동차 배치를 보여줍니다. 다양 알고리즘의 공간 및 시간 복잡도를 분석하고, 각각의 트레이드오프를 이해하는 데 도움을 줍니다. 이 이미지를 참고하여 효율적인 알고리즘을 선택할 수 있습니다.',
+        ),
       ],
       edges: [
         // 중심에서 1차로
@@ -188,6 +216,22 @@ class DummyMindmapData {
           id: 'e10',
           fromNodeId: 'graph',
           toNodeId: 'bfs',
+          color: Colors.grey,
+          strokeWidth: 2,
+        ),
+        // YouTube 노드 연결
+        const MindmapEdge(
+          id: 'e11',
+          fromNodeId: 'center',
+          toNodeId: 'youtube-tutorial',
+          color: Colors.grey,
+          strokeWidth: 2,
+        ),
+        // 이미지 노드 연결
+        const MindmapEdge(
+          id: 'e12',
+          fromNodeId: 'sorting',
+          toNodeId: 'image-chart',
           color: Colors.grey,
           strokeWidth: 2,
         ),
