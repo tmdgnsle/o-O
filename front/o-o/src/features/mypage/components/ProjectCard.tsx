@@ -26,7 +26,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/project/${project.id}`);
+    navigate(`/project/${project.id}`, {
+      state: { project },
+    });
   };
 
   return (
