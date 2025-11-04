@@ -25,23 +25,34 @@ pipeline {
 
     stage('Install & Build') {
       steps {
-        dir('front/o-o') {
-          sh '''
-            echo "=== Node & npm Version ==="
-            node -v
-            npm -v
+        withCredentials([
+          string(credentialsId: 'fb-api-key', variable: 'FB_API_KEY'),
+          string(credentialsId: 'fb-auth-domain', variable: 'FB_AUTH_DOMAIN'),
+          string(credentialsId: 'fb-project-id', variable: 'FB_PROJECT_ID'),
+          string(credentialsId: 'fb-storage-bucket', variable: 'FB_STORAGE_BUCKET'),
+          string(credentialsId: 'fb-msg-sender', variable: 'FB_MESSAGING_SENDER_ID'),
+          string(credentialsId: 'fb-app-id', variable: 'FB_APP_ID')
+        ]) {
+          dir('front/o-o') {
+            sh '''
+              cat > .env.production <<EOF
+              VITE_FIREBASE_API_KEY=${FB_API_KEY}
+              VITE_FIREBASE_AUTH_DOMAIN=${FB_AUTH_DOMAIN}
+              VITE_FIREBASE_PROJECT_ID=${FB_PROJECT_ID}
+              VITE_FIREBASE_STORAGE_BUCKET=${FB_STORAGE_BUCKET}
+              VITE_FIREBASE_MESSAGING_SENDER_ID=${FB_MESSAGING_SENDER_ID}
+              VITE_FIREBASE_APP_ID=${FB_APP_ID}
+              EOF
 
-            echo "=== Install & Build ==="
-            if [ -f package-lock.json ]; then
-              npm ci
-            else
-              npm install
-            fi
-            npm run build
-          '''
+              node -v && npm -v
+              [ -f package-lock.json ] && npm ci || npm install
+              npm run build
+            '''
+          }
         }
       }
     }
+
 
     stage('Upload to S3') {
       steps {
