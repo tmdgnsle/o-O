@@ -28,8 +28,8 @@ class CircularButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: containerSize * 1.5,
-        height: containerSize * 1.5,
+        width: containerSize * 1.3,
+        height: containerSize * 1.3,
         child: Stack(
           alignment: Alignment.center,
           children: [

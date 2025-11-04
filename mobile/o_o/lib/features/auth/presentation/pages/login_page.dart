@@ -47,7 +47,6 @@ class LoginPage extends StatelessWidget {
             final isLoading = state is AuthLoading;
 
             return SafeArea(
-              bottom: false,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(

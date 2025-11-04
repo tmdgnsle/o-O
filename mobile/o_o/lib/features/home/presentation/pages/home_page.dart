@@ -10,7 +10,7 @@ import '../../../recording/presentation/bloc/recording_bloc.dart';
 import '../../../recording/presentation/bloc/recording_event.dart';
 import '../../../recording/presentation/bloc/recording_state.dart';
 import '../widgets/animated_circular_button.dart';
-import '../widgets/circular_popo_button.dart';
+import '../widgets/circular_button.dart';
 import '../widgets/mindmap_card.dart';
 
 /// 홈 페이지
@@ -153,10 +153,9 @@ class HomePage extends StatelessWidget {
               children: [
                 // 상단 헤더
                 SafeArea(
-                  bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0,
+                      horizontal: 16.0,
                       vertical: 16.0,
                     ),
                     child: Row(
@@ -181,7 +180,7 @@ class HomePage extends StatelessWidget {
                                   blurRadius: 4,
                                   image: 'assets/images/menu_book.png',
                                 ),
-                                const SizedBox(width: 8),
+
                                 CircularButton(
                                   onTap: () => context.push('/mypage'),
                                   containerSize: 38,
@@ -199,7 +198,6 @@ class HomePage extends StatelessWidget {
                 ),
                 // Popo 캐릭터 (하단에서 2/3 지점)
                 SafeArea(
-                  bottom: false,
                   child: Align(
                     alignment: const Alignment(0, -0.33),
                     child: Column(
