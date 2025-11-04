@@ -3,6 +3,7 @@ import Mindmap from "@/shared/assets/images/mindmap.png";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { AvatarImage } from "@radix-ui/react-avatar";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   id: string;
@@ -22,9 +23,17 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const displayCollaborators = project.collaborators.slice(0, 3);
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate(`/project/${project.id}`);
+  };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer relative">
+    <div
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer relative"
+    >
       {/* 오른쪽 상단 아이콘들 */}
       <div className="absolute top-2 right-1 flex gap-2 z-10">
         <div className="bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-md flex gap-1">

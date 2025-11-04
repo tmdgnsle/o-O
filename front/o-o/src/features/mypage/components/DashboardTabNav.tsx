@@ -34,7 +34,7 @@ export function DashboardTabNav() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2 sm:px-2 pb-4">
+    <div className="flex items-center justify-between px-2 sm:px-2">
       {view === "dashboard" && (
         <div className="flex gap-8">
           {tabs.map((tab) => (

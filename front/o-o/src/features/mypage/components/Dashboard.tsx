@@ -56,11 +56,25 @@ const DUMMY_PROJECT = [
     isPrivate: false,
     collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
   },
+  {
+    id: "7",
+    title: "알고리즘 싫어 프로젝트6",
+    date: "2025.10.24",
+    isPrivate: false,
+    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
+  },
+  {
+    id: "8",
+    title: "알고리즘 싫어 프로젝트6",
+    date: "2025.10.24",
+    isPrivate: false,
+    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
+  },
 ];
 
 export function Dashboard({ activeTab }: DashboardProps) {
   return (
-    <div className="mx-12 p-7 mt-5 bg-white/60 rounded-3xl">
+    <div className="mx-12 p-5 mt-5 bg-white/60 rounded-3xl">
       <DashboardTabNav />
       <ProjectList projects={DUMMY_PROJECT} />
     </div>
