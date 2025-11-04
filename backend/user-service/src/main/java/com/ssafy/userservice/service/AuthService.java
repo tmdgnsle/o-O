@@ -6,7 +6,6 @@ import com.ssafy.userservice.exception.InvalidTokenException;
 import com.ssafy.userservice.exception.TokenExpiredException;
 import com.ssafy.userservice.exception.TokenNotFoundException;
 import com.ssafy.userservice.jwt.JwtUtil;
-import com.ssafy.userservice.repository.RefreshTokenRepository;
 import com.ssafy.userservice.repository.UserRepository;
 import com.ssafy.userservice.util.GoogleTokenVerifier;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -26,7 +25,7 @@ import java.util.Map;
 public class AuthService {
 
     private final JwtUtil jwtUtil;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
     private final GoogleTokenVerifier googleTokenVerifier;
 
@@ -69,9 +68,8 @@ public class AuthService {
         String role = jwtUtil.getRole(refreshToken);
         String platform = jwtUtil.getPlatform(refreshToken);
 
-        // Redis에 저장된 토큰과 비교 (userId_platform 형태로 조회)
-        String refreshTokenId = userId + "_" + platform;
-        RefreshToken storedToken = refreshTokenRepository.findById(refreshTokenId)
+        // Redis에 저장된 토큰과 비교
+        RefreshToken storedToken = refreshTokenService.findRefreshToken(userId, platform)
                 .orElseThrow(() -> new TokenNotFoundException("Refresh token not found in storage"));
 
         if (!storedToken.getToken().equals(refreshToken)) {
@@ -83,16 +81,8 @@ public class AuthService {
         String newRefreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
 
         // 기존 Refresh Token 삭제 후 새 토큰 저장
-        refreshTokenRepository.deleteById(refreshTokenId);
         Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
-        RefreshToken newRefreshTokenEntity = new RefreshToken(
-                refreshTokenId,
-                newRefreshToken,
-                ttlSeconds
-        );
-        refreshTokenRepository.save(newRefreshTokenEntity);
-
-        log.info("Tokens reissued with RTR for userId: {}, platform: {}, TTL: {} seconds", userId, platform, ttlSeconds);
+        refreshTokenService.saveRefreshToken(userId, platform, newRefreshToken, ttlSeconds);
 
         return Map.of(
                 "accessToken", newAccessToken,
@@ -108,10 +98,8 @@ public class AuthService {
         }
         validatePlatform(platform);
 
-        // Redis에서 Refresh Token 삭제 (userId_platform 형태로)
-        String refreshTokenId = userId + "_" + platform;
-        refreshTokenRepository.deleteById(refreshTokenId);
-        log.info("User logged out - userId: {}, platform: {}", userId, platform);
+        // Redis에서 Refresh Token 삭제
+        refreshTokenService.deleteRefreshToken(userId, platform);
     }
 
     /**
@@ -161,6 +149,13 @@ public class AuthService {
             throw new IllegalArgumentException("Email not found in ID token");
         }
 
+        // 이메일 인증 여부 확인 (Google에서 이메일 소유권 검증 완료 여부)
+        Boolean emailVerified = (Boolean) userInfo.get("email_verified");
+        if (emailVerified == null || !emailVerified) {
+            log.warn("Email not verified for providerId: {}, email: {}", providerId, email);
+            throw new IllegalArgumentException("Email not verified by Google");
+        }
+
         // 선택적 정보 (NULL 허용)
         String name = (String) userInfo.get("name");
         String picture = (String) userInfo.get("picture");
@@ -188,19 +183,8 @@ public class AuthService {
         String refreshToken = jwtUtil.generateToken("refresh", userId, role, platform, refreshTokenExpiration);
 
         // Refresh Token Redis 저장
-        String refreshTokenId = userId + "_" + platform;
-        // 기존 토큰 삭제 (동일 플랫폼)
-        refreshTokenRepository.deleteById(refreshTokenId);
-        // 새 토큰 저장
         Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
-        RefreshToken refreshTokenEntity = new RefreshToken(
-                refreshTokenId,
-                refreshToken,
-                ttlSeconds
-        );
-        refreshTokenRepository.save(refreshTokenEntity);
-
-        log.info("User logged in with Google ID Token - userId: {}, platform: {}, TTL: {} seconds", userId, platform, ttlSeconds);
+        refreshTokenService.saveRefreshToken(userId, platform, refreshToken, ttlSeconds);
 
         return Map.of(
                 "accessToken", accessToken,

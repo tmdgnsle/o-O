@@ -1,5 +1,6 @@
 package com.ssafy.userservice.jwt;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -69,17 +70,30 @@ public class JwtUtil {
                 .get("platform", String.class);
     }
 
+    /**
+     * JWT 토큰의 만료 여부를 확인합니다.
+     * Gateway에서도 검증하지만, 방어적 프로그래밍을 위해 User Service에서도 검증합니다.
+     *
+     * @param token JWT 토큰
+     * @return 만료되었으면 true, 유효하면 false
+     */
     public Boolean isExpired(String token) {
         if (token == null || token.trim().isEmpty()) {
             throw new IllegalArgumentException("Token cannot be null or empty");
         }
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getExpiration()
-                .before(new Date());
+
+        try {
+            return Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .getExpiration()
+                    .before(new Date());
+        } catch (ExpiredJwtException e) {
+            // 토큰이 이미 만료된 경우
+            return true;
+        }
     }
 
     public String generateToken(String category, Long userId, String role, String platform, Long expiredMs) {
