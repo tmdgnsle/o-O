@@ -37,16 +37,6 @@ public class AuthService {
     @Value("${jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
 
-    /**
-     * RTR(Refresh Token Rotation) 방식으로 토큰을 재발급합니다.
-     * Access Token과 Refresh Token을 모두 새로 발급하고, 기존 Refresh Token은 무효화됩니다.
-     *
-     * @param refreshToken 기존 Refresh Token
-     * @return Map containing newAccessToken, newRefreshToken
-     * @throws TokenExpiredException Refresh Token 만료
-     * @throws InvalidTokenException 유효하지 않은 Refresh Token
-     * @throws TokenNotFoundException Redis에 저장된 토큰 없음
-     */
     @Transactional
     public Map<String, String> reissueTokens(String refreshToken) {
         // Null 체크
@@ -105,26 +95,10 @@ public class AuthService {
         refreshTokenService.deleteRefreshToken(userId, platform);
     }
 
-    /**
-     * 플랫폼 문자열을 Platform enum으로 변환하여 검증합니다.
-     *
-     * @param platformStr 플랫폼 문자열 ("web" 또는 "app")
-     * @return Platform enum
-     * @throws IllegalArgumentException 유효하지 않은 플랫폼 값
-     */
     private Platform validateAndConvertPlatform(String platformStr) {
         return Platform.fromString(platformStr);
     }
 
-    /**
-     * Google ID Token을 검증하고 로그인 처리합니다.
-     *
-     * @param idToken Google ID Token
-     * @param platform 플랫폼 (app)
-     * @return Map containing accessToken, refreshToken, userId
-     * @throws GeneralSecurityException ID Token 검증 실패
-     * @throws IOException 네트워크 오류
-     */
     @Transactional
     public Map<String, Object> loginWithGoogleIdToken(String idToken, String platform)
             throws GeneralSecurityException, IOException {
