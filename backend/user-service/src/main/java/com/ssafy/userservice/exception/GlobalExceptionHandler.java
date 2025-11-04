@@ -96,6 +96,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getStatus()).body(response);
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException e) {
+        log.warn("User not found: {}", e.getMessage());
+        ErrorResponse response = ErrorResponse.of(ErrorCode.USER_NOT_FOUND);
+        return ResponseEntity.status(ErrorCode.USER_NOT_FOUND.getStatus()).body(response);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Illegal argument: {}", e.getMessage());
