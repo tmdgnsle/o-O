@@ -90,3 +90,24 @@ export const useApplyThemeToAllNodes = () => {
     },
   });
 };
+
+export const useUpdateNodePosition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ nodeId, x, y }: { nodeId: string; x: number; y: number }) => {
+      const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
+      const updatedNodes = currentNodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, x, y };
+        }
+        return node;
+      });
+      await saveNodes(updatedNodes);
+      return updatedNodes;
+    },
+    onSuccess: (updatedNodes) => {
+      queryClient.setQueryData(['nodes'], updatedNodes);
+    },
+  });
+};

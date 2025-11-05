@@ -6,9 +6,9 @@ import AskPopo from '../components/AskPopoButton'
 import StatusBox from '../components/StatusBox';
 import ModeToggleButton from '../components/ModeToggleButton';
 import { Textbox } from '../components/Textbox';
-import TempNode from '../components/TempNode';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode, useApplyThemeToAllNodes } from '../hooks/mutation/useNodeMutations';
+import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition } from '../hooks/mutation/useNodeMutations';
+import CytoscapeCanvas from '../components/CytoscapeCanvas';
 
 export type NodeData = {
   id: string;
@@ -16,6 +16,13 @@ export type NodeData = {
   x: number;
   y: number;
   color: string;
+  parentId?: string; // 부모 노드 ID (edge 연결용)
+};
+
+export type EdgeData = {
+  id: string;
+  source: string;
+  target: string;
 };
 
 // MindmapPage 전용 QueryClient
@@ -35,6 +42,7 @@ const MindmapPageContent: React.FC = () => {
   const { data: nodes = [], isLoading } = useNodesQuery();
   const addNodeMutation = useAddNode();
   const applyThemeMutation = useApplyThemeToAllNodes();
+  const updateNodePositionMutation = useUpdateNodePosition();
 
   const handleAddNode = (text: string) => {
     const newNode: NodeData = {
@@ -51,6 +59,11 @@ const MindmapPageContent: React.FC = () => {
     applyThemeMutation.mutate(colors);
   };
 
+  const handleNodePositionChange = (nodeId: string, x: number, y: number) => {
+    // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
+    updateNodePositionMutation.mutate({ nodeId, x, y });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
@@ -60,7 +73,8 @@ const MindmapPageContent: React.FC = () => {
   }
 
   return(
-    <div className='bg-dotted font-paperlogy p-6 h-screen'>
+    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden'>
+      {/* Fixed UI Elements */}
       <div className='fixed top-4 left-4 z-50'>
         <MiniNav />
       </div>
@@ -77,32 +91,16 @@ const MindmapPageContent: React.FC = () => {
         <Textbox onAddNode={handleAddNode} />
       </div>
 
-      {/* Render all nodes */}
-      <div className='absolute left-1/2 top-1/2'>
-        {nodes.map(node => (
-          <div
-            key={node.id}
-            style={{
-              position: 'absolute',
-              left: `${node.x}px`,
-              top: `${node.y}px`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            <TempNode
-              id={node.id}
-              text={node.text}
-              x={node.x}
-              y={node.y}
-              color={node.color}
-              isSelected={selectedNodeId === node.id}
-              onSelect={() => setSelectedNodeId(node.id)}
-              onDeselect={() => setSelectedNodeId(null)}
-              onApplyTheme={handleApplyTheme}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Cytoscape Canvas - 전체 화면 */}
+      <CytoscapeCanvas
+        nodes={nodes}
+        selectedNodeId={selectedNodeId}
+        onNodeSelect={setSelectedNodeId}
+        onNodeUnselect={() => setSelectedNodeId(null)}
+        onApplyTheme={handleApplyTheme}
+        onNodePositionChange={handleNodePositionChange}
+        className="absolute inset-0"
+      />
     </div>
   );
 };

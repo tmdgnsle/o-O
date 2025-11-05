@@ -98,12 +98,13 @@ export const useNodeHandlers = ({
         x: x + 200, // 우측에 배치
         y: y,
         color: '#263A6B', // 기본 색상
+        parentId: id, // 현재 노드를 부모로 설정
       };
       addNodeMutation.mutate(newNode);
       closeAddInput();
     }
     setFocusedButton(null);
-  }, [x, y, addNodeMutation, closeAddInput, setFocusedButton]);
+  }, [x, y, id, addNodeMutation, closeAddInput, setFocusedButton]);
 
   const handlePalette = useCallback(() => {
     const willBeOpen = !paletteOpen;
@@ -138,11 +139,12 @@ export const useNodeHandlers = ({
         x: x + 200,
         y: y,
         color: '#263A6B',
+        parentId: id, // 추천 노드도 현재 노드의 자식으로 설정
       };
       addNodeMutation.mutate(newNode);
       setFocusedButton(null);
     },
-    [x, y, addNodeMutation, setFocusedButton]
+    [x, y, id, addNodeMutation, setFocusedButton]
   );
 
   return {
