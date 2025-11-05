@@ -75,16 +75,16 @@ pipeline {
               sh """
                 set -e
                 TAG="${svc}-${BUILD_NUMBER}"
-                URI="${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:\${TAG}"   // ← \${TAG}
+                URI="${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:\${TAG}"
 
                 echo "==> Build ${svc}"
-                docker build -t ${ECR_REPO}:\${TAG} ./backend/${svc}                         // ← \${TAG}
+                docker build -t ${ECR_REPO}:\${TAG} ./backend/${svc}
 
-                echo "==> Push \$URI"                                                        // ← \$URI
-                docker tag ${ECR_REPO}:\${TAG} \$URI                                         // ← \${TAG}, \$URI
-                docker push \$URI                                                            // ← \$URI
+                echo "==> Push \$URI"
+                docker tag ${ECR_REPO}:\${TAG} \$URI
+                docker push \$URI
 
-                echo "${svc} \$URI" > .img_${svc}                                            // ← \$URI
+                echo "${svc} \$URI" > .img_${svc}
               """
             }
           }
