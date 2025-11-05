@@ -18,6 +18,8 @@ export default function RecommendNodeOverlay({
   onClose,
   onSelectRecommendation,
 }: RecommendNodeOverlayProps) {
+  if (!open) return null;
+
   // Dummy 추천 노드 데이터
   const aiRecommendations: RecommendNodeData[] = [
     { id: "ai-1", text: "AI 추천 아이디어 1", type: "ai" },
@@ -31,7 +33,6 @@ export default function RecommendNodeOverlay({
     { id: "trend-3", text: "트렌드 아이디어 3", type: "trend" },
   ];
 
-  if (!open) return null;
 
   // 원형 배치 설정
   const radius = 180; // 중심에서 추천 노드까지의 거리
@@ -122,15 +123,16 @@ export default function RecommendNodeOverlay({
 
   return (
     <>
-      {/* 불투명 배경 - #F3F3F3 90% */}
-      <div
-        className="fixed inset-0 z-[25]"
-        style={{ backgroundColor: "rgba(243, 243, 243, 0.9)" }}
-        onClick={onClose}
-      />
+      {/* TODO : 배경이 맨 뒤에 오도록 작업할것 */}
+      {/* 배경 */}
+      {/* <div
+        className="fixed inset-0 bg-neutral-100/90"
+        style={{ zIndex: -20 }}
+        // onClick={onClose}
+      /> */}
 
-      {/* 추천 노드 컨테이너 */}
-      <div className="fixed inset-0 z-50 pointer-events-none">
+      {/* 추천 노드 컨테이너 - 배경 위에 표시 */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 600 }}>
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           {/* AI 아이콘 */}
           {renderIconButton("ai", aiIconAngle)}
@@ -170,6 +172,8 @@ export default function RecommendNodeOverlay({
           </div>
         </div>
       </div>
+
+
     </>
   );
 }

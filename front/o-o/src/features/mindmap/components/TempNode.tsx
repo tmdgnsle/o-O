@@ -153,13 +153,13 @@ export default function TempNode({
   const textColor = getContrastTextColor(initialColor);
 
   // z-index 계산
-  // - 추천 오버레이 활성화 + 선택됨: z-[60] (배경 z-30, 오버레이 컨텐츠 z-40보다 위)
-  // - 선택됨: z-40
-  // - 기본: z-10
-  const zIndex = focusedButton === "recommend" && isSelected ? 'z-[60]' : isSelected ? 'z-40' : 'z-10';
+  // - 추천 오버레이 활성화 + 선택됨: 600 (배경 500보다 위, 추천 노드들과 같은 레벨)
+  // - 선택됨: 40
+  // - 기본: 10
+  const zIndex = focusedButton === "recommend" && isSelected ? 600 : isSelected ? 40 : 10;
 
   return (
-    <div className={`relative inline-block select-none ${zIndex}`}>
+    <div className="relative inline-block select-none" style={{ zIndex }}>
       {/* 노드 원 */}
       <div
         onClick={handleClick}
