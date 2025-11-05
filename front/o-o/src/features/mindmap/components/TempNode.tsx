@@ -26,6 +26,7 @@ type TempNodeProps = {
   isSelected: boolean;
   onSelect: () => void;
   onDeselect: () => void;
+  onApplyTheme: (colors: string[]) => void;
 };
 
 export default function TempNode({
@@ -37,6 +38,7 @@ export default function TempNode({
   isSelected,
   onSelect,
   onDeselect,
+  onApplyTheme,
 }: TempNodeProps) {
   // Mutation hooks
   const deleteNodeMutation = useDeleteNode();
@@ -167,6 +169,7 @@ export default function TempNode({
         onPaletteClose={handlePaletteClose}
         onRecommend={handleRecommend}
         onColorChange={handleColorChange}
+        onApplyTheme={onApplyTheme}
       />
 
       {/* Add Child Input - 우측에 표시 */}

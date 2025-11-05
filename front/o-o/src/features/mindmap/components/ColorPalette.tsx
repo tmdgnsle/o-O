@@ -5,26 +5,54 @@ import {
   ColorPickerEyeDropper,
   ColorPickerFormat,
 } from "@/components/ui/shadcn-io/color-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Color from "color";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type ColorPaletteProps = {
   open: boolean;
   onColorChange?: (color: string) => void;
+  onApplyTheme?: (colors: string[]) => void;
   onClose?: () => void;
   value?: string;
   className?: string;
 };
 
+// 색상 테마 정의
+const COLOR_THEMES = {
+  Pastel: ["#FFD0EA", "#FFEEAC", "#C2F0F9", "#EFB39B", "#B9BDFF", "#C2DCF9", "#C3F9C2"],
+  "Summer Beach": ["#F2674A", "#FCDED6", "#84A5F2", "#EA9A37", "#224ED1", "#AFC88E", "#CFAC9D"],
+  Citrus: ["#CAE8F2", "#59A5B2", "#FBCC58", "#223F43", "#7CBC29", "#BAAC9D"],
+  Retro: ["#FDF5E8", "#A0BBC4", "#F39069", "#DF614A", "#6F8240", "#AABA73", "#AF9A84"],
+  Cool: ["#02182F", "#022F56", "#E2C7A1", "#E5ECEA", "#85C4E5", "#CCDDE4", "#488DB4"],
+  Lavendar: ["#2B2356", "#AB9CC7", "#F2E2FF", "#FE5C8E", "#FFE1F1", "#39368E", "#8D4E93"],
+} as const;
+
 export default function ColorPalette({
   open,
   onColorChange,
+  onApplyTheme,
   onClose,
   value = "#263A6B",
   className,
 }: ColorPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
+  const [selectedTheme, setSelectedTheme] = useState<keyof typeof COLOR_THEMES>("Pastel");
+
+  const handleThemeChange = (theme: keyof typeof COLOR_THEMES) => {
+    setSelectedTheme(theme);
+    // 전체 노드에 테마 적용
+    if (onApplyTheme) {
+      onApplyTheme([...COLOR_THEMES[theme]]);
+    }
+  };
 
   const handleChange = useCallback((value: Parameters<typeof Color>[0]) => {
     try {
@@ -61,7 +89,7 @@ export default function ColorPalette({
     <div
       ref={paletteRef}
       className={cn(
-        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-50",
+        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-999",
         open ? "opacity-100 visible" : "opacity-0 invisible",
         className
       )}
@@ -99,20 +127,28 @@ export default function ColorPalette({
             </div>
           </ColorPicker>
 
-          {/* 프리셋 색상 */}
+          {/* 테마 선택 */}
           <div>
-            <span className="text-xs text-gray-600 block mb-2">파스텔</span>
+            <span className="text-xs text-gray-600 block mb-2">테마 선택</span>
+            <Select value={selectedTheme} onValueChange={(value) => handleThemeChange(value as keyof typeof COLOR_THEMES)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[1000]">
+                {Object.keys(COLOR_THEMES).map((theme) => (
+                  <SelectItem key={theme} value={theme}>
+                    {theme}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 선택된 테마의 색상들 */}
+          <div>
+            <span className="text-xs text-gray-600 block mb-2">컬러 팔레트</span>
             <div className="flex gap-2 flex-wrap">
-              {[
-                "#FFB3BA", // 핑크
-                "#FFDFBA", // 오렌지
-                "#FFFFBA", // 옐로우
-                "#BAFFC9", // 그린
-                "#BAE1FF", // 블루
-                "#D4BAFF", // 퍼플
-                "#FFB3E6", // 마젠타
-                "#FFE6F0", // 로즈
-              ].map((color) => (
+              {COLOR_THEMES[selectedTheme].map((color) => (
                 <button
                   key={color}
                   className="w-8 h-8 rounded-full border-2 border-gray-200 hover:border-gray-400 transition-colors"

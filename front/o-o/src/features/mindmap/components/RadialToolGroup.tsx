@@ -16,6 +16,7 @@ type RadialToolGroupProps = {
   onPaletteClose?: () => void;
   onRecommend?: () => void;
   onColorChange?: (color: string) => void;
+  onApplyTheme?: (colors: string[]) => void;
 };
 
 
@@ -32,6 +33,7 @@ export default function RadialToolGroup({
   onPaletteClose,
   onRecommend,
   onColorChange,
+  onApplyTheme,
 }: RadialToolGroupProps) {
   const angles = [-70, -35, 0, 35, 70]; // 우측에 펼쳐질 각도
 
@@ -161,6 +163,7 @@ export default function RadialToolGroup({
                   open={paletteOpen}
                   value={currentColor}
                   onColorChange={onColorChange}
+                  onApplyTheme={onApplyTheme}
                   onClose={onPaletteClose}
                 />
               )}

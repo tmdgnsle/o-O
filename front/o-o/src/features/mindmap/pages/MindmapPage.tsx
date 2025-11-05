@@ -8,7 +8,7 @@ import ModeToggleButton from '../components/ModeToggleButton';
 import { Textbox } from '../components/Textbox';
 import TempNode from '../components/TempNode';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode } from '../hooks/mutation/useNodeMutations';
+import { useAddNode, useApplyThemeToAllNodes } from '../hooks/mutation/useNodeMutations';
 
 export type NodeData = {
   id: string;
@@ -34,6 +34,7 @@ const MindmapPageContent: React.FC = () => {
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
   const addNodeMutation = useAddNode();
+  const applyThemeMutation = useApplyThemeToAllNodes();
 
   const handleAddNode = (text: string) => {
     const newNode: NodeData = {
@@ -44,6 +45,10 @@ const MindmapPageContent: React.FC = () => {
       color: '#263A6B', // 기본 색상
     };
     addNodeMutation.mutate(newNode);
+  };
+
+  const handleApplyTheme = (colors: string[]) => {
+    applyThemeMutation.mutate(colors);
   };
 
   if (isLoading) {
@@ -93,6 +98,7 @@ const MindmapPageContent: React.FC = () => {
               isSelected={selectedNodeId === node.id}
               onSelect={() => setSelectedNodeId(node.id)}
               onDeselect={() => setSelectedNodeId(null)}
+              onApplyTheme={handleApplyTheme}
             />
           </div>
         ))}

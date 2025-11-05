@@ -71,3 +71,22 @@ export const useEditNode = () => {
     },
   });
 };
+
+export const useApplyThemeToAllNodes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (colors: string[]) => {
+      const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
+      const updatedNodes = currentNodes.map((node, index) => ({
+        ...node,
+        color: colors[index % colors.length], // 순환하며 색상 할당
+      }));
+      await saveNodes(updatedNodes);
+      return updatedNodes;
+    },
+    onSuccess: (updatedNodes) => {
+      queryClient.setQueryData(['nodes'], updatedNodes);
+    },
+  });
+};
