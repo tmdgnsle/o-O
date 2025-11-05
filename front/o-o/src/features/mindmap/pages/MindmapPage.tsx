@@ -114,12 +114,12 @@ const bfs = (graph, start) => {
 
       {/* 테스트용 다이얼로그 */}
       {showDialog && (
-        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-2 sm:p-4">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowDialog(false)}
           />
-          <div className="relative z-10">
+          <div className="relative z-10 w-full max-w-7xl">
             <ContentDialog
               characterImage={planningPopo}
               title="알고리즘 기반 AI 학습·서비스 플랫폼 기획안"
