@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          # User Service 정적 라우팅
+          - id: user-service-auth
+            uri: ${USER_SERVICE_URL:http://localhost:8081}
+            predicates:
+              - Path=/auth/**
+          - id: user-service-oauth2
+            uri: ${USER_SERVICE_URL:http://localhost:8081}
+            predicates:
+              - Path=/oauth2/**
+          - id: user-service-users
+            uri: ${USER_SERVICE_URL:http://localhost:8081}
+            predicates:
+              - Path=/users/**
+          # Workspace Service 정적 라우팅
+          - id: workspace-service
+            uri: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
+            predicates:
+              - Path=/workspace/**
+          # Mindmap Service 정적 라우팅
+          - id: mindmap-service
+            uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
+            predicates:
+              - Path=/mindmap/**
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+
+services:
+  ai:
+    host: ${AI_SERVICE_HOST:localhost}
+    port: ${AI_SERVICE_PORT:8084}
