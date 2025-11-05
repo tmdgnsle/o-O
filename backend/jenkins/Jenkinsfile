@@ -178,6 +178,7 @@ pipeline {
         }
       }
     }
+  }
 
   post {
     always { sh 'rm -f .b_account_id .services_to_build .pushed_images .img_* || true' }
