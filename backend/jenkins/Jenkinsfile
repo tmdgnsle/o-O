@@ -5,7 +5,7 @@ pipeline {
   environment {
     AWS_REGION = 'ap-northeast-2'
     CLUSTER    = 'o-o-cluster'
-    ROLE_ARN   = 'arn:aws:iam::<B_ACCOUNT_ID>:role/JenkinsDeployerRole'
+    ROLE_ARN   = 'arn:aws:iam::559543475782:role/JenkinsDeployerRole'
     ECR_REPO   = 'o-o-backend'
     NAMESPACE  = 'prod'
     PARALLEL_BUILD = 'true'    // 병렬 빌드 on/off
