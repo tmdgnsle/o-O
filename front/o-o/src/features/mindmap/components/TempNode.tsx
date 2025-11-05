@@ -1,18 +1,20 @@
-import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
+import AddInputBox from "./AddInputBox";
 import { useNodeTextEdit } from "../hooks/custom/useNodeTextEdit";
 import { useNodeAdd } from "../hooks/custom/useNodeAdd";
 import { useNodeColorEdit } from "../hooks/custom/useNodeColorEdit";
+import { useNodeFocus } from "../hooks/custom/useNodeFocus";
+import { useNodeZIndex } from "../hooks/custom/useNodeZIndex";
+import { useNodeHandlers } from "../hooks/custom/useNodeHandlers";
 import {
   useDeleteNode,
   useEditNode,
   useAddNode,
 } from "../hooks/mutation/useNodeMutations";
-import type { NodeData } from "../pages/MindmapPage";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 
 type TempNodeProps = {
@@ -41,7 +43,7 @@ export default function TempNode({
   const editNodeMutation = useEditNode();
   const addNodeMutation = useAddNode();
 
-  // Custom hooks 사용
+  // Custom hooks
   const {
     isEditing,
     editValue,
@@ -53,110 +55,54 @@ export default function TempNode({
 
   const {
     showAddInput,
-    addValue,
-    setAddValue,
     openAddInput,
     closeAddInput,
-    confirmAdd,
   } = useNodeAdd();
 
   const { paletteOpen, togglePalette, closePalette } = useNodeColorEdit(initialColor);
 
-  // focusedButton 상태 관리
-  const [focusedButton, setFocusedButton] = useState<"delete" | "add" | "edit" | "palette" | "recommend" | null>(null);
+  const { focusedButton, setFocusedButton } = useNodeFocus();
 
-  const handleClick = () => {
-    if (isSelected) {
-      onDeselect();
-      setFocusedButton(null);
-    } else {
-      onSelect();
-      setFocusedButton(null);
-    }
-  };
+  const {
+    handleClick,
+    handleDelete,
+    handleEdit,
+    handleEditCancel,
+    handleEditConfirm,
+    handleAdd,
+    handleAddCancel,
+    handleAddConfirm,
+    handlePalette,
+    handleColorChange,
+    handlePaletteClose,
+    handleRecommend,
+    handleRecommendSelect,
+  } = useNodeHandlers({
+    id,
+    x,
+    y,
+    initialColor,
+    isSelected,
+    onSelect,
+    onDeselect,
+    setFocusedButton,
+    deleteNodeMutation,
+    editNodeMutation,
+    addNodeMutation,
+    startEdit,
+    cancelEdit,
+    confirmEdit,
+    openAddInput,
+    closeAddInput,
+    togglePalette,
+    closePalette,
+    paletteOpen,
+  });
 
-  const handleDelete = () => {
-    deleteNodeMutation.mutate(id);
-    onDeselect();
-    setFocusedButton(null);
-  };
-
-  const handleEdit = () => {
-    startEdit();
-    setFocusedButton("edit");
-  };
-
-  const handleEditCancel = () => {
-    cancelEdit();
-    setFocusedButton(null);
-  };
-
-  const handleEditConfirm = () => {
-    const newText = confirmEdit();
-    if (newText) {
-      editNodeMutation.mutate({ nodeId: id, newText });
-    }
-    setFocusedButton(null);
-  };
-
-  const handleAdd = () => {
-    openAddInput();
-    setFocusedButton("add");
-  };
-
-  const handleAddCancel = () => {
-    closeAddInput();
-    setFocusedButton(null);
-  };
-
-  const handleAddConfirm = () => {
-    const newText = confirmAdd();
-    if (newText) {
-      const newNode: NodeData = {
-        id: Date.now().toString(),
-        text: newText,
-        x: x + 200, // 우측에 배치
-        y: y,
-        color: '#263A6B', // 기본 색상
-      };
-      addNodeMutation.mutate(newNode);
-    }
-    setFocusedButton(null);
-  };
-
-  const handlePalette = () => {
-    const willBeOpen = !paletteOpen;
-    togglePalette();
-    setFocusedButton(willBeOpen ? "palette" : null);
-  };
-
-  const handleColorChange = useCallback((newColor: string) => {
-    if (newColor === initialColor) {
-      return;
-    }
-
-    // mutation만 호출 - query가 자동으로 업데이트되어 리렌더링됨
-    editNodeMutation.mutate({ nodeId: id, newColor });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, initialColor]);
-
-  const handlePaletteClose = () => {
-    closePalette();
-    setFocusedButton(null);
-  };
-
-  const handleRecommend = () => {
-    setFocusedButton("recommend");
-  };
+  const zIndex = useNodeZIndex({ focusedButton, isSelected });
 
   // 배경색에 따른 텍스트 색상 결정
   const textColor = getContrastTextColor(initialColor);
-
-  // z-index 계산
-  // - 추천 오버레이 활성화 + 선택됨: 600 (배경 500보다 위, 추천 노드들과 같은 레벨)
-  // - 선택됨: 40
-  // - 기본: 10
-  const zIndex = focusedButton === "recommend" && isSelected ? 600 : isSelected ? 40 : 10;
 
   return (
     <div className="relative inline-block select-none" style={{ zIndex }}>
@@ -225,36 +171,10 @@ export default function TempNode({
 
       {/* Add Child Input - 우측에 표시 */}
       {showAddInput && (
-        <div
-          className="absolute top-1/2 left-full ml-8 -translate-y-1/2 flex items-center gap-2 bg-white p-3 rounded-lg shadow-xl z-50"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Input
-            value={addValue}
-            onChange={(e) => setAddValue(e.target.value)}
-            placeholder="새 아이디어를 연결해보세요."
-            className="w-48"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleAddConfirm();
-              if (e.key === "Escape") handleAddCancel();
-            }}
-            autoFocus
-          />
-          <Button
-            size="sm"
-            onClick={handleAddConfirm}
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Check className="w-4 h-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleAddCancel}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+        <AddInputBox
+          onConfirm={handleAddConfirm}
+          onCancel={handleAddCancel}
+        />
       )}
 
       {/* Recommendation Overlay */}
@@ -262,17 +182,7 @@ export default function TempNode({
         <RecommendNodeOverlay
           open={focusedButton === "recommend"}
           onClose={() => setFocusedButton(null)}
-          onSelectRecommendation={(recommendText) => {
-            const newNode: NodeData = {
-              id: Date.now().toString(),
-              text: recommendText,
-              x: x + 200,
-              y: y,
-              color: '#263A6B',
-            };
-            addNodeMutation.mutate(newNode);
-            setFocusedButton(null);
-          }}
+          onSelectRecommendation={handleRecommendSelect}
         />
       )}
     </div>
