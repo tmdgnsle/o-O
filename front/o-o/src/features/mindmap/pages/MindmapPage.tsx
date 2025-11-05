@@ -8,7 +8,12 @@ import ModeToggleButton from "../components/ModeToggleButton";
 import { Textbox } from "../components/Textbox";
 import TempNode from "../components/TempNode";
 import ContentDialog from "../components/ContentDialog";
+import VoiceChat from "../components/VoiceChat";
 import planningPopo from "@/shared/assets/images/planning_popo.png";
+import popo1 from "@/shared/assets/images/popo1.png";
+import popo2 from "@/shared/assets/images/popo2.png";
+import popo3 from "@/shared/assets/images/popo3.png";
+import popo4 from "@/shared/assets/images/popo4.png";
 import { useNodesQuery } from "../hooks/query/useNodesQuery";
 import { useAddNode } from "../hooks/mutation/useNodeMutations";
 
@@ -31,7 +36,7 @@ const queryClient = new QueryClient({
 
 const MindmapPageContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState(true); // 테스트용 - 나중에 false로 변경
+  const [showDialog, setShowDialog] = useState(false); // false로 변경
 
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
@@ -41,11 +46,54 @@ const MindmapPageContent: React.FC = () => {
     const newNode: NodeData = {
       id: Date.now().toString(),
       text,
-      x: Math.random() * 400 - 200, // random position near center
+      x: Math.random() * 400 - 200,
       y: Math.random() * 300 - 150,
     };
     addNodeMutation.mutate(newNode);
   };
+
+  // VoiceChat 샘플 유저 데이터
+  const voiceChatUsers = [
+    {
+      id: "1",
+      avatar: popo1,
+      name: "유저1",
+      isSpeaking: true,
+      colorIndex: 1, // 초록
+    },
+    {
+      id: "2",
+      avatar: popo2,
+      name: "유저2",
+      isSpeaking: true,
+      colorIndex: 4, // 분홍
+    },
+    {
+      id: "3",
+      avatar: popo3,
+      name: "유저3",
+      isSpeaking: true,
+      colorIndex: 2, // 주황
+    },
+    {
+      id: "4",
+      avatar: popo4,
+      name: "유저4",
+      isSpeaking: false,
+    },
+    {
+      id: "5",
+      avatar: popo1,
+      name: "유저5",
+      isSpeaking: false,
+    },
+    {
+      id: "6",
+      avatar: popo2,
+      name: "유저6",
+      isSpeaking: false,
+    },
+  ];
 
   const sampleContent = `
 # 1. 기획 배경
@@ -108,6 +156,18 @@ const bfs = (graph, start) => {
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
         <ModeToggleButton />
       </div>
+
+      {/* VoiceChat - 화면 중앙으로 이동 */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+        <VoiceChat
+          users={voiceChatUsers}
+          onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
+          onCallEnd={() => console.log("Call ended")}
+          onOrganize={() => console.log("Organize clicked")}
+          onShare={() => console.log("Share clicked")}
+        />
+      </div>
+
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
         <Textbox onAddNode={handleAddNode} />
       </div>

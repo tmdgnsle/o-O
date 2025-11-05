@@ -249,3 +249,37 @@
 .custom-simplebar .simplebar-content-wrapper::-webkit-scrollbar {
   display: none;
 }
+
+/* globals.css 맨 아래에 추가 */
+
+/* Tooltip 화살표 스타일 */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999;
+}
+
+/* 화살표 만들기 */
+[data-radix-tooltip-content][data-side="bottom"]::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid currentColor;
+}
+
+[data-radix-tooltip-content][data-side="top"]::before {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid currentColor;
+}
