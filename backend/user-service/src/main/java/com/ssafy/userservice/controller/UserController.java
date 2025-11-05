@@ -36,6 +36,13 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "사용자 정보 수정", description = "현재 로그인한 사용자의 정보를 수정합니다 (닉네임, 프로필 이미지 등)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공",
+                    content = @Content(examples = @ExampleObject(value = "{\"email\":\"user@example.com\",\"nickname\":\"새닉네임\",\"profileImage\":\"https://...\"}"))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content)
+    })
     @PutMapping("")
     public ResponseEntity<UserResponse> updateUser(
             @RequestHeader("X-USER-ID") Long userId,

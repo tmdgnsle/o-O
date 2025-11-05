@@ -1,6 +1,5 @@
 package com.ssafy.userservice.util;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 
 public class CookieUtil {
