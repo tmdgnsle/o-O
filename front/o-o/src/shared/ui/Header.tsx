@@ -2,7 +2,8 @@ import { Link, NavLink } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
 import logo from "@/shared/assets/images/logo.png";
 import popo1 from "@/shared/assets/images/popo1.png";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal";
 
 const MOCK_USER = {
   name: "홍길동",
@@ -15,6 +16,7 @@ const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
 
 export function Header() {
   const isLoggedIn = true;
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoggedIn && window.google) {
@@ -66,11 +68,15 @@ export function Header() {
               New Project
             </NavLink>
           )}
+          {isLoggedIn && (
+            <NavLink to="/mypage" className={getNavLinkClass}>
+              My Page
+            </NavLink>
+          )}
         </nav>
       </div>
-
       {isLoggedIn ? (
-        <Link to="/mypage">
+        <button onClick={() => setIsProfileModalOpen(true)}>
           <div
             className="flex items-center px-2 py-1 sm:px-4 sm:py-2"
             style={{
@@ -103,7 +109,7 @@ export function Header() {
               {MOCK_USER.name}
             </span>
           </div>
-        </Link>
+        </button>
       ) : (
         <div
           id="googleSignInDiv"
