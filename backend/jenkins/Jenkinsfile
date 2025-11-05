@@ -129,43 +129,55 @@ pipeline {
 
     stage('Apply K8s Manifests (always)') {
       steps {
-        sh '''
-          set -e
-          kubectl apply -f backend/k8s/base/namespace.yaml
-          kubectl -n ${NAMESPACE} apply -f backend/k8s/apps/
-          kubectl -n ${NAMESPACE} apply -f backend/k8s/base/ingress-alb.yaml
-        '''
+        withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                          usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                          passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            set -e
+            export AWS_DEFAULT_REGION=${AWS_REGION}
+            export AWS_EC2_METADATA_DISABLED=true
+            kubectl apply -f backend/k8s/base/namespace.yaml
+            kubectl -n ${NAMESPACE} apply -f backend/k8s/apps/
+            kubectl -n ${NAMESPACE} apply -f backend/k8s/base/ingress-alb.yaml
+          '''
+        }
       }
     }
 
     stage('Rolling Update') {
       steps {
-        sh '''
-          set -e
-          while read line; do
-            SVC=$(echo $line | awk '{print $1}')
-            IMG=$(echo $line | awk '{print $2}')
-            BASE=${SVC%-service}
-            DEPLOY="${BASE}-deploy"
-            CONTAINER="${BASE}"
-            if kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1; then
-              kubectl -n ${NAMESPACE} set image deploy/${DEPLOY} ${CONTAINER}=${IMG}
-            else
-              echo "[skip] ${DEPLOY} not found"
-            fi
-          done < .pushed_images
+        withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                          usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                          passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            set -e
+            export AWS_DEFAULT_REGION=${AWS_REGION}
+            export AWS_EC2_METADATA_DISABLED=true
 
-          while read line; do
-            SVC=$(echo $line | awk '{print $1}')
-            BASE=${SVC%-service}
-            DEPLOY="${BASE}-deploy"
-            kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1 && \
-              kubectl -n ${NAMESPACE} rollout status deploy/${DEPLOY} || true
-          done < .pushed_images
-        '''
+            while read line; do
+              SVC=$(echo $line | awk '{print $1}')
+              IMG=$(echo $line | awk '{print $2}')
+              BASE=${SVC%-service}
+              DEPLOY="${BASE}-deploy"
+              CONTAINER="${BASE}"
+              if kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1; then
+                kubectl -n ${NAMESPACE} set image deploy/${DEPLOY} ${CONTAINER}=${IMG}
+              else
+                echo "[skip] ${DEPLOY} not found"
+              fi
+            done < .pushed_images
+
+            while read line; do
+              SVC=$(echo $line | awk '{print $1}')
+              BASE=${SVC%-service}
+              DEPLOY="${BASE}-deploy"
+              kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1 && \
+                kubectl -n ${NAMESPACE} rollout status deploy/${DEPLOY} || true
+            done < .pushed_images
+          '''
+        }
       }
     }
-  }
 
   post {
     always { sh 'rm -f .b_account_id .services_to_build .pushed_images .img_* || true' }
