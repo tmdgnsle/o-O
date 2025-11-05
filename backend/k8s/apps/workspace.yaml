@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspace-deploy
+  namespace: prod
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: workspace } }
+  template:
+    metadata: { labels: { app: workspace } }
+    spec:
+      containers:
+        - name: workspace
+          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:workspace-initial"
+          ports: [{ containerPort: 8083 }]
+          resources:
+            requests: { cpu: "150m", memory: "256Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: 8083 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: 8083 }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          envFrom:
+            - configMapRef:
+                name: workspace-config
+            - secretRef:
+                name: workspace-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workspace-svc
+  namespace: prod
+spec:
+  type: ClusterIP
+  selector: { app: workspace }
+  ports:
+    - name: http
+      port: 8083
+      targetPort: 8083
