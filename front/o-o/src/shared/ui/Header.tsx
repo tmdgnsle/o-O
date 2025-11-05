@@ -8,6 +8,7 @@ import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal"
 const MOCK_USER = {
   name: "홍길동",
   profileImage: popo1,
+  email: "gildong@gmail.com",
 };
 
 // 네비 링크 스타일 함수
@@ -28,94 +29,104 @@ export function Header() {
   }, [isLoggedIn]);
 
   return (
-    <header
-      className="flex items-center justify-between font-paperlogy"
-      style={{
-        paddingLeft: "clamp(1rem, 5vw, 4rem)",
-        paddingRight: "clamp(1rem, 5vw, 4rem)",
-        paddingTop: "clamp(0.5rem, 2vw, 2rem)",
-        paddingBottom: "clamp(0.5rem, 2vw, 2rem)",
-      }}
-    >
-      <div className="flex items-center gap-8">
-        <Link to="/">
-          <img
-            src={logo}
-            alt="o-O"
-            style={{
-              width: "clamp(60px, 10vw, 108px)",
-              height: "clamp(20px, 3vw, 40px)",
-            }}
-          />
-        </Link>
+    <>
+      <header
+        className="flex items-center justify-between font-paperlogy"
+        style={{
+          paddingLeft: "clamp(1rem, 5vw, 4rem)",
+          paddingRight: "clamp(1rem, 5vw, 4rem)",
+          paddingTop: "clamp(0.5rem, 2vw, 2rem)",
+          paddingBottom: "clamp(0.5rem, 2vw, 2rem)",
+        }}
+      >
+        <div className="flex items-center gap-8">
+          <Link to="/">
+            <img
+              src={logo}
+              alt="o-O"
+              style={{
+                width: "clamp(60px, 10vw, 108px)",
+                height: "clamp(20px, 3vw, 40px)",
+              }}
+            />
+          </Link>
 
-        <nav
-          className="
+          <nav
+            className="
             flex items-baseline"
-          style={{
-            gap: "clamp(2px,2vw,24px)",
-            fontSize: "clamp(15px,1.5vw,36px)",
-          }}
-        >
-          <NavLink to="/" className={getNavLinkClass}>
-            Home
-          </NavLink>
-          <NavLink to="/trend" className={getNavLinkClass}>
-            Trend
-          </NavLink>
-          {isLoggedIn && (
-            <NavLink to="/new-project" className={getNavLinkClass}>
-              New Project
-            </NavLink>
-          )}
-          {isLoggedIn && (
-            <NavLink to="/mypage" className={getNavLinkClass}>
-              My Page
-            </NavLink>
-          )}
-        </nav>
-      </div>
-      {isLoggedIn ? (
-        <button onClick={() => setIsProfileModalOpen(true)}>
-          <div
-            className="flex items-center px-2 py-1 sm:px-4 sm:py-2"
             style={{
-              gap: "clamp(0.5rem, 1vw, 1rem)",
+              gap: "clamp(2px,2vw,24px)",
+              fontSize: "clamp(15px,1.5vw,36px)",
             }}
           >
+            <NavLink to="/" className={getNavLinkClass}>
+              Home
+            </NavLink>
+            <NavLink to="/trend" className={getNavLinkClass}>
+              Trend
+            </NavLink>
+            {isLoggedIn && (
+              <NavLink to="/new-project" className={getNavLinkClass}>
+                New Project
+              </NavLink>
+            )}
+            {isLoggedIn && (
+              <NavLink to="/mypage" className={getNavLinkClass}>
+                My Page
+              </NavLink>
+            )}
+          </nav>
+        </div>
+        {isLoggedIn ? (
+          <button onClick={() => setIsProfileModalOpen(true)}>
             <div
-              className="rounded-full bg-white flex items-center justify-center shadow-md"
+              className="flex items-center px-2 py-1 sm:px-4 sm:py-2"
               style={{
-                width: "clamp(32px, 5vw, 48px)",
-                height: "clamp(32px, 5vw, 48px)",
+                gap: "clamp(0.5rem, 1vw, 1rem)",
               }}
             >
-              <img
-                src={MOCK_USER.profileImage}
-                alt="profile"
-                className="object-cover"
+              <div
+                className="rounded-full bg-white flex items-center justify-center shadow-md"
                 style={{
-                  width: "clamp(28px, 4.5vw, 44px)",
-                  height: "clamp(28px, 4.5vw, 44px)",
+                  width: "clamp(32px, 5vw, 48px)",
+                  height: "clamp(32px, 5vw, 48px)",
                 }}
-              />
+              >
+                <img
+                  src={MOCK_USER.profileImage}
+                  alt="profile"
+                  className="object-cover"
+                  style={{
+                    width: "clamp(28px, 4.5vw, 44px)",
+                    height: "clamp(28px, 4.5vw, 44px)",
+                  }}
+                />
+              </div>
+              <span
+                className="font-medium text-primary"
+                style={{
+                  fontSize: "clamp(14px, 1.2vw, 16px)",
+                }}
+              >
+                {MOCK_USER.name}
+              </span>
             </div>
-            <span
-              className="font-medium text-primary"
-              style={{
-                fontSize: "clamp(14px, 1.2vw, 16px)",
-              }}
-            >
-              {MOCK_USER.name}
-            </span>
-          </div>
-        </button>
-      ) : (
-        <div
-          id="googleSignInDiv"
-          className="flex justify-center items-center"
+          </button>
+        ) : (
+          <div
+            id="googleSignInDiv"
+            className="flex justify-center items-center"
+          />
+        )}
+      </header>
+      {isProfileModalOpen && (
+        <ProfileEditModal
+          onClose={() => setIsProfileModalOpen(false)}
+          currentName={MOCK_USER.name}
+          currentEmail={MOCK_USER.email}
+          currentImage={MOCK_USER.profileImage}
         />
       )}
-    </header>
+    </>
   );
 }
