@@ -1,0 +1,71 @@
+package com.ssafy.userservice.security;
+
+import com.ssafy.userservice.domain.Platform;
+import com.ssafy.userservice.domain.TokenCategory;
+import com.ssafy.userservice.service.RefreshTokenService;
+import com.ssafy.userservice.util.CookieUtil;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+
+    private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
+
+    @Value("${jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private Long refreshTokenExpiration;
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+
+        CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
+        Long userId = oAuth2User.getUserId();
+        String role = oAuth2User.getRole();
+
+        // 웹 OAuth2 로그인은 항상 WEB 플랫폼
+        Platform platform = Platform.WEB;
+
+        log.info("OAuth2 login success - userId: {}, role: {}, platform: {}", userId, role, platform.getValue());
+
+        // Access Token 생성 (platform 정보 포함)
+        String accessToken = jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platform, accessTokenExpiration);
+
+        // Refresh Token 생성 (platform 정보 포함)
+        String refreshToken = jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platform, refreshTokenExpiration);
+
+        // Refresh Token을 Redis에 저장
+        Long ttlSeconds = refreshTokenExpiration / 1000;  // 밀리초를 초로 변환 (TTL은 초 단위)
+        refreshTokenService.saveRefreshToken(userId, platform.getValue(), refreshToken, ttlSeconds);
+
+        // Access Token은 헤더로 전달
+        response.setHeader("Authorization", "Bearer " + accessToken);
+
+        // Refresh Token은 HttpOnly Cookie로 전달
+        ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken);
+        response.addHeader("Set-Cookie", refreshCookie.toString());
+
+        // 응답
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"message\": \"login success\", \"userId\": " + userId + "}");
+
+        log.info("JWT tokens issued for userId: {}", userId);
+    }
+}
