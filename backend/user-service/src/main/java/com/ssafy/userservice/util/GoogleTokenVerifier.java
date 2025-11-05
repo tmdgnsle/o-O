@@ -20,10 +20,11 @@ public class GoogleTokenVerifier {
 
     private final GoogleIdTokenVerifier verifier;
 
-    public GoogleTokenVerifier(@Value("${spring.security.oauth2.client.registration.google.client-id}") String clientId) {
+    public GoogleTokenVerifier(@Value("${google.client-id-mobile}") String mobileClientId) {
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(clientId))
+                .setAudience(Collections.singletonList(mobileClientId))
                 .build();
+        log.info("GoogleTokenVerifier initialized with mobile client ID");
     }
 
     public Map<String, Object> verifyAndExtract(String idTokenString)

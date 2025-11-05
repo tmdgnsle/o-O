@@ -46,5 +46,8 @@ jwt:
   access-token-expiration: 3600000  # 1시간
   refresh-token-expiration: 604800000  # 7일
 
+google:
+  client-id-mobile: ${GOOGLE_CLIENT_ID_MOBILE}
+
 server:
   port: 8081
