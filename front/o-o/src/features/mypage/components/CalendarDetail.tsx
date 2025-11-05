@@ -51,6 +51,10 @@ export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
 
   // 날짜 선택 핸들러
   const handleDateSelect = (selectedDate: Date | undefined) => {
+    if (!selectedDate) {
+      return;
+    }
+
     setDate(selectedDate);
 
     if (selectedDate && onDateClick) {
@@ -85,7 +89,7 @@ export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
       month.getMonth() >= today.getMonth());
 
   return (
-    <div>
+    <div className="scale-[0.7] sm:scale-80 md:scale-90 xl:scale-100 origin-top -mb-14 lg:mb-0">
       <Calendar
         mode="single"
         selected={date}

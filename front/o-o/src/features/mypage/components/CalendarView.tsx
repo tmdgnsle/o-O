@@ -35,20 +35,25 @@ export function CalendarView() {
   };
 
   return (
-    <div className="mx-12 px-7 mt-5 bg-white/60 rounded-3xl relative h-[calc(100vh-212px)]">
-      <div className="absolute z-10 right-5 top-5">
+    <div
+      className="mx-4 sm:mx-8 lg:mx-12 px-4 sm:px-5 lg:px-7 mt-5 bg-white/60 rounded-3xl relative 
+                    h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] lg:h-[calc(100vh-212px)]"
+    >
+      <div className="absolute z-10 right-3 top-3 sm:right-5 sm:top-5">
         <DashboardTabNav />
       </div>
 
-      <div className="flex justify-between h-full gap-4">
+      <div className="flex flex-col lg:flex-row justify-between h-full lg:gap-4 gap-0 py-2 lg:py-0">
+        {/* lg (1024px) 이상에서만 flex-row */}
+
         {/* 왼쪽: 캘린더 영역 */}
-        <div className="flex-2 relative">
+        <div className="lg:flex-[0_0_auto] w-full lg:w-auto relative flex justify-center lg:justify-start flex-shrink-0">
           <CalendarDetail onDateClick={handleDateClick} />
           {isFullscreen && (
             <img
               src={popo}
               alt="popo character"
-              className="absolute bottom-0 left-0"
+              className="absolute bottom-0 left-0 hidden lg:block"
               style={{
                 width: "clamp(220px, 30vw, 350px)",
                 height: "auto",
@@ -58,7 +63,7 @@ export function CalendarView() {
         </div>
 
         {/* 오른쪽: Marbles 영역 */}
-        <div className="flex-1 h-full">
+        <div className="flex-1 overflow-hidden min-h-[200px] lg:min-h-0">
           <MarblesView keywords={selectedDateKeywords} />
         </div>
       </div>

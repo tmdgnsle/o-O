@@ -98,7 +98,7 @@ function Calendar({
           defaultClassNames.week_number
         ),
         day: cn(
-          "group/day relative aspect-square h-full w-full select-none p-0 text-center [&:first-child[data-selected=true]_button]:rounded-l-md [&:last-child[data-selected=true]_button]:rounded-r-md",
+          "group/day relative aspect-square h-full w-full select-none p-0 text-center",
           defaultClassNames.day
         ),
         range_start: cn(
@@ -194,6 +194,13 @@ function CalendarDayButton({
       data-day={day.date.toLocaleDateString()}
       data-selected-single={isSelected}
       disabled={modifiers.disabled}
+      onClick={(e) => {
+        if (isSelected) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }}
       className={cn(
         // 기본 스타일 - 외부 날짜가 아닐 때만 흰색 원
         "h-8 w-8 rounded-full text-md font-semibold font-paperlogy",
@@ -203,8 +210,11 @@ function CalendarDayButton({
         // 기본 상태 - 흰색 원 (외부 날짜가 아니고, 선택되지 않고, 아이디어가 없을 때)
         !modifiers.outside && !isSelected && !hasIdeas && "bg-white",
 
+        // 선택되지 않은 날짜만 hover 효과 적용
+        !isSelected && "hover:bg-primary/80 hover:text-white",
+
         // 선택된 날짜 - 남색 (최우선)
-        isSelected && "!bg-primary !text-white hover:!bg-black",
+        isSelected && "!bg-primary !text-white cursor-default",
 
         // 아이디어 기록한 날 - 하늘색 (선택되지 않았을 때만)
         !isSelected &&
