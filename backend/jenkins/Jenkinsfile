@@ -7,7 +7,7 @@ pipeline {
     CLUSTER    = 'o-o-cluster'
     ECR_REPO   = 'o-o-backend'
     NAMESPACE  = 'prod'
-    PARALLEL_BUILD = 'true'    // 병렬 빌드 on/off
+    PARALLEL_BUILD = 'true'
   }
 
   stages {
@@ -15,11 +15,7 @@ pipeline {
       steps { checkout scm }
     }
 
-    // 🔐 B계정 액세스키를 Jenkins Credentials에 저장해두고 사용
-    // Jenkins → Credentials → (Global) → Add credentials
-    // Kind: Username with password
-    // ID: aws-creds-b / Username: <ACCESS_KEY_ID> / Password: <SECRET_ACCESS_KEY>
-    stage('AWS Auth (B account)') {
+    stage('ECR Login & Ensure Repo') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
                                           usernameVariable: 'AWS_ACCESS_KEY_ID',
@@ -27,25 +23,21 @@ pipeline {
           sh '''
             set -e
             export AWS_DEFAULT_REGION=${AWS_REGION}
-            aws sts get-caller-identity --no-cli-pager
+            export AWS_EC2_METADATA_DISABLED=true
+
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+            # B계정이어야 함 (디버그)
+            echo "[whoami] $ACCOUNT_ID"
+
+            aws ecr describe-repositories --repository-names ${ECR_REPO} >/dev/null 2>&1 || \
+              aws ecr create-repository --repository-name ${ECR_REPO} --image-scanning-configuration scanOnPush=true
+
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+            echo $ACCOUNT_ID > .b_account_id
           '''
         }
-      }
-    }
-
-    stage('ECR Login & Ensure Repo') {
-      steps {
-        sh '''
-          set -e
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          # 레포 없으면 생성
-          aws ecr describe-repositories --repository-names ${ECR_REPO} >/dev/null 2>&1 || \
-            aws ecr create-repository --repository-name ${ECR_REPO} --image-scanning-configuration scanOnPush=true
-          # 로그인
-          aws ecr get-login-password --region ${AWS_REGION} \
-            | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-          echo $ACCOUNT_ID > .b_account_id
-        '''
       }
     }
 
@@ -54,28 +46,19 @@ pipeline {
         sh '''
           set -e
           SERVICES=$(ls -d backend/*-service 2>/dev/null | xargs -n1 basename || true)
-          if [ -z "$SERVICES" ]; then
-            echo "No backend/*-service found"; exit 1
-          fi
+          [ -z "$SERVICES" ] && { echo "No backend/*-service found"; exit 1; }
 
           CHANGED=""
           if git rev-parse --verify -q "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" >/dev/null 2>&1; then
             DIFF_FILES=$(git diff --name-only "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" "$GIT_COMMIT" || true)
             for SVC in $SERVICES; do
-              if echo "$DIFF_FILES" | grep -q "^backend/${SVC}/"; then
-                CHANGED="$CHANGED $SVC"
-              fi
+              echo "$DIFF_FILES" | grep -q "^backend/${SVC}/" && CHANGED="$CHANGED $SVC"
             done
           fi
 
-          # 변경 없거나 첫 빌드면 전체
-          if [ -z "$CHANGED" ]; then
-            CHANGED="$SERVICES"
-          fi
-
+          [ -z "$CHANGED" ] && CHANGED="$SERVICES"
           echo "$CHANGED" | xargs -n1 > .services_to_build
-          echo "[plan] will build:"
-          cat .services_to_build
+          echo "[plan] will build:"; cat .services_to_build
         '''
       }
     }
@@ -93,45 +76,38 @@ pipeline {
                 set -e
                 TAG="${svc}-${BUILD_NUMBER}"
                 URI="${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${TAG}"
-                echo "==> Build ${svc}"
                 docker build -t ${ECR_REPO}:${TAG} ./backend/${svc}
-                echo "==> Push ${URI}"
                 docker tag ${ECR_REPO}:${TAG} ${URI}
                 docker push ${URI}
                 echo "${svc} ${URI}" > .img_${svc}
               """
             }
           }
-
-          if (env.PARALLEL_BUILD == 'true') {
-            parallel tasks
-          } else {
-            tasks.each { name, body -> body() }
-          }
-
-          sh '''
-            set -e
-            rm -f .pushed_images || true
-            cat .img_* > .pushed_images
-            echo "[pushed]"
-            cat .pushed_images
-          '''
+          parallel tasks
+          sh 'rm -f .pushed_images || true; cat .img_* > .pushed_images; cat .pushed_images'
         }
       }
     }
 
     stage('Kubeconfig') {
       steps {
-        sh 'aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER}'
+        withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                          usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                          passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            set -e
+            export AWS_DEFAULT_REGION=${AWS_REGION}
+            export AWS_EC2_METADATA_DISABLED=true
+            aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER}
+          '''
+        }
       }
     }
 
-    // ➕ 새 서비스 추가/수정 자동 반영 (멱등)
     stage('Apply K8s Manifests (always)') {
       steps {
         sh '''
           set -e
-          echo "[apply] base, apps, ingress..."
           kubectl apply -f backend/k8s/base/namespace.yaml
           kubectl -n ${NAMESPACE} apply -f backend/k8s/apps/
           kubectl -n ${NAMESPACE} apply -f backend/k8s/base/ingress-alb.yaml
@@ -150,7 +126,6 @@ pipeline {
             DEPLOY="${BASE}-deploy"
             CONTAINER="${BASE}"
             if kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1; then
-              echo "==> rollout ${DEPLOY} (${CONTAINER}=${IMG})"
               kubectl -n ${NAMESPACE} set image deploy/${DEPLOY} ${CONTAINER}=${IMG}
             else
               echo "[skip] ${DEPLOY} not found"
