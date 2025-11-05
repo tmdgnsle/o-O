@@ -68,31 +68,49 @@ pipeline {
         script {
           def tasks = [:]
           def accountId = sh(returnStdout: true, script: "cat .b_account_id").trim()
-          def services = readFile('.services_to_build').split("\\r?\\n").findAll { it?.trim() }
+          def services   = readFile('.services_to_build').split("\\r?\\n").findAll { it?.trim() }
+          def failed     = []
 
           services.each { svc ->
             tasks[svc] = {
-              sh """
-                set -e
-                TAG="${svc}-${BUILD_NUMBER}"
-                URI="${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:\${TAG}"
+              try {
+                sh '''#!/usr/bin/env bash
+    set -euo pipefail
+    TAG="''' + svc + '''-''' + env.BUILD_NUMBER + '''"
+    ACCOUNT_ID=$(cat .b_account_id)
+    URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${TAG}"
 
-                echo "==> Build ${svc}"
-                docker build -t ${ECR_REPO}:\${TAG} ./backend/${svc}
-
-                echo "==> Push \$URI"
-                docker tag ${ECR_REPO}:\${TAG} \$URI
-                docker push \$URI
-
-                echo "${svc} \$URI" > .img_${svc}
-              """
+    echo "==> Build ''' + svc + ''' as ${URI}"
+    docker build -t ${ECR_REPO}:${TAG} ./backend/''' + svc + '''
+    docker tag ${ECR_REPO}:${TAG} ${URI}
+    docker push ${URI}
+    echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
+    '''
+              } catch (e) {
+                echo "[FAIL] ${svc}: ${e}"
+                failed << svc
+              }
             }
           }
+
           parallel tasks
-          sh 'rm -f .pushed_images || true; cat .img_* > .pushed_images; cat .pushed_images'
+
+          sh 'rm -f .pushed_images || true; cat .img_* > .pushed_images || true'
+
+          // 실패 리스트 프린트
+          if (failed) {
+            echo "[WARN] Failed services: ${failed.join(', ')}"
+          }
+
+          // 아무것도 못 밀었으면 전체 실패 처리
+          def pushed = sh(returnStdout:true, script: "test -s .pushed_images && wc -l < .pushed_images || echo 0").trim()
+          if (pushed == "0") {
+            error("No images pushed. Failing the build.")
+          }
         }
       }
     }
+
 
     stage('Kubeconfig') {
       steps {
