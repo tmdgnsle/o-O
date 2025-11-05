@@ -23,28 +23,26 @@ public class WorkspaceController {
     private final WorkspaceService workspaceService;
 
     /** 새 워크스페이스 생성: POST /workspace */
-    // 쿼리 ownerUserId, 바디 WorkspaceCreateRequest
+    // 기존: @RequestParam("ownerUserId") → 변경: 게이트웨이에서 넘겨주는 헤더 사용
     @PostMapping
     public ResponseEntity<WorkspaceResponse> create(
-            @RequestParam("ownerUserId") Long ownerUserId, // 추후 JWT로 대체 예정? HTTP 쿼리 파라미터. URL의 ? 뒤에 붙는 key-value들
-            // POST /workspace?ownerUserId=1
+            @RequestHeader("X-USER-ID") Long ownerUserId,
             @RequestBody @Valid WorkspaceCreateRequest request
     ) {
         return ResponseEntity.ok(workspaceService.create(ownerUserId, request));
     }
 
-    /** 상세 + 멤버 역할 포함(입장 판단): GET /workspace/{workspaceId}?userId= */
-    // 입장판단을 포함하는 상세 내용ㅇㅇㅇ
+    /** 상세 + 멤버 역할 포함(입장 판단): GET /workspace/{workspaceId} */
+    // 기존: @RequestParam(name = "userId", required = false) → 변경: 헤더 사용
     @GetMapping("/{workspaceId}")
     public ResponseEntity<WorkspaceDetailResponse> detail(
             @PathVariable Long workspaceId,
-            @RequestParam(name = "userId", required = false) Long requesterUserId
+            @RequestHeader(value = "X-USER-ID", required = false) Long requesterUserId
     ) {
         return ResponseEntity.ok(workspaceService.getDetail(workspaceId, requesterUserId));
     }
 
     /** 멤버 직접 추가: POST /workspace/{workspaceId}/member/add */
-    // 멤버를 직접 추가함
     @PostMapping("/{workspaceId}/member/add")
     public ResponseEntity<Void> addMember(
             @PathVariable Long workspaceId,
@@ -56,7 +54,6 @@ public class WorkspaceController {
 
     /** 멤버 권한 변경: PATCH /workspace/{workspaceId}/member/{memberId} */
     @PatchMapping("/{workspaceId}/member/{memberId}")
-    // 역할 수정
     public ResponseEntity<Void> changeMemberRole(
             @PathVariable Long workspaceId,
             @PathVariable Long memberId,
@@ -67,7 +64,6 @@ public class WorkspaceController {
     }
 
     /** 멤버 초대(링크/메일): POST /workspace/{workspaceId}/member */
-    // 초대
     @PostMapping("/{workspaceId}/member")
     public ResponseEntity<Void> inviteMember(
             @PathVariable Long workspaceId,
@@ -78,7 +74,6 @@ public class WorkspaceController {
     }
 
     /** 공개/비공개 전환: PATCH /workspace/{workspaceId}/visibility */
-    // 공개여부를 바꾸는
     @PatchMapping("/{workspaceId}/visibility")
     public ResponseEntity<Void> changeVisibility(
             @PathVariable Long workspaceId,
@@ -95,7 +90,6 @@ public class WorkspaceController {
     }
 
     /** 월/기간 활동 요약: GET /workspace/calendar?from=yyyy-MM-dd&to=yyyy-MM-dd */
-    // 월/기간을 요약함
     @GetMapping("/calendar")
     public ResponseEntity<WorkspaceCalendarSummaryResponse> calendar(
             @RequestParam LocalDate from,
