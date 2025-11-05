@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
+import prettierConfig from "eslint-config-prettier"; // 추가
 
 export default defineConfig([
   globalIgnores(["dist"]),
@@ -20,4 +21,5 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  prettierConfig, // 맨 마지막에 추가 (중요!)
 ]);
