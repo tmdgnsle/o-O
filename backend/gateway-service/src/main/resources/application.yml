@@ -39,3 +39,14 @@ services:
   ai:
     host: ${AI_SERVICE_HOST:localhost}
     port: ${AI_SERVICE_PORT:8084}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info   # 필요하면 '*' (운영에선 health 정도 권장)
+  endpoint:
+    health:
+      probes:
+        enabled: true          # /actuator/health/liveness, /readiness 자동 생성
+      show-details: never      # 운영 기본값. 필요시 when_authorized
