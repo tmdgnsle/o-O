@@ -1,8 +1,10 @@
 import { Calendar } from "@/components/ui/calendar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CalendarDetailProps {
-  onDateClick?: (keywords: string[]) => void;
+  onDateClick?: (
+    keywords: Array<{ keyword: string; mindmapId: string }>
+  ) => void;
 }
 
 export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
@@ -11,29 +13,53 @@ export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
   const today = new Date();
 
   // 날짜별 키워드 데이터 (실제로는 API에서 가져올 데이터)
-  const dateKeywords: Record<string, string[]> = {
+  const dateKeywords: Record<
+    string,
+    Array<{ keyword: string; mindmapId: string }>
+  > = {
     "2025-11-05": [
-      "운동",
-      "독서",
-      "공부",
-      "밥",
-      "삶",
-      "코끼리",
-      "침팬지",
-      "알고리즘",
-      "박소영",
-      "시니어",
-      "개발자",
-      "디자이너",
-      "엄마",
-      "할머니",
-      "농사",
-      "아.",
+      { keyword: "운동", mindmapId: "1" },
+      { keyword: "독서", mindmapId: "2" },
+      { keyword: "공부", mindmapId: "3" },
+      { keyword: "밥", mindmapId: "4" },
+      { keyword: "삶", mindmapId: "5" },
+      { keyword: "코끼리", mindmapId: "6" },
+      { keyword: "침팬지", mindmapId: "7" },
+      { keyword: "알고리즘", mindmapId: "8" },
+      { keyword: "박소영", mindmapId: "1" },
+      { keyword: "시니어", mindmapId: "2" },
+      { keyword: "개발자", mindmapId: "3" },
+      { keyword: "디자이너", mindmapId: "4" },
+      { keyword: "엄마", mindmapId: "5" },
+      { keyword: "할머니", mindmapId: "6" },
+      { keyword: "농사", mindmapId: "7" },
+      { keyword: "아.", mindmapId: "8" },
     ],
-    "2025-10-10": ["회의", "프로젝트", "발표"],
-    "2025-10-15": ["휴식", "영화감상"],
-    "2025-10-20": ["코딩", "리뷰"],
+    "2025-10-10": [
+      { keyword: "회의", mindmapId: "1" },
+      { keyword: "프로젝트", mindmapId: "2" },
+      { keyword: "발표", mindmapId: "3" },
+    ],
+    "2025-10-15": [
+      { keyword: "휴식", mindmapId: "4" },
+      { keyword: "영화감상", mindmapId: "5" },
+    ],
+    "2025-10-20": [
+      { keyword: "코딩", mindmapId: "6" },
+      { keyword: "리뷰", mindmapId: "7" },
+    ],
   };
+
+  // 컴포넌트 마운트 시 오늘 날짜의 키워드 자동 로드
+  useEffect(() => {
+    if (onDateClick) {
+      const todayStr = formatDate(today);
+      const keywords = dateKeywords[todayStr] || [];
+      if (keywords.length > 0) {
+        onDateClick(keywords);
+      }
+    }
+  }, []);
 
   // 키워드가 있는 날짜들 추출
   const datesWithIdeas = Object.keys(dateKeywords).map((dateStr) => {

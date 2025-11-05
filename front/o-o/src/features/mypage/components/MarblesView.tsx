@@ -1,14 +1,22 @@
 import Marble from "@/shared/assets/images/marble.png";
 import { useMarbleLayout } from "../hooks/useMarbleLayout";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface MarblesViewProps {
-  keywords: string[];
+  keywords: Array<{ keyword: string; mindmapId: string }>;
 }
 
 export function MarblesView({ keywords }: MarblesViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const marbles = useMarbleLayout(keywords, containerRef);
+  const navigate = useNavigate();
+
+  const keywordStrings = useMemo(
+    () => keywords.map((k) => k.keyword),
+    [keywords.map((k) => k.keyword).join(",")] // 키워드 문자열로 비교
+  );
+
+  const marbles = useMarbleLayout(keywordStrings, containerRef);
 
   if (keywords.length === 0) {
     return (
@@ -51,12 +59,18 @@ export function MarblesView({ keywords }: MarblesViewProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
-      {marbles.map((m) => {
+      {marbles.map((m, index) => {
         const fontSize = getFontSize(m.radius, m.text.length);
+        const mindmapId = keywords[index]?.mindmapId;
 
         return (
           <div
             key={m.id}
+            onClick={() => {
+              if (mindmapId) {
+                navigate(`/project/${mindmapId}`);
+              }
+            }}
             className="absolute transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer 
                        sm:hover:scale-105 md:hover:scale-110"
             style={{

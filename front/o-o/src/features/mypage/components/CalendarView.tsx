@@ -6,9 +6,9 @@ import { MarblesView } from "./MarblesView";
 
 export function CalendarView() {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedDateKeywords, setSelectedDateKeywords] = useState<string[]>(
-    []
-  );
+  const [selectedDateKeywords, setSelectedDateKeywords] = useState<
+    Array<{ keyword: string; mindmapId: string }>
+  >([]);
 
   useEffect(() => {
     const checkFullscreen = () => {
@@ -30,7 +30,9 @@ export function CalendarView() {
     };
   }, []);
 
-  const handleDateClick = (keywords: string[]) => {
+  const handleDateClick = (
+    keywords: Array<{ keyword: string; mindmapId: string }>
+  ) => {
     setSelectedDateKeywords(keywords);
   };
 
