@@ -9,7 +9,10 @@ import { Textbox } from "../components/Textbox";
 import TempNode from "../components/TempNode";
 import ContentDialog from "../components/ContentDialog";
 import VoiceChat from "../components/VoiceChat";
+import ConfirmDialog from "../components/ConfirmDialog";
 import planningPopo from "@/shared/assets/images/planning_popo.png";
+import warningPopo from "@/shared/assets/images/warning_popo.png";
+import endingPopo from "@/shared/assets/images/ending_popo.png";
 import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
@@ -36,7 +39,9 @@ const queryClient = new QueryClient({
 
 const MindmapPageContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState(false); // false로 변경
+  const [showDialog, setShowDialog] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(true); // 테스트용 true
+  const [showEndingDialog, setShowEndingDialog] = useState(false);
 
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
@@ -162,7 +167,7 @@ const bfs = (graph, start) => {
         <VoiceChat
           users={voiceChatUsers}
           onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
-          onCallEnd={() => console.log("Call ended")}
+          onCallEnd={() => setShowEndingDialog(true)} // 종료 다이얼로그 표시
           onOrganize={() => console.log("Organize clicked")}
           onShare={() => console.log("Share clicked")}
         />
@@ -171,6 +176,73 @@ const bfs = (graph, start) => {
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
         <Textbox onAddNode={handleAddNode} />
       </div>
+
+      {/* Warning 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showWarningDialog}
+        onClose={() => setShowWarningDialog(false)}
+        characterImage={warningPopo}
+        title="주의"
+        description={
+          <p>
+            아직 <span className="font-bold">'입력하기'</span>를 누르지
+            않으셨습니다.
+            <br />
+            다시 녹음을 시작하면 지금까지 추출된
+            <br />
+            키워드는 모두 없어집니다.
+            <br />
+            계속하시겠습니까?
+          </p>
+        }
+        buttons={[
+          {
+            text: "녹음 시작",
+            onClick: () => {
+              console.log("녹음 시작");
+              setShowWarningDialog(false);
+            },
+            variant: "outline",
+          },
+          {
+            text: "입력하기",
+            onClick: () => setShowWarningDialog(false),
+          },
+        ]}
+      />
+
+      {/* Ending 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showEndingDialog}
+        onClose={() => setShowEndingDialog(false)}
+        characterImage={endingPopo}
+        title="회의가 종료되었습니다."
+        description={
+          <p>
+            회의 내용은 <span className="font-bold">Popo</span>가
+            정리해드렸어요.
+            <br />
+            생성된 회의록을 확인하시겠습니까?
+          </p>
+        }
+        buttons={[
+          {
+            text: "마인드맵 보기",
+            onClick: () => {
+              console.log("마인드맵 보기");
+              setShowEndingDialog(false);
+            },
+            variant: "outline",
+          },
+          {
+            text: "회의록 확인하기",
+            onClick: () => {
+              console.log("회의록 확인하기");
+              setShowEndingDialog(false);
+            },
+          },
+        ]}
+      />
 
       {/* 테스트용 다이얼로그 */}
       {showDialog && (
