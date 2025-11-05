@@ -9,7 +9,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.net.URI;
 
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
-import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.to;
+import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.http;
 
 @Configuration
 public class GatewayConfig {
@@ -23,10 +23,9 @@ public class GatewayConfig {
     @Bean
     public RouterFunction<ServerResponse> gatewayRoutes() {
         // AI 서버 동적 라우팅
-        URI aiServiceUri = URI.create(String.format("http://%s:%d", aiServiceHost, aiServicePort));
-
+        String aiUrl = String.format("http://%s:%d", aiServiceHost, aiServicePort);
         return route("ai-service")
-                .route(req -> req.path().startsWith("/ai"), to(aiServiceUri))
+                .route(req -> req.path().startsWith("/ai"), http(URI.create(aiUrl)))
                 .build();
     }
 }
