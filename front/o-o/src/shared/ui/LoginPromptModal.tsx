@@ -1,8 +1,8 @@
 import Modal from "./Modal";
 
 interface LoginPromptModelProps {
-  isOpen: boolean;
-  onClose: () => void;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
 }
 
 export default function LoginPromptModel({
