@@ -2,9 +2,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 
 interface ModalHeaderProps {
-  isEditing: boolean;
-  onEdit: () => void;
-  onClose: () => void;
+  readonly isEditing: boolean;
+  readonly onEdit: () => void;
+  readonly onClose: () => void;
 }
 
 export function ModalHeader({ isEditing, onEdit, onClose }: ModalHeaderProps) {

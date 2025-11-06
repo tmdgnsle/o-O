@@ -1,6 +1,6 @@
 interface SearchRecommendSectionProps {
-  onKeywordClick: (keyword: string) => void;
-  selectedKeyword: string | null;
+  readonly onKeywordClick: (keyword: string) => void;
+  readonly selectedKeyword: string | null;
 }
 
 export function SearchRecommendSection({

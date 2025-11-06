@@ -6,9 +6,9 @@ import popo3 from "@/shared/assets/images/popo3.png";
 import popo4 from "@/shared/assets/images/popo4.png";
 
 interface ProfileImageProps {
-  currentImage?: string;
-  isEditing: boolean;
-  onImageChange?: (image: string) => void;
+  readonly currentImage?: string;
+  readonly isEditing: boolean;
+  readonly onImageChange?: (image: string) => void;
 }
 
 export function ProfileImage({
@@ -42,7 +42,7 @@ export function ProfileImage({
 
             return (
               <button
-                key={index}
+                key={avatar}
                 onClick={() => handleSelectImage(avatar)}
                 className={`absolute w-12 h-12 rounded-full border p-1 transition overflow-hidden ${
                   isSelected ? "bg-primary " : "bg-[#F6F6F6] border-[#E5E5E5]"

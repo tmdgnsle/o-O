@@ -6,7 +6,7 @@ import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
 
 interface DashboardProps {
-  activeTab?: string;
+  readonly activeTab?: string;
 }
 
 const DUMMY_PROJECT = [

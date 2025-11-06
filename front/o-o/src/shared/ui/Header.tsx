@@ -20,8 +20,8 @@ export function Header() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn && window.google) {
-      window.google.accounts.id.initialize({
+    if (!isLoggedIn && globalThis.google) {
+      globalThis.google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         callback: (res) => console.log("로그인 응답:", res),
       });

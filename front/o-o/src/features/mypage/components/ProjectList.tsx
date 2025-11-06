@@ -15,7 +15,7 @@ interface Project {
 }
 
 interface ProjectListPropos {
-  projects: Project[];
+  readonly projects: Project[];
 }
 
 export function ProjectList({ projects }: ProjectListPropos) {

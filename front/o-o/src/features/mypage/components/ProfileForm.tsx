@@ -1,11 +1,11 @@
 interface ProfileFormProps {
-  name: string;
-  email: string;
-  isEditing: boolean;
-  onNameChange: (name: string) => void;
-  onEmailChange: (email: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
+  readonly name: string;
+  readonly email: string;
+  readonly isEditing: boolean;
+  readonly onNameChange: (name: string) => void;
+  readonly onEmailChange: (email: string) => void;
+  readonly onSave: () => void;
+  readonly onCancel: () => void;
 }
 
 export function ProfileForm({
@@ -20,11 +20,12 @@ export function ProfileForm({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <label className="block text-md font-medium mb-2">
+        <label htmlFor="name" className="block text-md font-medium mb-2">
           이름
           {isEditing && <span className="text-[#FF8B8B] ml-1">*</span>}
         </label>
         <input
+          id="name"
           type="text"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
@@ -35,8 +36,11 @@ export function ProfileForm({
         />
       </div>
       <div>
-        <label className="block text-md font-medium mb-2">이메일</label>
+        <label htmlFor="email" className="block text-md font-medium mb-2">
+          이메일
+        </label>
         <input
+          id="email"
           type="email"
           value={email}
           onChange={(e) => onEmailChange(e.target.value)}

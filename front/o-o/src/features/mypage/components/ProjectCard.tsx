@@ -12,7 +12,7 @@ interface User {
 }
 
 interface ProjectCardProps {
-  project: {
+  readonly project: {
     id: string;
     title: string;
     date: string;
@@ -32,7 +32,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   };
 
   return (
-    <div
+    <button
       onClick={handleCardClick}
       className="bg-white rounded-2xl shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer relative"
     >
@@ -75,6 +75,6 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </span>
         <span className="text-xs text-gray-400">{project.date}</span>
       </div>
-    </div>
+    </button>
   );
 }

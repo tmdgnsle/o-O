@@ -5,14 +5,14 @@ import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 
 export function useGoogleOneTap(isLoggedIn: boolean) {
   const initializeOneTap = useCallback(() => {
-    if (!window.google) return;
-    window.google.accounts.id.initialize({
+    if (!globalThis.google) return;
+    globalThis.google.accounts.id.initialize({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
-    window.google.accounts.id.prompt();
+    globalThis.google.accounts.id.prompt();
 
-    window.google.accounts.id.renderButton(
+    globalThis.google.accounts.id.renderButton(
       document.getElementById("googleSignInDiv")!,
       {
         theme: "outline", // filled_blue / filled_black / outline
@@ -26,15 +26,15 @@ export function useGoogleOneTap(isLoggedIn: boolean) {
   useEffect(() => {
     if (isLoggedIn) return; // 이미 로그인한 경우 One Tap 비활성화
 
-    if (!window.google) {
+    if (globalThis.google) {
+      initializeOneTap();
+    } else {
       const script = document.createElement("script");
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       document.body.appendChild(script);
       script.onload = initializeOneTap;
-    } else {
-      initializeOneTap();
     }
   }, [isLoggedIn, initializeOneTap]); // 의존성 배열에 함수 넣기
 

@@ -2,7 +2,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
 
 interface CalendarDetailProps {
-  onDateClick?: (
+  readonly onDateClick?: (
     keywords: Array<{ keyword: string; mindmapId: string }>
   ) => void;
 }

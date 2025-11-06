@@ -4,7 +4,14 @@ import { useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface MarblesViewProps {
-  keywords: Array<{ keyword: string; mindmapId: string }>;
+  readonly keywords: Array<{ keyword: string; mindmapId: string }>;
+}
+
+// 화면 크기별 최소/최대 크기 제한
+function getSizeRange(width: number) {
+  if (width < 640) return { min: 10, max: 20 };
+  if (width < 1024) return { min: 12, max: 24 };
+  return { min: 12, max: 28 };
 }
 
 export function MarblesView({ keywords }: MarblesViewProps) {
@@ -50,11 +57,8 @@ export function MarblesView({ keywords }: MarblesViewProps) {
       baseFontSize *= 0.8;
     }
 
-    // 화면 크기별 최소/최대 크기 제한
-    const minSize = viewportWidth < 640 ? 10 : 12;
-    const maxSize = viewportWidth < 640 ? 20 : viewportWidth < 1024 ? 24 : 28;
-
-    return Math.max(minSize, Math.min(maxSize, baseFontSize));
+    const { min, max } = getSizeRange(viewportWidth);
+    return Math.max(min, Math.min(max, baseFontSize));
   };
 
   return (
@@ -64,7 +68,8 @@ export function MarblesView({ keywords }: MarblesViewProps) {
         const mindmapId = keywords[index]?.mindmapId;
 
         return (
-          <div
+          <button
+            type="button"
             key={m.id}
             onClick={() => {
               if (mindmapId) {
@@ -99,7 +104,7 @@ export function MarblesView({ keywords }: MarblesViewProps) {
             >
               {m.text}
             </span>
-          </div>
+          </button>
         );
       })}
     </div>

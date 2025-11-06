@@ -4,10 +4,10 @@ import { ProfileForm } from "./ProfileForm";
 import { ModalHeader } from "./ModalHeader";
 
 interface ProfileEditModalProps {
-  onClose: () => void;
-  currentName?: string;
-  currentEmail?: string;
-  currentImage?: string;
+  readonly onClose: () => void;
+  readonly currentName?: string;
+  readonly currentEmail?: string;
+  readonly currentImage?: string;
 }
 
 export function ProfileEditModal({
@@ -39,6 +39,7 @@ export function ProfileEditModal({
     <div>
       <div
         className="fixed inset-0 bg-[#B8B8B8]/60 z-50 backdrop-blur-[2px]"
+        role="none"
         onClick={onClose}
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">

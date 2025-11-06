@@ -12,7 +12,7 @@ interface User {
 }
 
 interface ProjectCardProps {
-  project: {
+  readonly project: {
     id: string;
     title: string;
     date: string;
