@@ -20,6 +20,7 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: { "@typescript-eslint/no-unused-vars": "warn" },
   },
   prettierConfig, // 맨 마지막에 추가 (중요!)
 ]);

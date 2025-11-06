@@ -1,12 +1,15 @@
 // 라우트 경로 상수 정의
 export const PATHS = {
-  HOME: '/',
-  TREND: '/trend',
-  MINDMAP: '/mindmap',
-  NEWPROJECT: '/newproject',
-  MYPAGE: '/mypage',
+  HOME: "/",
+  TREND: "/trend",
+  MINDMAP: "/mindmap",
+  NEWPROJECT: "/newproject",
+  MYPAGE: "/mypage",
+  PROJECT_DETAIL: "/project/:id",
 } as const;
 
 // 경로 타입 정의
-export type PathType = typeof PATHS[keyof typeof PATHS];
+export type PathType = (typeof PATHS)[keyof typeof PATHS];
 
+// 동적 경로 생성 헬퍼 함수
+export const getProjectDetailPath = (id: string) => `/project/${id}`;

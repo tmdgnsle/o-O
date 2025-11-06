@@ -19,6 +19,7 @@ declare global {
       };
     };
   }
+  var google: Window["google"];
 
   // google.accounts.id.initialize에 전달되는 설정 객체 타입
   interface GoogleOneTapConfig {
