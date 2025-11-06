@@ -112,6 +112,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
             }
             shadow-md
           `}
+          aria-label={isMuted ? "마이크 켜기" : "마이크 끄기"}
         >
           {isMuted ? (
             <MicOffOutlinedIcon className="text-xl" />
@@ -127,12 +128,13 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
             w-12 h-12 rounded-full flex items-center justify-center
             transition-all duration-200
             ${
-              !isCallActive
-                ? "bg-danger hover:bg-danger/90 text-white"
-                : "bg-white hover:bg-gray-100 text-semi-black"
+              isCallActive
+                ? "bg-white hover:bg-gray-100 text-semi-black"
+                : "bg-danger hover:bg-danger/90 text-white"
             }
             shadow-md
           `}
+          aria-label={isCallActive ? "통화 종료" : "통화 시작"}
         >
           {isCallActive ? (
             <PhoneEnabledIcon className="text-xl" />
@@ -155,6 +157,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
           <button
             onClick={onOrganize}
             className="w-14 h-14 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center shadow-md transition-all duration-200"
+            aria-label="정리하기"
           >
             <img
               src={organizePopo}

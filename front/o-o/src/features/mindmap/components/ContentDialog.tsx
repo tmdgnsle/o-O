@@ -4,7 +4,146 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import CustomScrollbar from "@/shared/ui/CustomScrollbar";
 
+function hasReadableText(children: React.ReactNode) {
+  // 자식 노드 중 하나라도 텍스트가 있으면 true
+  return React.Children.toArray(children).some((child) => {
+    if (typeof child === "string") return child.trim().length > 0;
+    if (typeof child === "number") return true;
+    // 링크/이모지/인라인요소 등은 스크린리더가 읽을 수 있으므로 존재만으로 true 처리
+    if (React.isValidElement(child)) return true;
+    return false;
+  });
+}
+
+export const MarkdownH1: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
+  children,
+  ...props
+}) => {
+  if (!hasReadableText(children)) return null; // S6850: 빈 헤딩 회피
+  return (
+    <h1
+      className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 lg:mb-5 text-gray-900"
+      {...props}
+    >
+      {children}
+    </h1>
+  );
+};
+
+export const MarkdownH2: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
+  children,
+  ...props
+}) => {
+  if (!hasReadableText(children)) return null;
+  return (
+    <h2
+      className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 lg:mb-4 mt-4 sm:mt-6 lg:mt-8 text-gray-900"
+      {...props}
+    >
+      {children}
+    </h2>
+  );
+};
+
+export const MarkdownH3: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
+  children,
+  ...props
+}) => {
+  if (!hasReadableText(children)) return null;
+  return (
+    <h3
+      className="text-base sm:text-lg lg:text-xl font-semibold mb-2 lg:mb-3 mt-3 sm:mt-4 lg:mt-6 text-gray-800"
+      {...props}
+    >
+      {children}
+    </h3>
+  );
+};
+
+export const MarkdownUL: React.FC<React.HTMLAttributes<HTMLUListElement>> = ({
+  children,
+  ...props
+}) => (
+  <ul
+    className="list-disc pl-4 sm:pl-5 lg:pl-6 mb-3 sm:mb-4 lg:mb-5 space-y-1.5 sm:space-y-2 lg:space-y-3"
+    {...props}
+  >
+    {children}
+  </ul>
+);
+
+export const MarkdownOL: React.FC<React.HTMLAttributes<HTMLOListElement>> = ({
+  children,
+  ...props
+}) => (
+  <ol
+    className="list-decimal pl-4 sm:pl-5 lg:pl-6 mb-3 sm:mb-4 lg:mb-5 space-y-1.5 sm:space-y-2 lg:space-y-3"
+    {...props}
+  >
+    {children}
+  </ol>
+);
+
+export const MarkdownLI: React.FC<React.LiHTMLAttributes<HTMLLIElement>> = ({
+  children,
+  ...props
+}) => (
+  <li
+    className="text-gray-800 leading-relaxed text-sm sm:text-base lg:text-lg"
+    {...props}
+  >
+    {children}
+  </li>
+);
+
+export const MarkdownP: React.FC<
+  React.HTMLAttributes<HTMLParagraphElement>
+> = ({ children, ...props }) => (
+  <p
+    className="mb-2 sm:mb-3 lg:mb-4 text-gray-800 leading-relaxed text-sm sm:text-base lg:text-lg"
+    {...props}
+  >
+    {children}
+  </p>
+);
+
+export const MarkdownStrong: React.FC<React.HTMLAttributes<HTMLElement>> = ({
+  children,
+  ...props
+}) => (
+  <strong className="font-bold text-gray-900" {...props}>
+    {children}
+  </strong>
+);
+
+type CodeProps = React.HTMLAttributes<HTMLElement> & { inline?: boolean };
+export const MarkdownCode: React.FC<CodeProps> = ({
+  inline,
+  children,
+  ...rest
+}) => {
+  if (inline) {
+    return (
+      <code
+        className="bg-gray-300 px-1 sm:px-1.5 lg:px-2 py-0.5 lg:py-1 rounded text-xs sm:text-sm lg:text-base font-mono text-red-600"
+        {...rest}
+      >
+        {children}
+      </code>
+    );
+  }
+  return (
+    <code
+      className="block bg-gray-300 p-3 sm:p-4 lg:p-5 rounded-lg text-xs sm:text-sm lg:text-base font-mono overflow-x-auto"
+      {...rest}
+    >
+      {children}
+    </code>
+  );
+};
+
 interface DialogButton {
+  id: string;
   text: string;
   onClick: () => void;
   variant?: "default" | "outline" | "secondary" | "ghost";
@@ -31,7 +170,7 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
     >
       {/* 반응형 패딩 */}
       <div className="p-4 sm:p-6 lg:p-10">
-        {/* Header - 항상 세로 배치, 큰 화면에서만 가로 */}
+        {/* Header */}
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 sm:gap-4 mb-6 lg:mb-8">
           {/* Left: Character + Title */}
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
@@ -51,7 +190,7 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
           <div className="flex gap-2 flex-shrink-0 self-end xl:self-auto">
             {buttons.map((button, index) => (
               <Button
-                key={index}
+                key={button.id}
                 onClick={button.onClick}
                 variant={button.variant || "outline"}
                 className={`
@@ -77,72 +216,15 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
           <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none pr-2 sm:pr-3 lg:pr-4">
             <ReactMarkdown
               components={{
-                h1: ({ ...props }) => (
-                  <h1
-                    className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 lg:mb-5 text-gray-900"
-                    {...props}
-                  />
-                ),
-                h2: ({ ...props }) => (
-                  <h2
-                    className="text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 lg:mb-4 mt-4 sm:mt-6 lg:mt-8 text-gray-900"
-                    {...props}
-                  />
-                ),
-                h3: ({ ...props }) => (
-                  <h3
-                    className="text-base sm:text-lg lg:text-xl font-semibold mb-2 lg:mb-3 mt-3 sm:mt-4 lg:mt-6 text-gray-800"
-                    {...props}
-                  />
-                ),
-                ul: ({ ...props }) => (
-                  <ul
-                    className="list-disc pl-4 sm:pl-5 lg:pl-6 mb-3 sm:mb-4 lg:mb-5 space-y-1.5 sm:space-y-2 lg:space-y-3"
-                    {...props}
-                  />
-                ),
-                ol: ({ ...props }) => (
-                  <ol
-                    className="list-decimal pl-4 sm:pl-5 lg:pl-6 mb-3 sm:mb-4 lg:mb-5 space-y-1.5 sm:space-y-2 lg:space-y-3"
-                    {...props}
-                  />
-                ),
-                li: ({ ...props }) => (
-                  <li
-                    className="text-gray-800 leading-relaxed text-sm sm:text-base lg:text-lg"
-                    {...props}
-                  />
-                ),
-                p: ({ ...props }) => (
-                  <p
-                    className="mb-2 sm:mb-3 lg:mb-4 text-gray-800 leading-relaxed text-sm sm:text-base lg:text-lg"
-                    {...props}
-                  />
-                ),
-                strong: ({ ...props }) => (
-                  <strong className="font-bold text-gray-900" {...props} />
-                ),
-                code: (props) => {
-                  const { inline, children, ...rest } =
-                    props as React.HTMLAttributes<HTMLElement> & {
-                      inline?: boolean;
-                    };
-                  return inline ? (
-                    <code
-                      className="bg-gray-300 px-1 sm:px-1.5 lg:px-2 py-0.5 lg:py-1 rounded text-xs sm:text-sm lg:text-base font-mono text-red-600"
-                      {...rest}
-                    >
-                      {children}
-                    </code>
-                  ) : (
-                    <code
-                      className="block bg-gray-300 p-3 sm:p-4 lg:p-5 rounded-lg text-xs sm:text-sm lg:text-base font-mono overflow-x-auto"
-                      {...rest}
-                    >
-                      {children}
-                    </code>
-                  );
-                },
+                h1: MarkdownH1,
+                h2: MarkdownH2,
+                h3: MarkdownH3,
+                ul: MarkdownUL,
+                ol: MarkdownOL,
+                li: MarkdownLI,
+                p: MarkdownP,
+                strong: MarkdownStrong,
+                code: MarkdownCode,
               }}
             >
               {content}

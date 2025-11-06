@@ -1,8 +1,9 @@
 // components/ConfirmDialog.tsx
-import React from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ConfirmDialogButton {
+  id: string; // 안정 key
   text: string;
   onClick: () => void;
   variant?: "default" | "outline" | "secondary";
@@ -25,21 +26,48 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   description,
   buttons,
 }) => {
-  if (!isOpen) return null;
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+
+  // S6660 대응: else { if (...) } 구조 제거 → 두 개의 if로 분리
+  useEffect(() => {
+    const dlg = dialogRef.current;
+    if (!dlg) return;
+
+    if (isOpen && !dlg.open) {
+      dlg.showModal();
+    }
+    if (!isOpen && dlg.open) {
+      dlg.close();
+    }
+  }, [isOpen]);
+
+  // 닫힘 이벤트 통합 처리 (Esc 또는 close())
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  // S6847 대응: dialog에 마우스/키보드 리스너 바인딩 금지 → onMouseDown 제거
+  // (배경 클릭 닫기는 제공하지 않음. Esc/버튼으로 닫기)
+
+  // 초기 렌더에서 null 반환해 깜빡임 방지
+  if (!isOpen && !dialogRef.current?.open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-
-      {/* Dialog */}
-      <div className="relative z-10 bg-white rounded-none shadow-2xl max-w-2xl w-full p-8">
+    <dialog
+      ref={dialogRef}
+      className="fixed inset-0 z-[100] max-w-2xl w-[min(90vw,42rem)] p-0 bg-transparent"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-desc"
+      onCancel={handleClose} // Esc
+      onClose={handleClose}
+    >
+      <div className="relative bg-white rounded-none shadow-2xl w-full p-8">
         <div className="flex gap-6 items-center">
           {/* Character Image */}
           <div className="flex-shrink-0">
             <img
               src={characterImage}
-              alt="character"
+              alt="캐릭터 이미지"
               className="w-40 h-40 object-contain"
             />
           </div>
@@ -47,29 +75,36 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           {/* Content */}
           <div className="flex-1 flex flex-col gap-4">
             {/* Title */}
-            <h2 className="text-2xl font-bold text-primary">{title}</h2>
+            <h2
+              id="confirm-dialog-title"
+              className="text-2xl font-bold text-primary"
+            >
+              {title}
+            </h2>
 
             {/* Description */}
-            <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
+            <p
+              id="confirm-dialog-desc"
+              className="text-base text-gray-700 leading-relaxed whitespace-pre-line"
+            >
               {description}
             </p>
 
             {/* Buttons */}
             <div className="flex gap-3 justify-end mt-2">
-              {buttons.map((button, index) => (
+              {buttons.map((button, idx) => (
                 <Button
-                  key={index}
+                  key={button.id}
                   onClick={button.onClick}
                   variant={button.variant}
-                  className={`
-                    px-6 py-2.5 text-base font-semibold
+                  className={`px-6 py-2.5 text-base font-semibold
                     ${
                       button.variant === "outline"
                         ? "bg-transparent text-primary hover:underline shadow-none border-none"
                         : "bg-primary hover:bg-primary/90 text-white"
-                    }
-                  `}
+                    }`}
                   style={{ borderRadius: "13px" }}
+                  autoFocus={idx === 0}
                 >
                   {button.text}
                 </Button>
@@ -78,7 +113,14 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         </div>
       </div>
-    </div>
+
+      {/* backdrop 스타일 */}
+      <style>{`
+        dialog::backdrop {
+          background: rgba(0,0,0,0.5);
+        }
+      `}</style>
+    </dialog>
   );
 };
 

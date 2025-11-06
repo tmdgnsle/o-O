@@ -11,12 +11,17 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ children, content }) => {
 
   return (
     <div className="relative inline-block">
-      <div
+      <button
+        type="button"
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
+        onFocus={() => setIsVisible(true)}
+        onBlur={() => setIsVisible(false)}
+        className="focus:outline-none"
+        aria-describedby="tooltip"
       >
         {children}
-      </div>
+      </button>
 
       {isVisible && (
         <div className="absolute top-full left-[-7px]  mt-2 z-[9999]">
