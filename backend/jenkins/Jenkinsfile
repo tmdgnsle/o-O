@@ -1,6 +1,10 @@
 pipeline {
   agent any
-  options { timestamps() }
+  options {
+    timestamps()
+    // Manage Jenkins > Configure System > GitLab 에서 만든 연결 이름
+    gitLabConnection('o-o')
+  }
 
   environment {
     AWS_REGION      = 'ap-northeast-2'
@@ -9,9 +13,7 @@ pipeline {
     NAMESPACE       = 'prod'
     PARALLEL_BUILD  = 'true'
 
-    // GitLab Plugin 연결 이름 (Manage Jenkins > Configure System > GitLab)
-    GITLAB_CONN     = 'lab-ssafy'
-    // 전체 파이프라인 상태 이름
+    // 전체 파이프라인 상태 라벨
     GITLAB_STAGE    = 'backend-deploy'
   }
 
@@ -19,38 +21,34 @@ pipeline {
 
     stage('Checkout') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Checkout']) {
-            checkout scm
-          }
+        gitlabBuilds(builds: ['Checkout']) {
+          checkout scm
         }
       }
     }
 
     stage('ECR Login & Ensure Repo') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['ECR Login & Ensure Repo']) {
-            withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
-                                              usernameVariable: 'AWS_ACCESS_KEY_ID',
-                                              passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-              sh '''
-                set -e
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export AWS_EC2_METADATA_DISABLED=true
+        gitlabBuilds(builds: ['ECR Login & Ensure Repo']) {
+          withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                            passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            sh '''
+              set -e
+              export AWS_DEFAULT_REGION=${AWS_REGION}
+              export AWS_EC2_METADATA_DISABLED=true
 
-                ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-                echo "[whoami] $ACCOUNT_ID"
+              ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+              echo "[whoami] $ACCOUNT_ID"
 
-                aws ecr describe-repositories --repository-names ${ECR_REPO} >/dev/null 2>&1 || \
-                  aws ecr create-repository --repository-name ${ECR_REPO} --image-scanning-configuration scanOnPush=true
+              aws ecr describe-repositories --repository-names ${ECR_REPO} >/dev/null 2>&1 || \
+                aws ecr create-repository --repository-name ${ECR_REPO} --image-scanning-configuration scanOnPush=true
 
-                aws ecr get-login-password --region ${AWS_REGION} \
-                  | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+              aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
 
-                echo $ACCOUNT_ID > .b_account_id
-              '''
-            }
+              echo $ACCOUNT_ID > .b_account_id
+            '''
           }
         }
       }
@@ -58,44 +56,41 @@ pipeline {
 
     stage('Detect Services to Build') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Detect Services']) {
-            sh '''
-              set -e
-              SERVICES=$(ls -d backend/*-service 2>/dev/null | xargs -n1 basename || true)
-              [ -z "$SERVICES" ] && { echo "No backend/*-service found"; exit 1; }
+        gitlabBuilds(builds: ['Detect Services']) {
+          sh '''
+            set -e
+            SERVICES=$(ls -d backend/*-service 2>/dev/null | xargs -n1 basename || true)
+            [ -z "$SERVICES" ] && { echo "No backend/*-service found"; exit 1; }
 
-              CHANGED=""
-              if git rev-parse --verify -q "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" >/dev/null 2>&1; then
-                DIFF_FILES=$(git diff --name-only "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" "$GIT_COMMIT" || true)
-                for SVC in $SERVICES; do
-                  echo "$DIFF_FILES" | grep -q "^backend/${SVC}/" && CHANGED="$CHANGED $SVC"
-                done
-              fi
+            CHANGED=""
+            if git rev-parse --verify -q "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" >/dev/null 2>&1; then
+              DIFF_FILES=$(git diff --name-only "$GIT_PREVIOUS_SUCCESSFUL_COMMIT" "$GIT_COMMIT" || true)
+              for SVC in $SERVICES; do
+                echo "$DIFF_FILES" | grep -q "^backend/${SVC}/" && CHANGED="$CHANGED $SVC"
+              done
+            fi
 
-              [ -z "$CHANGED" ] && CHANGED="$SERVICES"
-              echo "$CHANGED" | xargs -n1 > .services_to_build
-              echo "[plan] will build:"; cat .services_to_build
-            '''
-          }
+            [ -z "$CHANGED" ] && CHANGED="$SERVICES"
+            echo "$CHANGED" | xargs -n1 > .services_to_build
+            echo "[plan] will build:"; cat .services_to_build
+          '''
         }
       }
     }
 
     stage('Build & Push (parallel)') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Build & Push']) {
-            script {
-              def tasks = [:]
-              def accountId = sh(returnStdout: true, script: "cat .b_account_id").trim()
-              def services   = readFile('.services_to_build').split("\\r?\\n").findAll { it?.trim() }
-              def failed     = []
+        gitlabBuilds(builds: ['Build & Push']) {
+          script {
+            def tasks = [:]
+            def accountId = sh(returnStdout: true, script: "cat .b_account_id").trim()
+            def services   = readFile('.services_to_build').split("\\r?\\n").findAll { it?.trim() }
+            def failed     = []
 
-              services.each { svc ->
-                tasks[svc] = {
-                  try {
-                    sh '''#!/usr/bin/env bash
+            services.each { svc ->
+              tasks[svc] = {
+                try {
+                  sh '''#!/usr/bin/env bash
 set -euo pipefail
 TAG="''' + svc + '''-''' + env.BUILD_NUMBER + '''"
 LATEST_TAG="''' + svc + '''-latest"
@@ -110,25 +105,24 @@ docker push ${URI}
 docker push ${LATEST_URI}
 echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 '''
-                  } catch (e) {
-                    echo "[FAIL] ${svc}: ${e}"
-                    failed << svc
-                  }
+                } catch (e) {
+                  echo "[FAIL] ${svc}: ${e}"
+                  failed << svc
                 }
               }
+            }
 
-              parallel tasks
+            parallel tasks
 
-              sh 'rm -f .pushed_images || true; cat .img_* > .pushed_images || true'
+            sh 'rm -f .pushed_images || true; cat .img_* > .pushed_images || true'
 
-              if (failed) {
-                echo "[WARN] Failed services: ${failed.join(', ')}"
-              }
+            if (failed) {
+              echo "[WARN] Failed services: ${failed.join(', ')}"
+            }
 
-              def pushed = sh(returnStdout:true, script: "test -s .pushed_images && wc -l < .pushed_images || echo 0").trim()
-              if (pushed == "0") {
-                error("No images pushed. Failing the build.")
-              }
+            def pushed = sh(returnStdout:true, script: "test -s .pushed_images && wc -l < .pushed_images || echo 0").trim()
+            if (pushed == "0") {
+              error("No images pushed. Failing the build.")
             }
           }
         }
@@ -137,18 +131,16 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Kubeconfig') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Kubeconfig']) {
-            withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
-                                              usernameVariable: 'AWS_ACCESS_KEY_ID',
-                                              passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-              sh '''
-                set -e
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export AWS_EC2_METADATA_DISABLED=true
-                aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER}
-              '''
-            }
+        gitlabBuilds(builds: ['Kubeconfig']) {
+          withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                            passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            sh '''
+              set -e
+              export AWS_DEFAULT_REGION=${AWS_REGION}
+              export AWS_EC2_METADATA_DISABLED=true
+              aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER}
+            '''
           }
         }
       }
@@ -156,20 +148,18 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Apply K8s Manifests (always)') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Apply Manifests']) {
-            withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
-                                              usernameVariable: 'AWS_ACCESS_KEY_ID',
-                                              passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-              sh '''
-                set -e
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export AWS_EC2_METADATA_DISABLED=true
-                kubectl apply -f backend/k8s/base/namespace.yaml
-                kubectl -n ${NAMESPACE} apply -f backend/k8s/apps/
-                kubectl -n ${NAMESPACE} apply -f backend/k8s/base/ingress-alb.yaml
-              '''
-            }
+        gitlabBuilds(builds: ['Apply Manifests']) {
+          withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                            passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            sh '''
+              set -e
+              export AWS_DEFAULT_REGION=${AWS_REGION}
+              export AWS_EC2_METADATA_DISABLED=true
+              kubectl apply -f backend/k8s/base/namespace.yaml
+              kubectl -n ${NAMESPACE} apply -f backend/k8s/apps/
+              kubectl -n ${NAMESPACE} apply -f backend/k8s/base/ingress-alb.yaml
+            '''
           }
         }
       }
@@ -177,38 +167,36 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Rolling Update') {
       steps {
-        withGitLabConnection("${GITLAB_CONN}") {
-          gitlabBuilds(builds: ['Rolling Update']) {
-            withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
-                                              usernameVariable: 'AWS_ACCESS_KEY_ID',
-                                              passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-              sh '''
-                set -e
-                export AWS_DEFAULT_REGION=${AWS_REGION}
-                export AWS_EC2_METADATA_DISABLED=true
+        gitlabBuilds(builds: ['Rolling Update']) {
+          withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
+                                            usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                            passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+            sh '''
+              set -e
+              export AWS_DEFAULT_REGION=${AWS_REGION}
+              export AWS_EC2_METADATA_DISABLED=true
 
-                while read line; do
-                  SVC=$(echo $line | awk '{print $1}')
-                  IMG=$(echo $line | awk '{print $2}')
-                  BASE=${SVC%-service}
-                  DEPLOY="${BASE}-deploy"
-                  CONTAINER="${BASE}"
-                  if kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1; then
-                    kubectl -n ${NAMESPACE} set image deploy/${DEPLOY} ${CONTAINER}=${IMG}
-                  else
-                    echo "[skip] ${DEPLOY} not found"
-                  fi
-                done < .pushed_images
+              while read line; do
+                SVC=$(echo $line | awk '{print $1}')
+                IMG=$(echo $line | awk '{print $2}')
+                BASE=${SVC%-service}
+                DEPLOY="${BASE}-deploy"
+                CONTAINER="${BASE}"
+                if kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1; then
+                  kubectl -n ${NAMESPACE} set image deploy/${DEPLOY} ${CONTAINER}=${IMG}
+                else
+                  echo "[skip] ${DEPLOY} not found"
+                fi
+              done < .pushed_images
 
-                while read line; do
-                  SVC=$(echo $line | awk '{print $1}')
-                  BASE=${SVC%-service}
-                  DEPLOY="${BASE}-deploy"
-                  kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1 && \
-                    kubectl -n ${NAMESPACE} rollout status deploy/${DEPLOY} || true
-                done < .pushed_images
-              '''
-            }
+              while read line; do
+                SVC=$(echo $line | awk '{print $1}')
+                BASE=${SVC%-service}
+                DEPLOY="${BASE}-deploy"
+                kubectl -n ${NAMESPACE} get deploy/${DEPLOY} >/dev/null 2>&1 && \
+                  kubectl -n ${NAMESPACE} rollout status deploy/${DEPLOY} || true
+              done < .pushed_images
+            '''
           }
         }
       }
@@ -220,14 +208,10 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
       sh 'rm -f .b_account_id .services_to_build .pushed_images .img_* || true'
     }
     success {
-      withGitLabConnection("${GITLAB_CONN}") {
-        updateGitlabCommitStatus name: "${GITLAB_STAGE}", state: 'success'
-      }
+      updateGitlabCommitStatus name: "${GITLAB_STAGE}", state: 'success'
     }
     failure {
-      withGitLabConnection("${GITLAB_CONN}") {
-        updateGitlabCommitStatus name: "${GITLAB_STAGE}", state: 'failed'
-      }
+      updateGitlabCommitStatus name: "${GITLAB_STAGE}", state: 'failed'
     }
   }
 }
