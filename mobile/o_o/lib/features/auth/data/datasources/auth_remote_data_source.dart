@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -36,8 +38,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 'profile',
                 // 'nickname'
               ],
-              serverClientId: '191516202759-15156glfdeclp7rkrhabveh1m99fjel0.apps.googleusercontent.com',
-              // serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'],
+              // iOS에서는 clientID를 명시적으로 설정해야 함
+              clientId: Platform.isIOS
+                  ? dotenv.env['GOOGLE_IOS_CLIENT_ID']
+                  : null,
+              // Android에서만 백엔드 인증을 위해 serverClientId 사용
+              serverClientId: Platform.isAndroid
+                  ? dotenv.env['GOOGLE_WEB_CLIENT_ID']
+                  : null,
             );
 
   @override
