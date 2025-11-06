@@ -14,3 +14,20 @@ export interface ContentDialogProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
+
+// components/VoiceChat/types.ts
+export interface User {
+  id: string;
+  avatar: string;
+  name: string;
+  isSpeaking?: boolean;
+  colorIndex?: number;
+}
+
+export interface VoiceChatProps {
+  users?: User[];
+  onMicToggle?: (isMuted: boolean) => void;
+  onCallEnd?: () => void;
+  onOrganize?: () => void;
+  onShare?: () => void;
+}
