@@ -53,3 +53,8 @@ logging:
     com.ssafy.mindmapservice: DEBUG
     org.springframework.data.mongodb: DEBUG
     org.springframework.kafka: INFO
+
+# Workspace Service 연동
+workspace:
+  service:
+    url: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
