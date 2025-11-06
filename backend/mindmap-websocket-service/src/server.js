@@ -29,6 +29,7 @@ import { logger } from './utils/logger.js';
 import { ydocManager } from './yjs/ydoc-manager.js';
 import { awarenessManager } from './yjs/awareness.js';
 import { kafkaProducer } from './kafka/producer.js';
+import { mongodb } from './db/mongodb.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;  // 기본 포트 3000
@@ -49,6 +50,7 @@ app.get('/health', (req, res) => {
       ydoc: ydocManager.getStats(),           // Y.Doc 통계 (워크스페이스 수, 노드 수 등)
       awareness: awarenessManager.getStats(),  // Awareness 통계 (접속자 수)
       kafka: kafkaProducer.getStatus(),        // Kafka 연결 상태
+      mongodb: mongodb.getStatus(),            // MongoDB 연결 상태
     },
   });
 });
@@ -63,6 +65,7 @@ app.get('/stats', (req, res) => {
     ydoc: ydocManager.getStats(),
     awareness: awarenessManager.getStats(),
     kafka: kafkaProducer.getStatus(),
+    mongodb: mongodb.getStatus(),
   });
 });
 
@@ -110,6 +113,15 @@ wss.on('connection', (conn, req) => {
   // 해당 워크스페이스의 Y.Doc 가져오기 또는 생성
   // Y.Doc: 실제 마인드맵 데이터를 저장하는 CRDT 문서
   const ydoc = ydocManager.getDoc(workspaceId);
+
+  // MongoDB에서 초기 데이터 로드 (첫 연결 시 한 번만)
+  // 비동기로 실행하고 기다리지 않음 (Fire and forget)
+  // 로드가 완료되면 Y.js가 자동으로 클라이언트에게 동기화해줌
+  ydocManager.loadAndInitializeDoc(workspaceId).catch(error => {
+    logger.error(`Failed to load workspace ${workspaceId}`, {
+      error: error.message,
+    });
+  });
 
   // 해당 워크스페이스의 Awareness 가져오기 또는 생성
   // Awareness: 커서 위치, 사용자 정보 등 임시 상태 공유
@@ -247,17 +259,21 @@ function handleAwarenessMessage(workspaceId, connectionId, message) {
  * ============================================
  *
  * 실행 순서:
- * 1. Kafka producer 초기화
- * 2. 배치 전송 스케줄러 시작 (5초마다)
- * 3. HTTP/WebSocket 서버 시작
- * 4. Graceful shutdown 핸들러 등록
+ * 1. MongoDB 연결
+ * 2. Kafka producer 초기화
+ * 3. 배치 전송 스케줄러 시작 (5초마다)
+ * 4. HTTP/WebSocket 서버 시작
+ * 5. Graceful shutdown 핸들러 등록
  */
 async function startServer() {
   try {
-    // 1. Kafka producer 초기화 (환경변수에 따라 실제 연결 또는 stub mode)
+    // 1. MongoDB 연결 (초기 데이터 로드를 위해)
+    await mongodb.connect();
+
+    // 2. Kafka producer 초기화 (환경변수에 따라 실제 연결 또는 stub mode)
     await kafkaProducer.initialize();
 
-    // 2. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)
+    // 3. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)
     kafkaProducer.startBatchScheduler();
 
     // 3. HTTP/WebSocket 서버 시작
@@ -271,6 +287,7 @@ async function startServer() {
       logger.info(`  - NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`  - LOG_LEVEL: ${process.env.LOG_LEVEL || 'info'}`);
       logger.info(`  - YDOC_GC_ENABLED: ${process.env.YDOC_GC_ENABLED || 'false'}`);
+      logger.info(`  - MongoDB: ${mongodb.isHealthy() ? 'connected' : 'disconnected'}`);
       logger.info(`  - Kafka: ${kafkaProducer.isEnabled ? 'enabled' : 'stub mode'}`);
     });
 
@@ -285,8 +302,9 @@ async function startServer() {
      * 종료 순서:
      * 1. 남은 모든 변경사항을 Kafka로 전송 (데이터 손실 방지)
      * 2. Kafka 연결 종료
-     * 3. HTTP/WebSocket 서버 종료
-     * 4. 프로세스 종료
+     * 3. MongoDB 연결 종료
+     * 4. HTTP/WebSocket 서버 종료
+     * 5. 프로세스 종료
      */
     const shutdown = async () => {
       logger.info('Shutting down gracefully...');
@@ -300,7 +318,10 @@ async function startServer() {
       // 2. Kafka producer 연결 종료
       await kafkaProducer.disconnect();
 
-      // 3. HTTP/WebSocket 서버 종료
+      // 3. MongoDB 연결 종료
+      await mongodb.disconnect();
+
+      // 4. HTTP/WebSocket 서버 종료
       server.close(() => {
         logger.info('Server closed');
         process.exit(0);  // 정상 종료

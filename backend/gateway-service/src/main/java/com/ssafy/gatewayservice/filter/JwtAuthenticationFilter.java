@@ -35,7 +35,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/oauth2/authorization/google",
             "/auth/reissue",
             "/actuator",
-            "/health"
+            "/health",
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/user-service/v3/api-docs",
+            "/workspace-service/v3/api-docs",
+            "/mindmap-service/v3/api-docs",
+            "/webjars"
     );
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {

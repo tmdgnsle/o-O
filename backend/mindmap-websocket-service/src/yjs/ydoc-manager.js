@@ -10,6 +10,7 @@
 
 import * as Y from 'yjs';
 import { logger } from '../utils/logger.js';
+import { nodeRepository } from '../db/node-repository.js';
 
 class YDocManager {
   constructor() {
@@ -24,6 +25,10 @@ class YDocManager {
     // 워크스페이스ID -> 아직 Kafka로 전송되지 않은 변경사항들
     // 배치 처리를 위해 임시 저장 (5초마다 또는 10개 이상 쌓이면 전송)
     this.pendingChanges = new Map();
+
+    // 워크스페이스ID -> 초기화 완료 여부
+    // MongoDB에서 데이터를 이미 로드했는지 추적
+    this.initialized = new Map();
 
     logger.info('YDocManager initialized');
   }
@@ -172,6 +177,46 @@ class YDocManager {
   }
 
   /**
+   * MongoDB에서 노드를 조회하여 Y.Doc 초기화
+   * 첫 번째 클라이언트가 접속할 때 자동으로 호출됨
+   *
+   * @param {string|number} workspaceId - 워크스페이스 ID
+   * @returns {Promise<void>}
+   */
+  async loadAndInitializeDoc(workspaceId) {
+    // 이미 초기화된 워크스페이스는 스킵
+    if (this.initialized.get(workspaceId)) {
+      logger.debug(`Workspace ${workspaceId} already initialized`);
+      return;
+    }
+
+    try {
+      logger.info(`Loading initial data for workspace ${workspaceId} from MongoDB`);
+
+      // MongoDB에서 노드 목록 조회
+      const nodes = await nodeRepository.findByWorkspaceId(workspaceId);
+
+      // Y.Doc에 노드 로드
+      this.initializeDoc(workspaceId, nodes);
+
+      // 초기화 완료 표시
+      this.initialized.set(workspaceId, true);
+
+      logger.info(`Workspace ${workspaceId} loaded successfully (${nodes.length} nodes)`);
+
+    } catch (error) {
+      logger.error(`Failed to load workspace ${workspaceId} from MongoDB`, {
+        error: error.message,
+        stack: error.stack,
+      });
+
+      // 실패해도 초기화 상태로 표시 (무한 재시도 방지)
+      // 빈 워크스페이스로 시작하고, 이후 클라이언트가 노드를 추가하면 됨
+      this.initialized.set(workspaceId, true);
+    }
+  }
+
+  /**
    * 워크스페이스의 현재 연결 수 가져오기
    * TODO: y-websocket과 통합 후 구현 예정
    */
@@ -190,6 +235,7 @@ class YDocManager {
       this.docs.delete(workspaceId);
       this.pendingChanges.delete(workspaceId);
       this.changeListeners.delete(workspaceId);
+      this.initialized.delete(workspaceId);  // 초기화 상태도 삭제
       logger.info(`Destroyed Y.Doc for workspace ${workspaceId}`);
     }
   }
