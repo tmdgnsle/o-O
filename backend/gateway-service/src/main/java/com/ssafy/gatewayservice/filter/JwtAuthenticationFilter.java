@@ -1,24 +1,33 @@
 package com.ssafy.gatewayservice.filter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.gatewayservice.jwt.JwtException;
 import com.ssafy.gatewayservice.jwt.JwtTokenProvider;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final ObjectMapper objectMapper;
 
     // 인증이 필요 없는 경로
     private static final List<String> EXCLUDED_PATHS = Arrays.asList(
@@ -26,23 +35,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/oauth2/authorization/google",
             "/auth/reissue",
             "/actuator",
-            "/health"
+            "/health",
+            "/swagger-ui",
+            "/v3/api-docs",
+            "/user-service/v3/api-docs",
+            "/workspace-service/v3/api-docs",
+            "/mindmap-service/v3/api-docs",
+            "/webjars"
     );
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.objectMapper = objectMapper;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-        String path = request.getRequestURI();
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
 
         // 인증이 필요 없는 경로는 필터 통과
         if (isExcludedPath(path)) {
-            filterChain.doFilter(request, response);
-            return;
+            return chain.filter(exchange);
         }
 
         try {
@@ -50,8 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = resolveToken(request);
 
             if (token == null) {
-                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다.");
-                return;
+                return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다.");
             }
 
             // JWT 토큰 검증 (만료시간 포함)
@@ -61,26 +74,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String userId = jwtTokenProvider.getUserId(token);
 
             if (userId == null) {
-                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
-                return;
+                return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
             }
 
             // X-USER-ID 헤더에 userId 추가하여 프록시 요청 전달
-            HttpServletRequest wrappedRequest = new UserIdHeaderRequestWrapper(request, userId);
-            filterChain.doFilter(wrappedRequest, response);
+            ServerHttpRequest mutatedRequest = request.mutate()
+                    .header("X-USER-ID", userId)
+                    .build();
+
+            return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
         } catch (JwtException e) {
-            sendErrorResponse(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+            return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, e.getMessage());
         } catch (Exception e) {
-            sendErrorResponse(response, HttpStatus.INTERNAL_SERVER_ERROR, "인증 처리 중 오류가 발생했습니다.");
+            return sendErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, "인증 처리 중 오류가 발생했습니다.");
         }
     }
 
     /**
      * Authorization 헤더에서 Bearer 토큰 추출
      */
-    private String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
+    private String resolveToken(ServerHttpRequest request) {
+        String bearerToken = request.getHeaders().getFirst("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }
@@ -97,11 +112,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 에러 응답 전송
      */
-    private void sendErrorResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
-        response.setStatus(status.value());
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(String.format(
-                "{\"success\":false,\"message\":\"%s\",\"data\":null}", message
-        ));
+    private Mono<Void> sendErrorResponse(ServerWebExchange exchange, HttpStatus status, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(status);
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", message);
+        errorResponse.put("data", null);
+
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);
+            DataBuffer buffer = response.bufferFactory().wrap(bytes);
+            return response.writeWith(Mono.just(buffer));
+        } catch (JsonProcessingException e) {
+            byte[] bytes = String.format(
+                    "{\"success\":false,\"message\":\"%s\",\"data\":null}", message
+            ).getBytes(StandardCharsets.UTF_8);
+            DataBuffer buffer = response.bufferFactory().wrap(bytes);
+            return response.writeWith(Mono.just(buffer));
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return -100; // 높은 우선순위로 먼저 실행
     }
 }

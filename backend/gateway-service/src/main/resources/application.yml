@@ -3,8 +3,7 @@ spring:
     name: gateway-service
   cloud:
     gateway:
-      mvc:
-        routes:
+      routes:
           # User Service 정적 라우팅
           - id: user-service-auth
             uri: ${USER_SERVICE_URL:http://localhost:8081}
@@ -18,16 +17,44 @@ spring:
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/users/**
+          # User Service Swagger API Docs
+          - id: user-service-swagger
+            uri: ${USER_SERVICE_URL:http://localhost:8081}
+            predicates:
+              - Path=/user-service/v3/api-docs/**
+            filters:
+              - StripPrefix=1
           # Workspace Service 정적 라우팅
           - id: workspace-service
             uri: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
             predicates:
               - Path=/workspace/**
+          # Workspace Service Swagger API Docs
+          - id: workspace-service-swagger
+            uri: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
+            predicates:
+              - Path=/workspace-service/v3/api-docs/**
+            filters:
+              - StripPrefix=1
+          # Mindmap WebSocket Service (실시간 협업)
+          - id: mindmap-websocket-service
+            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:3000}
+            predicates:
+              - Path=/mindmap/ws/**
+            filters:
+              - RewritePath=/mindmap/ws/(?<segment>.*), /$\{segment}
           # Mindmap Service 정적 라우팅
           - id: mindmap-service
             uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
             predicates:
               - Path=/mindmap/**
+          # Mindmap Service Swagger API Docs
+          - id: mindmap-service-swagger
+            uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
+            predicates:
+              - Path=/mindmap-service/v3/api-docs/**
+            filters:
+              - StripPrefix=1
 
 server:
   port: 8080
@@ -40,13 +67,18 @@ services:
     host: ${AI_SERVICE_HOST:localhost}
     port: ${AI_SERVICE_PORT:8084}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info   # 필요하면 '*' (운영에선 health 정도 권장)
-  endpoint:
-    health:
-      probes:
-        enabled: true          # /actuator/health/liveness, /readiness 자동 생성
-      show-details: never      # 운영 기본값. 필요시 when_authorized
+# SpringDoc Swagger 설정
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    urls:
+      - name: user-service
+        url: /user-service/v3/api-docs
+      - name: workspace-service
+        url: /workspace-service/v3/api-docs
+      - name: mindmap-service
+        url: /mindmap-service/v3/api-docs
+    urls-primary-name: user-service
