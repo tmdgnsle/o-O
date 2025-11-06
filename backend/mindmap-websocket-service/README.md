@@ -33,7 +33,8 @@ mindmap-websocket-service/
 ├── src/
 │   ├── server.js           # 메인 WebSocket 서버
 │   ├── kafka/
-│   │   └── producer.js     # Kafka Producer (stub/실제)
+│   │   ├── producer.js     # Kafka Producer (노드 변경사항 전송)
+│   │   └── consumer.js     # Kafka Consumer (AI 업데이트 수신)
 │   ├── yjs/
 │   │   ├── ydoc-manager.js # Y.Doc 인스턴스 관리
 │   │   └── awareness.js    # Awareness 관리
@@ -52,10 +53,14 @@ mindmap-websocket-service/
 PORT=3000
 NODE_ENV=production
 
-# Kafka (Phase 2에서 활성화)
+# Kafka Producer (노드 변경사항 전송)
 KAFKA_BROKERS=kafka-broker:9092
 KAFKA_CLIENT_ID=mindmap-websocket-service
 KAFKA_TOPIC_NODE_EVENTS=mindmap.node.events
+
+# Kafka Consumer (AI 분석 결과 수신)
+KAFKA_CONSUMER_GROUP=mindmap-websocket-consumer
+KAFKA_TOPIC_NODE_UPDATE=mindmap.node.update
 
 # Y.js
 YDOC_GC_ENABLED=true
@@ -227,27 +232,73 @@ Kafka로 전송되는 노드 변경 이벤트:
 
 ## 아키텍처
 
+### 전체 데이터 플로우
+
 ```
-[클라이언트들]
-    ↕ WebSocket
-[Node.js WebSocket Server]
-    ↓ Kafka (배치)
-[Spring Boot Mindmap Service]
-    ↓ BulkWrite
-[MongoDB]
+┌─────────────────────────────────────────────────────────────┐
+│                   초기 데이터 로드 플로우                       │
+└─────────────────────────────────────────────────────────────┘
+Client
+  ↓ 1. HTTP GET /mindmap/{workspaceId}/nodes (Spring API)
+  ↓    초기 노드 데이터 로드 (JSON)
+  ↓ 2. Y.Doc 로컬 초기화
+  ↓ 3. WebSocket 연결 (ws://gateway/mindmap/ws?workspace=123)
+  ↓    서버는 빈 Y.Doc 또는 다른 클라이언트와 동기화
+  ↓ 4. Y.js 자동 동기화
+
+
+┌─────────────────────────────────────────────────────────────┐
+│                   실시간 협업 플로우                           │
+└─────────────────────────────────────────────────────────────┘
+Client A → 노드 추가/수정
+  ↓
+Node.js WebSocket Server (Y.js CRDT 동기화)
+  ↓ 자동으로 다른 클라이언트들에게 전파
+  ↓ 변경사항 누적 (메모리)
+  ↓ 5초마다 또는 10개 이상 시
+  ↓
+Kafka Producer → mindmap.node.events
+  ↓
+Spring Mindmap Service (Kafka Consumer)
+  ↓ MongoDB BulkWrite
+  ↓
+MongoDB (영속 저장)
+
+
+┌─────────────────────────────────────────────────────────────┐
+│              이미지/영상 AI 분석 플로우                         │
+└─────────────────────────────────────────────────────────────┘
+Client → 이미지/영상 노드 추가
+  ↓
+Node.js (Y.js 동기화)
+  ↓ Kafka: mindmap.node.events
+  ↓
+Spring Mindmap Service
+  ↓ MongoDB 저장 (contentUrl, analysisStatus: PENDING)
+  ↓ Kafka: ai.analysis.request → RunPod
+  ↓
+RunPod AI 분석 완료
+  ↓ Kafka: ai.analysis.result
+  ↓
+Spring Mindmap Service (Kafka Consumer)
+  ↓ MongoDB 업데이트 (aiSummary, analysisStatus: DONE)
+  ↓ Kafka: mindmap.node.update (새로운 토픽)
+  ↓
+Node.js Kafka Consumer
+  ↓ Y.Doc 업데이트
+  ↓ 모든 클라이언트 자동 동기화 ✨
 ```
 
-### Phase 1: 현재 상태 (메모리 기반)
-- ✅ Y.js WebSocket 서버
-- ✅ 실시간 협업
-- ✅ Awareness (커서/채팅)
-- ✅ Kafka Producer (stub mode - 로그만 출력)
+### 구현 상태
 
-### Phase 2: 향후 확장
-- ⏳ Kafka 브로커 구축
-- ⏳ Spring Boot Consumer 구현
-- ⏳ MongoDB BulkWrite 영속화
-- ⏳ 초기 로드 시 MongoDB 스냅샷 복원
+- ✅ Y.js WebSocket 서버 (실시간 협업)
+- ✅ Awareness (커서/채팅/사용자 정보)
+- ✅ Kafka Producer (노드 변경사항 전송)
+- ✅ Kafka Consumer (AI 업데이트 수신)
+- ✅ Threshold auto-trigger (10개 이상 즉시 전송)
+- ✅ 클라이언트 HTTP 초기 로드 (Stateless 서버)
+- ⏳ Spring Boot Mindmap Service 구현 필요
+- ⏳ Kafka 브로커 구축 필요
 
 ## 성능 최적화
 

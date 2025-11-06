@@ -10,7 +10,6 @@
 
 import * as Y from 'yjs';
 import { logger } from '../utils/logger.js';
-import { nodeRepository } from '../db/node-repository.js';
 
 class YDocManager {
   constructor() {
@@ -25,10 +24,6 @@ class YDocManager {
     // 워크스페이스ID -> 아직 Kafka로 전송되지 않은 변경사항들
     // 배치 처리를 위해 임시 저장 (5초마다 또는 10개 이상 쌓이면 전송)
     this.pendingChanges = new Map();
-
-    // 워크스페이스ID -> 초기화 완료 여부
-    // MongoDB에서 데이터를 이미 로드했는지 추적
-    this.initialized = new Map();
 
     logger.info('YDocManager initialized');
   }
@@ -119,6 +114,14 @@ class YDocManager {
 
     const pending = this.pendingChanges.get(workspaceId);
     pending.push(...changes);  // 배열에 변경사항들 추가
+
+    // Threshold 체크: 10개 이상 쌓이면 즉시 전송
+    // 동적 import로 순환 참조 방지
+    import('../kafka/producer.js').then(({ kafkaProducer }) => {
+      kafkaProducer.checkThreshold(workspaceId);
+    }).catch(error => {
+      logger.error('Failed to check Kafka threshold', { error: error.message });
+    });
   }
 
   /**
@@ -145,76 +148,6 @@ class YDocManager {
     return workspaces;
   }
 
-  /**
-   * MongoDB에서 기존 노드 데이터를 불러와 Y.Doc 초기화
-   * 첫 클라이언트가 워크스페이스에 접속할 때 호출
-   * (서버 재시작 후에도 이전 데이터 복원)
-   */
-  initializeDoc(workspaceId, nodes) {
-    const ydoc = this.getDoc(workspaceId);
-    const nodesMap = ydoc.getMap('nodes');
-
-    // transaction으로 묶어서 한 번에 처리
-    // 이렇게 하면 observer가 각 노드마다 실행되지 않고 마지막에 한 번만 실행됨
-    ydoc.transact(() => {
-      nodes.forEach((node) => {
-        // MongoDB의 노드 데이터를 Y.js Map에 추가
-        nodesMap.set(node.nodeId.toString(), {
-          parentId: node.parentId,      // 부모 노드 ID (트리 구조)
-          type: node.type,                // 노드 타입 (root, branch, leaf 등)
-          keyword: node.keyword,          // 노드의 키워드/제목
-          memo: node.memo,                // 메모 내용
-          contentUrl: node.contentUrl,    // 첨부 콘텐츠 URL
-          x: node.x,                      // 캔버스 상의 X 좌표
-          y: node.y,                      // 캔버스 상의 Y 좌표
-          color: node.color,              // 노드 색상
-          createdBy: node.createdBy,      // 생성자 ID
-        });
-      });
-    });
-
-    logger.info(`Initialized workspace ${workspaceId} with ${nodes.length} nodes`);
-  }
-
-  /**
-   * MongoDB에서 노드를 조회하여 Y.Doc 초기화
-   * 첫 번째 클라이언트가 접속할 때 자동으로 호출됨
-   *
-   * @param {string|number} workspaceId - 워크스페이스 ID
-   * @returns {Promise<void>}
-   */
-  async loadAndInitializeDoc(workspaceId) {
-    // 이미 초기화된 워크스페이스는 스킵
-    if (this.initialized.get(workspaceId)) {
-      logger.debug(`Workspace ${workspaceId} already initialized`);
-      return;
-    }
-
-    try {
-      logger.info(`Loading initial data for workspace ${workspaceId} from MongoDB`);
-
-      // MongoDB에서 노드 목록 조회
-      const nodes = await nodeRepository.findByWorkspaceId(workspaceId);
-
-      // Y.Doc에 노드 로드
-      this.initializeDoc(workspaceId, nodes);
-
-      // 초기화 완료 표시
-      this.initialized.set(workspaceId, true);
-
-      logger.info(`Workspace ${workspaceId} loaded successfully (${nodes.length} nodes)`);
-
-    } catch (error) {
-      logger.error(`Failed to load workspace ${workspaceId} from MongoDB`, {
-        error: error.message,
-        stack: error.stack,
-      });
-
-      // 실패해도 초기화 상태로 표시 (무한 재시도 방지)
-      // 빈 워크스페이스로 시작하고, 이후 클라이언트가 노드를 추가하면 됨
-      this.initialized.set(workspaceId, true);
-    }
-  }
 
   /**
    * 워크스페이스의 현재 연결 수 가져오기
@@ -226,7 +159,7 @@ class YDocManager {
 
   /**
    * 클라이언트가 모두 연결 해제되면 Y.Doc 제거 (메모리 절약)
-   * 다시 접속하면 MongoDB에서 불러와서 재생성
+   * 다시 접속하면 클라이언트가 HTTP로 데이터 로드 후 재초기화
    */
   destroyDoc(workspaceId) {
     if (this.docs.has(workspaceId)) {
@@ -235,7 +168,6 @@ class YDocManager {
       this.docs.delete(workspaceId);
       this.pendingChanges.delete(workspaceId);
       this.changeListeners.delete(workspaceId);
-      this.initialized.delete(workspaceId);  // 초기화 상태도 삭제
       logger.info(`Destroyed Y.Doc for workspace ${workspaceId}`);
     }
   }
