@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,11 +19,13 @@ public class GoogleTokenVerifier {
 
     private final GoogleIdTokenVerifier verifier;
 
-    public GoogleTokenVerifier(@Value("${google.client-id-mobile}") String mobileClientId) {
+    public GoogleTokenVerifier(@Value("${google.client-id-mobile}") String mobileClientId,
+                               @Value("${google.client-id-web}") String webClientId,
+                               @Value("${google.client-id-ios}") String iosClientId) {
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(mobileClientId))
+                .setAudience(java.util.Arrays.asList(mobileClientId, webClientId, iosClientId))
                 .build();
-        log.info("GoogleTokenVerifier initialized with mobile client ID");
+        log.info("GoogleTokenVerifier initialized with mobile, web, and iOS client IDs");
     }
 
     public Map<String, Object> verifyAndExtract(String idTokenString)
