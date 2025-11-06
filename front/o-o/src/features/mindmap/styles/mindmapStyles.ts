@@ -1,11 +1,11 @@
-import type { StylesheetCSS as Stylesheet } from "cytoscape";
+import type { StylesheetStyle } from "cytoscape";
 
 /**
  * Cytoscape 스타일시트 정의
  * - 노드는 투명하게 처리 (HTML overlay로 UI 렌더링)
  * - 드래그/선택/위치 기능만 Cytoscape가 담당
  */
-export const cytoscapeStylesheet: Stylesheet[] = [
+export const cytoscapeStylesheet: StylesheetStyle[] = [
   // 기본 노드 스타일
   {
     selector: "node",

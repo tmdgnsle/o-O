@@ -11,8 +11,10 @@ export default function OverlayLayer({
   selectedNodeId?: string;
   onNodeSelect: (id: string) => void;
   onNodeUnselect: () => void;
-  onApplyTheme?: () => void;
+  onApplyTheme: (colors: string[]) => void;
 }>) {
+  const zoom = cy?.zoom() ?? 1;
+
   return (
     <div className="absolute inset-0 pointer-events-none">
       {cy &&
@@ -27,6 +29,7 @@ export default function OverlayLayer({
               node={node}
               x={x}
               y={y}
+              zoom={zoom}
               isSelected={selectedNodeId === node.id}
               onSelect={() => onNodeSelect(node.id)}
               onDeselect={onNodeUnselect}

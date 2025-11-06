@@ -74,18 +74,6 @@ export type RecommendNodeOverlayProps = Readonly<{
   onSelectRecommendation: (text: string) => void;
 }>;
 
-// TempNode.tsx
-export type TempNodeProps = Readonly<{
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  color: string;
-  isSelected: boolean;
-  onSelect: () => void;
-  onDeselect: () => void;
-  onApplyTheme: (colors: string[]) => void;
-}>;
 
 // Textbox.tsx
 export type TextboxProps = Readonly<{

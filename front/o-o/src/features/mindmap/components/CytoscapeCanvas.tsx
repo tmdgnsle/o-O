@@ -107,16 +107,13 @@ export default function CytoscapeCanvas({
 
           // renderer 옵션 주입(react-cytoscapejs prop로 안 먹는 것들)
           try {
+            // @ts-expect-error - Cytoscape 내부 API 접근
             const r = instance.renderer();
             // 휠 줌 민감도
-            // @ts-expect-error - 내부 옵션 접근
             r.options.wheelSensitivity = cytoscapeConfig.wheelSensitivity ?? 0.2;
             // 뷰포트 최적화
-            // @ts-expect-error
             r.options.hideEdgesOnViewport = cytoscapeConfig.hideEdgesOnViewport ?? false;
-            // @ts-expect-error
             r.options.hideLabelsOnViewport = cytoscapeConfig.hideLabelsOnViewport ?? true;
-            // @ts-expect-error
             r.options.textureOnViewport = cytoscapeConfig.textureOnViewport ?? true;
             // 성능 관련 반영 후 스타일 업데이트
             instance.style().update();
