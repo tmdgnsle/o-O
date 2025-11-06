@@ -8,10 +8,7 @@ import MindmapPage from "@/features/mindmap/pages/MindmapPage";
 import { HomePage } from "@/features/home/pages/HomePage";
 import { MyPage } from "@/features/mypage/pages/MyPage";
 import { ProjectDetailPage } from "@/features/mypage/pages/ProjectDetailPage";
-
-function TrendPage() {
-  return <div className="container mx-auto px-6 py-8"></div>;
-}
+import { TrendPage } from "@/features/trend/pages/TrendPage";
 
 function NewProjectPage() {
   return <div className="container mx-auto px-6 py-8"></div>;
