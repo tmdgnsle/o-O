@@ -77,13 +77,16 @@ pipeline {
                 sh '''#!/usr/bin/env bash
     set -euo pipefail
     TAG="''' + svc + '''-''' + env.BUILD_NUMBER + '''"
+    LATEST_TAG="''' + svc + '''-latest"
     ACCOUNT_ID=$(cat .b_account_id)
     URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${TAG}"
+    LATEST_URI="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${LATEST_TAG}"
 
-    echo "==> Build ''' + svc + ''' as ${URI}"
     docker build -t ${ECR_REPO}:${TAG} ./backend/''' + svc + '''
     docker tag ${ECR_REPO}:${TAG} ${URI}
+    docker tag ${ECR_REPO}:${TAG} ${LATEST_URI}
     docker push ${URI}
+    docker push ${LATEST_URI}
     echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
     '''
               } catch (e) {
