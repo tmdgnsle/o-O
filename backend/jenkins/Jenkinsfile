@@ -3,7 +3,7 @@ pipeline {
   options {
     timestamps()
     // Manage Jenkins > Configure System > GitLab 에서 만든 연결 이름
-    gitLabConnection('lab-ssafy')
+    gitLabConnection('o-o')
   }
 
   environment {
