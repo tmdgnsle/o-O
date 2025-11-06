@@ -4,8 +4,8 @@ import youtube from "@/shared/assets/images/youtube.png";
 import { MediaPreview } from "./MediaPreviewProps";
 
 interface SearchInputProps {
-  value: string;
-  onChange: (value: string) => void;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
 }
 
 export function SearchInput({ value, onChange }: SearchInputProps) {
@@ -20,7 +20,7 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
   } = useMediaUpload();
 
   return (
-    <div
+    <section
       className={`
         w-[clamp(300px,80%,1200px)]
         bg-white/60 shadow-md transitional-all duration-300 rounded-full
@@ -30,6 +30,7 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      aria-label="미디어 업로드 영역"
     >
       {/* 이미지 미리보기 */}
       {mediaData.type === "image" && mediaData.imageUrl && (
@@ -70,6 +71,6 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
           outline: "none",
         }}
       />
-    </div>
+    </section>
   );
 }

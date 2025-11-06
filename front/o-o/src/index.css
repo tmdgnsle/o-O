@@ -71,7 +71,6 @@
   font-display: swap;
 }
 
-
 /** tailwind */
 @tailwind base;
 @tailwind components;
@@ -208,3 +207,79 @@
   }
 }
 
+/* SimpleBar 전역 커스텀 스타일 */
+.custom-simplebar .simplebar-scrollbar::before {
+  background: #263a6b; /* primary 색상 직접 사용 */
+  border-radius: 10px;
+  opacity: 1;
+}
+
+.custom-simplebar .simplebar-scrollbar.simplebar-visible::before {
+  opacity: 1;
+}
+
+.custom-simplebar .simplebar-track.simplebar-vertical {
+  background: #eeeeee;
+  border-radius: 10px;
+  width: 12px;
+  right: 0;
+}
+
+.custom-simplebar .simplebar-track.simplebar-vertical .simplebar-scrollbar {
+  right: 0;
+  width: 12px;
+}
+
+.custom-simplebar .simplebar-track {
+  background: #eeeeee;
+  border-radius: 10px;
+}
+
+/* 호버 효과 */
+.custom-simplebar .simplebar-scrollbar:hover::before {
+  background: #1e2a4f; /* 더 어두운 버전 */
+  opacity: 1;
+}
+
+/* 스크롤 content wrapper */
+.custom-simplebar .simplebar-content-wrapper {
+  scrollbar-width: none;
+}
+
+.custom-simplebar .simplebar-content-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* globals.css 맨 아래에 추가 */
+
+/* Tooltip 화살표 스타일 */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999;
+}
+
+/* 화살표 만들기 */
+[data-radix-tooltip-content][data-side="bottom"]::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid currentColor;
+}
+
+[data-radix-tooltip-content][data-side="top"]::before {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid currentColor;
+}
