@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
@@ -11,6 +12,9 @@ import 'features/user/presentation/bloc/user_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 환경 변수 로드
+  await dotenv.load(fileName: ".env");
 
   // 시스템 UI 설정 - 상태바/네비게이션바 투명화
   SystemChrome.setSystemUIOverlayStyle(

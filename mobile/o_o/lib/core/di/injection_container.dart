@@ -1,8 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../features/auth/data/repositories/auth_repository_mock.dart';
+import '../../features/auth/data/datasources/auth_api_data_source.dart';
+import '../../features/auth/data/datasources/auth_local_data_source.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../constants/api_constants.dart';
 import '../../features/record/data/repositories/record_repository_mock.dart';
 import '../../features/record/domain/repositories/record_repository.dart';
 import '../../features/record/domain/usecases/get_records.dart';
@@ -20,6 +26,24 @@ final sl = GetIt.instance;
 
 /// Initialize all dependencies
 Future<void> init() async {
+  //! External
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton(() => sharedPreferences);
+
+  // Dio
+  sl.registerLazySingleton(
+    () => Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ),
+    ),
+  );
+
   //! Features - Auth
   // Bloc
   sl.registerFactory(
@@ -28,10 +52,26 @@ Future<void> init() async {
     ),
   );
 
-  // Repository (Mock)
-  // TODO: 실제 Google Sign-In 구현 시 AuthRepositoryImpl로 교체
+  // Repository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryMock(),
+    () => AuthRepositoryImpl(
+      remoteDataSource: sl(),
+      apiDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(),
+  );
+
+  sl.registerLazySingleton<AuthApiDataSource>(
+    () => AuthApiDataSourceImpl(dio: sl()),
+  );
+
+  sl.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
   );
 
   //! Features - User
@@ -116,10 +156,4 @@ Future<void> init() async {
 
   //! Core
   // sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
-
-  //! External
-  // final sharedPreferences = await SharedPreferences.getInstance();
-  // sl.registerLazySingleton(() => sharedPreferences);
-  // sl.registerLazySingleton(() => http.Client());
-  // sl.registerLazySingleton(() => InternetConnectionChecker());
 }

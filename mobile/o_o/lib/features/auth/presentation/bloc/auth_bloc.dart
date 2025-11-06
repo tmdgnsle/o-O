@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/repositories/auth_repository.dart';
@@ -11,15 +9,11 @@ import 'auth_state.dart';
 /// 인증 관련 비즈니스 로직을 처리합니다.
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository repository;
-  StreamSubscription? _authStateSubscription;
 
   AuthBloc({required this.repository}) : super(const AuthState.initial()) {
-    // 인증 상태 변경 리스닝
-    _authStateSubscription = repository.authStateChanges.listen((user) {
-      if (user != null) {
-        add(const AuthEvent.checkAuthStatus());
-      }
-    });
+    // NOTE: authStateChanges 리스너 제거
+    // Google Sign-In 성공만으로 인증 상태를 변경하지 않고,
+    // 백엔드 인증까지 성공해야만 authenticated 상태로 변경
 
     on<AuthEvent>((event, emit) async {
       await event.when(
@@ -68,11 +62,5 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       },
     );
-  }
-
-  @override
-  Future<void> close() {
-    _authStateSubscription?.cancel();
-    return super.close();
   }
 }

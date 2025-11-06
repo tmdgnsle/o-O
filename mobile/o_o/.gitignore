@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Environment variables
+.env
+
 # Windows reserved names
 nul
 con
