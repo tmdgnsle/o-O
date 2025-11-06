@@ -12,7 +12,6 @@ pipeline {
     ECR_REPO        = 'o-o-backend'
     NAMESPACE       = 'prod'
     PARALLEL_BUILD  = 'true'
-
     // 전체 파이프라인 상태 라벨
     GITLAB_STAGE    = 'backend-deploy'
   }
@@ -21,7 +20,7 @@ pipeline {
 
     stage('Checkout') {
       steps {
-        gitlabBuilds(builds: ['Checkout']) {
+        gitlabCommitStatus(name: '1) Checkout') {
           checkout scm
         }
       }
@@ -29,7 +28,7 @@ pipeline {
 
     stage('ECR Login & Ensure Repo') {
       steps {
-        gitlabBuilds(builds: ['ECR Login & Ensure Repo']) {
+        gitlabCommitStatus(name: '2) ECR Login & Ensure Repo') {
           withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
                                             usernameVariable: 'AWS_ACCESS_KEY_ID',
                                             passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -56,7 +55,7 @@ pipeline {
 
     stage('Detect Services to Build') {
       steps {
-        gitlabBuilds(builds: ['Detect Services']) {
+        gitlabCommitStatus(name: '3) Detect Services') {
           sh '''
             set -e
             SERVICES=$(ls -d backend/*-service 2>/dev/null | xargs -n1 basename || true)
@@ -80,7 +79,7 @@ pipeline {
 
     stage('Build & Push (parallel)') {
       steps {
-        gitlabBuilds(builds: ['Build & Push']) {
+        gitlabCommitStatus(name: '4) Build & Push') {
           script {
             def tasks = [:]
             def accountId = sh(returnStdout: true, script: "cat .b_account_id").trim()
@@ -131,7 +130,7 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Kubeconfig') {
       steps {
-        gitlabBuilds(builds: ['Kubeconfig']) {
+        gitlabCommitStatus(name: '5) Kubeconfig') {
           withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
                                             usernameVariable: 'AWS_ACCESS_KEY_ID',
                                             passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -148,7 +147,7 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Apply K8s Manifests (always)') {
       steps {
-        gitlabBuilds(builds: ['Apply Manifests']) {
+        gitlabCommitStatus(name: '6) Apply Manifests') {
           withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
                                             usernameVariable: 'AWS_ACCESS_KEY_ID',
                                             passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
@@ -167,7 +166,7 @@ echo "''' + svc + ''' ${URI}" > .img_''' + svc + '''
 
     stage('Rolling Update') {
       steps {
-        gitlabBuilds(builds: ['Rolling Update']) {
+        gitlabCommitStatus(name: '7) Rolling Update') {
           withCredentials([usernamePassword(credentialsId: 'aws-creds-b',
                                             usernameVariable: 'AWS_ACCESS_KEY_ID',
                                             passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
