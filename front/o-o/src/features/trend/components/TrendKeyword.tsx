@@ -14,11 +14,11 @@ interface TrendKeywordProps {
 
 // 더미 데이터
 const DEFAULT_KEYWORDS: Keyword[] = [
-  { id: 1, text: "사흘로" },
-  { id: 2, text: "알고리즘" },
-  { id: 3, text: "무지개" },
-  { id: 4, text: "누가크래커" },
-  { id: 5, text: "화재" },
+  { id: 1, text: "소영언니" },
+  { id: 2, text: "시니어개발자최고" },
+  { id: 3, text: "시니어디자이너멋지다" },
+  { id: 4, text: "할무니!!!" },
+  { id: 5, text: "5시에 일어남!!" },
 ];
 
 // 각 키워드별 색상
@@ -57,10 +57,10 @@ export function TrendKeyword({
   }, []);
 
   return (
-    <div className="w-full h-full overflow-hidden relative py-4 md:py-6">
+    <div className="w-full h-full overflow-hidden relative py-4 md:py-6 px-2 md:px-10">
       <div
         className={`
-          grid grid-cols-3 grid-rows-4 gap-2 md:gap-3 lg:gap-4 w-full max-w-6xl mx-auto
+          grid grid-cols-3 grid-rows-4 gap-2 md:gap-3 lg:gap-4 w-full max-w-6xl mx-auto px-3
           ${isFullscreen ? "h-[76vh]" : "h-[71vh]"}
         `}
       >
@@ -123,18 +123,32 @@ function KeywordBox({ text, colorClass, isLarge = false }: KeywordBoxProps) {
   if (!text) return null;
 
   return (
-    <div
-      className={`
-        w-full h-full ${colorClass}
-        rounded-xl md:rounded-2xl lg:rounded-3xl flex items-center justify-center
-        font-bold text-gray-800
-        shadow-lg hover:shadow-xl
-        transition-all duration-300 hover:scale-105
-        cursor-pointer px-2 sm:px-3 md:px-4
-        ${isLarge ? "text-base sm:text-xl md:text-2xl" : "text-sm sm:text-base md:text-lg"}
-      `}
-    >
-      <span className="truncate text-center">{text}</span>
+    <div className="w-full h-full relative">
+      {/* 배경 */}
+      <div
+        className={`
+          absolute inset-0
+          ${colorClass}
+          rounded-xl md:rounded-2xl lg:rounded-3xl
+          shadow-lg hover:shadow-xl
+          blur-md
+          transition-all duration-300 hover:scale-105
+          cursor-pointer
+        `}
+      />
+
+      {/* 텍스트 - 절대 위치로 중앙에 띄우기 */}
+      <span
+        className={`
+          absolute inset-0 flex items-center justify-center
+          font-semibold md:font-bold text-gray-800 text-center
+          px-2 sm:px-3 md:px-4
+          ${isLarge ? "text-base sm:text-lg md:text-2xl" : "text-xs sm:text-sm md:text-base"}
+        `}
+        style={{ pointerEvents: "none" }}
+      >
+        {text}
+      </span>
     </div>
   );
 }

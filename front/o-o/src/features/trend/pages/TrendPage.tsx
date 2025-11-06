@@ -4,13 +4,15 @@ import { TrendKeyword } from "../components/TrendKeyword";
 
 export function TrendPage() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <div className="-mb-4">
         <Header />
       </div>
-      <div className="flex flex-col mx-16 gap-2 flex-1">
-        <TrendHeader />
-        <div className="flex-1 min-h-0">
+      <div className="flex flex-col">
+        <div className="md:mx-12 mx-4">
+          <TrendHeader />
+        </div>
+        <div className="flex-1 overflow-hidden">
           <TrendKeyword />
         </div>
       </div>
