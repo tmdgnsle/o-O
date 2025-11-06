@@ -16,10 +16,10 @@ export function SearchSection() {
   const isLoggedIn = false;
 
   useEffect(() => {
-    if (isLoginModalOpen && window.google?.accounts?.id) {
+    if (isLoginModalOpen && globalThis.google?.accounts?.id) {
       // 약간의 딜레이 후에 One Tap 프롬프트 표시
       setTimeout(() => {
-        window.google?.accounts.id.prompt();
+        globalThis.google?.accounts.id.prompt();
       }, 300);
     }
   }, [isLoginModalOpen]);
@@ -37,10 +37,10 @@ export function SearchSection() {
   };
 
   const handleCreateClick = () => {
-    if (!isLoggedIn) {
-      setIsLoginModalOpen(true);
-    } else {
+    if (isLoggedIn) {
       navigate("/new-project");
+    } else {
+      setIsLoginModalOpen(true);
     }
   };
 

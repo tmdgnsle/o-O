@@ -1,9 +1,9 @@
 // src/features/home/components/MediaPreview.tsx
 interface MediaPreviewProps {
-  type: "image" | "youtube";
-  icon: string;
-  label: string;
-  onClear: () => void;
+  readonly type: "image" | "youtube";
+  readonly icon: string;
+  readonly label: string;
+  readonly onClear: () => void;
 }
 
 export function MediaPreview({
