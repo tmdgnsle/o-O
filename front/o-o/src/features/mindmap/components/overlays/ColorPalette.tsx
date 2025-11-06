@@ -15,15 +15,7 @@ import {
 import Color from "color";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-type ColorPaletteProps = {
-  open: boolean;
-  onColorChange?: (color: string) => void;
-  onApplyTheme?: (colors: string[]) => void;
-  onClose?: () => void;
-  value?: string;
-  className?: string;
-};
+import type { ColorPaletteProps } from "../../types";
 
 // 색상 테마 정의
 const COLOR_THEMES = {

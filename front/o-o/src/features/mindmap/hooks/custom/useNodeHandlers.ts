@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { NodeData } from '../../pages/MindmapPage';
+import type { NodeData } from '../../types';
 import type { FocusedButton } from './useNodeFocus';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -90,7 +90,7 @@ export const useNodeHandlers = ({
     setFocusedButton(null);
   }, [closeAddInput, setFocusedButton]);
 
-  const handleAddConfirm = useCallback((keyword: string, description: string) => {
+  const handleAddConfirm = useCallback((keyword: string, _description: string) => {
     if (keyword) {
       const newNode: NodeData = {
         id: Date.now().toString(),

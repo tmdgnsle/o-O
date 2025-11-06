@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { NodeData } from '../../pages/MindmapPage';
+import type { NodeData } from '../../types';
 
 // 로컬 스토리지에 노드 저장
 const saveNodes = async (nodes: NodeData[]) => {

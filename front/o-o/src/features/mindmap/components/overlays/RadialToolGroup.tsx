@@ -2,33 +2,21 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Edit3, Palette, Lightbulb } from "lucide-react";
 import type { CSSProperties } from "react";
 import ColorPalette from "./ColorPalette";
-
-type RadialToolGroupProps = {
-  open: boolean;
-  radius?: number; // distance from node center to button center
-  paletteOpen?: boolean;
-  currentColor?: string;
-  focusedButton?: "delete" | "add" | "edit" | "palette" | "recommend" | null;
-  onDelete?: () => void;
-  onEdit?: () => void;
-  onAdd?: () => void;
-  onPalette?: () => void;
-  onPaletteClose?: () => void;
-  onRecommend?: () => void;
-  onColorChange?: (color: string) => void;
-  onApplyTheme?: (colors: string[]) => void;
-};
-
+import AddInputBox from "./AddInputBox";
+import type { RadialToolGroupProps } from "../../types";
 
 export default function RadialToolGroup({
   open,
   radius = 150,
   paletteOpen = false,
+  addInputOpen = false,
   currentColor = "#263A6B",
   focusedButton = null,
   onDelete,
   onEdit,
   onAdd,
+  onAddConfirm,
+  onAddCancel,
   onPalette,
   onPaletteClose,
   onRecommend,
@@ -165,6 +153,14 @@ export default function RadialToolGroup({
                   onColorChange={onColorChange}
                   onApplyTheme={onApplyTheme}
                   onClose={onPaletteClose}
+                />
+              )}
+              {/* add 버튼 옆에 AddInputBox 표시 */}
+              {it.key === "add" && onAddConfirm && onAddCancel && (
+                <AddInputBox
+                  open={addInputOpen}
+                  onConfirm={onAddConfirm}
+                  onCancel={onAddCancel}
                 />
               )}
             </div>

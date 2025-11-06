@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import MiniNav from '@/shared/ui/MiniNav';
 import AskPopo from '../components/AskPopoButton'
 import StatusBox from '../components/StatusBox';
@@ -9,21 +8,7 @@ import { Textbox } from '../components/Textbox';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
 import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
-
-export type NodeData = {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  color: string;
-  parentId?: string; // 부모 노드 ID (edge 연결용)
-};
-
-export type EdgeData = {
-  id: string;
-  source: string;
-  target: string;
-};
+import type { NodeData } from '../types';
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -110,7 +95,6 @@ const MindmapPage: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <MindmapPageContent />
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 };
