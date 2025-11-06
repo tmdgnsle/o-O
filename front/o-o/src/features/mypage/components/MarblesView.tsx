@@ -2,16 +2,10 @@ import Marble from "@/shared/assets/images/marble.png";
 import { useMarbleLayout } from "../hooks/useMarbleLayout";
 import { useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { getFontSize } from "@/shared/utils/fontSizeUtil";
 
 interface MarblesViewProps {
   readonly keywords: Array<{ keyword: string; mindmapId: string }>;
-}
-
-// 화면 크기별 최소/최대 크기 제한
-function getSizeRange(width: number) {
-  if (width < 640) return { min: 10, max: 20 };
-  if (width < 1024) return { min: 12, max: 24 };
-  return { min: 12, max: 28 };
 }
 
 export function MarblesView({ keywords }: MarblesViewProps) {
@@ -34,32 +28,6 @@ export function MarblesView({ keywords }: MarblesViewProps) {
       </div>
     );
   }
-
-  // 글자 크기 계산 함수 - 화면 크기 고려
-  const getFontSize = (radius: number, textLength: number) => {
-    const viewportWidth = window.innerWidth;
-
-    // 화면 크기에 따른 기본 비율 조정
-    let sizeRatio = 0.3;
-    if (viewportWidth < 640) {
-      sizeRatio = 0.25; // 모바일에서는 더 작게
-    } else if (viewportWidth < 1024) {
-      sizeRatio = 0.28; // 태블릿
-    }
-
-    let baseFontSize = radius * sizeRatio;
-
-    // 텍스트 길이에 따라 조정
-    if (textLength > 4) {
-      baseFontSize *= 0.85;
-    }
-    if (textLength > 6) {
-      baseFontSize *= 0.8;
-    }
-
-    const { min, max } = getSizeRange(viewportWidth);
-    return Math.max(min, Math.min(max, baseFontSize));
-  };
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
