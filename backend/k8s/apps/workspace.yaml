@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: workspace
-          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:workspace-latest"
+          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:workspace-service-latest"
           imagePullPolicy: Always
           ports: [{ containerPort: 8083 }]
           resources:

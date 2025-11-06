@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: mindmap
-          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:mindmap-latest"
+          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:mindmap-service-latest"
           imagePullPolicy: Always
           ports: [{ containerPort: 8082 }]
           resources:

@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: user
-          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:user-latest"
+          image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:user-service-latest"
           imagePullPolicy: Always
           ports: [{ containerPort: 8081 }]
           resources:
