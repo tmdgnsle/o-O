@@ -31,8 +31,8 @@ RUN apk add --no-cache curl
 COPY --from=build /app.jar /app/app.jar
 
 # 앱 포트에 맞춰 통일 (8081을 쓸거면 아래 둘 다 8081로)
-EXPOSE 8081
+EXPOSE 8082
 HEALTHCHECK --interval=15s --timeout=3s --retries=10 \
-  CMD curl -fsS http://127.0.0.1:8081/actuator/health || exit 1
+  CMD curl -fsS http://127.0.0.1:8082/actuator/health || exit 1
 
 ENTRYPOINT ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]
