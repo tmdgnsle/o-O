@@ -3,8 +3,7 @@ spring:
     name: gateway-service
   cloud:
     gateway:
-      mvc:
-        routes:
+      routes:
           # User Service 정적 라우팅
           - id: user-service-auth
             uri: ${USER_SERVICE_URL:http://localhost:8081}

@@ -1,15 +1,11 @@
 package com.ssafy.gatewayservice.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.ServerResponse;
-
-import java.net.URI;
-
-import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
-import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.http;
 
 @Configuration
 public class GatewayConfig {
@@ -21,11 +17,17 @@ public class GatewayConfig {
     private int aiServicePort;
 
     @Bean
-    public RouterFunction<ServerResponse> gatewayRoutes() {
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         // AI 서버 동적 라우팅
         String aiUrl = String.format("http://%s:%d", aiServiceHost, aiServicePort);
-        return route("ai-service")
-                .route(req -> req.path().startsWith("/ai"), http(URI.create(aiUrl)))
+        return builder.routes()
+                .route("ai-service", r -> r.path("/ai/**")
+                        .uri(aiUrl))
                 .build();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }
