@@ -164,7 +164,7 @@ flutter_launcher_icons:
 # Splash Screen Configuration
 flutter_native_splash:
   # Android 11 이하: 전체 화면 배경 이미지 사용
-  background_image: assets/splash.png
+  background_image: assets/ios_splash.png
   android: true
   ios: true
   fullscreen: true
