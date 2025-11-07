@@ -2,6 +2,28 @@ spring:
   application:
     name: mindmap-service
 
+  # MongoDB 설정
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/mindmap}
+      database: mindmap
+      auto-index-creation: true
+
+  # Kafka 설정
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: mindmap-service-consumer
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+
 server:
   port: 8082
 
@@ -9,9 +31,30 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info   # 필요하면 '*' (운영에선 health 정도 권장)
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
-        enabled: true          # /actuator/health/liveness, /readiness 자동 생성
-      show-details: never      # 운영 기본값. 필요시 when_authorized
+        enabled: true
+      show-details: when_authorized
+
+# Kafka 토픽 설정
+kafka:
+  topics:
+    node-events: ${KAFKA_TOPIC_NODE_EVENTS:mindmap.node.events}
+    node-update: ${KAFKA_TOPIC_NODE_UPDATE:mindmap.node.update}
+    ai-analysis-request: ${KAFKA_TOPIC_AI_REQUEST:ai.analysis.request}
+    ai-analysis-result: ${KAFKA_TOPIC_AI_RESULT:ai.analysis.result}
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    com.ssafy.mindmapservice: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.kafka: INFO
+
+# Workspace Service 연동
+workspace:
+  service:
+    url: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
