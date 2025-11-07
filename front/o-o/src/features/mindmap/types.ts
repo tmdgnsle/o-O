@@ -28,6 +28,8 @@ export type CytoscapeCanvasProps = Readonly<{
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
+  onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
+  onCyReady?: (cy: any) => void;
 }>;
 
 export type CytoscapeNodeOverlayProps = {

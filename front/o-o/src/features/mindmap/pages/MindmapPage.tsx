@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MiniNav from '@/shared/ui/MiniNav';
 import AskPopo from '../components/AskPopoButton'
@@ -6,9 +6,11 @@ import StatusBox from '../components/StatusBox';
 import ModeToggleButton from '../components/ModeToggleButton';
 import { Textbox } from '../components/Textbox';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition } from '../hooks/mutation/useNodeMutations';
+import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
 import type { NodeData } from '../types';
+import { COLOR_THEMES } from '../styles/colorThemes';
+import type { Core } from 'cytoscape';
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -22,32 +24,61 @@ const queryClient = new QueryClient({
 
 const MindmapPageContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const cyRef = useRef<Core | null>(null);
 
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
   const addNodeMutation = useAddNode();
   const applyThemeMutation = useApplyThemeToAllNodes();
   const updateNodePositionMutation = useUpdateNodePosition();
+  const batchUpdatePositionsMutation = useBatchUpdateNodePositions();
 
   const handleAddNode = (text: string) => {
+    const pastelColors = COLOR_THEMES.Pastel;
+    const randomColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+
+    // 현재 뷰포트 중심에 노드 추가
+    let x = 0;
+    let y = 0;
+
+    if (cyRef.current) {
+      const pan = cyRef.current.pan();
+      const zoom = cyRef.current.zoom();
+      const container = cyRef.current.container();
+
+      if (container) {
+        // 뷰포트 중심 좌표를 모델 좌표로 변환
+        const centerX = container.clientWidth / 2;
+        const centerY = container.clientHeight / 2;
+
+        x = (centerX - pan.x) / zoom;
+        y = (centerY - pan.y) / zoom;
+      }
+    }
+
     const newNode: NodeData = {
       id: Date.now().toString(),
       text,
-      x: Math.random() * 400 - 200,
-      y: Math.random() * 300 - 150,
-      color: '#263A6B', // 기본 색상
+      x,
+      y,
+      color: randomColor,
     };
     addNodeMutation.mutate(newNode);
   };
 
-  const handleApplyTheme = (colors: string[]) => {
+  const handleApplyTheme = useCallback((colors: string[]) => {
     applyThemeMutation.mutate(colors);
-  };
+  }, [applyThemeMutation]);
 
-  const handleNodePositionChange = (nodeId: string, x: number, y: number) => {
+  const handleNodePositionChange = useCallback((nodeId: string, x: number, y: number) => {
     // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
     updateNodePositionMutation.mutate({ nodeId, x, y });
-  };
+  }, [updateNodePositionMutation]);
+
+  const handleBatchNodePositionChange = useCallback((positions: Array<{ id: string; x: number; y: number }>) => {
+    // Cola 레이아웃 완료 후 여러 노드 위치를 한 번에 업데이트
+    batchUpdatePositionsMutation.mutate(positions);
+  }, [batchUpdatePositionsMutation]);
 
   if (isLoading) {
     return (
@@ -97,6 +128,8 @@ const MindmapPageContent: React.FC = () => {
         onNodeUnselect={() => setSelectedNodeId(null)}
         onApplyTheme={handleApplyTheme}
         onNodePositionChange={handleNodePositionChange}
+        onBatchNodePositionChange={handleBatchNodePositionChange}
+        onCyReady={(cy) => { cyRef.current = cy; }}
         className="absolute inset-0"
       />
     </div>

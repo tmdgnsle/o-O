@@ -1,23 +1,36 @@
-// 좌표 변환/렌더 타이밍/포인터 이벤트를 한 군데로 모아 관리 편의 + 성능을 챙기는 레이어
+/**
+ * OverlayLayer
+ * - HTML overlay로 노드 UI 렌더링
+ * - Cytoscape 그래프 위에 React 컴포넌트를 배치
+ * - overlayVersion으로 pan/zoom/drag 시 위치 갱신 트리거
+ */
 import type { Core } from "cytoscape";
 import NodeOverlay from "./overlays/NodeOverlay";
 import type { NodeData } from "../types";
 
 export default function OverlayLayer({
-  cy, nodes, selectedNodeId, onNodeSelect, onNodeUnselect, onApplyTheme,
-}: Readonly <{
+  cy,
+  nodes,
+  selectedNodeId,
+  onNodeSelect,
+  onNodeUnselect,
+  onApplyTheme,
+  overlayVersion,
+}: Readonly<{
   cy: Core | null;
   nodes: NodeData[];
-  selectedNodeId?: string;
+  selectedNodeId: string | null;
   onNodeSelect: (id: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  overlayVersion: number;
 }>) {
   const zoom = cy?.zoom() ?? 1;
 
   return (
     <div className="absolute inset-0 pointer-events-none">
       {cy &&
+        overlayVersion >= 0 &&
         nodes.map((node) => {
           const el = cy.getElementById(node.id);
           if (!el || el.empty()) return null;

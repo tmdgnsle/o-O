@@ -11,15 +11,15 @@ export type CytoscapeEventHandlers = {
 /**
  * Cytoscape 이벤트 핸들러 관리
  * - 노드 선택/선택 해제
- * - 노드 드래그 후 위치 변경
  * - 배경 클릭
+ * NOTE: 드래그 후 위치 변경은 Cola 레이아웃이 처리
  */
 export function useCytoscapeEvents(
   cy: Core | null,
   handlers: CytoscapeEventHandlers,
   cyReady: boolean = true
 ) {
-  const { onNodeSelect, onNodeUnselect, onNodePositionChange, onBackgroundClick } = handlers;
+  const { onNodeSelect, onNodeUnselect, onBackgroundClick } = handlers;
 
   // 노드 선택/선택 해제 이벤트
   useEffect(() => {
@@ -43,22 +43,8 @@ export function useCytoscapeEvents(
     };
   }, [cy, cyReady, onNodeSelect, onNodeUnselect]);
 
-  // 노드 드래그 완료 후 위치 변경 이벤트
-  useEffect(() => {
-    if (!cy || !cyReady || !onNodePositionChange) return;
-
-    const handleDragFree = (event: EventObject) => {
-      const node = event.target;
-      const pos = node.position();
-      onNodePositionChange(node.id(), pos.x, pos.y);
-    };
-
-    cy.on("dragfree", "node", handleDragFree);
-
-    return () => {
-      cy.off("dragfree", "node", handleDragFree);
-    };
-  }, [cy, cyReady, onNodePositionChange]);
+  // NOTE: 드래그 완료 후 위치 업데이트는 Cola 레이아웃 완료 후 onLayoutComplete 콜백에서 일괄 처리
+  // (dragfree → 즉시 위치 업데이트 시 Cola와 race condition 발생)
 
   // 배경 클릭 이벤트 (노드 선택 해제)
   useEffect(() => {
@@ -78,6 +64,7 @@ export function useCytoscapeEvents(
     };
   }, [cy, cyReady, onBackgroundClick]);
 }
+
 
 /**
  * Cytoscape 인스턴스 초기 설정

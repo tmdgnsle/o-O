@@ -111,3 +111,37 @@ export const useUpdateNodePosition = () => {
     },
   });
 };
+
+/**
+ * 여러 노드의 위치를 한 번에 업데이트 (Cola 레이아웃 완료 후 사용)
+ * - 개별 mutation 대신 batch 업데이트로 성능 개선
+ * - 200개 노드 = 200번 localStorage write → 1번 write
+ */
+export const useBatchUpdateNodePositions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (positions: Array<{ id: string; x: number; y: number }>) => {
+      const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
+
+      // O(1) 룩업을 위한 Map 생성
+      const positionMap = new Map(positions.map(p => [p.id, p]));
+
+      // 단일 패스로 업데이트
+      const updatedNodes = currentNodes.map(node => {
+        const newPos = positionMap.get(node.id);
+        if (newPos) {
+          return { ...node, x: newPos.x, y: newPos.y };
+        }
+        return node;
+      });
+
+      // 단일 localStorage write
+      await saveNodes(updatedNodes);
+      return updatedNodes;
+    },
+    onSuccess: (updatedNodes) => {
+      queryClient.setQueryData(['nodes'], updatedNodes);
+    },
+  });
+};

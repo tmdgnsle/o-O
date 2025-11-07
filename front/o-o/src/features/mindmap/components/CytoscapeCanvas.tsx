@@ -1,12 +1,17 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
-import type { Core } from "cytoscape";
+import cytoscape, { type Core } from "cytoscape";
+import cola from "cytoscape-cola";
 import { cn } from "@/lib/utils";
 import type { CytoscapeCanvasProps } from "../types";
 import { cytoscapeStylesheet, cytoscapeLayout, cytoscapeConfig } from "../styles/mindmapStyles";
 import { useEdges, useGraphSync, useDragSync } from "../hooks/cytoscape/useGraphSync";
 import { useCytoscapeEvents, useCytoscapeInit } from "../hooks/cytoscape/useCytoscapeEvents";
-import NodeOverlay from "./overlays/NodeOverlay";
+import { useColaLayout } from "../hooks/cytoscape/useColaLayout";
+import OverlayLayer from "./OverlayLayer";
+
+// Cola 레이아웃 extension 등록 (최초 1회)
+cytoscape.use(cola);
 
 /**
  * CytoscapeCanvas
@@ -21,12 +26,13 @@ export default function CytoscapeCanvas({
   onNodeUnselect,
   onApplyTheme,
   onNodePositionChange,
+  onBatchNodePositionChange,
+  onCyReady,
 }: CytoscapeCanvasProps) {
 
   const cyRef = useRef<Core | null>(null);
   const [cyReady, setCyReady] = useState(false);       // cy 준비 플래그
   const [overlayVersion, setOverlayVersion] = useState(0);   // pan/zoom 시 오버레이 위치 갱신용
-  const [zoomLevel, setZoomLevel] = useState(1);      // 현재 줌 레벨
   const initializingRef = useRef(false);              // 초기화 진행 중 플래그
 
   // 엣지 계산
@@ -35,10 +41,6 @@ export default function CytoscapeCanvas({
   // rAF 스로틀된 오버레이 리렌더 트리거
   const forceOverlayUpdate = useCallback(() => {
     setOverlayVersion(v => v + 1);
-    // 줌 레벨도 함께 업데이트
-    if (cyRef.current) {
-      setZoomLevel(cyRef.current.zoom());
-    }
   }, []);
 
   // cleanup on unmount
@@ -67,15 +69,67 @@ export default function CytoscapeCanvas({
     onBackgroundClick: onNodeUnselect,
   }, cyReady);
 
+  // Cola 레이아웃 완료 후 React state에 위치 반영 (batch 업데이트)
+  const handleColaLayoutComplete = useCallback(
+    (positions: Array<{ id: string; x: number; y: number }>) => {
+      // Batch mutation 사용 (200개 노드 = 1번 localStorage write)
+      if (onBatchNodePositionChange) {
+        onBatchNodePositionChange(positions);
+      } else if (onNodePositionChange) {
+        // Fallback: 개별 업데이트 (성능 저하 가능)
+        for (const pos of positions) {
+          onNodePositionChange(pos.id, pos.x, pos.y);
+        }
+      }
+    },
+    [onBatchNodePositionChange, onNodePositionChange]
+  );
+
+  // Cola 레이아웃 (겹침 방지 전용) - 드래그 후에만 실행
+  const { runLayout: runColaLayout } = useColaLayout(
+    cyRef.current,
+    true, // enabled
+    cyReady,
+    handleColaLayoutComplete,
+    forceOverlayUpdate
+  );
+
+  // 드래그 완료 시 Cola 실행 (겹침 방지)
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !cyReady) return;
+
+    const handleDragFree = () => {
+      // 드래그 완료 후 Cola 레이아웃 실행 → 겹친 노드들만 살짝 밀어냄
+      runColaLayout();
+    };
+
+    cy.on("dragfree", "node", handleDragFree);
+
+    return () => {
+      cy.off("dragfree", "node", handleDragFree);
+    };
+  }, [cyReady, runColaLayout]);
+
   // pan/zoom → rAF 스로틀로 오버레이 위치 갱신
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy || !cyReady) return;
     let raf = 0;
+    let lastUpdate = 0;
+    const THROTTLE_MS = 16; // ~60fps 상한
+
     const ping = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(forceOverlayUpdate);
+      raf = requestAnimationFrame(() => {
+        const now = performance.now();
+        if (now - lastUpdate < THROTTLE_MS) return;
+        forceOverlayUpdate();
+        lastUpdate = now;
+      });
     };
+
+    // render 이벤트 제거: 60+ 업데이트/초 → <10 업데이트/초로 성능 개선
     cy.on("pan zoom", ping);
     window.addEventListener("resize", ping);
     return () => {
@@ -123,32 +177,26 @@ export default function CytoscapeCanvas({
 
           setCyReady(true); // ✅ 이제 훅들 동작 시작
           initializingRef.current = false;
+
+          // 부모 컴포넌트에 cy 인스턴스 전달
+          if (onCyReady) {
+            onCyReady(instance);
+          }
         }}
         style={{ width: "100%", height: "100%" }}
         className="absolute inset-0"
       />
 
-      {/* HTML Overlay - overlayVersion으로 위치 갱신 트리거 */}
-      <div className="absolute inset-0 pointer-events-none">
-        {cyReady && cyRef.current && overlayVersion >= 0 && nodes.map((node) => {
-          const el = cyRef.current!.getElementById(node.id);
-          if (el.empty()) return null;
-          const { x, y } = el.renderedPosition();
-          return (
-            <NodeOverlay
-              key={node.id}
-              node={node}
-              x={x}
-              y={y}
-              zoom={zoomLevel}
-              isSelected={selectedNodeId === node.id}
-              onSelect={() => onNodeSelect(node.id)}
-              onDeselect={onNodeUnselect}
-              onApplyTheme={onApplyTheme}
-            />
-          );
-        })}
-      </div>
+      {/* HTML Overlay - OverlayLayer 컴포넌트로 통합 */}
+      <OverlayLayer
+        cy={cyReady ? cyRef.current : null}
+        nodes={nodes}
+        selectedNodeId={selectedNodeId}
+        onNodeSelect={onNodeSelect}
+        onNodeUnselect={onNodeUnselect}
+        onApplyTheme={onApplyTheme}
+        overlayVersion={overlayVersion}
+      />
     </div>
   );
 }
