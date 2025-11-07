@@ -4,11 +4,12 @@ export function KeywordBox({
   text,
   colorClass,
   isLarge = true,
+  onClick,
 }: Readonly<KeywordBoxProps>) {
   if (!text) return null;
 
   return (
-    <div className="w-full h-full relative">
+    <button className="w-full h-full relative" onClick={onClick}>
       <div
         className={`
           absolute inset-0 ${colorClass}
@@ -29,6 +30,6 @@ export function KeywordBox({
       >
         {text}
       </span>
-    </div>
+    </button>
   );
 }

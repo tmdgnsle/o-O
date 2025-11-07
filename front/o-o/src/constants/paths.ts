@@ -2,6 +2,7 @@
 export const PATHS = {
   HOME: "/",
   TREND: "/trend",
+  TREND_MINDMAP: "/trend/:trendId",
   MINDMAP: "/mindmap",
   NEWPROJECT: "/newproject",
   MYPAGE: "/mypage",

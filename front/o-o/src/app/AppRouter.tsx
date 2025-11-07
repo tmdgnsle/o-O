@@ -9,6 +9,7 @@ import { HomePage } from "@/features/home/pages/HomePage";
 import { MyPage } from "@/features/mypage/pages/MyPage";
 import { ProjectDetailPage } from "@/features/mypage/pages/ProjectDetailPage";
 import { TrendPage } from "@/features/trend/pages/TrendPage";
+import { TrendMindmapPage } from "@/features/trend/pages/TrendMindmapPage";
 
 function NewProjectPage() {
   return <div className="container mx-auto px-6 py-8"></div>;
@@ -22,6 +23,10 @@ const routeConfig = [
   {
     path: PATHS.TREND,
     element: <TrendPage />,
+  },
+  {
+    path: PATHS.TREND_MINDMAP,
+    element: <TrendMindmapPage />,
   },
   {
     path: PATHS.NEWPROJECT,

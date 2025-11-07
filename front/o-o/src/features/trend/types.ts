@@ -12,4 +12,5 @@ export interface KeywordBoxProps {
   readonly text?: string;
   readonly colorClass: string;
   readonly isLarge?: boolean;
+  readonly onClick?: () => void;
 }
