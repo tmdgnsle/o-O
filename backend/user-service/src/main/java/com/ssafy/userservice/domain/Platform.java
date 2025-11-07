@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Platform {
     WEB("web"),
-    APP("app");
+    ANDROID("android"),
+    IOS("ios");
 
     private final String value;
 
@@ -22,6 +23,6 @@ public enum Platform {
             }
         }
 
-        throw new IllegalArgumentException("Invalid platform: " + value + ". Allowed values: web, app");
+        throw new IllegalArgumentException("Invalid platform: " + value + ". Allowed values: web, android, ios");
     }
 }

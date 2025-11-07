@@ -9,7 +9,7 @@ public record GoogleIdTokenRequest(
         @NotBlank(message = "ID token is required")
         String idToken,
 
-        @Schema(description = "플랫폼 타입", example = "app", allowableValues = {"web", "app"})
+        @Schema(description = "플랫폼 타입", example = "anroid", allowableValues = {"web", "android", "ios"})
         @NotBlank(message = "Platform is required")
         String platform
 ) {

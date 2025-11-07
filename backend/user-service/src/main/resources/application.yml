@@ -47,7 +47,10 @@ jwt:
   refresh-token-expiration: 604800000  # 7일
 
 google:
-  client-id-mobile: ${GOOGLE_CLIENT_ID_MOBILE}
+  client-id-mobile: ${GOOGLE_CLIENT_ID_MOBILE_MAC}
+  client-id-ios: ${GOOGLE_CLIENT_ID_IOS}
+  client-id-web: ${GOOGLE_CLIENT_ID}
+  client-id-mobile-ssafy: ${GOOGLE_CLIENT_ID_MOBILE_SSAFY}
 
 server:
   port: 8081
