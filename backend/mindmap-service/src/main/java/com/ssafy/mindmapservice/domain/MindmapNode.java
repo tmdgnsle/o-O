@@ -30,11 +30,11 @@ public class MindmapNode {
     private String id;
 
     /**
-     * 노드 고유 ID (클라이언트/Y.js에서 생성)
-     * 예: "n1", "n2", "uuid-..."
+     * 노드 고유 ID (서버에서 자동 생성)
+     * 워크스페이스별로 1부터 자동 증가
      */
     @Indexed
-    private String nodeId;
+    private Long nodeId;
 
     /**
      * 워크스페이스 ID (파티셔닝 키)
@@ -46,7 +46,7 @@ public class MindmapNode {
      * 부모 노드 ID (트리 구조)
      * 루트 노드는 null
      */
-    private String parentId;
+    private Long parentId;
 
     /**
      * 노드 타입
