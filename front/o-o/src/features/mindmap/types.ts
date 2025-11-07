@@ -2,8 +2,8 @@
 // Component Props Types
 // ============================================
 
-// AddInputBox.tsx
-export type AddInputBoxProps = Readonly<{
+// NodeAddInput.tsx
+export type NodeAddInputProps = Readonly<{
   open: boolean;
   onConfirm: (keyword: string, description: string) => void;
   onCancel: () => void;

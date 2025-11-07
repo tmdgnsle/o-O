@@ -1,8 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
+import NodeEditForm from "./NodeEditForm";
 import { useNodeTextEdit } from "../../hooks/custom/useNodeTextEdit";
 import { useNodeAdd } from "../../hooks/custom/useNodeAdd";
 import { useNodeColorEdit } from "../../hooks/custom/useNodeColorEdit";
@@ -116,40 +114,12 @@ export default function NodeOverlay({
         }}
       >
         {isEditing ? (
-          <div className="flex flex-col items-center gap-2" style={{ pointerEvents: "auto" }}>
-            <Input
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="w-32 h-10 text-sm text-center bg-white"
-              style={{ pointerEvents: "auto" }}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleEditConfirm();
-                if (e.key === "Escape") handleEditCancel();
-                e.stopPropagation();
-              }}
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); handleEditConfirm(); }}
-                className="bg-green-500 hover:bg-green-600 h-8 px-3"
-                style={{ pointerEvents: "auto" }}
-              >
-                <Check className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); handleEditCancel(); }}
-                className="h-8 px-3"
-                style={{ pointerEvents: "auto" }}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          <NodeEditForm
+            value={editValue}
+            onChange={setEditValue}
+            onConfirm={handleEditConfirm}
+            onCancel={handleEditCancel}
+          />
         ) : (
           <span
             className="font-paperlogy font-semibold text-lg px-6 text-center break-words"

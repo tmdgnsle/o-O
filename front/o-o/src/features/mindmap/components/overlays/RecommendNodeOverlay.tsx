@@ -1,6 +1,11 @@
-import { X, Bot, Users } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { RecommendNodeData, RecommendNodeOverlayProps } from "../../types";
+import {
+  RECOMMENDATION_THEME,
+  RECOMMENDATION_LAYOUT_CONFIG,
+  type RecommendationType,
+} from "../../styles/recommendationThemes";
 
 export default function RecommendNodeOverlay({
   open,
@@ -22,25 +27,8 @@ export default function RecommendNodeOverlay({
     { id: "trend-3", text: "트렌드 아이디어 3", type: "trend" },
   ];
 
-
-  // 원형 배치 설정
-  const radius = 180; // 중심에서 추천 노드까지의 거리
-
-  // AI 추천 각도 (왼쪽): 아이콘 + 노드들
-  const aiAngles = [-60, -30, 10, 50];
-  const aiIconAngle = aiAngles[0];
-  const aiNodeAngles = aiAngles.slice(1);
-
-  // Trend 추천 각도 (오른쪽): 아이콘 + 노드들
-  const trendAngles = [-120, 210, 170, 130];
-  const trendIconAngle = trendAngles[0];
-  const trendNodeAngles = trendAngles.slice(1);
-
-  // 닫기 버튼 각도 (아래쪽 중앙)
-  const closeButtonAngle = 90;
-
   // 각도와 반지름으로 위치 계산
-  const getPosition = (angle: number, r: number = radius) => {
+  const getPosition = (angle: number, r: number = RECOMMENDATION_LAYOUT_CONFIG.radius) => {
     const rad = (angle * Math.PI) / 180;
     return {
       x: Math.cos(rad) * r,
@@ -49,10 +37,10 @@ export default function RecommendNodeOverlay({
   };
 
   // 아이콘 버튼 렌더링
-  const renderIconButton = (type: "ai" | "trend", angle: number) => {
+  const renderIconButton = (type: RecommendationType, angle: number) => {
     const { x, y } = getPosition(angle);
-    const Icon = type === "ai" ? Bot : Users;
-    const color = type === "ai" ? "#FF69B4" : "#4A90E2";
+    const theme = RECOMMENDATION_THEME[type];
+    const Icon = theme.icon;
 
     return (
       <div
@@ -62,12 +50,12 @@ export default function RecommendNodeOverlay({
           top: "50%",
           left: "50%",
           transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-          transition: "all 300ms ease",
+          transition: `all ${RECOMMENDATION_LAYOUT_CONFIG.transitionDuration}ms ease`,
           opacity: open ? 1 : 0,
         }}
       >
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg">
-          <Icon className="w-5 h-5" style={{ color }} />
+          <Icon className="w-5 h-5" style={{ color: theme.iconColor }} />
         </div>
       </div>
     );
@@ -80,7 +68,8 @@ export default function RecommendNodeOverlay({
     index: number
   ) => {
     const { x, y } = getPosition(angle);
-    const bgColor = node.type === "ai" ? "#FFE6F0" : "#BAE1FF";
+    const theme = RECOMMENDATION_THEME[node.type];
+    const bgColor = theme.nodeColor;
 
     return (
       <button
@@ -96,7 +85,7 @@ export default function RecommendNodeOverlay({
           top: "50%",
           left: "50%",
           transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-          transition: `all 300ms ease ${index * 60}ms`,
+          transition: `all ${RECOMMENDATION_LAYOUT_CONFIG.transitionDuration}ms ease ${index * RECOMMENDATION_LAYOUT_CONFIG.transitionStagger}ms`,
           opacity: open ? 1 : 0,
         }}
       >
@@ -113,57 +102,45 @@ export default function RecommendNodeOverlay({
   };
 
   return (
-    <>
-      {/* 배경 */}
-      {/* <div
-        className="fixed inset-0 bg-neutral-100/90"
-        style={{ zIndex: -20 }}
-        // onClick={onClose}
-      /> */}
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 600 }}>
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        {/* AI 아이콘 */}
+        {renderIconButton("ai", RECOMMENDATION_THEME.ai.angles[0])}
 
-      {/* 추천 노드 컨테이너 - 배경 위에 표시 */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 600 }}>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          {/* AI 아이콘 */}
-          {renderIconButton("ai", aiIconAngle)}
+        {/* AI 추천 노드들 */}
+        {aiRecommendations.map((node, index) =>
+          renderRecommendNode(node, RECOMMENDATION_THEME.ai.angles[index + 1], index)
+        )}
 
-          {/* AI 추천 노드들 */}
-          {aiRecommendations.map((node, index) =>
-            renderRecommendNode(node, aiNodeAngles[index], index)
-          )}
+        {/* Trend 아이콘 */}
+        {renderIconButton("trend", RECOMMENDATION_THEME.trend.angles[0])}
 
-          {/* Trend 아이콘 */}
-          {renderIconButton("trend", trendIconAngle)}
+        {/* Trend 추천 노드들 */}
+        {trendRecommendations.map((node, index) =>
+          renderRecommendNode(node, RECOMMENDATION_THEME.trend.angles[index + 1], index)
+        )}
 
-          {/* Trend 추천 노드들 */}
-          {trendRecommendations.map((node, index) =>
-            renderRecommendNode(node, trendNodeAngles[index], index)
-          )}
-
-          {/* 닫기 버튼 */}
-          <div
-            className="absolute pointer-events-auto"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: `translate(-50%, -50%) translate(${getPosition(closeButtonAngle).x}px, ${getPosition(closeButtonAngle).y}px)`,
-              transition: "all 300ms ease 400ms",
-              opacity: open ? 1 : 0,
-            }}
+        {/* 닫기 버튼 */}
+        <div
+          className="absolute pointer-events-auto"
+          style={{
+            top: "50%",
+            left: "50%",
+            transform: `translate(-50%, -50%) translate(${getPosition(RECOMMENDATION_LAYOUT_CONFIG.closeButtonAngle).x}px, ${getPosition(RECOMMENDATION_LAYOUT_CONFIG.closeButtonAngle).y}px)`,
+            transition: `all ${RECOMMENDATION_LAYOUT_CONFIG.transitionDuration}ms ease ${RECOMMENDATION_LAYOUT_CONFIG.closeButtonDelay}ms`,
+            opacity: open ? 1 : 0,
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onClose}
+            className="rounded-full bg-white hover:bg-gray-100 shadow-lg"
           >
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onClose}
-              className="rounded-full bg-white hover:bg-gray-100 shadow-lg"
-            >
-              <X className="w-6 h-6" />
-            </Button>
-          </div>
+            <X className="w-6 h-6" />
+          </Button>
         </div>
       </div>
-
-
-    </>
+    </div>
   );
 }

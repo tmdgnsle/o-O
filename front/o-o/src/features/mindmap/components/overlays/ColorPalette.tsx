@@ -16,16 +16,7 @@ import Color from "color";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColorPaletteProps } from "../../types";
-
-// 색상 테마 정의
-const COLOR_THEMES = {
-  Pastel: ["#FFD0EA", "#FFEEAC", "#C2F0F9", "#EFB39B", "#B9BDFF", "#C2DCF9", "#C3F9C2"],
-  "Summer Beach": ["#F2674A", "#FCDED6", "#84A5F2", "#EA9A37", "#224ED1", "#AFC88E", "#CFAC9D"],
-  Citrus: ["#CAE8F2", "#59A5B2", "#FBCC58", "#223F43", "#7CBC29", "#BAAC9D"],
-  Retro: ["#FDF5E8", "#A0BBC4", "#F39069", "#DF614A", "#6F8240", "#AABA73", "#AF9A84"],
-  Cool: ["#02182F", "#022F56", "#E2C7A1", "#E5ECEA", "#85C4E5", "#CCDDE4", "#488DB4"],
-  Lavendar: ["#2B2356", "#AB9CC7", "#F2E2FF", "#FE5C8E", "#FFE1F1", "#39368E", "#8D4E93"],
-} as const;
+import { COLOR_THEMES, type ColorThemeName } from "../../styles/colorThemes";
 
 export default function ColorPalette({
   open,
@@ -36,9 +27,9 @@ export default function ColorPalette({
   className,
 }: ColorPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
-  const [selectedTheme, setSelectedTheme] = useState<keyof typeof COLOR_THEMES>("Pastel");
+  const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>("Pastel");
 
-  const handleThemeChange = (theme: keyof typeof COLOR_THEMES) => {
+  const handleThemeChange = (theme: ColorThemeName) => {
     setSelectedTheme(theme);
     // 전체 노드에 테마 적용
     if (onApplyTheme) {
@@ -122,7 +113,7 @@ export default function ColorPalette({
           {/* 테마 선택 */}
           <div>
             <span className="text-xs text-gray-600 block mb-2">테마 선택</span>
-            <Select value={selectedTheme} onValueChange={(value) => handleThemeChange(value as keyof typeof COLOR_THEMES)}>
+            <Select value={selectedTheme} onValueChange={(value) => handleThemeChange(value as ColorThemeName)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

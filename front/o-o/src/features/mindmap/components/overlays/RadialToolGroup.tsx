@@ -2,12 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Edit3, Palette, Lightbulb } from "lucide-react";
 import type { CSSProperties } from "react";
 import ColorPalette from "./ColorPalette";
-import AddInputBox from "./AddInputBox";
+import NodeAddInput from "./NodeAddInput";
 import type { RadialToolGroupProps } from "../../types";
 
 export default function RadialToolGroup({
   open,
-  radius = 150,
+  radius = 130,
   paletteOpen = false,
   addInputOpen = false,
   currentColor = "#263A6B",
@@ -155,9 +155,9 @@ export default function RadialToolGroup({
                   onClose={onPaletteClose}
                 />
               )}
-              {/* add 버튼 옆에 AddInputBox 표시 */}
+              {/* add 버튼 옆에 NodeAddInput 표시 */}
               {it.key === "add" && onAddConfirm && onAddCancel && (
-                <AddInputBox
+                <NodeAddInput
                   open={addInputOpen}
                   onConfirm={onAddConfirm}
                   onCancel={onAddCancel}

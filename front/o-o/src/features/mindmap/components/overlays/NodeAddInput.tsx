@@ -2,9 +2,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import type { AddInputBoxProps } from "../../types";
+import type { NodeAddInputProps } from "../../types";
 
-export default function AddInputBox({ open, onConfirm, onCancel }: AddInputBoxProps) {
+export default function NodeAddInput({ open, onConfirm, onCancel }: NodeAddInputProps) {
   const [keyword, setKeyword] = useState("");
   const [description, setDescription] = useState("");
 
@@ -69,7 +69,7 @@ export default function AddInputBox({ open, onConfirm, onCancel }: AddInputBoxPr
               id={descriptionId}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="키워드에 대한 상세 설명을 적고싶으면 적으세요. 싫으면 말아라."
+              placeholder="키워드에 대한 상세 설명을 입력하세요."
               className="w-full min-h-[100px] resize-none"
               onKeyDown={(e) => {
                 if (e.key === "Escape") onCancel();
