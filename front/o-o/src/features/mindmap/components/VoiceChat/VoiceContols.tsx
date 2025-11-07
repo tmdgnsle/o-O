@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import CustomTooltip from "../CustomTooltip";
+import CustomTooltip from "../../../../shared/ui/CustomTooltip";
 import MicOffOutlinedIcon from "@mui/icons-material/MicOffOutlined";
 import MicIcon from "@mui/icons-material/Mic";
 import PhoneDisabledIcon from "@mui/icons-material/PhoneDisabled";

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 'use client';
 
 import Color from 'color';
@@ -26,17 +27,20 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+// CUSTOM : 모드 유니온
+type Mode = 'hex' | 'rgb' | 'css' | 'hsl';
+
 interface ColorPickerContextValue {
   hue: number;
   saturation: number;
   lightness: number;
   alpha: number;
-  mode: string;
-  setHue: (hue: number) => void;
-  setSaturation: (saturation: number) => void;
-  setLightness: (lightness: number) => void;
-  setAlpha: (alpha: number) => void;
-  setMode: (mode: string) => void;
+  mode: Mode;
+  setHue: React.Dispatch<React.SetStateAction<number>>;
+  setSaturation: React.Dispatch<React.SetStateAction<number>>;
+  setLightness: React.Dispatch<React.SetStateAction<number>>;
+  setAlpha: React.Dispatch<React.SetStateAction<number>>;
+  setMode: React.Dispatch<React.SetStateAction<Mode>>; // ✅ 핵심
 }
 
 const ColorPickerContext = createContext<ColorPickerContextValue | undefined>(
@@ -59,51 +63,69 @@ export type ColorPickerProps = HTMLAttributes<HTMLDivElement> & {
   onChange?: (value: Parameters<typeof Color.rgb>[0]) => void;
 };
 
+// --------------------------------------------------------------------------------------------
+// CUSTOMIZED
+// (1) 안전 가드 + nullish 사용
 export const ColorPicker = ({
   value,
   defaultValue = '#000000',
   onChange,
   className,
+  children,
   ...props
 }: ColorPickerProps) => {
-  const selectedColor = Color(value);
-  const defaultColor = Color(defaultValue);
+  const selectedColor = Color(value ?? defaultValue);
+  const defaultColor  = Color(defaultValue);
 
-  const [hue, setHue] = useState(
-    selectedColor.hue() || defaultColor.hue() || 0
+  const [hue, setHue] = useState<number>(selectedColor.hue() ?? defaultColor.hue() ?? 0);
+  const [saturation, setSaturation] = useState<number>(selectedColor.saturationl() ?? defaultColor.saturationl() ?? 100);
+  const [lightness, setLightness] = useState<number>(selectedColor.lightness() ?? defaultColor.lightness() ?? 50);
+  const [alpha, setAlpha] = useState<number>(
+    Math.round((selectedColor.alpha() ?? defaultColor.alpha() ?? 1) * 100)
   );
-  const [saturation, setSaturation] = useState(
-    selectedColor.saturationl() || defaultColor.saturationl() || 100
-  );
-  const [lightness, setLightness] = useState(
-    selectedColor.lightness() || defaultColor.lightness() || 50
-  );
-  const [alpha, setAlpha] = useState(
-    selectedColor.alpha() * 100 || defaultColor.alpha() * 100
-  );
-  const [mode, setMode] = useState('hex');
+  const [mode, setMode] = useState<Mode>('hex');
 
-  // Update color when controlled value changes
+  // value prop 변경 감지 플래그
+  const isExternalUpdate = useRef(false);
+
+  // (2) controlled value 변경 시 HSL로 올바르게 반영
   useEffect(() => {
-    if (value) {
-      const color = Color.rgb(value).rgb().object();
-
-      setHue(color.r);
-      setSaturation(color.g);
-      setLightness(color.b);
-      setAlpha(color.a);
+    if (value != null) {
+      isExternalUpdate.current = true;
+      const color = Color.rgb(value);
+      const [h, s, l] = color.hsl().array() as [number, number, number];
+      setHue(h);
+      setSaturation(s);
+      setLightness(l);
+      setAlpha(Math.round(color.alpha() * 100));
+      // 다음 틱에 플래그 리셋
+      setTimeout(() => {
+        isExternalUpdate.current = false;
+      }, 0);
     }
   }, [value]);
 
-  // Notify parent of changes
+  // (3) 부모 onChange 통지 - onChange를 ref로 관리하여 무한 루프 방지
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    if (onChange) {
-      const color = Color.hsl(hue, saturation, lightness).alpha(alpha / 100);
-      const rgba = color.rgb().array();
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
-      onChange([rgba[0], rgba[1], rgba[2], alpha / 100]);
+  useEffect(() => {
+    // 외부(props)에서 온 업데이트는 onChange 호출 안 함
+    if (isExternalUpdate.current) {
+      return;
     }
-  }, [hue, saturation, lightness, alpha, onChange]);
+
+    if (onChangeRef.current) {
+      const c = Color.hsl(hue, saturation, lightness).alpha(alpha / 100);
+      const [r, g, b] = c.rgb().array() as [number, number, number];
+      onChangeRef.current([r, g, b, alpha / 100]);
+    }
+  }, [hue, saturation, lightness, alpha]);
+
+  // --------------------------------------------------------------------------------------------
+
 
   return (
     <ColorPickerContext.Provider
@@ -123,7 +145,9 @@ export const ColorPicker = ({
       <div
         className={cn('flex size-full flex-col gap-4', className)}
         {...props}
-      />
+      >
+        {children}
+      </div>
     </ColorPickerContext.Provider>
   );
 };
@@ -134,9 +158,7 @@ export const ColorPickerSelection = memo(
   ({ className, ...props }: ColorPickerSelectionProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [positionX, setPositionX] = useState(0);
-    const [positionY, setPositionY] = useState(0);
-    const { hue, setSaturation, setLightness } = useColorPicker();
+    const { hue, saturation, lightness, setSaturation, setLightness } = useColorPicker();
 
     const backgroundGradient = useMemo(() => {
       return `linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0)),
@@ -144,29 +166,41 @@ export const ColorPickerSelection = memo(
             hsl(${hue}, 100%, 50%)`;
     }, [hue]);
 
-    const handlePointerMove = useCallback(
-      (event: PointerEvent) => {
-        if (!(isDragging && containerRef.current)) {
-          return;
-        }
+    // saturation과 lightness로부터 포인터 위치 계산
+    const positionX = saturation / 100;
+    const positionY = useMemo(() => {
+      const topLightness = positionX < 0.01 ? 100 : 50 + 50 * (1 - positionX);
+      return topLightness === 0 ? 0 : 1 - lightness / topLightness;
+    }, [lightness, positionX]);
+
+    const updateColor = useCallback(
+      (clientX: number, clientY: number) => {
+        if (!containerRef.current) return;
+
         const rect = containerRef.current.getBoundingClientRect();
         const x = Math.max(
           0,
-          Math.min(1, (event.clientX - rect.left) / rect.width)
+          Math.min(1, (clientX - rect.left) / rect.width)
         );
         const y = Math.max(
           0,
-          Math.min(1, (event.clientY - rect.top) / rect.height)
+          Math.min(1, (clientY - rect.top) / rect.height)
         );
-        setPositionX(x);
-        setPositionY(y);
+
         setSaturation(x * 100);
         const topLightness = x < 0.01 ? 100 : 50 + 50 * (1 - x);
-        const lightness = topLightness * (1 - y);
-
-        setLightness(lightness);
+        const newLightness = topLightness * (1 - y);
+        setLightness(newLightness);
       },
-      [isDragging, setSaturation, setLightness]
+      [setSaturation, setLightness]
+    );
+
+    const handlePointerMove = useCallback(
+      (event: PointerEvent) => {
+        if (!isDragging) return;
+        updateColor(event.clientX, event.clientY);
+      },
+      [isDragging, updateColor]
     );
 
     useEffect(() => {
@@ -189,7 +223,8 @@ export const ColorPickerSelection = memo(
         onPointerDown={(e) => {
           e.preventDefault();
           setIsDragging(true);
-          handlePointerMove(e.nativeEvent);
+          // 클릭 즉시 색상 업데이트
+          updateColor(e.clientX, e.clientY);
         }}
         ref={containerRef}
         style={{
@@ -310,16 +345,14 @@ export const ColorPickerEyeDropper = ({
 
 export type ColorPickerOutputProps = ComponentProps<typeof SelectTrigger>;
 
-const formats = ['hex', 'rgb', 'css', 'hsl'];
+const formats: Mode[] = ['hex', 'rgb', 'css', 'hsl'];
 
-export const ColorPickerOutput = ({
-  className,
-  ...props
-}: ColorPickerOutputProps) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const ColorPickerOutput = ({ className, ...props }: ColorPickerOutputProps) => {
   const { mode, setMode } = useColorPicker();
 
   return (
-    <Select onValueChange={setMode} value={mode}>
+    <Select onValueChange={(v) => setMode(v as Mode)} value={mode}>
       <SelectTrigger className="h-8 w-20 shrink-0 text-xs" {...props}>
         <SelectValue placeholder="Mode" />
       </SelectTrigger>
@@ -418,20 +451,16 @@ export const ColorPickerFormat = ({
     );
   }
 
+  // (4) CSS 출력 모드 알파 수정
   if (mode === 'css') {
-    const rgb = color
-      .rgb()
-      .array()
-      .map((value) => Math.round(value));
-
+    const rgb = color.rgb().array().map((v) => Math.round(v));
     return (
       <div className={cn('w-full rounded-md shadow-sm', className)} {...props}>
         <Input
           className="h-8 w-full bg-secondary px-2 text-xs shadow-none"
           readOnly
           type="text"
-          value={`rgba(${rgb.join(', ')}, ${alpha}%)`}
-          {...props}
+          value={`rgba(${rgb.join(', ')}, ${(alpha / 100).toFixed(2)})`}
         />
       </div>
     );

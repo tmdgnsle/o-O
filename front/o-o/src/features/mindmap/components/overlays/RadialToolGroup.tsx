@@ -2,32 +2,26 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Plus, Edit3, Palette, Lightbulb } from "lucide-react";
 import type { CSSProperties } from "react";
 import ColorPalette from "./ColorPalette";
-
-type RadialToolGroupProps = {
-  open: boolean;
-  radius?: number; // distance from node center to button center
-  paletteOpen?: boolean;
-  currentColor?: string;
-  onDelete?: () => void;
-  onEdit?: () => void;
-  onAdd?: () => void;
-  onPalette?: () => void;
-  onRecommend?: () => void;
-  onColorChange?: (color: string) => void;
-};
-
+import NodeAddInput from "./NodeAddInput";
+import type { RadialToolGroupProps } from "../../types";
 
 export default function RadialToolGroup({
   open,
-  radius = 150,
+  radius = 130,
   paletteOpen = false,
-  currentColor = "#2D71B9",
+  addInputOpen = false,
+  currentColor = "#263A6B",
+  focusedButton = null,
   onDelete,
   onEdit,
   onAdd,
+  onAddConfirm,
+  onAddCancel,
   onPalette,
+  onPaletteClose,
   onRecommend,
   onColorChange,
+  onApplyTheme,
 }: RadialToolGroupProps) {
   const angles = [-70, -35, 0, 35, 70]; // 우측에 펼쳐질 각도
 
@@ -129,9 +123,12 @@ export default function RadialToolGroup({
   };
 
   return (
-    <div className="absolute inset-0 z-40" style={{ pointerEvents: "none" }}>
+    <div className="absolute inset-0 z-40 overflow-visible" style={{ pointerEvents: "none" }}>
       <div style={centerStyle}>
         {items.map((it, i) => {
+          // focusedButton이 있으면 해당 버튼만 표시, 없으면 모두 표시
+          const shouldShow = focusedButton === null || focusedButton === it.key;
+
           const rad = ((angles[i] ?? 0) * Math.PI) / 180;
           const x = Math.cos(rad) * radius;
           const y = Math.sin(rad) * radius;
@@ -139,11 +136,11 @@ export default function RadialToolGroup({
             position: "absolute",
             top: "50%",
             left: "50%",
-            transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${open ? 1 : 0.8})`,
-            opacity: open ? 1 : 0,
+            transform: `translate(-50%, -50%) translate(${x}px, ${y}px) scale(${open && shouldShow ? 1 : 0.8})`,
+            opacity: open && shouldShow ? 1 : 0,
             transition: "transform 240ms ease, opacity 240ms ease",
             transitionDelay: `${i * 60}ms`,
-            pointerEvents: open ? "auto" : "none",
+            pointerEvents: open && shouldShow ? "auto" : "none",
           };
           return (
             <div key={it.key} style={style}>
@@ -152,8 +149,18 @@ export default function RadialToolGroup({
               {it.key === "palette" && (
                 <ColorPalette
                   open={paletteOpen}
-                  defaultColor={currentColor}
+                  value={currentColor}
                   onColorChange={onColorChange}
+                  onApplyTheme={onApplyTheme}
+                  onClose={onPaletteClose}
+                />
+              )}
+              {/* add 버튼 옆에 NodeAddInput 표시 */}
+              {it.key === "add" && onAddConfirm && onAddCancel && (
+                <NodeAddInput
+                  open={addInputOpen}
+                  onConfirm={onAddConfirm}
+                  onCancel={onAddCancel}
                 />
               )}
             </div>

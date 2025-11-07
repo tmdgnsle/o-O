@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { NodeData } from '../../pages/MindmapPage';
+import type { NodeData } from '../../types';
 
 // 로컬 스토리지에 노드 저장
 const saveNodes = async (nodes: NodeData[]) => {
@@ -43,11 +43,66 @@ export const useEditNode = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ nodeId, newText }: { nodeId: string; newText: string }) => {
+    mutationFn: async ({
+      nodeId,
+      newText,
+      newColor
+    }: {
+      nodeId: string;
+      newText?: string;
+      newColor?: string;
+    }) => {
       const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
-      const updatedNodes = currentNodes.map(node =>
-        node.id === nodeId ? { ...node, text: newText } : node
-      );
+      const updatedNodes = currentNodes.map(node => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            ...(newText !== undefined && { text: newText }),
+            ...(newColor !== undefined && { color: newColor }),
+          };
+        }
+        return node;
+      });
+      await saveNodes(updatedNodes);
+      return updatedNodes;
+    },
+    onSuccess: (updatedNodes) => {
+      queryClient.setQueryData(['nodes'], updatedNodes);
+    },
+  });
+};
+
+export const useApplyThemeToAllNodes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (colors: string[]) => {
+      const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
+      const updatedNodes = currentNodes.map((node, index) => ({
+        ...node,
+        color: colors[index % colors.length], // 순환하며 색상 할당
+      }));
+      await saveNodes(updatedNodes);
+      return updatedNodes;
+    },
+    onSuccess: (updatedNodes) => {
+      queryClient.setQueryData(['nodes'], updatedNodes);
+    },
+  });
+};
+
+export const useUpdateNodePosition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ nodeId, x, y }: { nodeId: string; x: number; y: number }) => {
+      const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
+      const updatedNodes = currentNodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, x, y };
+        }
+        return node;
+      });
       await saveNodes(updatedNodes);
       return updatedNodes;
     },

@@ -1,28 +1,14 @@
-import React, { useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import MiniNav from "@/shared/ui/MiniNav";
-import AskPopo from "../components/AskPopoButton";
-import StatusBox from "../components/StatusBox";
-import ModeToggleButton from "../components/ModeToggleButton";
-import { Textbox } from "../components/Textbox";
-import TempNode from "../components/TempNode";
-// import ContentDialog from "../components/ContentDialog/ContentDialog";
-import VoiceChat from "../components/VoiceChat/VoiceChat";
-import popo1 from "@/shared/assets/images/popo1.png";
-import popo2 from "@/shared/assets/images/popo2.png";
-import popo3 from "@/shared/assets/images/popo3.png";
-import popo4 from "@/shared/assets/images/popo4.png";
-// import analyze_popo from "@/shared/assets/images/analyze_popo.png";
-import { useNodesQuery } from "../hooks/query/useNodesQuery";
-import { useAddNode } from "../hooks/mutation/useNodeMutations";
-
-export type NodeData = {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-};
+import React, { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import MiniNav from '@/shared/ui/MiniNav';
+import AskPopo from '../components/AskPopoButton'
+import StatusBox from '../components/StatusBox';
+import ModeToggleButton from '../components/ModeToggleButton';
+import { Textbox } from '../components/Textbox';
+import { useNodesQuery } from '../hooks/query/useNodesQuery';
+import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition } from '../hooks/mutation/useNodeMutations';
+import CytoscapeCanvas from '../components/CytoscapeCanvas';
+import type { NodeData } from '../types';
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -40,6 +26,8 @@ const MindmapPageContent: React.FC = () => {
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
   const addNodeMutation = useAddNode();
+  const applyThemeMutation = useApplyThemeToAllNodes();
+  const updateNodePositionMutation = useUpdateNodePosition();
 
   const handleAddNode = (text: string) => {
     const newNode: NodeData = {
@@ -47,52 +35,19 @@ const MindmapPageContent: React.FC = () => {
       text,
       x: Math.random() * 400 - 200,
       y: Math.random() * 300 - 150,
+      color: '#263A6B', // 기본 색상
     };
     addNodeMutation.mutate(newNode);
   };
 
-  // VoiceChat 샘플 유저 데이터
-  const voiceChatUsers = [
-    {
-      id: "1",
-      avatar: popo1,
-      name: "유저1",
-      isSpeaking: true,
-      colorIndex: 1, // 초록
-    },
-    {
-      id: "2",
-      avatar: popo2,
-      name: "유저2",
-      isSpeaking: true,
-      colorIndex: 4, // 분홍
-    },
-    {
-      id: "3",
-      avatar: popo3,
-      name: "유저3",
-      isSpeaking: true,
-      colorIndex: 2, // 주황
-    },
-    {
-      id: "4",
-      avatar: popo4,
-      name: "유저4",
-      isSpeaking: false,
-    },
-    {
-      id: "5",
-      avatar: popo1,
-      name: "유저5",
-      isSpeaking: false,
-    },
-    {
-      id: "6",
-      avatar: popo2,
-      name: "유저6",
-      isSpeaking: false,
-    },
-  ];
+  const handleApplyTheme = (colors: string[]) => {
+    applyThemeMutation.mutate(colors);
+  };
+
+  const handleNodePositionChange = (nodeId: string, x: number, y: number) => {
+    // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
+    updateNodePositionMutation.mutate({ nodeId, x, y });
+  };
 
   if (isLoading) {
     return (
@@ -102,9 +57,10 @@ const MindmapPageContent: React.FC = () => {
     );
   }
 
-  return (
-    <div className="bg-dotted font-paperlogy p-6 h-screen">
-      <div className="fixed top-4 left-4 z-50">
+  return(
+    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden'>
+      {/* Fixed UI Elements */}
+      <div className='fixed top-4 left-4 z-50'>
         <MiniNav />
       </div>
       <div className="fixed bottom-4 right-4 z-50">
@@ -118,7 +74,7 @@ const MindmapPageContent: React.FC = () => {
       </div>
 
       {/* VoiceChat - 화면 중앙으로 이동 */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+      {/* <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
         <VoiceChat
           users={voiceChatUsers}
           onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
@@ -126,36 +82,23 @@ const MindmapPageContent: React.FC = () => {
           onOrganize={() => console.log("Organize clicked")}
           onShare={() => console.log("Share clicked")}
         />
-      </div>
+      </div> */}
+
 
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
         <Textbox onAddNode={handleAddNode} />
       </div>
 
-      {/* Render all nodes */}
-      <div className="absolute left-1/2 top-1/2">
-        {nodes.map((node) => (
-          <div
-            key={node.id}
-            style={{
-              position: "absolute",
-              left: `${node.x}px`,
-              top: `${node.y}px`,
-              transform: "translate(-50%, -50%)",
-            }}
-          >
-            <TempNode
-              id={node.id}
-              text={node.text}
-              x={node.x}
-              y={node.y}
-              isSelected={selectedNodeId === node.id}
-              onSelect={() => setSelectedNodeId(node.id)}
-              onDeselect={() => setSelectedNodeId(null)}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Cytoscape Canvas - 전체 화면 */}
+      <CytoscapeCanvas
+        nodes={nodes}
+        selectedNodeId={selectedNodeId}
+        onNodeSelect={setSelectedNodeId}
+        onNodeUnselect={() => setSelectedNodeId(null)}
+        onApplyTheme={handleApplyTheme}
+        onNodePositionChange={handleNodePositionChange}
+        className="absolute inset-0"
+      />
     </div>
   );
 };
@@ -204,27 +147,6 @@ const MindmapPage: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <MindmapPageContent />
-      <ReactQueryDevtools initialIsOpen={false} />
-      {/* 테스트용 다이얼로그 - 화면 중앙에 배치 */}
-      {/* <ContentDialog
-        characterImage={analyze_popo}
-        title="테스트"
-        buttons={[
-          {
-            id: "cancel",
-            text: "뒤로가기",
-            onClick: () => {},
-            variant: "outline",
-          },
-          {
-            id: "confirm",
-            text: "기획안 작성하기",
-            onClick: () => {},
-            variant: "default",
-          },
-        ]}
-        content={sampleContent}
-      /> */}
     </QueryClientProvider>
   );
 };
