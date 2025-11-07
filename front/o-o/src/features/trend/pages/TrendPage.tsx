@@ -1,6 +1,6 @@
 import { Header } from "@/shared/ui/Header";
-import { TrendHeader } from "../components/TrendHeader";
-import { TrendKeyword } from "../components/TrendKeyword";
+import { TrendHeader } from "../components/TrendMain/TrendHeader";
+import { TrendKeyword } from "../components/TrendMain/TrendKeyword";
 
 export function TrendPage() {
   return (
