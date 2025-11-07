@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
+import { TrendExpandKeyword } from "../components/TrendMindmap/TrendExpandKeyword";
 
 export function TrendMindmapPage() {
   const { trendId } = useParams<{ trendId: string }>();
@@ -15,9 +16,10 @@ export function TrendMindmapPage() {
       <div className="absolute inset-0">
         {/* TODO: 마인드맵 언니꺼 가져다쓰기 */}
         <div className="w-full h-full flex items-center justify-center">
-          <div>
+          <div className="w-full p-10 flex justify-between">
             <p>트렌드 마인드맵 페이지입니다.</p>
             <p>keyword ID: {trendId}</p>
+            <TrendExpandKeyword />
           </div>
         </div>
       </div>
