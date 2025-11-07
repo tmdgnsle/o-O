@@ -1,10 +1,10 @@
 export interface Keyword {
-  id: number;
-  text: string;
+  readonly id: number;
+  readonly text: string;
 }
 
 export interface TrendKeywordProps {
-  readonly keywords?: Keyword[];
+  readonly keywords?: readonly Keyword[];
   readonly characterImage?: string;
 }
 

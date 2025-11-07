@@ -3,8 +3,8 @@ import { type Keyword } from "@/features/trend/types";
 import { KeywordBox } from "./KeywordBox";
 
 interface KeywordGridProps {
-  readonly keywords: Keyword[];
-  readonly colors: string[];
+  readonly keywords: readonly Keyword[];
+  readonly colors: readonly string[];
 }
 
 export function KeywordGrid({ keywords, colors }: KeywordGridProps) {

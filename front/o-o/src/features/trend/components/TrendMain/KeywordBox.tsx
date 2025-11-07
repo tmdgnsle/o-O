@@ -4,7 +4,7 @@ export function KeywordBox({
   text,
   colorClass,
   isLarge = true,
-}: KeywordBoxProps) {
+}: Readonly<KeywordBoxProps>) {
   if (!text) return null;
 
   return (
