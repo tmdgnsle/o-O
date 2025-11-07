@@ -14,6 +14,9 @@ abstract class AuthRepository {
   /// 현재 로그인된 사용자 가져오기
   Future<Either<Failure, AuthUser?>> getCurrentUser();
 
+  /// 저장된 토큰이 있는지 확인 (자동 로그인용)
+  Future<Either<Failure, bool>> hasValidToken();
+
   /// 로그인 상태 스트림
   Stream<AuthUser?> get authStateChanges;
 }

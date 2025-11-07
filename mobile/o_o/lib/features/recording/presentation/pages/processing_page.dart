@@ -81,7 +81,9 @@ class _ProcessingPageState extends State<ProcessingPage>
     // TODO: 실제 API 연동 시 이 부분을 API 호출로 교체
     _processingTimer = Timer(const Duration(seconds: 8), () {
       if (mounted) {
-        context.go('/records');
+        // pushReplacement: 스택 유지하면서 현재 페이지만 교체
+        // 뒤로가기 시 홈으로 돌아감
+        context.pushReplacement('/records');
       }
     });
   }

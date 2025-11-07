@@ -145,6 +145,30 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> hasValidToken() async {
+    try {
+      // SecureStorage에서 AccessToken 확인
+      final accessToken = await localDataSource.getAccessToken();
+      final userId = await localDataSource.getUserId();
+
+      // AccessToken과 UserId가 모두 있으면 로그인 상태로 판단
+      final hasToken = accessToken != null &&
+                       accessToken.isNotEmpty &&
+                       userId != null;
+
+      logger.i('🔍 자동 로그인 체크: ${hasToken ? "토큰 있음" : "토큰 없음"}');
+
+      return Right(hasToken);
+    } on CacheException catch (e) {
+      logger.e('❌ 토큰 확인 실패: ${e.message}');
+      return Left(CacheFailure(e.message));
+    } catch (e) {
+      logger.e('❌ 알 수 없는 오류: $e');
+      return Left(CacheFailure('토큰 확인 실패: $e'));
+    }
+  }
+
+  @override
   Stream<AuthUser?> get authStateChanges {
     return remoteDataSource.authStateChanges.map((data) {
       if (data == null) {

@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/record/presentation/bloc/record_bloc.dart';
 import 'features/recording/presentation/bloc/recording_bloc.dart';
 import 'features/user/presentation/bloc/user_bloc.dart';
@@ -39,9 +40,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // AuthBloc Provider
+        // AuthBloc Provider - 앱 시작 시 자동 로그인 체크
         BlocProvider(
-          create: (context) => di.sl<AuthBloc>(),
+          create: (context) => di.sl<AuthBloc>()
+            ..add(const AuthEvent.checkAuthStatus()),
         ),
         // UserBloc Provider
         BlocProvider(
@@ -56,14 +58,16 @@ class MyApp extends StatelessWidget {
           create: (context) => di.sl<RecordBloc>(),
         ),
       ],
-      child: MaterialApp.router(
-        title: 'o_o Project',
-        theme: ThemeData(
-          useMaterial3: true,
-          fontFamily: 'Paperlogy',
+      child: Builder(
+        builder: (context) => MaterialApp.router(
+          title: 'o-O',
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'Paperlogy',
+          ),
+          routerConfig: AppRouter.router(context),
+          debugShowCheckedModeBanner: false,
         ),
-        routerConfig: AppRouter.router,
-        debugShowCheckedModeBanner: false,
       ),
     );
   }

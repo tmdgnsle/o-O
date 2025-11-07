@@ -9,6 +9,7 @@ class ApiConstants {
 
   /// Auth Endpoints
   static const String googleLogin = '/auth/app/google-login';
+  static const String reissue = '/auth/reissue';
 
   /// 전체 URL 생성
   static String getUrl(String endpoint) => '$baseUrl$endpoint';

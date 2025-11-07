@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/auth/data/datasources/auth_api_data_source.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
@@ -8,7 +8,6 @@ import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../constants/api_constants.dart';
 import '../../features/record/data/repositories/record_repository_mock.dart';
 import '../../features/record/domain/repositories/record_repository.dart';
 import '../../features/record/domain/usecases/get_records.dart';
@@ -21,27 +20,51 @@ import '../../features/recording/presentation/bloc/recording_bloc.dart';
 import '../../features/user/data/repositories/user_repository_mock.dart';
 import '../../features/user/domain/repositories/user_repository.dart';
 import '../../features/user/presentation/bloc/user_bloc.dart';
+import '../constants/api_constants.dart';
+import '../network/auth_interceptor.dart';
 
 final sl = GetIt.instance;
 
 /// Initialize all dependencies
 Future<void> init() async {
   //! External
-  final sharedPreferences = await SharedPreferences.getInstance();
-  sl.registerLazySingleton(() => sharedPreferences);
-
-  // Dio
-  sl.registerLazySingleton(
-    () => Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      ),
+  // FlutterSecureStorage
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
     ),
+  );
+  sl.registerLazySingleton(() => secureStorage);
+
+  // AuthLocalDataSource (Dio보다 먼저 등록 - 인터셉터에서 사용)
+  sl.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(secureStorage: sl()),
+  );
+
+  // Dio (AuthInterceptor 포함)
+  sl.registerLazySingleton(
+    () {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      // AuthInterceptor 추가
+      dio.interceptors.add(
+        AuthInterceptor(
+          localDataSource: sl<AuthLocalDataSource>(),
+          dio: dio,
+        ),
+      );
+
+      return dio;
+    },
   );
 
   //! Features - Auth
@@ -68,10 +91,6 @@ Future<void> init() async {
 
   sl.registerLazySingleton<AuthApiDataSource>(
     () => AuthApiDataSourceImpl(dio: sl()),
-  );
-
-  sl.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
   );
 
   //! Features - User

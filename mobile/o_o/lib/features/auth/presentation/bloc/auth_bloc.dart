@@ -48,18 +48,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// 현재 인증 상태 확인
+  /// 현재 인증 상태 확인 (자동 로그인)
   Future<void> _onCheckAuthStatus(Emitter<AuthState> emit) async {
-    final result = await repository.getCurrentUser();
+    emit(const AuthState.loading());
 
-    result.fold(
-      (failure) => emit(const AuthState.unauthenticated()),
-      (user) {
-        if (user != null) {
-          emit(AuthState.authenticated(user: user));
-        } else {
+    // 1. SecureStorage에 저장된 토큰 확인
+    final tokenResult = await repository.hasValidToken();
+
+    await tokenResult.fold(
+      // 토큰 확인 실패 -> 로그아웃 상태
+      (failure) async {
+        emit(const AuthState.unauthenticated());
+      },
+      // 토큰 확인 성공
+      (hasToken) async {
+        if (!hasToken) {
+          // 토큰이 없으면 로그아웃 상태
           emit(const AuthState.unauthenticated());
+          return;
         }
+
+        // 2. 토큰이 있으면 Google Sign-In에서 사용자 정보 가져오기
+        final userResult = await repository.getCurrentUser();
+
+        userResult.fold(
+          (failure) => emit(const AuthState.unauthenticated()),
+          (user) {
+            if (user != null) {
+              emit(AuthState.authenticated(user: user));
+            } else {
+              emit(const AuthState.unauthenticated());
+            }
+          },
+        );
       },
     );
   }

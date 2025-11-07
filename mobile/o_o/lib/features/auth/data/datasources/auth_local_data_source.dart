@@ -1,4 +1,4 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/error/exceptions.dart';
 
@@ -27,18 +27,18 @@ abstract class AuthLocalDataSource {
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
-  final SharedPreferences sharedPreferences;
+  final FlutterSecureStorage secureStorage;
 
   static const String _accessTokenKey = 'ACCESS_TOKEN';
   static const String _refreshTokenKey = 'REFRESH_TOKEN';
   static const String _userIdKey = 'USER_ID';
 
-  AuthLocalDataSourceImpl({required this.sharedPreferences});
+  AuthLocalDataSourceImpl({required this.secureStorage});
 
   @override
   Future<void> saveAccessToken(String token) async {
     try {
-      await sharedPreferences.setString(_accessTokenKey, token);
+      await secureStorage.write(key: _accessTokenKey, value: token);
     } catch (e) {
       throw CacheException('Access Token 저장 실패: $e');
     }
@@ -47,7 +47,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getAccessToken() async {
     try {
-      return sharedPreferences.getString(_accessTokenKey);
+      return await secureStorage.read(key: _accessTokenKey);
     } catch (e) {
       throw CacheException('Access Token 조회 실패: $e');
     }
@@ -56,7 +56,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveRefreshToken(String token) async {
     try {
-      await sharedPreferences.setString(_refreshTokenKey, token);
+      await secureStorage.write(key: _refreshTokenKey, value: token);
     } catch (e) {
       throw CacheException('Refresh Token 저장 실패: $e');
     }
@@ -65,7 +65,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getRefreshToken() async {
     try {
-      return sharedPreferences.getString(_refreshTokenKey);
+      return await secureStorage.read(key: _refreshTokenKey);
     } catch (e) {
       throw CacheException('Refresh Token 조회 실패: $e');
     }
@@ -74,7 +74,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveUserId(int userId) async {
     try {
-      await sharedPreferences.setInt(_userIdKey, userId);
+      await secureStorage.write(key: _userIdKey, value: userId.toString());
     } catch (e) {
       throw CacheException('User ID 저장 실패: $e');
     }
@@ -83,7 +83,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<int?> getUserId() async {
     try {
-      return sharedPreferences.getInt(_userIdKey);
+      final userIdStr = await secureStorage.read(key: _userIdKey);
+      return userIdStr != null ? int.parse(userIdStr) : null;
     } catch (e) {
       throw CacheException('User ID 조회 실패: $e');
     }
@@ -93,9 +94,9 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> clearTokens() async {
     try {
       await Future.wait([
-        sharedPreferences.remove(_accessTokenKey),
-        sharedPreferences.remove(_refreshTokenKey),
-        sharedPreferences.remove(_userIdKey),
+        secureStorage.delete(key: _accessTokenKey),
+        secureStorage.delete(key: _refreshTokenKey),
+        secureStorage.delete(key: _userIdKey),
       ]);
     } catch (e) {
       throw CacheException('토큰 삭제 실패: $e');

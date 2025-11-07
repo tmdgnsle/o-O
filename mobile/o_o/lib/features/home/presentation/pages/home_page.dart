@@ -221,7 +221,8 @@ class HomePage extends StatelessWidget {
                                       context.read<RecordingBloc>().add(
                                         const RecordingEvent.stop(),
                                       );
-                                      context.go('/processing');
+                                      // push: 홈을 스택에 유지하면서 processing으로 이동
+                                      context.push('/processing');
                                     },
                                     containerSize: 220,
                                     imageSize: 170,
