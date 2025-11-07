@@ -1,6 +1,6 @@
 // components/TrendKeyword.tsx
 import { useEffect, useState } from "react";
-import popo from "@/shared/assets/images/popo1.png";
+import popo from "@/shared/assets/images/popo4.png";
 
 interface Keyword {
   id: number;
@@ -57,11 +57,11 @@ export function TrendKeyword({
   }, []);
 
   return (
-    <div className="w-full h-full overflow-hidden relative py-4 md:py-6 px-2 md:px-10">
+    <div className="w-full overflow-hidden relative py-4 md:py-6 px-2 md:px-10">
       <div
         className={`
-          grid grid-cols-3 grid-rows-4 gap-2 md:gap-3 lg:gap-4 w-full max-w-6xl mx-auto px-3
-          ${isFullscreen ? "h-[76vh]" : "h-[71vh]"}
+          grid grid-cols-3 grid-rows-4 gap-2 md:gap-3 lg:gap-4 w-full max-w-8xl mx-auto px-3
+          h-[calc(100vh-100px)] sm:h-[calc(100vh-100px)] lg:h-[calc(100vh-180px)]          
         `}
       >
         {/* 1행 */}
@@ -76,11 +76,7 @@ export function TrendKeyword({
           <KeywordBox text={keywords[3]?.text} colorClass={KEYWORD_COLORS[3]} />
         </div>
         <div className="row-span-2">
-          <KeywordBox
-            text={keywords[1]?.text}
-            colorClass={KEYWORD_COLORS[1]}
-            isLarge
-          />
+          <KeywordBox text={keywords[1]?.text} colorClass={KEYWORD_COLORS[1]} />
         </div>
         <div className="row-span-2">
           <KeywordBox text={keywords[4]?.text} colorClass={KEYWORD_COLORS[4]} />
@@ -89,16 +85,16 @@ export function TrendKeyword({
       </div>
 
       {/* Floating 포포 캐릭터 - 전체화면일 때만 크게 */}
-      <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/3 z-10">
+      <div className="absolute left-1/2 bottom-4 -translate-x-1/2 translate-y-1/3 z-10">
         <div
           className="relative flex items-center justify-center"
           style={{
             width: isFullscreen
               ? "clamp(400px, 40vw, 600px)"
-              : "clamp(200px, 25vw, 350px)",
+              : "clamp(300px, 25vw, 400px)",
             height: isFullscreen
               ? "clamp(400px, 40vw, 600px)"
-              : "clamp(200px, 25vw, 350px)",
+              : "clamp(300px, 25vw, 400px)",
           }}
         >
           <img
@@ -119,7 +115,7 @@ interface KeywordBoxProps {
   readonly isLarge?: boolean;
 }
 
-function KeywordBox({ text, colorClass, isLarge = false }: KeywordBoxProps) {
+function KeywordBox({ text, colorClass, isLarge = true }: KeywordBoxProps) {
   if (!text) return null;
 
   return (
