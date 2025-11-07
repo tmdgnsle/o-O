@@ -19,17 +19,9 @@ import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
 import popo4 from "@/shared/assets/images/popo4.png";
-import { useState } from "react";
-
-type Permission = "can View" | "can Edit";
-type Role = "Viewer" | "Editor" | "Maintainer";
-type Collaborator = {
-  id: string;
-  name: string;
-  avatar: string;
-  role: Role;
-  permission?: Permission;
-};
+import { useShareLink } from "../hooks/custom/useShareLink";
+import { useCollaborators, type Collaborator, type Permission } from "../hooks/custom/useCollaborators";
+import { useAccessType } from "../hooks/custom/useAccessType";
 
 // 더미 데이터
 const initialCollaborators: Collaborator[] = [
@@ -44,29 +36,10 @@ const initialCollaborators: Collaborator[] = [
 const shareLink = "https://o-O/mindmap/abc123";
 
 export default function StatusBox() {
-  const [copied, setCopied] = useState(false);
-  const [collaborators, setCollaborators] = useState(initialCollaborators);
-  const [accessType, setAccessType] = useState<"private" | "public">("private");
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handlePermissionChange = (userId: string, newPermission: Permission) => {
-    setCollaborators((prev) =>
-      prev.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              permission: newPermission,
-              role: newPermission === "can Edit" ? "Editor" : "Viewer",
-            }
-          : user
-      )
-    );
-  };
+  // Custom hooks
+  const { copied, handleCopyLink } = useShareLink(shareLink);
+  const { collaborators, handlePermissionChange } = useCollaborators(initialCollaborators);
+  const { accessType, setAccessType } = useAccessType("private");
 
   // 현재 접속 중인 사용자들
   const activeUsers = collaborators;

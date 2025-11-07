@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { NodeData } from '../../pages/MindmapPage';
+import type { NodeData } from '../../types';
 
 // 로컬 스토리지에서 노드 가져오기 (나중에 API로 변경 가능)
 const fetchNodes = async (): Promise<NodeData[]> => {

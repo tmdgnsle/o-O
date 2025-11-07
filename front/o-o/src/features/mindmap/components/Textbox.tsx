@@ -1,12 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react"
+import type { TextboxProps } from "../types";
 
-type TextboxProps = {
-  onAddNode: (text: string) => void;
-};
-
-export function Textbox({ onAddNode }: TextboxProps) {
+export function Textbox({ onAddNode }: Readonly<TextboxProps>) {
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {
