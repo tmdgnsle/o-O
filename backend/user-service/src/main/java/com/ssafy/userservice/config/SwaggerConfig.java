@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
         ),
         servers = {
                 @Server(
-                        url = "https://api.o-o.io.kr/user-service",
+                        url = "https://api.o-o.io.kr/",
                         description = "Gateway through User Service"
                 )
         },
