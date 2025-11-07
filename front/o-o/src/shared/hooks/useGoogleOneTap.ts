@@ -3,28 +3,61 @@ import { useCallback, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 
-export function useGoogleOneTap(isLoggedIn: boolean) {
+interface UseGoogleOneTapOptions {
+  buttonType?: "standard" | "icon"; // 버튼 타입 추가
+  elementId?: string; // ID 커스터마이징
+}
+
+export function useGoogleOneTap(
+  isLoggedIn: boolean,
+  options: UseGoogleOneTapOptions = {}
+) {
+  const { buttonType = "standard", elementId = "googleSignInDiv" } = options;
+
+  const handleCredentialResponse = useCallback(
+    async (response: CredentialResponse) => {
+      try {
+        const credential = GoogleAuthProvider.credential(response.credential);
+        const result = await signInWithCredential(auth, credential);
+        console.log("로그인 성공:", result.user);
+      } catch (error) {
+        console.error("로그인 실패:", error);
+      }
+    },
+    []
+  );
+
   const initializeOneTap = useCallback(() => {
     if (!globalThis.google) return;
+
     globalThis.google.accounts.id.initialize({
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
+
     globalThis.google.accounts.id.prompt();
 
-    globalThis.google.accounts.id.renderButton(
-      document.getElementById("googleSignInDiv")!,
-      {
+    const element = document.getElementById(elementId);
+    if (element && buttonType === "standard") {
+      globalThis.google.accounts.id.renderButton(element, {
         theme: "outline", // filled_blue / filled_black / outline
         size: "large", // small / medium / large
         text: "continue_with", // signup_with / continue_with / signin
         shape: "pill", // rectangular / pill / circle
-      }
-    );
-  }, []); // 의존성 없음 (한 번만 생성)
+        locale: "ko",
+      });
+    } else if (element && buttonType === "icon") {
+      globalThis.google.accounts.id.renderButton(element, {
+        theme: "filled_black",
+        size: "large",
+        shape: "circle", // 아이콘만
+        type: "icon", // 아이콘 타입
+      });
+    }
+  }, [handleCredentialResponse, buttonType, elementId]);
 
   useEffect(() => {
-    if (isLoggedIn) return; // 이미 로그인한 경우 One Tap 비활성화
+    if (isLoggedIn) return;
 
     if (globalThis.google) {
       initializeOneTap();
@@ -36,18 +69,14 @@ export function useGoogleOneTap(isLoggedIn: boolean) {
       document.body.appendChild(script);
       script.onload = initializeOneTap;
     }
-  }, [isLoggedIn, initializeOneTap]); // 의존성 배열에 함수 넣기
+  }, [isLoggedIn, initializeOneTap]);
 
-  const handleCredentialResponse = async (response: CredentialResponse) => {
-    try {
-      // Google JWT 토큰을 Firebase 인증으로 변환
-      const credential = GoogleAuthProvider.credential(response.credential);
-      const result = await signInWithCredential(auth, credential);
-
-      console.log("로그인 성공:", result.user);
-      // Redux에 저장 등
-    } catch (error) {
-      console.error("로그인 실패:", error);
+  // 수동으로 팝업 띄우기
+  const triggerLogin = useCallback(() => {
+    if (globalThis.google) {
+      globalThis.google.accounts.id.prompt();
     }
-  };
+  }, []);
+
+  return { triggerLogin };
 }
