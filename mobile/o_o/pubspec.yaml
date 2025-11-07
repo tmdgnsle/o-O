@@ -105,6 +105,9 @@ dev_dependencies:
   # App Icon Generator
   flutter_launcher_icons: ^0.13.1
 
+  # Splash Screen Generator
+  flutter_native_splash: ^2.4.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -157,3 +160,18 @@ flutter_launcher_icons:
   image_path: "assets/images/app_icon.png"
   min_sdk_android: 21
   remove_alpha_ios: true
+
+# Splash Screen Configuration
+flutter_native_splash:
+  # Android 11 이하: 전체 화면 배경 이미지 사용
+  background_image: assets/splash.png
+  android: true
+  ios: true
+  fullscreen: true
+
+
+  # Android 12+: 배경색 + 중앙 이미지만 가능 (전체 화면 이미지 불가)
+  android_12:
+    image: assets/splash.png  # 중앙에 표시 (원형으로 크롭됨, 960x960px 권장)
+    branding: assets/branding.png  # 하단 브랜딩 이미지 (800x320px)
+

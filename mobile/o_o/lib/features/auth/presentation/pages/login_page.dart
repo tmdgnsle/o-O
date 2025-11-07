@@ -31,7 +31,8 @@ class LoginPage extends StatelessWidget {
               initial: () {},
               loading: () {},
               authenticated: (user) {
-                // GoRouter의 redirect가 자동으로 홈으로 이동시킴
+                // 로그인 성공 시 홈으로 이동
+                context.go('/');
               },
               unauthenticated: () {},
               error: (message) {

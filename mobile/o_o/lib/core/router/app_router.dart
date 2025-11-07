@@ -18,14 +18,19 @@ import '../../features/user/presentation/pages/user_page.dart';
 /// 각 피처의 페이지를 임포트하여 라우트를 정의합니다.
 class AppRouter {
   static GoRouter router(BuildContext context) => GoRouter(
-    initialLocation: '/',
+    initialLocation: '/login',
     redirect: (context, state) {
       final authState = context.read<AuthBloc>().state;
       final isGoingToLogin = state.matchedLocation == '/login';
 
       // 로딩 중이면 현재 위치 유지
-      if (authState is AuthLoading || authState is AuthInitial) {
+      if (authState is AuthLoading) {
         return null;
+      }
+
+      // 초기 상태면 로그인 페이지로
+      if (authState is AuthInitial) {
+        return isGoingToLogin ? null : '/login';
       }
 
       // 인증되지 않은 상태

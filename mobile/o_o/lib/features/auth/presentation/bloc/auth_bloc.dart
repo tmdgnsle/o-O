@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -59,12 +60,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // 토큰 확인 실패 -> 로그아웃 상태
       (failure) async {
         emit(const AuthState.unauthenticated());
+        // 스플래시 제거
+        FlutterNativeSplash.remove();
       },
       // 토큰 확인 성공
       (hasToken) async {
         if (!hasToken) {
           // 토큰이 없으면 로그아웃 상태
           emit(const AuthState.unauthenticated());
+          // 스플래시 제거
+          FlutterNativeSplash.remove();
           return;
         }
 
@@ -72,13 +77,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final userResult = await repository.getCurrentUser();
 
         userResult.fold(
-          (failure) => emit(const AuthState.unauthenticated()),
+          (failure) {
+            emit(const AuthState.unauthenticated());
+            // 스플래시 제거
+            FlutterNativeSplash.remove();
+          },
           (user) {
             if (user != null) {
               emit(AuthState.authenticated(user: user));
             } else {
               emit(const AuthState.unauthenticated());
             }
+            // 스플래시 제거
+            FlutterNativeSplash.remove();
           },
         );
       },

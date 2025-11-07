@@ -9,7 +9,12 @@
       "Bash(mkdir:*)",
       "Bash(dir:*)",
       "Bash(flutter pub run build_runner build:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(flutter pub run:*)",
+      "Bash(git checkout:*)",
+      "Bash(dart run:*)",
+      "Bash(flutter clean:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
