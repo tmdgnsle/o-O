@@ -19,7 +19,11 @@ import org.springframework.context.annotation.Configuration;
         servers = {
                 @Server(
                         url = "https://api.o-o.io.kr/",
-                        description = "Gateway through User Service"
+                        description = "Production - Gateway through User Service"
+                ),
+                @Server(
+                        url = "http://localhost:8081/",
+                        description = "Local - Direct User Service"
                 )
         },
         security = @SecurityRequirement(name = "bearerAuth")

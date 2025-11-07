@@ -21,9 +21,10 @@ public class GoogleTokenVerifier {
 
     public GoogleTokenVerifier(@Value("${google.client-id-mobile}") String mobileClientId,
                                @Value("${google.client-id-web}") String webClientId,
-                               @Value("${google.client-id-ios}") String iosClientId) {
+                               @Value("${google.client-id-ios}") String iosClientId,
+                               @Value("${google.client-id-mobile-ssafy}") String mobileSsafyClientId) {
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(java.util.Arrays.asList(mobileClientId, webClientId, iosClientId))
+                .setAudience(java.util.Arrays.asList(mobileClientId, webClientId, iosClientId, mobileSsafyClientId))
                 .build();
         log.info("GoogleTokenVerifier initialized with mobile, web, and iOS client IDs");
     }
