@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import type { Core } from "cytoscape";
 import type { NodeData } from "../../types";
+import { getAnimationConfig, nodeCreationAnimation } from "../../config/animationConfig";
 
 /** 노드 데이터를 기반으로 엣지 계산 */
 export function useEdges(nodes: NodeData[]) {
@@ -35,21 +36,78 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>) {
     cyNode.selectify();
   } else {
     // 새 노드 추가
-    cy.add({
+    const newNode = cy.add({
       group: "nodes",
       data: { id: node.id, label: node.text, color: node.color },
       position: { x: node.x, y: node.y },
       grabbable: true,
       selectable: true,
     });
+
+    // 애니메이션: 초기 상태 설정
+    newNode.style({
+      opacity: nodeCreationAnimation.initialStyle.opacity,
+      width: nodeCreationAnimation.initialStyle.width,
+      height: nodeCreationAnimation.initialStyle.height,
+    });
+
+    // 애니메이션: fade + scale 효과
+    const config = getAnimationConfig();
+    newNode.animate(
+      {
+        style: {
+          opacity: nodeCreationAnimation.targetStyle.opacity,
+          width: nodeCreationAnimation.targetStyle.width,
+          height: nodeCreationAnimation.targetStyle.height,
+        },
+        duration: config.nodeCreation.duration,
+        easing: config.nodeCreation.easing,
+      },
+      {
+        queue: false,
+      }
+    );
   }
 }
 
 /** 삭제된 노드 제거 */
 function removeDeletedNodes(cy: Core, existingNodeIds: Set<string>, newNodeIds: Set<string>) {
+  const config = getAnimationConfig();
+
   for (const id of existingNodeIds) {
     if (!newNodeIds.has(id)) {
-      cy.getElementById(id).remove();
+      const nodeToRemove = cy.getElementById(id);
+
+      // 애니메이션이 비활성화된 경우 즉시 제거
+      if (config.nodeDeletion.duration === 0) {
+        nodeToRemove.remove();
+      } else {
+        // 애니메이션: shrink + fade 효과
+        nodeToRemove.animate(
+          {
+            style: {
+              opacity: 0,
+              width: 0,
+              height: 0,
+            },
+            duration: config.nodeDeletion.duration,
+            easing: config.nodeDeletion.easing,
+          },
+          {
+            queue: false,
+            complete: () => {
+              // 애니메이션 완료 후 노드 제거
+              try {
+                if (!cy.destroyed() && nodeToRemove.length > 0) {
+                  nodeToRemove.remove();
+                }
+              } catch (e) {
+                console.error("Error removing node after animation:", e);
+              }
+            },
+          }
+        );
+      }
     }
   }
 }

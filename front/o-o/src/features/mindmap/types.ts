@@ -19,10 +19,14 @@ export type ColorPaletteProps = Readonly<{
   className?: string;
 }>;
 
+export type MindmapMode = "edit" | "analyze";
+
 // CytoscapeCanvas.tsx
 export type CytoscapeCanvasProps = Readonly<{
   nodes: NodeData[];
   className?: string;
+  mode: MindmapMode;
+  analyzeSelection: string[];
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
@@ -31,6 +35,7 @@ export type CytoscapeCanvasProps = Readonly<{
   onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
   onCyReady?: (cy: any) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
+  onAnalyzeNodeToggle: (nodeId: string) => void;
 }>;
 
 export type CytoscapeNodeOverlayProps = {
@@ -39,6 +44,8 @@ export type CytoscapeNodeOverlayProps = {
   y: number;
   zoom: number;
   isSelected: boolean;
+  mode: MindmapMode;
+  isAnalyzeSelected: boolean;
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
@@ -82,6 +89,7 @@ export type RecommendNodeOverlayProps = Readonly<{
 // Textbox.tsx
 export type TextboxProps = Readonly<{
   onAddNode: (text: string) => void;
+  disabled?: boolean;
 }>;
 
 // ============================================

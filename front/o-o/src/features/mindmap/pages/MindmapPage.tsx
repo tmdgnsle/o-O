@@ -1,14 +1,15 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MiniNav from '@/shared/ui/MiniNav';
 import AskPopo from '../components/AskPopoButton'
 import StatusBox from '../components/StatusBox';
 import ModeToggleButton from '../components/ModeToggleButton';
 import { Textbox } from '../components/Textbox';
+import AnalyzeSelectionPanel from '../components/AnalyzeSelectionPanel';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
 import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
-import type { NodeData } from '../types';
+import type { NodeData, MindmapMode } from '../types';
 import type { Core } from 'cytoscape';
 import { useColorTheme } from '../hooks/useColorTheme';
 import { useNodePositioning } from '../hooks/useNodePositioning';
@@ -25,6 +26,8 @@ const queryClient = new QueryClient({
 
 const MindmapPageContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [mode, setMode] = useState<MindmapMode>("edit");
+  const [analyzeSelection, setAnalyzeSelection] = useState<string[]>([]);
   const cyRef = useRef<Core | null>(null);
 
   // Query & Mutation hooks
@@ -38,7 +41,19 @@ const MindmapPageContent: React.FC = () => {
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
 
+  useEffect(() => {
+    setAnalyzeSelection([]);
+    if (mode === "analyze") {
+      setSelectedNodeId(null);
+    }
+  }, [mode]);
+
+  const handleModeChange = useCallback((nextMode: MindmapMode) => {
+    setMode(nextMode);
+  }, []);
+
   const handleAddNode = (text: string) => {
+    if (mode === "analyze") return;
     const randomColor = getRandomThemeColor();
 
     // 현재 뷰포트 중심 좌표 계산
@@ -104,6 +119,30 @@ const MindmapPageContent: React.FC = () => {
     addNodeMutation.mutate(newNode);
   }, [nodes, findNonOverlappingPosition, getRandomThemeColor, addNodeMutation]);
 
+  const handleAnalyzeNodeToggle = useCallback((nodeId: string) => {
+    setAnalyzeSelection((prev) =>
+      prev.includes(nodeId) ? prev.filter((id) => id !== nodeId) : [...prev, nodeId]
+    );
+  }, []);
+
+  const handleAnalyzeClear = useCallback(() => {
+    setAnalyzeSelection([]);
+  }, []);
+
+  const handleAnalyzeExecute = useCallback(() => {
+    if (analyzeSelection.length === 0) return;
+    console.log("Analyze nodes:", analyzeSelection);
+  }, [analyzeSelection]);
+
+  const handleAnalyzeRemoveNode = useCallback((nodeId: string) => {
+    setAnalyzeSelection((prev) => prev.filter((id) => id !== nodeId));
+  }, []);
+
+  const selectedAnalyzeNodes = useMemo(
+    () => nodes.filter((node) => analyzeSelection.includes(node.id)),
+    [nodes, analyzeSelection]
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
@@ -119,13 +158,22 @@ const MindmapPageContent: React.FC = () => {
         <MiniNav />
       </div>
       <div className="fixed bottom-4 right-4 z-50">
-        <AskPopo />
+        {mode === "edit" ? (
+          <AskPopo />
+        ) : (
+          <AnalyzeSelectionPanel
+            selectedNodes={selectedAnalyzeNodes}
+            onAnalyze={handleAnalyzeExecute}
+            onClear={handleAnalyzeClear}
+            onRemoveNode={handleAnalyzeRemoveNode}
+          />
+        )}
       </div>
       <div className="fixed top-4 right-4 z-50">
         <StatusBox />
       </div>
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-        <ModeToggleButton />
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+        <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
       </div>
 
       {/* VoiceChat - 화면 중앙으로 이동 */}
@@ -140,13 +188,17 @@ const MindmapPageContent: React.FC = () => {
       </div> */}
 
 
-      <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
-        <Textbox onAddNode={handleAddNode} />
-      </div>
+      {mode === "edit" && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
+          <Textbox onAddNode={handleAddNode} />
+        </div>
+      )}
 
       {/* Cytoscape Canvas - 전체 화면 */}
       <CytoscapeCanvas
         nodes={nodes}
+        mode={mode}
+        analyzeSelection={analyzeSelection}
         selectedNodeId={selectedNodeId}
         onNodeSelect={setSelectedNodeId}
         onNodeUnselect={() => setSelectedNodeId(null)}
@@ -155,6 +207,7 @@ const MindmapPageContent: React.FC = () => {
         onBatchNodePositionChange={handleBatchNodePositionChange}
         onCyReady={(cy) => { cyRef.current = cy; }}
         onCreateChildNode={handleCreateChildNode}
+        onAnalyzeNodeToggle={handleAnalyzeNodeToggle}
         className="absolute inset-0"
       />
     </div>

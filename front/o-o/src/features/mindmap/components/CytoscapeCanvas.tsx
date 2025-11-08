@@ -16,6 +16,8 @@ import OverlayLayer from "./OverlayLayer";
 export default function CytoscapeCanvas({
   nodes,
   className,
+  mode,
+  analyzeSelection,
   selectedNodeId,
   onNodeSelect,
   onNodeUnselect,
@@ -24,6 +26,7 @@ export default function CytoscapeCanvas({
   onBatchNodePositionChange,
   onCyReady,
   onCreateChildNode,
+  onAnalyzeNodeToggle,
 }: CytoscapeCanvasProps) {
 
   const cyRef = useRef<Core | null>(null);
@@ -59,7 +62,28 @@ export default function CytoscapeCanvas({
     onNodeUnselect,
     onNodePositionChange,
     onBackgroundClick: onNodeUnselect,
-  }, cyReady);
+  }, cyReady && mode === "edit");
+
+  // 분석 모드 전용 노드 클릭 토글
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !cyReady || mode !== "analyze") return;
+
+    const handleTap = (event: EventObject) => {
+      if (event.target && typeof event.target.id === "function") {
+        const nodeId = event.target.id();
+        if (nodeId) {
+          onAnalyzeNodeToggle(nodeId);
+        }
+      }
+    };
+
+    cy.on("tap", "node", handleTap);
+
+    return () => {
+      cy.off("tap", "node", handleTap);
+    };
+  }, [cyReady, mode, onAnalyzeNodeToggle]);
 
   // 초기 로드 시 첫 노드에 포커스 및 즉시 렌더링 (한 번만 실행)
   useEffect(() => {
@@ -230,6 +254,8 @@ export default function CytoscapeCanvas({
       <OverlayLayer
         cy={cyReady ? cyRef.current : null}
         nodes={nodes}
+        mode={mode}
+        analyzeSelection={analyzeSelection}
         selectedNodeId={selectedNodeId}
         onNodeSelect={onNodeSelect}
         onNodeUnselect={onNodeUnselect}
