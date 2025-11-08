@@ -12,7 +12,6 @@ export type CytoscapeEventHandlers = {
  * Cytoscape 이벤트 핸들러 관리
  * - 노드 선택/선택 해제
  * - 배경 클릭
- * NOTE: 드래그 후 위치 변경은 Cola 레이아웃이 처리
  */
 export function useCytoscapeEvents(
   cy: Core | null,
@@ -42,9 +41,6 @@ export function useCytoscapeEvents(
       cy.off("unselect", "node", handleUnselect);
     };
   }, [cy, cyReady, onNodeSelect, onNodeUnselect]);
-
-  // NOTE: 드래그 완료 후 위치 업데이트는 Cola 레이아웃 완료 후 onLayoutComplete 콜백에서 일괄 처리
-  // (dragfree → 즉시 위치 업데이트 시 Cola와 race condition 발생)
 
   // 배경 클릭 이벤트 (노드 선택 해제)
   useEffect(() => {

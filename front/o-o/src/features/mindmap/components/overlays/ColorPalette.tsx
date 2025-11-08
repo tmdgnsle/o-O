@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColorPaletteProps } from "../../types";
 import { COLOR_THEMES, type ColorThemeName } from "../../styles/colorThemes";
+import { useColorTheme } from "../../hooks/useColorTheme";
 
 export default function ColorPalette({
   open,
@@ -27,10 +28,12 @@ export default function ColorPalette({
   className,
 }: ColorPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
-  const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>("Pastel");
+  const { getCurrentTheme, setCurrentTheme } = useColorTheme();
+  const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>(() => getCurrentTheme());
 
   const handleThemeChange = (theme: ColorThemeName) => {
     setSelectedTheme(theme);
+    setCurrentTheme(theme); // localStorage에 저장
     // 전체 노드에 테마 적용
     if (onApplyTheme) {
       onApplyTheme([...COLOR_THEMES[theme]]);

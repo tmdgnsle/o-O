@@ -1,17 +1,12 @@
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useReducer } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
-import cytoscape, { type Core } from "cytoscape";
-import cola from "cytoscape-cola";
+import type { Core, EventObject } from "cytoscape";
 import { cn } from "@/lib/utils";
 import type { CytoscapeCanvasProps } from "../types";
 import { cytoscapeStylesheet, cytoscapeLayout, cytoscapeConfig } from "../styles/mindmapStyles";
 import { useEdges, useGraphSync, useDragSync } from "../hooks/cytoscape/useGraphSync";
 import { useCytoscapeEvents, useCytoscapeInit } from "../hooks/cytoscape/useCytoscapeEvents";
-import { useColaLayout } from "../hooks/cytoscape/useColaLayout";
 import OverlayLayer from "./OverlayLayer";
-
-// Cola 레이아웃 extension 등록 (최초 1회)
-cytoscape.use(cola);
 
 /**
  * CytoscapeCanvas
@@ -28,20 +23,17 @@ export default function CytoscapeCanvas({
   onNodePositionChange,
   onBatchNodePositionChange,
   onCyReady,
+  onCreateChildNode,
 }: CytoscapeCanvasProps) {
 
   const cyRef = useRef<Core | null>(null);
-  const [cyReady, setCyReady] = useState(false);       // cy 준비 플래그
-  const [overlayVersion, setOverlayVersion] = useState(0);   // pan/zoom 시 오버레이 위치 갱신용
+  const [cyReady, setCyReady] = useState(false);       // cy ?? ??
+  const [, forceOverlayUpdate] = useReducer((value: number) => value + 1, 0);   // pan/zoom ? ???? ?? ???
   const initializingRef = useRef(false);              // 초기화 진행 중 플래그
+  const hasInitialFocusedRef = useRef(false);         // 초기 포커스 완료 플래그
 
   // 엣지 계산
   const edges = useEdges(nodes);
-
-  // rAF 스로틀된 오버레이 리렌더 트리거
-  const forceOverlayUpdate = useCallback(() => {
-    setOverlayVersion(v => v + 1);
-  }, []);
 
   // cleanup on unmount
   useEffect(() => {
@@ -69,39 +61,86 @@ export default function CytoscapeCanvas({
     onBackgroundClick: onNodeUnselect,
   }, cyReady);
 
-  // Cola 레이아웃 완료 후 React state에 위치 반영 (batch 업데이트)
-  const handleColaLayoutComplete = useCallback(
-    (positions: Array<{ id: string; x: number; y: number }>) => {
-      // Batch mutation 사용 (200개 노드 = 1번 localStorage write)
-      if (onBatchNodePositionChange) {
-        onBatchNodePositionChange(positions);
-      } else if (onNodePositionChange) {
-        // Fallback: 개별 업데이트 (성능 저하 가능)
-        for (const pos of positions) {
-          onNodePositionChange(pos.id, pos.x, pos.y);
-        }
+  // 초기 로드 시 첫 노드에 포커스 및 즉시 렌더링 (한 번만 실행)
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !cyReady || nodes.length === 0 || hasInitialFocusedRef.current) return;
+
+    // useGraphSync가 노드를 추가한 후 실행되도록 약간 지연
+    const timer = setTimeout(() => {
+      // 첫 노드(가장 오래된 노드)에 포커스
+      const firstNode = cy.getElementById(nodes[0].id);
+      if (firstNode && !firstNode.empty()) {
+        cy.center(firstNode);
+        cy.zoom(1); // 적절한 줌 레벨 설정
+        hasInitialFocusedRef.current = true;
       }
-    },
-    [onBatchNodePositionChange, onNodePositionChange]
-  );
 
-  // Cola 레이아웃 (겹침 방지 전용) - 드래그 후에만 실행
-  const { runLayout: runColaLayout } = useColaLayout(
-    cyRef.current,
-    true, // enabled
-    cyReady,
-    handleColaLayoutComplete,
-    forceOverlayUpdate
-  );
+      // 즉시 오버레이 렌더링 트리거
+      forceOverlayUpdate();
+    }, 50);
 
-  // 드래그 완료 시 Cola 실행 (겹침 방지)
+    return () => clearTimeout(timer);
+  }, [cyReady, nodes, forceOverlayUpdate]);
+
+  // Ensure overlay re-renders right after nodes/edges update is applied to cy
+  // This runs after useGraphSync's effect (same commit order), so cy has new elements
+  useEffect(() => {
+    if (!cyReady || !cyRef.current) return;
+    const raf = requestAnimationFrame(() => {
+      forceOverlayUpdate();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [cyReady, nodes, edges, forceOverlayUpdate]);
+
+  // Sync overlay when Cytoscape emits structural/data changes outside React render
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !cyReady) return;
+
+    let raf: number | null = null;
+    const schedule: (event: EventObject) => void = () => {
+      if (raf !== null) return;
+      raf = requestAnimationFrame(() => {
+        forceOverlayUpdate();
+        raf = null;
+      });
+    };
+
+    const events = ["add", "remove", "data", "position"] as const;
+    for (const evt of events) {
+      cy.on(evt, schedule);
+    }
+
+    return () => {
+      for (const evt of events) {
+        cy.off(evt, schedule);
+      }
+      if (raf !== null) {
+        cancelAnimationFrame(raf);
+      }
+    };
+  }, [cyReady, forceOverlayUpdate]);
+
+  // 드래그 완료 시 위치 저장
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy || !cyReady) return;
 
     const handleDragFree = () => {
-      // 드래그 완료 후 Cola 레이아웃 실행 → 겹친 노드들만 살짝 밀어냄
-      runColaLayout();
+      // 드래그한 노드들의 위치를 직접 저장
+      const positions = cy.nodes().map(node => ({
+        id: node.id(),
+        x: node.position().x,
+        y: node.position().y,
+      }));
+
+      if (onBatchNodePositionChange) {
+        onBatchNodePositionChange(positions);
+      }
+
+      // 오버레이 업데이트
+      forceOverlayUpdate();
     };
 
     cy.on("dragfree", "node", handleDragFree);
@@ -109,7 +148,7 @@ export default function CytoscapeCanvas({
     return () => {
       cy.off("dragfree", "node", handleDragFree);
     };
-  }, [cyReady, runColaLayout]);
+  }, [cyReady, onBatchNodePositionChange, forceOverlayUpdate]);
 
   // pan/zoom → rAF 스로틀로 오버레이 위치 갱신
   useEffect(() => {
@@ -175,7 +214,7 @@ export default function CytoscapeCanvas({
             console.error("Error setting up Cytoscape renderer:", e);
           }
 
-          setCyReady(true); // ✅ 이제 훅들 동작 시작
+          setCyReady(true); // 훅들 동작 시작
           initializingRef.current = false;
 
           // 부모 컴포넌트에 cy 인스턴스 전달
@@ -195,7 +234,7 @@ export default function CytoscapeCanvas({
         onNodeSelect={onNodeSelect}
         onNodeUnselect={onNodeUnselect}
         onApplyTheme={onApplyTheme}
-        overlayVersion={overlayVersion}
+        onCreateChildNode={onCreateChildNode}
       />
     </div>
   );

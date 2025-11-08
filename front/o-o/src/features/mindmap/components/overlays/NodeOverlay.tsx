@@ -1,3 +1,4 @@
+import { memo } from "react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import NodeEditForm from "./NodeEditForm";
@@ -10,7 +11,6 @@ import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
 import {
   useDeleteNode,
   useEditNode,
-  useAddNode,
 } from "../../hooks/mutation/useNodeMutations";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 import type { CytoscapeNodeOverlayProps } from "../../types";
@@ -20,7 +20,7 @@ import type { CytoscapeNodeOverlayProps } from "../../types";
  * - Cytoscape 노드 위에 렌더링되는 HTML overlay
  * - 노드 UI, 편집, 툴 그룹 등 모든 인터랙션 담당
  */
-export default function NodeOverlay({
+function NodeOverlay({
   node,
   x,
   y,
@@ -29,13 +29,14 @@ export default function NodeOverlay({
   onSelect,
   onDeselect,
   onApplyTheme,
+  onCreateChildNode,
 }: Readonly<CytoscapeNodeOverlayProps>) {
   const { id, text, color: initialColor } = node;
 
   // Mutation hooks
   const deleteNodeMutation = useDeleteNode();
   const editNodeMutation = useEditNode();
-  const addNodeMutation = useAddNode();
+  // Add-node mutation is handled upstream to avoid passing nodes array here
 
   // Custom hooks
   const {
@@ -77,7 +78,6 @@ export default function NodeOverlay({
     setFocusedButton,
     deleteNodeMutation,
     editNodeMutation,
-    addNodeMutation,
     startEdit,
     cancelEdit,
     confirmEdit,
@@ -86,6 +86,7 @@ export default function NodeOverlay({
     togglePalette,
     closePalette,
     paletteOpen,
+    onCreateChildNode,
   });
 
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
@@ -160,3 +161,18 @@ export default function NodeOverlay({
     </div>
   );
 }
+
+// React.memo로 감싸서 불필요한 재렌더링 방지
+export default memo(NodeOverlay, (prevProps, nextProps) => {
+  // node 데이터가 변경되지 않았고, 위치와 선택 상태가 같으면 재렌더링 스킵
+  return (
+    prevProps.node.id === nextProps.node.id &&
+    prevProps.node.text === nextProps.node.text &&
+    prevProps.node.color === nextProps.node.color &&
+    prevProps.x === nextProps.x &&
+    prevProps.y === nextProps.y &&
+    prevProps.zoom === nextProps.zoom &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.onCreateChildNode === nextProps.onCreateChildNode
+  );
+});

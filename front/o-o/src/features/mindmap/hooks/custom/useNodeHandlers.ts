@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
+import type { UseMutationResult } from '@tanstack/react-query';
 import type { NodeData } from '../../types';
 import type { FocusedButton } from './useNodeFocus';
-import type { UseMutationResult } from '@tanstack/react-query';
 
 type UseNodeHandlersParams = {
   id: string;
@@ -14,7 +14,6 @@ type UseNodeHandlersParams = {
   setFocusedButton: (button: FocusedButton) => void;
   deleteNodeMutation: UseMutationResult<NodeData[], Error, string, unknown>;
   editNodeMutation: UseMutationResult<NodeData[], Error, { nodeId: string; newText?: string; newColor?: string }, unknown>;
-  addNodeMutation: UseMutationResult<NodeData[], Error, NodeData, unknown>;
   startEdit: () => void;
   cancelEdit: () => void;
   confirmEdit: () => string | null;
@@ -23,6 +22,7 @@ type UseNodeHandlersParams = {
   togglePalette: () => void;
   closePalette: () => void;
   paletteOpen: boolean;
+  onCreateChildNode: (request: { parentId: string; parentX: number; parentY: number; text: string }) => void;
 };
 
 export const useNodeHandlers = ({
@@ -36,7 +36,6 @@ export const useNodeHandlers = ({
   setFocusedButton,
   deleteNodeMutation,
   editNodeMutation,
-  addNodeMutation,
   startEdit,
   cancelEdit,
   confirmEdit,
@@ -45,6 +44,7 @@ export const useNodeHandlers = ({
   togglePalette,
   closePalette,
   paletteOpen,
+  onCreateChildNode,
 }: UseNodeHandlersParams) => {
   const handleClick = useCallback(() => {
     if (isSelected) {
@@ -64,7 +64,7 @@ export const useNodeHandlers = ({
 
   const handleEdit = useCallback(() => {
     startEdit();
-    setFocusedButton("edit");
+    setFocusedButton('edit');
   }, [startEdit, setFocusedButton]);
 
   const handleEditCancel = useCallback(() => {
@@ -82,7 +82,7 @@ export const useNodeHandlers = ({
 
   const handleAdd = useCallback(() => {
     openAddInput();
-    setFocusedButton("add");
+    setFocusedButton('add');
   }, [openAddInput, setFocusedButton]);
 
   const handleAddCancel = useCallback(() => {
@@ -90,26 +90,26 @@ export const useNodeHandlers = ({
     setFocusedButton(null);
   }, [closeAddInput, setFocusedButton]);
 
-  const handleAddConfirm = useCallback((keyword: string, _description: string) => {
-    if (keyword) {
-      const newNode: NodeData = {
-        id: Date.now().toString(),
-        text: keyword,
-        x: x + 200, // 우측에 배치
-        y: y,
-        color: '#263A6B', // 기본 색상
-        parentId: id, // 현재 노드를 부모로 설정
-      };
-      addNodeMutation.mutate(newNode);
-      closeAddInput();
-    }
-    setFocusedButton(null);
-  }, [x, y, id, addNodeMutation, closeAddInput, setFocusedButton]);
+  const handleAddConfirm = useCallback(
+    (keyword: string, _description: string) => {
+      if (keyword) {
+        onCreateChildNode({
+          parentId: id,
+          parentX: x,
+          parentY: y,
+          text: keyword,
+        });
+        closeAddInput();
+      }
+      setFocusedButton(null);
+    },
+    [id, x, y, onCreateChildNode, closeAddInput, setFocusedButton]
+  );
 
   const handlePalette = useCallback(() => {
     const willBeOpen = !paletteOpen;
     togglePalette();
-    setFocusedButton(willBeOpen ? "palette" : null);
+    setFocusedButton(willBeOpen ? 'palette' : null);
   }, [paletteOpen, togglePalette, setFocusedButton]);
 
   const handleColorChange = useCallback(
@@ -128,23 +128,20 @@ export const useNodeHandlers = ({
   }, [closePalette, setFocusedButton]);
 
   const handleRecommend = useCallback(() => {
-    setFocusedButton("recommend");
+    setFocusedButton('recommend');
   }, [setFocusedButton]);
 
   const handleRecommendSelect = useCallback(
     (recommendText: string) => {
-      const newNode: NodeData = {
-        id: Date.now().toString(),
+      onCreateChildNode({
+        parentId: id,
+        parentX: x,
+        parentY: y,
         text: recommendText,
-        x: x + 200,
-        y: y,
-        color: '#263A6B',
-        parentId: id, // 추천 노드도 현재 노드의 자식으로 설정
-      };
-      addNodeMutation.mutate(newNode);
+      });
       setFocusedButton(null);
     },
-    [x, y, id, addNodeMutation, setFocusedButton]
+    [id, x, y, onCreateChildNode, setFocusedButton]
   );
 
   return {

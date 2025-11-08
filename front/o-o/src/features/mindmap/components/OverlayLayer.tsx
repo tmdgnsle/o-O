@@ -6,7 +6,7 @@
  */
 import type { Core } from "cytoscape";
 import NodeOverlay from "./overlays/NodeOverlay";
-import type { NodeData } from "../types";
+import type { NodeData, ChildNodeRequest } from "../types";
 
 export default function OverlayLayer({
   cy,
@@ -15,7 +15,7 @@ export default function OverlayLayer({
   onNodeSelect,
   onNodeUnselect,
   onApplyTheme,
-  overlayVersion,
+  onCreateChildNode,
 }: Readonly<{
   cy: Core | null;
   nodes: NodeData[];
@@ -23,18 +23,32 @@ export default function OverlayLayer({
   onNodeSelect: (id: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
-  overlayVersion: number;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
 }>) {
   const zoom = cy?.zoom() ?? 1;
+  const container = cy?.container() ?? null;
+  const viewportWidth = container?.clientWidth ?? null;
+  const viewportHeight = container?.clientHeight ?? null;
+  const OVERSCAN_PX = 200; // render nodes slightly outside viewport to avoid pop-in
 
   return (
     <div className="absolute inset-0 pointer-events-none">
       {cy &&
-        overlayVersion >= 0 &&
         nodes.map((node) => {
           const el = cy.getElementById(node.id);
           if (!el || el.empty()) return null;
+
           const { x, y } = el.renderedPosition();
+          if (
+            viewportWidth !== null &&
+            viewportHeight !== null &&
+            (x < -OVERSCAN_PX ||
+              x > viewportWidth + OVERSCAN_PX ||
+              y < -OVERSCAN_PX ||
+              y > viewportHeight + OVERSCAN_PX)
+          ) {
+            return null;
+          }
 
           return (
             <NodeOverlay
@@ -47,6 +61,7 @@ export default function OverlayLayer({
               onSelect={() => onNodeSelect(node.id)}
               onDeselect={onNodeUnselect}
               onApplyTheme={onApplyTheme}
+              onCreateChildNode={onCreateChildNode}
             />
           );
         })}

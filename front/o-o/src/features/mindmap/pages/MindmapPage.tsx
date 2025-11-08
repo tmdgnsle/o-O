@@ -9,8 +9,9 @@ import { useNodesQuery } from '../hooks/query/useNodesQuery';
 import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
 import type { NodeData } from '../types';
-import { COLOR_THEMES } from '../styles/colorThemes';
 import type { Core } from 'cytoscape';
+import { useColorTheme } from '../hooks/useColorTheme';
+import { useNodePositioning } from '../hooks/useNodePositioning';
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -33,13 +34,16 @@ const MindmapPageContent: React.FC = () => {
   const updateNodePositionMutation = useUpdateNodePosition();
   const batchUpdatePositionsMutation = useBatchUpdateNodePositions();
 
-  const handleAddNode = (text: string) => {
-    const pastelColors = COLOR_THEMES.Pastel;
-    const randomColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+  // Color theme hook
+  const { getRandomThemeColor } = useColorTheme();
+  const { findNonOverlappingPosition } = useNodePositioning();
 
-    // 현재 뷰포트 중심에 노드 추가
-    let x = 0;
-    let y = 0;
+  const handleAddNode = (text: string) => {
+    const randomColor = getRandomThemeColor();
+
+    // 현재 뷰포트 중심 좌표 계산
+    let baseX = 0;
+    let baseY = 0;
 
     if (cyRef.current) {
       const pan = cyRef.current.pan();
@@ -51,10 +55,13 @@ const MindmapPageContent: React.FC = () => {
         const centerX = container.clientWidth / 2;
         const centerY = container.clientHeight / 2;
 
-        x = (centerX - pan.x) / zoom;
-        y = (centerY - pan.y) / zoom;
+        baseX = (centerX - pan.x) / zoom;
+        baseY = (centerY - pan.y) / zoom;
       }
     }
+
+    // 기존 노드와 겹치지 않는 위치 찾기
+    const { x, y } = findNonOverlappingPosition(nodes, baseX, baseY);
 
     const newNode: NodeData = {
       id: Date.now().toString(),
@@ -79,6 +86,23 @@ const MindmapPageContent: React.FC = () => {
     // Cola 레이아웃 완료 후 여러 노드 위치를 한 번에 업데이트
     batchUpdatePositionsMutation.mutate(positions);
   }, [batchUpdatePositionsMutation]);
+
+  const handleCreateChildNode = useCallback(({ parentId, parentX, parentY, text }: { parentId: string; parentX: number; parentY: number; text: string }) => {
+    if (!text) return;
+
+    const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, parentY);
+
+    const newNode: NodeData = {
+      id: Date.now().toString(),
+      text,
+      x,
+      y,
+      color: getRandomThemeColor(),
+      parentId,
+    };
+
+    addNodeMutation.mutate(newNode);
+  }, [nodes, findNonOverlappingPosition, getRandomThemeColor, addNodeMutation]);
 
   if (isLoading) {
     return (
@@ -130,6 +154,7 @@ const MindmapPageContent: React.FC = () => {
         onNodePositionChange={handleNodePositionChange}
         onBatchNodePositionChange={handleBatchNodePositionChange}
         onCyReady={(cy) => { cyRef.current = cy; }}
+        onCreateChildNode={handleCreateChildNode}
         className="absolute inset-0"
       />
     </div>

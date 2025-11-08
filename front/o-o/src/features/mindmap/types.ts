@@ -30,6 +30,7 @@ export type CytoscapeCanvasProps = Readonly<{
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
   onCyReady?: (cy: any) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
 }>;
 
 export type CytoscapeNodeOverlayProps = {
@@ -41,6 +42,7 @@ export type CytoscapeNodeOverlayProps = {
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
 };
 
 // RadialToolGroup.tsx
@@ -93,6 +95,13 @@ export type NodeData = {
   y: number;
   color: string;
   parentId?: string;
+};
+
+export type ChildNodeRequest = {
+  parentId: string;
+  parentX: number;
+  parentY: number;
+  text: string;
 };
 
 // ============================================
