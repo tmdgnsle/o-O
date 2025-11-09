@@ -9,10 +9,14 @@ import AnalyzeSelectionPanel from '../components/AnalyzeSelectionPanel';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
 import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
+import VoiceChat from '../components/VoiceChat/VoiceChat';
 import type { NodeData, MindmapMode } from '../types';
 import type { Core } from 'cytoscape';
 import { useColorTheme } from '../hooks/useColorTheme';
 import { useNodePositioning } from '../hooks/useNodePositioning';
+import popo1 from '@/shared/assets/images/popo1.png';
+import popo2 from '@/shared/assets/images/popo2.png';
+import popo3 from '@/shared/assets/images/popo3.png';
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -28,6 +32,7 @@ const MindmapPageContent: React.FC = () => {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [mode, setMode] = useState<MindmapMode>("edit");
   const [analyzeSelection, setAnalyzeSelection] = useState<string[]>([]);
+  const [voiceChatVisible, setVoiceChatVisible] = useState(false);
   const cyRef = useRef<Core | null>(null);
 
   // Query & Mutation hooks
@@ -142,6 +147,11 @@ const MindmapPageContent: React.FC = () => {
     () => nodes.filter((node) => analyzeSelection.includes(node.id)),
     [nodes, analyzeSelection]
   );
+  const voiceChatUsers = useMemo(() => [
+    { id: "1", name: "포포 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
+    { id: "2", name: "포포 B", avatar: popo2, colorIndex: 1 },
+    { id: "3", name: "포포 C", avatar: popo3, colorIndex: 2 },
+  ], []);
 
   if (isLoading) {
     return (
@@ -169,24 +179,26 @@ const MindmapPageContent: React.FC = () => {
           />
         )}
       </div>
-      <div className="fixed top-4 right-4 z-50">
-        <StatusBox />
-      </div>
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
-        <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
-      </div>
-
-      {/* VoiceChat - 화면 중앙으로 이동 */}
-      {/* <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
-        <VoiceChat
-          users={voiceChatUsers}
-          onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
-          onCallEnd={() => {}} // 종료 다이얼로그 표시
-          onOrganize={() => console.log("Organize clicked")}
-          onShare={() => console.log("Share clicked")}
-        />
-      </div> */}
-
+      {!voiceChatVisible && (
+        <div className="fixed top-4 right-4 z-50">
+          <StatusBox onStartVoiceChat={() => setVoiceChatVisible(true)} />
+        </div>
+      )}
+      {!voiceChatVisible ? (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+          <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
+        </div>
+      ) : (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <VoiceChat
+            users={voiceChatUsers}
+            onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
+            onCallEnd={() => setVoiceChatVisible(false)}
+            onOrganize={() => console.log("Organize clicked")}
+            onShare={() => console.log("Share clicked")}
+          />
+        </div>
+      )}
 
       {mode === "edit" && (
         <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">

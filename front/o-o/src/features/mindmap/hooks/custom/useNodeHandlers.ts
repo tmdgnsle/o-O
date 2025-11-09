@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { NodeData } from '../../types';
+import type { ChildNodeRequest, NodeData } from '../../types';
 import type { FocusedButton } from './useNodeFocus';
 
 type UseNodeHandlersParams = {
@@ -22,7 +22,7 @@ type UseNodeHandlersParams = {
   togglePalette: () => void;
   closePalette: () => void;
   paletteOpen: boolean;
-  onCreateChildNode: (request: { parentId: string; parentX: number; parentY: number; text: string }) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
 };
 
 export const useNodeHandlers = ({
