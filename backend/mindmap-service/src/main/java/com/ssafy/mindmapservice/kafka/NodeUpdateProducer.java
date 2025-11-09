@@ -21,7 +21,7 @@ public class NodeUpdateProducer {
     @Value("${kafka.topics.node-update}")
     private String nodeUpdateTopic;
 
-    public void sendNodeUpdate(Long workspaceId, String nodeId, Map<String, Object> updates) {
+    public void sendNodeUpdate(Long workspaceId, Long nodeId, Map<String, Object> updates) {
         try {
             Map<String, Object> message = new HashMap<>();
             message.put("workspaceId", workspaceId);

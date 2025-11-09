@@ -36,7 +36,15 @@ public class NodeEventConsumer {
 
             for (Map<String, Object> event : events) {
                 String operation = (String) event.get("operation");
-                String nodeId = (String) event.get("nodeId");
+
+                // nodeId 변환 (Integer, Long, String 모두 지원)
+                Object nodeIdObj = event.get("nodeId");
+                Long nodeId = nodeIdObj instanceof Integer
+                    ? ((Integer) nodeIdObj).longValue()
+                    : nodeIdObj instanceof String
+                        ? Long.parseLong((String) nodeIdObj)
+                        : (Long) nodeIdObj;
+
                 Object workspaceIdObj = event.get("workspaceId");
                 Long workspaceId = workspaceIdObj instanceof Integer
                     ? ((Integer) workspaceIdObj).longValue()
@@ -44,10 +52,19 @@ public class NodeEventConsumer {
 
                 switch (operation) {
                     case "ADD":
+                        // parentId 변환
+                        Object parentIdObj = event.get("parentId");
+                        Long parentId = parentIdObj == null ? null :
+                                parentIdObj instanceof Integer
+                                    ? ((Integer) parentIdObj).longValue()
+                                    : parentIdObj instanceof String
+                                        ? Long.parseLong((String) parentIdObj)
+                                        : (Long) parentIdObj;
+
                         MindmapNode newNode = MindmapNode.builder()
                                 .nodeId(nodeId)
                                 .workspaceId(workspaceId)
-                                .parentId((String) event.get("parentId"))
+                                .parentId(parentId)
                                 .type((String) event.get("type"))
                                 .keyword((String) event.get("keyword"))
                                 .memo((String) event.get("memo"))
@@ -83,7 +100,14 @@ public class NodeEventConsumer {
                             update.set("color", event.get("color"));
                         }
                         if (event.containsKey("parentId")) {
-                            update.set("parentId", event.get("parentId"));
+                            Object updateParentIdObj = event.get("parentId");
+                            Long updateParentId = updateParentIdObj == null ? null :
+                                    updateParentIdObj instanceof Integer
+                                        ? ((Integer) updateParentIdObj).longValue()
+                                        : updateParentIdObj instanceof String
+                                            ? Long.parseLong((String) updateParentIdObj)
+                                            : (Long) updateParentIdObj;
+                            update.set("parentId", updateParentId);
                         }
                         if (event.containsKey("contentUrl")) {
                             update.set("contentUrl", event.get("contentUrl"));

@@ -22,7 +22,7 @@
 import 'dotenv/config';  // .env 파일에서 환경변수 로드
 import express from 'express';
 import { WebSocketServer } from 'ws';
-import { setupWSConnection } from 'y-websocket/bin/utils.js';  // Y.js WebSocket 유틸
+import { setupWSConnection } from 'y-websocket/bin/utils';  // Y.js WebSocket 유틸
 import * as Y from 'yjs';
 import http from 'http';
 import { logger } from './utils/logger.js';
