@@ -254,6 +254,7 @@ function handleAwarenessMessage(workspaceId, connectionId, message) {
  * 서버 초기화 및 시작
  * ============================================
  *
+ *
  * 실행 순서:
  * 1. Kafka producer 초기화
  * 2. Kafka consumer 초기화 및 시작
