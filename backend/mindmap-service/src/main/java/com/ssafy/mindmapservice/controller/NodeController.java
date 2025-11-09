@@ -116,16 +116,20 @@ public class NodeController {
 
     /**
      * AI 분석을 요청합니다.
-     * 클라이언트가 이미지/영상과 프롬프트를 전송하면,
+     * 클라이언트가 이미지/영상/텍스트와 프롬프트를 전송하면,
      * Kafka를 통해 AI 서버로 분석 요청을 전달합니다.
+     *
+     * analysisType:
+     * - INITIAL: 워크스페이스 첫 노드 생성 시 (AI가 6개 키워드 반환)
+     * - CONTEXTUAL: 기존 노드 기반 확장 (부모 컨텍스트 전달, AI가 3개 자식 반환)
      */
     @PostMapping("/{workspaceId}/node/{nodeId}/analyze")
     public ResponseEntity<Void> requestAiAnalysis(
             @PathVariable Long workspaceId,
             @PathVariable Long nodeId,
             @RequestBody AiAnalysisRequest request) {
-        log.info("POST /mindmap/{}/node/{}/analyze - contentType={}",
-                workspaceId, nodeId, request.contentType());
+        log.info("POST /mindmap/{}/node/{}/analyze - type={}, contentType={}",
+                workspaceId, nodeId, request.analysisType(), request.contentType());
 
         nodeService.requestAiAnalysis(
                 workspaceId,
@@ -133,7 +137,8 @@ public class NodeController {
                 request.contentUrl(),
                 request.contentType(),
                 request.prompt(),
-                request.userId()
+                request.userId(),
+                request.analysisType()
         );
 
         return ResponseEntity.accepted().build();
