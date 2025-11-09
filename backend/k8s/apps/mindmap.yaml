@@ -34,9 +34,9 @@ spec:
             periodSeconds: 3
             failureThreshold: 60         # 최대 ~180초(3분)까지 기동 허용
             timeoutSeconds: 2
-#          envFrom:
-#            - configMapRef:
-#                name: mindmap-config
+          envFrom:
+            - configMapRef:
+                name: mindmap-spring-config
 #            - secretRef:
 #                name: mindmap-secret
 ---
