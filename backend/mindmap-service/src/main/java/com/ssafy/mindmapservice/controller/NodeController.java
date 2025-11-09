@@ -86,7 +86,7 @@ public class NodeController {
             @PathVariable String nodeId,
             @RequestBody NodePositionUpdateRequest request) {
         log.info("PATCH /mindmap/{}/node/{}/position", workspaceId, nodeId);
-        MindmapNode updated = nodeService.updateNodePosition(workspaceId, nodeId, request.getX(), request.getY());
+        MindmapNode updated = nodeService.updateNodePosition(workspaceId, nodeId, request.x(), request.y());
         return ResponseEntity.ok(updated);
     }
 
@@ -96,7 +96,7 @@ public class NodeController {
             @PathVariable String nodeId,
             @RequestBody NodeColorUpdateRequest request) {
         log.info("PATCH /mindmap/{}/node/{}/color", workspaceId, nodeId);
-        MindmapNode updated = nodeService.updateNodeColor(workspaceId, nodeId, request.getColor());
+        MindmapNode updated = nodeService.updateNodeColor(workspaceId, nodeId, request.color());
         return ResponseEntity.ok(updated);
     }
 
@@ -104,11 +104,11 @@ public class NodeController {
     public ResponseEntity<List<MindmapNode>> cloneWorkspace(
             @PathVariable Long workspaceId,
             @RequestBody WorkspaceCloneRequest request) {
-        log.info("POST /mindmap/{}/clone with name={}", workspaceId, request.getWorkspaceName());
+        log.info("POST /mindmap/{}/clone with name={}", workspaceId, request.workspaceName());
         List<MindmapNode> clonedNodes = nodeService.cloneWorkspace(
                 workspaceId,
-                request.getWorkspaceName(),
-                request.getWorkspaceDescription()
+                request.workspaceName(),
+                request.workspaceDescription()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(clonedNodes);
     }
