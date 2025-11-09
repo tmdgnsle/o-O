@@ -1,6 +1,7 @@
 package com.ssafy.mindmapservice.controller;
 
 import com.ssafy.mindmapservice.domain.MindmapNode;
+import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.NodeColorUpdateRequest;
 import com.ssafy.mindmapservice.dto.NodePositionUpdateRequest;
 import com.ssafy.mindmapservice.dto.WorkspaceCloneRequest;
@@ -31,7 +32,7 @@ public class NodeController {
     @GetMapping("/{workspaceId}/node/{nodeId}")
     public ResponseEntity<MindmapNode> getNode(
             @PathVariable Long workspaceId,
-            @PathVariable String nodeId) {
+            @PathVariable Long nodeId) {
         log.info("GET /mindmap/{}/node/{}", workspaceId, nodeId);
         MindmapNode node = nodeService.getNode(workspaceId, nodeId);
         return ResponseEntity.ok(node);
@@ -50,7 +51,7 @@ public class NodeController {
     @PatchMapping("/{workspaceId}/node/{nodeId}")
     public ResponseEntity<MindmapNode> updateNode(
             @PathVariable Long workspaceId,
-            @PathVariable String nodeId,
+            @PathVariable Long nodeId,
             @RequestBody MindmapNode updates) {
         log.info("PATCH /mindmap/{}/node/{}", workspaceId, nodeId);
         MindmapNode updated = nodeService.updateNode(workspaceId, nodeId, updates);
@@ -60,7 +61,7 @@ public class NodeController {
     @DeleteMapping("/{workspaceId}/node/{nodeId}")
     public ResponseEntity<Void> deleteNode(
             @PathVariable Long workspaceId,
-            @PathVariable String nodeId) {
+            @PathVariable Long nodeId) {
         log.info("DELETE /mindmap/{}/node/{}", workspaceId, nodeId);
         nodeService.deleteNode(workspaceId, nodeId);
         return ResponseEntity.noContent().build();
@@ -83,7 +84,7 @@ public class NodeController {
     @PatchMapping("/{workspaceId}/node/{nodeId}/position")
     public ResponseEntity<MindmapNode> updateNodePosition(
             @PathVariable Long workspaceId,
-            @PathVariable String nodeId,
+            @PathVariable Long nodeId,
             @RequestBody NodePositionUpdateRequest request) {
         log.info("PATCH /mindmap/{}/node/{}/position", workspaceId, nodeId);
         MindmapNode updated = nodeService.updateNodePosition(workspaceId, nodeId, request.x(), request.y());
@@ -93,7 +94,7 @@ public class NodeController {
     @PatchMapping("/{workspaceId}/node/{nodeId}/color")
     public ResponseEntity<MindmapNode> updateNodeColor(
             @PathVariable Long workspaceId,
-            @PathVariable String nodeId,
+            @PathVariable Long nodeId,
             @RequestBody NodeColorUpdateRequest request) {
         log.info("PATCH /mindmap/{}/node/{}/color", workspaceId, nodeId);
         MindmapNode updated = nodeService.updateNodeColor(workspaceId, nodeId, request.color());
@@ -111,5 +112,30 @@ public class NodeController {
                 request.workspaceDescription()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(clonedNodes);
+    }
+
+    /**
+     * AI 분석을 요청합니다.
+     * 클라이언트가 이미지/영상과 프롬프트를 전송하면,
+     * Kafka를 통해 AI 서버로 분석 요청을 전달합니다.
+     */
+    @PostMapping("/{workspaceId}/node/{nodeId}/analyze")
+    public ResponseEntity<Void> requestAiAnalysis(
+            @PathVariable Long workspaceId,
+            @PathVariable Long nodeId,
+            @RequestBody AiAnalysisRequest request) {
+        log.info("POST /mindmap/{}/node/{}/analyze - contentType={}",
+                workspaceId, nodeId, request.contentType());
+
+        nodeService.requestAiAnalysis(
+                workspaceId,
+                nodeId,
+                request.contentUrl(),
+                request.contentType(),
+                request.prompt(),
+                request.userId()
+        );
+
+        return ResponseEntity.accepted().build();
     }
 }

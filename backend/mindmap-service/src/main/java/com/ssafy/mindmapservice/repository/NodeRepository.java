@@ -18,11 +18,11 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
 
 
      // 워크스페이스 ID와 노드 ID로 단일 노드 조회
-    Optional<MindmapNode> findByWorkspaceIdAndNodeId(Long workspaceId, String nodeId);
+    Optional<MindmapNode> findByWorkspaceIdAndNodeId(Long workspaceId, Long nodeId);
 
 
     // 워크스페이스 ID와 노드 ID로 노드 삭제
-    void deleteByWorkspaceIdAndNodeId(Long workspaceId, String nodeId);
+    void deleteByWorkspaceIdAndNodeId(Long workspaceId, Long nodeId);
 
 
     // 워크스페이스 ID로 모든 노드 삭제
