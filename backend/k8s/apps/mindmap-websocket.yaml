@@ -18,19 +18,19 @@ spec:
             requests: { cpu: "150m", memory: "256Mi" }
             limits:   { cpu: "500m", memory: "512Mi" }
           readinessProbe:
-            httpGet: { path: /actuator/health/readiness, port: 8084 }
+            httpGet: { path: /health, port: 8084 }
             initialDelaySeconds: 25
             periodSeconds: 5
             timeoutSeconds: 2
             failureThreshold: 6          # (선택) 일시적 지연 완충
           livenessProbe:
-            httpGet: { path: /actuator/health/liveness, port: 8084 }
+            httpGet: { path: /health, port: 8084 }
             initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 3
           startupProbe:
-            httpGet: { path: /actuator/health, port: 8084 }
+            httpGet: { path: /health, port: 8084 }
             periodSeconds: 3
             failureThreshold: 60         # 최대 ~180초(3분)까지 기동 허용
             timeoutSeconds: 2
