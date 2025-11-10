@@ -9,8 +9,8 @@ export const useNodeAdd = () => {
   };
 
   const closeAddInput = () => {
-    setShowAddInput(false);
     setAddValue('');
+    setShowAddInput(false);
   };
 
   const confirmAdd = () => {

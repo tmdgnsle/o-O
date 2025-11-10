@@ -59,10 +59,12 @@ export const cytoscapeStylesheet: StylesheetStyle[] = [
 
 /**
  * Cytoscape 레이아웃 설정
+ * - preset: 저장된 위치 그대로 사용
+ * - fit: false로 설정하여 뷰포트 변경 없이 노드가 있는 위치 그대로 렌더링
  */
 export const cytoscapeLayout = {
   name: "preset" as const,
-  fit: false, // 자동 줌 비활성화
+  fit: false, // 뷰포트 변경 없음 - 사용자가 마지막으로 본 위치 유지
   padding: 30,
 };
 

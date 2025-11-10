@@ -23,6 +23,10 @@ import { useShareLink } from "../hooks/custom/useShareLink";
 import { useCollaborators, type Collaborator, type Permission } from "../hooks/custom/useCollaborators";
 import { useAccessType } from "../hooks/custom/useAccessType";
 
+type StatusBoxProps = {
+  onStartVoiceChat?: () => void;
+};
+
 // 더미 데이터
 const initialCollaborators: Collaborator[] = [
   { id: "1", name: "이승훈", avatar: popo1, role: "Maintainer" },
@@ -35,7 +39,7 @@ const initialCollaborators: Collaborator[] = [
 
 const shareLink = "https://o-O/mindmap/abc123";
 
-export default function StatusBox() {
+export default function StatusBox({ onStartVoiceChat }: StatusBoxProps = {}) {
   // Custom hooks
   const { copied, handleCopyLink } = useShareLink(shareLink);
   const { collaborators, handlePermissionChange } = useCollaborators(initialCollaborators);
@@ -85,7 +89,18 @@ export default function StatusBox() {
                   {user.role === "Maintainer" ? (
                     <div className="flex items-center gap-3">
                       <p className="text-xs text-gray-500 w-[110px]">{user.role}</p>
-                      <Headphones className="w-4 h-4 text-gray-400" />
+                      {onStartVoiceChat ? (
+                        <button
+                          type="button"
+                          onClick={onStartVoiceChat}
+                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                          aria-label="Voice chat 열기"
+                        >
+                          <Headphones className="w-4 h-4 text-gray-500" />
+                        </button>
+                      ) : (
+                        <Headphones className="w-4 h-4 text-gray-400" />
+                      )}
                     </div>
                   ) : (
                     <Select

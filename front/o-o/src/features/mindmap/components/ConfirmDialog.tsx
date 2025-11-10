@@ -55,29 +55,29 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-[100] max-w-2xl w-[min(90vw,42rem)] p-0 bg-transparent"
+      className="fixed inset-0 z-[100] max-w-4xl w-[min(90vw,56rem)] p-0 bg-transparent"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-desc"
       onCancel={handleClose} // Esc
       onClose={handleClose}
     >
-      <div className="relative bg-white rounded-none shadow-2xl w-full p-8">
-        <div className="flex gap-6 items-center">
+      <div className="relative bg-[#F7FAFF] rounded-none shadow-2xl w-full p-12">
+        <div className="flex gap-8 items-center">
           {/* Character Image */}
           <div className="flex-shrink-0">
             <img
               src={characterImage}
               alt="캐릭터 이미지"
-              className="w-40 h-40 object-contain"
+              className="w-80 h-80 object-contain"
             />
           </div>
 
           {/* Content */}
-          <div className="flex-1 flex flex-col gap-4">
+          <div className="flex-1 flex flex-col gap-6">
             {/* Title */}
             <h2
               id="confirm-dialog-title"
-              className="text-2xl font-bold text-primary"
+              className="text-3xl font-bold text-primary"
             >
               {title}
             </h2>
@@ -85,19 +85,19 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {/* Description */}
             <p
               id="confirm-dialog-desc"
-              className="text-base text-gray-700 leading-relaxed whitespace-pre-line"
+              className="text-lg text-gray-700 leading-relaxed whitespace-pre-line"
             >
               {description}
             </p>
 
             {/* Buttons */}
-            <div className="flex gap-3 justify-end mt-2">
+            <div className="flex gap-3 justify-end mt-12">
               {buttons.map((button, idx) => (
                 <Button
                   key={button.id}
                   onClick={button.onClick}
                   variant={button.variant}
-                  className={`px-6 py-2.5 text-base font-semibold
+                  className={`px-8 py-3 text-lg font-semibold
                     ${
                       button.variant === "outline"
                         ? "bg-transparent text-primary hover:underline shadow-none border-none"

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { Core, EventObject } from "cytoscape";
+import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
 
 export type CytoscapeEventHandlers = {
   onNodeSelect?: (nodeId: string) => void;
@@ -11,7 +12,6 @@ export type CytoscapeEventHandlers = {
 /**
  * Cytoscape 이벤트 핸들러 관리
  * - 노드 선택/선택 해제
- * - 노드 드래그 후 위치 변경
  * - 배경 클릭
  */
 export function useCytoscapeEvents(
@@ -19,7 +19,7 @@ export function useCytoscapeEvents(
   handlers: CytoscapeEventHandlers,
   cyReady: boolean = true
 ) {
-  const { onNodeSelect, onNodeUnselect, onNodePositionChange, onBackgroundClick } = handlers;
+  const { onNodeSelect, onNodeUnselect, onBackgroundClick } = handlers;
 
   // 노드 선택/선택 해제 이벤트
   useEffect(() => {
@@ -27,6 +27,42 @@ export function useCytoscapeEvents(
 
     const handleSelect = (event: EventObject) => {
       const nodeId = event.target.id();
+      const selectedNode = event.target;
+
+      // 애니메이션: 선택 시 펄스 효과
+      const config = getAnimationConfig();
+      if (config.selectionPulse.duration > 0) {
+        selectedNode.animate(
+          {
+            style: {
+              width: selectionPulseAnimation.keyframes[1].width,
+              height: selectionPulseAnimation.keyframes[1].height,
+            },
+            duration: config.selectionPulse.duration / 2,
+            easing: config.selectionPulse.easing,
+          },
+          {
+            queue: false,
+            complete: () => {
+              // 원래 크기로 복귀
+              selectedNode.animate(
+                {
+                  style: {
+                    width: selectionPulseAnimation.keyframes[2].width,
+                    height: selectionPulseAnimation.keyframes[2].height,
+                  },
+                  duration: config.selectionPulse.duration / 2,
+                  easing: config.selectionPulse.easing,
+                },
+                {
+                  queue: false,
+                }
+              );
+            },
+          }
+        );
+      }
+
       onNodeSelect(nodeId);
     };
 
@@ -42,23 +78,6 @@ export function useCytoscapeEvents(
       cy.off("unselect", "node", handleUnselect);
     };
   }, [cy, cyReady, onNodeSelect, onNodeUnselect]);
-
-  // 노드 드래그 완료 후 위치 변경 이벤트
-  useEffect(() => {
-    if (!cy || !cyReady || !onNodePositionChange) return;
-
-    const handleDragFree = (event: EventObject) => {
-      const node = event.target;
-      const pos = node.position();
-      onNodePositionChange(node.id(), pos.x, pos.y);
-    };
-
-    cy.on("dragfree", "node", handleDragFree);
-
-    return () => {
-      cy.off("dragfree", "node", handleDragFree);
-    };
-  }, [cy, cyReady, onNodePositionChange]);
 
   // 배경 클릭 이벤트 (노드 선택 해제)
   useEffect(() => {
@@ -78,6 +97,7 @@ export function useCytoscapeEvents(
     };
   }, [cy, cyReady, onBackgroundClick]);
 }
+
 
 /**
  * Cytoscape 인스턴스 초기 설정

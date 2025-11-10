@@ -19,15 +19,27 @@ export type ColorPaletteProps = Readonly<{
   className?: string;
 }>;
 
+export type MindmapMode = "edit" | "analyze";
+
 // CytoscapeCanvas.tsx
 export type CytoscapeCanvasProps = Readonly<{
   nodes: NodeData[];
   className?: string;
+  mode: MindmapMode;
+  analyzeSelection: string[];
   selectedNodeId: string | null;
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
+  onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
+  onCyReady?: (cy: any) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
+  onAnalyzeNodeToggle: (nodeId: string) => void;
+  detachedSelectionMap?: Record<string, DetachedSelectionState>;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 }>;
 
 export type CytoscapeNodeOverlayProps = {
@@ -35,10 +47,18 @@ export type CytoscapeNodeOverlayProps = {
   x: number;
   y: number;
   zoom: number;
+  hasChildren: boolean;
   isSelected: boolean;
+  mode: MindmapMode;
+  isAnalyzeSelected: boolean;
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
+  detachedSelection?: DetachedSelectionState;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 };
 
 // RadialToolGroup.tsx
@@ -78,6 +98,7 @@ export type RecommendNodeOverlayProps = Readonly<{
 // Textbox.tsx
 export type TextboxProps = Readonly<{
   onAddNode: (text: string) => void;
+  disabled?: boolean;
 }>;
 
 // ============================================
@@ -91,6 +112,20 @@ export type NodeData = {
   y: number;
   color: string;
   parentId?: string;
+};
+
+export type ChildNodeRequest = {
+  parentId: string;
+  parentX: number;
+  parentY: number;
+  text: string;
+};
+
+export type DetachedSelectionState = {
+  id: string;
+  anchorNodeId: string;
+  originalParentId: string;
+  targetParentId?: string | null;
 };
 
 // ============================================

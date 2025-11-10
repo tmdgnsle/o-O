@@ -1,19 +1,52 @@
-// 좌표 변환/렌더 타이밍/포인터 이벤트를 한 군데로 모아 관리 편의 + 성능을 챙기는 레이어
+/**
+ * OverlayLayer
+ * - HTML overlay ?? UI ??
+ * - Cytoscape ??? ?? React ???? ??
+ */
 import type { Core } from "cytoscape";
 import NodeOverlay from "./overlays/NodeOverlay";
-import type { NodeData } from "../types";
+import type { NodeData, ChildNodeRequest, MindmapMode, DetachedSelectionState } from "../types";
 
 export default function OverlayLayer({
-  cy, nodes, selectedNodeId, onNodeSelect, onNodeUnselect, onApplyTheme,
-}: Readonly <{
+  cy,
+  nodes,
+  mode,
+  analyzeSelection,
+  selectedNodeId,
+  onNodeSelect,
+  onNodeUnselect,
+  onApplyTheme,
+  onCreateChildNode,
+  detachedSelectionMap,
+  onKeepChildrenDelete,
+  onConnectDetachedSelection,
+  onDismissDetachedSelection,
+}: Readonly<{
   cy: Core | null;
   nodes: NodeData[];
-  selectedNodeId?: string;
+  mode: MindmapMode;
+  analyzeSelection: string[];
+  selectedNodeId: string | null;
   onNodeSelect: (id: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onCreateChildNode: (request: ChildNodeRequest) => void;
+  detachedSelectionMap?: Record<string, DetachedSelectionState>;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 }>) {
   const zoom = cy?.zoom() ?? 1;
+  const container = cy?.container() ?? null;
+  const viewportWidth = container?.clientWidth ?? null;
+  const viewportHeight = container?.clientHeight ?? null;
+  const OVERSCAN_PX = 200;
+  const childCountMap = nodes.reduce<Map<string, number>>((acc, currentNode) => {
+    if (currentNode.parentId) {
+      acc.set(currentNode.parentId, (acc.get(currentNode.parentId) ?? 0) + 1);
+    }
+    return acc;
+  }, new Map());
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -21,7 +54,18 @@ export default function OverlayLayer({
         nodes.map((node) => {
           const el = cy.getElementById(node.id);
           if (!el || el.empty()) return null;
+
           const { x, y } = el.renderedPosition();
+          if (
+            viewportWidth !== null &&
+            viewportHeight !== null &&
+            (x < -OVERSCAN_PX ||
+              x > viewportWidth + OVERSCAN_PX ||
+              y < -OVERSCAN_PX ||
+              y > viewportHeight + OVERSCAN_PX)
+          ) {
+            return null;
+          }
 
           return (
             <NodeOverlay
@@ -30,10 +74,18 @@ export default function OverlayLayer({
               x={x}
               y={y}
               zoom={zoom}
+              hasChildren={(childCountMap.get(node.id) ?? 0) > 0}
+              mode={mode}
+              isAnalyzeSelected={analyzeSelection.includes(node.id)}
               isSelected={selectedNodeId === node.id}
               onSelect={() => onNodeSelect(node.id)}
               onDeselect={onNodeUnselect}
               onApplyTheme={onApplyTheme}
+              onCreateChildNode={onCreateChildNode}
+              detachedSelection={detachedSelectionMap?.[node.id]}
+              onKeepChildrenDelete={onKeepChildrenDelete}
+              onConnectDetachedSelection={onConnectDetachedSelection}
+              onDismissDetachedSelection={onDismissDetachedSelection}
             />
           );
         })}
