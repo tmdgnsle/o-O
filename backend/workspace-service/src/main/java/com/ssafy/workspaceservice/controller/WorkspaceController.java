@@ -2,6 +2,7 @@ package com.ssafy.workspaceservice.controller;
 
 import com.ssafy.workspaceservice.dto.request.*;
 import com.ssafy.workspaceservice.dto.response.*;
+import com.ssafy.workspaceservice.enums.WorkspaceRole;
 import com.ssafy.workspaceservice.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -75,7 +76,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
     })
-    @PostMapping("/{workspaceId}/member/add")
+    @PostMapping("/{workspaceId}/member/add") //TODO: url에 동사 제거
     public ResponseEntity<Void> addMember(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
@@ -111,13 +112,16 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "멤버를 찾을 수 없음")
     })
-    @PatchMapping("/{workspaceId}/member/{memberId}")
+    @PatchMapping("/{workspaceId}/member/{targetUserId}")
     public ResponseEntity<Void> changeMemberRole(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
 
-            @Parameter(description = "멤버 ID", required = true, example = "5")
-            @PathVariable Long memberId,
+            @Parameter(description = "대상 사용자 ID", required = true, example = "5")
+            @PathVariable Long targetUserId,
+
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long requestUserId,
 
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "변경할 권한 정보",
@@ -128,7 +132,7 @@ public class WorkspaceController {
                             examples = @ExampleObject(
                                     value = """
                                             {
-                                              "role": "VIEWER"
+                                              "role": "EDIT"
                                             }
                                             """
                             )
@@ -136,7 +140,8 @@ public class WorkspaceController {
             )
             @RequestBody @Valid MemberRoleChangeRequest request
     ) {
-        workspaceService.changeMemberRole(workspaceId, memberId, request.role());
+        WorkspaceRole newRole = WorkspaceRole.valueOf(request.role().toUpperCase());
+        workspaceService.changeMemberRole(workspaceId, requestUserId, targetUserId, newRole);
         return ResponseEntity.ok().build();
     }
 
@@ -188,26 +193,9 @@ public class WorkspaceController {
     @PatchMapping("/{workspaceId}/visibility")
     public ResponseEntity<Void> changeVisibility(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "변경할 공개 설정 정보",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = VisibilityChangeRequest.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "isPublic": true
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody @Valid VisibilityChangeRequest request
+            @PathVariable Long workspaceId
     ) {
-        workspaceService.changeVisibility(workspaceId, request);
+        workspaceService.changeVisibility(workspaceId);
         return ResponseEntity.ok().build();
     }
 
@@ -229,7 +217,7 @@ public class WorkspaceController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 날짜 형식 또는 범위")
+            @ApiResponse(responseCode = "400", content = @Content, description = "잘못된 날짜 형식 또는 범위")
     })
     @GetMapping("/calendar")
     public ResponseEntity<List<WorkspaceCalendarDailyResponse>> calendar(

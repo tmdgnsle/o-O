@@ -5,6 +5,7 @@ import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
 import com.ssafy.workspaceservice.enums.*;
+import com.ssafy.workspaceservice.exception.BadRequestException;
 import com.ssafy.workspaceservice.exception.ErrorCode;
 import com.ssafy.workspaceservice.exception.ForbiddenException;
 import com.ssafy.workspaceservice.exception.ResourceNotFoundException;
@@ -89,17 +90,26 @@ public class WorkspaceService {
         workspaceMemberRepository.save(member);
     }
 
-    // 멤버 존재/소속 검증 -> 역할 변경
-    public void changeMemberRole(Long workspaceId, Long memberId, String newRole) {
-        WorkspaceMember m = workspaceMemberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found: " + memberId));
-        if (!m.getWorkspace().getId().equals(workspaceId)) {
-            throw new IllegalArgumentException("Member does not belong to workspace");
+    // 멤버 권한 변경
+    public void changeMemberRole(Long workspaceId, Long requestUserId, Long targetUserId, WorkspaceRole newRole) {
+        // 1. 요청자 권한 확인
+        WorkspaceMember requestMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, requestUserId)
+                .orElseThrow(() -> new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MEMBER));
+
+        if (requestMember.getRole() != WorkspaceRole.MAINTAINER) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MAINTAINER);
         }
-        m.changeRole(WorkspaceRole.valueOf(newRole.toUpperCase()));
+
+        // 2. 대상 멤버 확인
+        WorkspaceMember targetMember = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.WORKSPACE_MEMBER_NOT_FOUND));
+
+        // 3. 역할 변경
+        targetMember.changeRole(newRole);  // 더티 체킹으로 자동 업데이트
     }
 
     // 존재만 확인함.
+    //TODO: 초대했을 때 플로우가 어떻게 되는건지?
     public void inviteMember(Long workspaceId, String email) {
         // 스텁: 존재 확인만. 실제로는 초대 토큰 생성/저장/메일 발송 등을 구현.
         workspaceRepository.findById(workspaceId)
@@ -107,11 +117,18 @@ public class WorkspaceService {
         // no-op
     }
 
-    // 워크스페이스 존재 확인하고 그 뒤에 공개 여부를 변경
-    public void changeVisibility(Long workspaceId, VisibilityChangeRequest req) {
+    // 워크스페이스 공개/비공개 토글
+    //TODO: 트렌드 반영할 때마다 퍼블릭인 것만 대상으로 할 거라 회수할 수 없다는 메시지 안 띄워도 될 거 같은데..
+    public void changeVisibility(Long workspaceId) {
         Workspace w = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
-        w.changeVisibility(WorkspaceVisibility.valueOf(req.visibility().toUpperCase()));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.WORKSPACE_NOT_FOUND));
+
+        // 토글: PUBLIC ↔ PRIVATE
+        WorkspaceVisibility newVisibility = (w.getVisibility() == WorkspaceVisibility.PUBLIC)
+                ? WorkspaceVisibility.PRIVATE
+                : WorkspaceVisibility.PUBLIC;
+
+        w.changeVisibility(newVisibility); // @Transaction 어노테이션으로 더티 체킹을 통해 자동 업데이트
     }
 
     // 최신순 목록. WorkspaceSimpleResponse 리스트
@@ -148,7 +165,6 @@ public class WorkspaceService {
     }
 
     // 워크스페이스 삭제
-    @Transactional
     public void delete(Long workspaceId, Long userId) {
         // 1. 워크스페이스 존재 확인
         workspaceRepository.findById(workspaceId)
