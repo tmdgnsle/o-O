@@ -11,6 +11,7 @@ import { useHeader } from "@/shared/hooks/useHeader";
 import { Navigation } from "@/shared/components/Header/Navigation";
 import { UserProfile } from "@/shared/components/Header/UserProfile";
 import { MobileMenu } from "@/shared/components/Header/MobileMenu";
+import { useGoogleOneTap } from "../hooks/useGoogleOneTap";
 
 const MOCK_USER = {
   name: "홍길동",
@@ -22,7 +23,7 @@ const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const isLoggedIn = true;
+  const isLoggedIn = false;
   const {
     isProfileModalOpen,
     isMobileMenuOpen,
@@ -33,9 +34,14 @@ export function Header() {
     handleProfileClick,
   } = useHeader({ isLoggedIn });
 
+  useGoogleOneTap(isLoggedIn, {
+    buttonType: "standard",
+    elementId: "googleSignInDiv",
+  });
+
   return (
     <>
-      <header className="flex items-center justify-between font-paperlogy px-4 py-3 sm:px-8 sm:py-4 lg:px-16 lg:py-6">
+      <header className="flex items-center justify-between font-paperlogy px-4 py-3 sm:px-8 sm:py-6 lg:px-16 lg:py-12">
         <div className="flex items-center gap-4 sm:gap-8">
           <Link to="/">
             <img
@@ -60,7 +66,7 @@ export function Header() {
           ) : (
             <div
               id="googleSignInDiv"
-              className="flex justify-center items-center"
+              className="flex justify-center items-center rounded-full"
             />
           )}
         </div>

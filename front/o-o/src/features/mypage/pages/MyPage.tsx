@@ -15,7 +15,7 @@ export function MyPage() {
       className="min-h-screen bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${background})` }}
     >
-      <div className="-mb-6">
+      <div className="-mb-4 lg:-mb-6">
         <Header />
       </div>
       <IdeaSearchSection />
