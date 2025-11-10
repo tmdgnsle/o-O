@@ -4,6 +4,7 @@ import CustomScrollbar from "@/shared/ui/CustomScrollbar";
 import { useDrawerDimensions } from "../../hooks/custom/useDrawerDimensions";
 import { DrawerToggleButton } from "./DrawerToggleButton";
 import { KeywordButton } from "./KeywordButton";
+import { ImportToMindmapButton } from "./ImportToMindmapButton";
 
 export interface Keyword {
   id: number;
@@ -33,6 +34,11 @@ export function DrawerButton() {
   const [isOpen, setIsOpen] = useState(false);
   const { drawerHeight, buttonBottom } = useDrawerDimensions(isOpen);
 
+  const handleImportToMindmap = () => {
+    console.log("마인드맵으로 가져오기 클릭");
+    // TODO: 마인드맵 가져오기 로직 구현
+  };
+
   return (
     <div className="relative">
       <Drawer open={isOpen} onOpenChange={setIsOpen} modal={false}>
@@ -45,19 +51,25 @@ export function DrawerButton() {
             {/* 드래그 핸들 */}
             <div className="mx-auto w-8 sm:w-10 md:w-12 h-1 flex-shrink-0 rounded-full bg-gray-300 mb-2 cursor-grab active:cursor-grabbing" />
 
-            {/* 가로 스크롤 영역 */}
-            <div className="flex-1 overflow-hidden">
-              <CustomScrollbar maxWidth="100%" direction="horizontal">
-                <div className="flex gap-3 sm:gap-4 md:gap-5 pb-3 pr-2 items-center">
-                  {EXPAND_KEYWORDS.map((item, index) => (
-                    <KeywordButton
-                      key={item.id}
-                      keyword={item.keyword}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              </CustomScrollbar>
+            <div className="flex-1 flex gap-3 overflow-hidden">
+              {/* 가로 스크롤 영역 */}
+              <div className="flex-1 overflow-hidden">
+                <CustomScrollbar maxWidth="100%" direction="horizontal">
+                  <div className="flex gap-3 sm:gap-4 md:gap-5 pb-3 pr-2 items-center">
+                    {EXPAND_KEYWORDS.map((item, index) => (
+                      <KeywordButton
+                        key={item.id}
+                        keyword={item.keyword}
+                        index={index}
+                      />
+                    ))}
+                  </div>
+                </CustomScrollbar>
+              </div>
+
+              <div className="flex items-center pb-3">
+                <ImportToMindmapButton onClick={handleImportToMindmap} />
+              </div>
             </div>
           </div>
         </DrawerContent>
