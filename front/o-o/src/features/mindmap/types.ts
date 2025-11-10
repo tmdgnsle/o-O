@@ -36,6 +36,10 @@ export type CytoscapeCanvasProps = Readonly<{
   onCyReady?: (cy: any) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   onAnalyzeNodeToggle: (nodeId: string) => void;
+  detachedSelectionMap?: Record<string, DetachedSelectionState>;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 }>;
 
 export type CytoscapeNodeOverlayProps = {
@@ -43,6 +47,7 @@ export type CytoscapeNodeOverlayProps = {
   x: number;
   y: number;
   zoom: number;
+  hasChildren: boolean;
   isSelected: boolean;
   mode: MindmapMode;
   isAnalyzeSelected: boolean;
@@ -50,6 +55,10 @@ export type CytoscapeNodeOverlayProps = {
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
+  detachedSelection?: DetachedSelectionState;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 };
 
 // RadialToolGroup.tsx
@@ -110,6 +119,13 @@ export type ChildNodeRequest = {
   parentX: number;
   parentY: number;
   text: string;
+};
+
+export type DetachedSelectionState = {
+  id: string;
+  anchorNodeId: string;
+  originalParentId: string;
+  targetParentId?: string | null;
 };
 
 // ============================================

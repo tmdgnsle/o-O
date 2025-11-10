@@ -5,7 +5,7 @@
  */
 import type { Core } from "cytoscape";
 import NodeOverlay from "./overlays/NodeOverlay";
-import type { NodeData, ChildNodeRequest, MindmapMode } from "../types";
+import type { NodeData, ChildNodeRequest, MindmapMode, DetachedSelectionState } from "../types";
 
 export default function OverlayLayer({
   cy,
@@ -17,6 +17,10 @@ export default function OverlayLayer({
   onNodeUnselect,
   onApplyTheme,
   onCreateChildNode,
+  detachedSelectionMap,
+  onKeepChildrenDelete,
+  onConnectDetachedSelection,
+  onDismissDetachedSelection,
 }: Readonly<{
   cy: Core | null;
   nodes: NodeData[];
@@ -27,12 +31,22 @@ export default function OverlayLayer({
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
+  detachedSelectionMap?: Record<string, DetachedSelectionState>;
+  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onConnectDetachedSelection?: (anchorNodeId: string) => void;
+  onDismissDetachedSelection?: (anchorNodeId: string) => void;
 }>) {
   const zoom = cy?.zoom() ?? 1;
   const container = cy?.container() ?? null;
   const viewportWidth = container?.clientWidth ?? null;
   const viewportHeight = container?.clientHeight ?? null;
   const OVERSCAN_PX = 200;
+  const childCountMap = nodes.reduce<Map<string, number>>((acc, currentNode) => {
+    if (currentNode.parentId) {
+      acc.set(currentNode.parentId, (acc.get(currentNode.parentId) ?? 0) + 1);
+    }
+    return acc;
+  }, new Map());
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -60,6 +74,7 @@ export default function OverlayLayer({
               x={x}
               y={y}
               zoom={zoom}
+              hasChildren={(childCountMap.get(node.id) ?? 0) > 0}
               mode={mode}
               isAnalyzeSelected={analyzeSelection.includes(node.id)}
               isSelected={selectedNodeId === node.id}
@@ -67,6 +82,10 @@ export default function OverlayLayer({
               onDeselect={onNodeUnselect}
               onApplyTheme={onApplyTheme}
               onCreateChildNode={onCreateChildNode}
+              detachedSelection={detachedSelectionMap?.[node.id]}
+              onKeepChildrenDelete={onKeepChildrenDelete}
+              onConnectDetachedSelection={onConnectDetachedSelection}
+              onDismissDetachedSelection={onDismissDetachedSelection}
             />
           );
         })}

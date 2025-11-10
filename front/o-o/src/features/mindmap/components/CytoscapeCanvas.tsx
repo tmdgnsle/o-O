@@ -27,6 +27,10 @@ export default function CytoscapeCanvas({
   onCyReady,
   onCreateChildNode,
   onAnalyzeNodeToggle,
+  detachedSelectionMap,
+  onKeepChildrenDelete,
+  onConnectDetachedSelection,
+  onDismissDetachedSelection,
 }: CytoscapeCanvasProps) {
 
   const cyRef = useRef<Core | null>(null);
@@ -261,6 +265,10 @@ export default function CytoscapeCanvas({
         onNodeUnselect={onNodeUnselect}
         onApplyTheme={onApplyTheme}
         onCreateChildNode={onCreateChildNode}
+        detachedSelectionMap={detachedSelectionMap}
+        onKeepChildrenDelete={onKeepChildrenDelete}
+        onConnectDetachedSelection={onConnectDetachedSelection}
+        onDismissDetachedSelection={onDismissDetachedSelection}
       />
     </div>
   );

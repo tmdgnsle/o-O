@@ -12,7 +12,7 @@ type UseNodeHandlersParams = {
   onSelect: () => void;
   onDeselect: () => void;
   setFocusedButton: (button: FocusedButton) => void;
-  deleteNodeMutation: UseMutationResult<NodeData[], Error, string, unknown>;
+  deleteNodeMutation: UseMutationResult<NodeData[], Error, { nodeId: string; deleteDescendants?: boolean }, unknown>;
   editNodeMutation: UseMutationResult<NodeData[], Error, { nodeId: string; newText?: string; newColor?: string }, unknown>;
   startEdit: () => void;
   cancelEdit: () => void;
@@ -56,11 +56,17 @@ export const useNodeHandlers = ({
     }
   }, [isSelected, onDeselect, onSelect, setFocusedButton]);
 
-  const handleDelete = useCallback(() => {
-    deleteNodeMutation.mutate(id);
-    onDeselect();
-    setFocusedButton(null);
-  }, [deleteNodeMutation, id, onDeselect, setFocusedButton]);
+  const handleDelete = useCallback(
+    (options?: { deleteDescendants?: boolean }) => {
+      deleteNodeMutation.mutate({
+        nodeId: id,
+        deleteDescendants: options?.deleteDescendants,
+      });
+      onDeselect();
+      setFocusedButton(null);
+    },
+    [deleteNodeMutation, id, onDeselect, setFocusedButton]
+  );
 
   const handleEdit = useCallback(() => {
     startEdit();

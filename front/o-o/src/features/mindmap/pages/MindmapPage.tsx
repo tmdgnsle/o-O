@@ -7,10 +7,10 @@ import ModeToggleButton from '../components/ModeToggleButton';
 import { Textbox } from '../components/Textbox';
 import AnalyzeSelectionPanel from '../components/AnalyzeSelectionPanel';
 import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions } from '../hooks/mutation/useNodeMutations';
+import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions, useEditNode } from '../hooks/mutation/useNodeMutations';
 import CytoscapeCanvas from '../components/CytoscapeCanvas';
 import VoiceChat from '../components/VoiceChat/VoiceChat';
-import type { NodeData, MindmapMode } from '../types';
+import type { NodeData, MindmapMode, DetachedSelectionState } from '../types';
 import type { Core } from 'cytoscape';
 import { useColorTheme } from '../hooks/useColorTheme';
 import { useNodePositioning } from '../hooks/useNodePositioning';
@@ -33,11 +33,13 @@ const MindmapPageContent: React.FC = () => {
   const [mode, setMode] = useState<MindmapMode>("edit");
   const [analyzeSelection, setAnalyzeSelection] = useState<string[]>([]);
   const [voiceChatVisible, setVoiceChatVisible] = useState(false);
+  const [detachedSelectionMap, setDetachedSelectionMap] = useState<Record<string, DetachedSelectionState>>({});
   const cyRef = useRef<Core | null>(null);
 
   // Query & Mutation hooks
   const { data: nodes = [], isLoading } = useNodesQuery();
   const addNodeMutation = useAddNode();
+  const editNodeMutation = useEditNode();
   const applyThemeMutation = useApplyThemeToAllNodes();
   const updateNodePositionMutation = useUpdateNodePosition();
   const batchUpdatePositionsMutation = useBatchUpdateNodePositions();
@@ -103,7 +105,7 @@ const MindmapPageContent: React.FC = () => {
   }, [updateNodePositionMutation]);
 
   const handleBatchNodePositionChange = useCallback((positions: Array<{ id: string; x: number; y: number }>) => {
-    // Cola 레이아웃 완료 후 여러 노드 위치를 한 번에 업데이트
+    // 여러 노드 위치를 한 번에 업데이트
     batchUpdatePositionsMutation.mutate(positions);
   }, [batchUpdatePositionsMutation]);
 
@@ -143,16 +145,92 @@ const MindmapPageContent: React.FC = () => {
     setAnalyzeSelection((prev) => prev.filter((id) => id !== nodeId));
   }, []);
 
+  const handleKeepChildrenDelete = useCallback(
+    ({ deletedNodeId, parentId = null }: { deletedNodeId: string; parentId?: string | null }) => {
+      if (!parentId) return;
+
+      const orphanRoots = nodes.filter((node) => node.parentId === deletedNodeId);
+      if (orphanRoots.length === 0) return;
+
+      const timestamp = Date.now();
+      setDetachedSelectionMap((prev) => {
+        const next = { ...prev };
+        orphanRoots.forEach((child, index) => {
+          next[child.id] = {
+            id: `${deletedNodeId}-${child.id}-${timestamp + index}`,
+            anchorNodeId: child.id,
+            originalParentId: deletedNodeId,
+            targetParentId: parentId,
+          };
+        });
+        return next;
+      });
+
+      orphanRoots.forEach((child) => {
+        editNodeMutation.mutate({ nodeId: child.id, newParentId: null });
+      });
+    },
+    [nodes, editNodeMutation]
+  );
+
+  const handleConnectDetachedSelection = useCallback((anchorNodeId: string) => {
+    let selection: DetachedSelectionState | undefined;
+    setDetachedSelectionMap((prev) => {
+      selection = prev[anchorNodeId];
+      if (!selection) {
+        return prev;
+      }
+      const { [anchorNodeId]: _, ...rest } = prev;
+      return rest;
+    });
+
+    if (!selection) return;
+
+    editNodeMutation.mutate({
+      nodeId: selection.anchorNodeId,
+      newParentId: selection.targetParentId ?? null,
+    });
+  }, [editNodeMutation]);
+
+  const handleDismissDetachedSelection = useCallback((anchorNodeId: string) => {
+    setDetachedSelectionMap((prev) => {
+      if (!prev[anchorNodeId]) return prev;
+      const { [anchorNodeId]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  useEffect(() => {
+    setDetachedSelectionMap((prev) => {
+      let mutated = false;
+      const next: Record<string, DetachedSelectionState> = { ...prev };
+
+      Object.entries(prev).forEach(([anchorId, selection]) => {
+        const anchorExists = nodes.some((node) => node.id === selection.anchorNodeId);
+        if (!anchorExists) {
+          delete next[anchorId];
+          mutated = true;
+        }
+      });
+
+      return mutated ? next : prev;
+    });
+  }, [nodes]);
+
   const selectedAnalyzeNodes = useMemo(
     () => nodes.filter((node) => analyzeSelection.includes(node.id)),
     [nodes, analyzeSelection]
   );
+
+  // TODO : Dummy Data
   const voiceChatUsers = useMemo(() => [
     { id: "1", name: "포포 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
     { id: "2", name: "포포 B", avatar: popo2, colorIndex: 1 },
     { id: "3", name: "포포 C", avatar: popo3, colorIndex: 2 },
   ], []);
 
+
+  // TODO : 로딩 화면
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
@@ -220,6 +298,10 @@ const MindmapPageContent: React.FC = () => {
         onCyReady={(cy) => { cyRef.current = cy; }}
         onCreateChildNode={handleCreateChildNode}
         onAnalyzeNodeToggle={handleAnalyzeNodeToggle}
+        detachedSelectionMap={detachedSelectionMap}
+        onKeepChildrenDelete={handleKeepChildrenDelete}
+        onConnectDetachedSelection={handleConnectDetachedSelection}
+        onDismissDetachedSelection={handleDismissDetachedSelection}
         className="absolute inset-0"
       />
     </div>

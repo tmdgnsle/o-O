@@ -1,4 +1,4 @@
-﻿import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import NodeEditForm from "./NodeEditForm";
@@ -11,12 +11,16 @@ import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
 import { useDeleteNode, useEditNode } from "../../hooks/mutation/useNodeMutations";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 import type { CytoscapeNodeOverlayProps } from "../../types";
+import warningPopoImage from "@/shared/assets/images/warning_popo.png";
+import ConfirmDialog from "../ConfirmDialog";
+import { Button } from "@/components/ui/button";
 
 function NodeOverlay({
   node,
   x,
   y,
   zoom,
+  hasChildren,
   mode,
   isSelected,
   isAnalyzeSelected,
@@ -24,9 +28,14 @@ function NodeOverlay({
   onDeselect,
   onApplyTheme,
   onCreateChildNode,
+  detachedSelection,
+  onKeepChildrenDelete,
+  onConnectDetachedSelection,
+  onDismissDetachedSelection,
 }: Readonly<CytoscapeNodeOverlayProps>) {
   const { text, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const deleteNodeMutation = useDeleteNode();
   const editNodeMutation = useEditNode();
@@ -71,6 +80,42 @@ function NodeOverlay({
     onCreateChildNode,
   });
 
+  const handleDeleteRequest = useCallback(() => {
+    if (hasChildren) {
+      setFocusedButton(null);
+      setDeleteDialogOpen(true);
+      return;
+    }
+    handleDelete();
+  }, [hasChildren, handleDelete, setFocusedButton]);
+
+  const handleDeleteDialogClose = useCallback(() => {
+    setDeleteDialogOpen(false);
+  }, []);
+
+  const handleDeleteOnlyCurrent = useCallback(() => {
+    if (hasChildren) {
+      onKeepChildrenDelete?.({ deletedNodeId: node.id, parentId: node.parentId ?? null });
+    }
+    handleDelete();
+    setDeleteDialogOpen(false);
+  }, [handleDelete, hasChildren, node.id, node.parentId, onKeepChildrenDelete]);
+
+  const handleDeleteWithChildren = useCallback(() => {
+    handleDelete({ deleteDescendants: true });
+    setDeleteDialogOpen(false);
+  }, [handleDelete]);
+
+  const handleConnectDetachedSelection = useCallback(() => {
+    if (!detachedSelection) return;
+    onConnectDetachedSelection?.(detachedSelection.anchorNodeId);
+  }, [detachedSelection, onConnectDetachedSelection]);
+
+  const handleDismissDetachedSelection = useCallback(() => {
+    if (!detachedSelection) return;
+    onDismissDetachedSelection?.(detachedSelection.anchorNodeId);
+  }, [detachedSelection, onDismissDetachedSelection]);
+
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
   const textColor = getContrastTextColor(initialColor);
 
@@ -83,60 +128,105 @@ function NodeOverlay({
       : "";
 
   return (
-    <div
-      className="absolute"
-      style={{
-        left: `${x}px`,
-        top: `${y}px`,
-        transform: `translate(-50%, -50%) scale(${zoom})`,
-        zIndex,
-        pointerEvents: "none",
-      }}
-    >
+    <>
       <div
-        className={`w-40 h-40 rounded-full flex items-center justify-center transition-all ${selectionRingClass}`}
+        className="absolute"
         style={{
-          backgroundColor: initialColor,
+          left: `${x}px`,
+          top: `${y}px`,
+          transform: `translate(-50%, -50%) scale(${zoom})`,
+          zIndex,
           pointerEvents: "none",
         }}
       >
-        {isEditing ? (
-          <NodeEditForm value={editValue} onChange={setEditValue} onConfirm={handleEditConfirm} onCancel={handleEditCancel} />
-        ) : (
-          <span className="font-paperlogy font-semibold text-lg px-6 text-center break-words" style={{ color: textColor }}>
-            {text}
-          </span>
+        <div
+          className={`w-40 h-40 rounded-full flex items-center justify-center transition-all ${selectionRingClass}`}
+          style={{
+            backgroundColor: initialColor,
+            pointerEvents: "none",
+          }}
+        >
+          {isEditing ? (
+            <NodeEditForm value={editValue} onChange={setEditValue} onConfirm={handleEditConfirm} onCancel={handleEditCancel} />
+          ) : (
+            <span className="font-paperlogy font-semibold text-lg px-6 text-center break-words" style={{ color: textColor }}>
+              {text}
+            </span>
+          )}
+        </div>
+
+        {!isAnalyzeMode && (
+          <RadialToolGroup
+            open={isSelected && !isEditing && focusedButton !== "recommend"}
+            paletteOpen={paletteOpen}
+            addInputOpen={showAddInput}
+            currentColor={initialColor}
+            focusedButton={focusedButton}
+            onDelete={handleDeleteRequest}
+            onEdit={handleEdit}
+            onAdd={handleAdd}
+            onAddConfirm={handleAddConfirm}
+            onAddCancel={handleAddCancel}
+            onPalette={handlePalette}
+            onPaletteClose={handlePaletteClose}
+            onRecommend={handleRecommend}
+            onColorChange={handleColorChange}
+            onApplyTheme={onApplyTheme}
+          />
+        )}
+
+        {!isAnalyzeMode && focusedButton === "recommend" && (
+          <RecommendNodeOverlay
+            open={focusedButton === "recommend"}
+            onClose={() => setFocusedButton(null)}
+            onSelectRecommendation={handleRecommendSelect}
+          />
+        )}
+
+        {!isAnalyzeMode && detachedSelection && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-6 pointer-events-auto flex flex-col items-start gap-2">
+            <Button
+              className="rounded-2xl bg-[#2C4A7C] hover:bg-[#1e3456] px-5 py-2 text-sm font-semibold text-white shadow-lg"
+              onClick={handleConnectDetachedSelection}
+            >
+              아이디어 연결하기
+            </Button>
+            <button
+              type="button"
+              className="text-sm font-semibold text-[#2C4A7C] hover:underline"
+              onClick={handleDismissDetachedSelection}
+            >
+              이대로 유지하기
+            </button>
+          </div>
         )}
       </div>
 
-      {!isAnalyzeMode && (
-        <RadialToolGroup
-          open={isSelected && !isEditing && focusedButton !== "recommend"}
-          paletteOpen={paletteOpen}
-          addInputOpen={showAddInput}
-          currentColor={initialColor}
-          focusedButton={focusedButton}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onAdd={handleAdd}
-          onAddConfirm={handleAddConfirm}
-          onAddCancel={handleAddCancel}
-          onPalette={handlePalette}
-          onPaletteClose={handlePaletteClose}
-          onRecommend={handleRecommend}
-          onColorChange={handleColorChange}
-          onApplyTheme={onApplyTheme}
-        />
+      {deleteDialogOpen && (
+        <div className="pointer-events-auto">
+          <ConfirmDialog
+            isOpen={deleteDialogOpen}
+            characterImage={warningPopoImage}
+            title="주의"
+            description={"선택한 아이디어에 하위 아이디어가 있습니다.\n하위 아이디어까지 삭제하시겠습니까?"}
+            onClose={handleDeleteDialogClose}
+            buttons={[
+              {
+                id: "delete-all",
+                text: "모두 삭제",
+                onClick: handleDeleteWithChildren,
+                variant: "outline",
+              },
+              {
+                id: "delete-current",
+                text: "선택한 아이디어만 삭제",
+                onClick: handleDeleteOnlyCurrent,
+              },
+            ]}
+          />
+        </div>
       )}
-
-      {!isAnalyzeMode && focusedButton === "recommend" && (
-        <RecommendNodeOverlay
-          open={focusedButton === "recommend"}
-          onClose={() => setFocusedButton(null)}
-          onSelectRecommendation={handleRecommendSelect}
-        />
-      )}
-    </div>
+    </>
   );
 }
 
@@ -148,7 +238,12 @@ export default memo(NodeOverlay, (prev, next) =>
   prev.y === next.y &&
   prev.zoom === next.zoom &&
   prev.mode === next.mode &&
+  prev.hasChildren === next.hasChildren &&
   prev.isSelected === next.isSelected &&
   prev.isAnalyzeSelected === next.isAnalyzeSelected &&
-  prev.onCreateChildNode === next.onCreateChildNode
+  prev.detachedSelection?.id === next.detachedSelection?.id &&
+  prev.onCreateChildNode === next.onCreateChildNode &&
+  prev.onKeepChildrenDelete === next.onKeepChildrenDelete &&
+  prev.onConnectDetachedSelection === next.onConnectDetachedSelection &&
+  prev.onDismissDetachedSelection === next.onDismissDetachedSelection
 );

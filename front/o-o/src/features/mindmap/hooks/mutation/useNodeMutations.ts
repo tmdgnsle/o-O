@@ -27,9 +27,37 @@ export const useDeleteNode = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (nodeId: string) => {
+    mutationFn: async ({ nodeId, deleteDescendants = false }: { nodeId: string; deleteDescendants?: boolean }) => {
       const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
-      const updatedNodes = currentNodes.filter(node => node.id !== nodeId);
+      const idsToDelete = new Set<string>([nodeId]);
+
+      if (deleteDescendants) {
+        const childrenMap = currentNodes.reduce<Map<string, string[]>>((acc, node) => {
+          if (!node.parentId) {
+            return acc;
+          }
+          if (!acc.has(node.parentId)) {
+            acc.set(node.parentId, []);
+          }
+          acc.get(node.parentId)!.push(node.id);
+          return acc;
+        }, new Map());
+
+        const stack = [nodeId];
+        while (stack.length > 0) {
+          const currentId = stack.pop()!;
+          const children = childrenMap.get(currentId);
+          if (!children) continue;
+          for (const childId of children) {
+            if (!idsToDelete.has(childId)) {
+              idsToDelete.add(childId);
+              stack.push(childId);
+            }
+          }
+        }
+      }
+
+      const updatedNodes = currentNodes.filter(node => !idsToDelete.has(node.id));
       await saveNodes(updatedNodes);
       return updatedNodes;
     },
@@ -46,11 +74,13 @@ export const useEditNode = () => {
     mutationFn: async ({
       nodeId,
       newText,
-      newColor
+      newColor,
+      newParentId,
     }: {
       nodeId: string;
       newText?: string;
       newColor?: string;
+      newParentId?: string | null;
     }) => {
       const currentNodes = queryClient.getQueryData<NodeData[]>(['nodes']) || [];
       const updatedNodes = currentNodes.map(node => {
@@ -59,6 +89,7 @@ export const useEditNode = () => {
             ...node,
             ...(newText !== undefined && { text: newText }),
             ...(newColor !== undefined && { color: newColor }),
+            ...(newParentId !== undefined && { parentId: newParentId ?? undefined }),
           };
         }
         return node;
