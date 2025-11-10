@@ -14,3 +14,18 @@ export interface KeywordBoxProps {
   readonly isLarge?: boolean;
   readonly onClick?: () => void;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  image?: string;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  date: string;
+  isPrivate: boolean;
+  collaborators: User[];
+  thumbnail?: string;
+}

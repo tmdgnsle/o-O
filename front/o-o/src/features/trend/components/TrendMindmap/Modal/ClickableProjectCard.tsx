@@ -1,18 +1,5 @@
 import { ProjectCard } from "@/features/mypage/components/ProjectCard";
-
-interface User {
-  id: string;
-  name: string;
-  image?: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  date: string;
-  isPrivate: boolean;
-  collaborators: User[];
-}
+import type { Project } from "@/features/trend/types";
 
 interface ClickableProjectCardProps {
   readonly project: Project;

@@ -1,27 +1,13 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { ClickableProjectCard } from "./ClickableProjectCard";
-
-interface User {
-  id: string;
-  name: string;
-  image?: string;
-}
-
-export interface MindmapProject {
-  id: string;
-  title: string;
-  date: string;
-  isPrivate: boolean;
-  collaborators: User[];
-  thumbnail?: string;
-}
+import type { Project } from "@/features/trend/types";
 
 interface MindmapSelectionModalProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onCreateNew: () => void;
   readonly onSelectMindmap: (mindmapId: string) => void;
-  readonly projects: MindmapProject[];
+  readonly projects: Project[];
 }
 
 export function MindmapSelectionModal({
