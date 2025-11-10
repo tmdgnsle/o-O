@@ -41,7 +41,7 @@ export function Header() {
 
   return (
     <>
-      <header className="flex items-center justify-between font-paperlogy px-4 py-3 sm:px-8 sm:py-4 lg:px-16 lg:py-6">
+      <header className="flex items-center justify-between font-paperlogy px-4 py-3 sm:px-8 sm:py-6 lg:px-16 lg:py-12">
         <div className="flex items-center gap-4 sm:gap-8">
           <Link to="/">
             <img
