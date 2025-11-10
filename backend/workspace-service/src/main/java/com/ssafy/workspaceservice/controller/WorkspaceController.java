@@ -225,21 +225,24 @@ public class WorkspaceController {
 
     @Operation(
             summary = "워크스페이스 활동 캘린더 조회",
-            description = "지정된 기간 동안의 워크스페이스 활동 내역을 조회합니다. 날짜 형식은 yyyy-MM-dd입니다."
+            description = "지정된 기간 동안 사용자가 생성한 워크스페이스를 날짜별로 조회합니다. 날짜 형식은 yyyy-MM-dd입니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "400", description = "잘못된 날짜 형식 또는 범위")
     })
     @GetMapping("/calendar")
-    public ResponseEntity<WorkspaceCalendarSummaryResponse> calendar(
+    public ResponseEntity<List<WorkspaceCalendarDailyResponse>> calendar(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long userId,
+
             @Parameter(description = "조회 시작일 (yyyy-MM-dd)", required = true, example = "2025-01-01")
             @RequestParam LocalDate from,
 
             @Parameter(description = "조회 종료일 (yyyy-MM-dd)", required = true, example = "2025-01-31")
             @RequestParam LocalDate to
     ) {
-        return ResponseEntity.ok(workspaceService.calendar(from, to));
+        return ResponseEntity.ok(workspaceService.calendar(userId, from, to));
     }
 
     @Operation(

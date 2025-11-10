@@ -15,9 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -119,16 +121,30 @@ public class WorkspaceService {
                 .stream().map(WorkspaceSimpleResponse::from).toList();
     }
 
-    // 간단한 통계인 Map(0 값)으로 응답. 추후 실제 집계 로직에 삽입
+    // 날짜별 사용자 워크스페이스 조회
     @Transactional(readOnly = true)
-    public WorkspaceCalendarSummaryResponse calendar(LocalDate from, LocalDate to) {
-        // 스텁: 실제 통계 집계 로직으로 대체 가능
-        Map<String, Integer> stats = Map.of(
-                "records", 0,
-                "maps", 0,
-                "members", 0
-        );
-        return new WorkspaceCalendarSummaryResponse(from, to, stats);
+    public List<WorkspaceCalendarDailyResponse> calendar(Long userId, LocalDate from, LocalDate to) {
+        // LocalDate를 LocalDateTime으로 변환 (from 00:00:00 ~ to+1 00:00:00)
+        LocalDateTime fromDateTime = from.atStartOfDay();
+        LocalDateTime toDateTime = to.plusDays(1).atStartOfDay();
+
+        // 사용자의 워크스페이스 조회
+        List<Workspace> workspaces = workspaceRepository.findByUserIdAndDateRange(userId, fromDateTime, toDateTime);
+
+        // 날짜별로 그룹핑
+        Map<LocalDate, List<Workspace>> groupedByDate = workspaces.stream()
+                .collect(Collectors.groupingBy(w -> w.getCreatedAt().toLocalDate()));
+
+        // DTO로 변환
+        return groupedByDate.entrySet().stream()
+                .map(entry -> WorkspaceCalendarDailyResponse.of(
+                        entry.getKey(),
+                        entry.getValue().stream()
+                                .map(WorkspaceCalendarItemResponse::from)
+                                .toList()
+                ))
+                .sorted((a, b) -> b.date().compareTo(a.date())) // 최신순 정렬
+                .toList();
     }
 
     // 워크스페이스 삭제
