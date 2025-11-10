@@ -154,13 +154,16 @@ Rules:
 위 주제/요청을 분석하여 체계적인 마인드맵 노드들을 생성해주세요.
 주제의 복잡도와 내용에 따라 적절한 개수와 깊이로 구성하세요."""
 
-            # LLM 호출
+            # LLM 호출 (JSON 생성을 위해 낮은 temperature)
             logger.info("🤖 LLM으로 마인드맵 생성 중...")
             response = self.text_analyzer.generate(
                 prompt=user_prompt_text,
                 system_prompt=system_prompt,
                 max_tokens=2048,
-                temperature=0.7
+                temperature=0.2,
+                top_p=0.85,
+                top_k=40,
+                repetition_penalty=1.15
             )
 
             # 응답 검증 및 로깅
@@ -360,13 +363,16 @@ Rules:
 
 위 문맥을 기반으로 해당 노드의 3개 하위 노드를 생성해주세요."""
 
-            # LLM 호출
+            # LLM 호출 (JSON 생성을 위해 낮은 temperature)
             logger.info("🤖 LLM으로 3개 자식 노드 생성 중...")
             response = self.text_analyzer.generate(
                 prompt=user_prompt_text,
                 system_prompt=system_prompt,
                 max_tokens=1024,
-                temperature=0.7
+                temperature=0.2,
+                top_p=0.85,
+                top_k=40,
+                repetition_penalty=1.15
             )
 
             # 응답 검증 및 로깅

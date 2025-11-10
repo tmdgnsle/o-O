@@ -90,7 +90,10 @@ class LlamaTextAnalyzer:
         prompt: str,
         system_prompt: Optional[str] = None,
         max_tokens: int = 1024,
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        top_k: int = 40,
+        repetition_penalty: float = 1.15
     ) -> str:
         """
         텍스트 생성
@@ -100,6 +103,9 @@ class LlamaTextAnalyzer:
             system_prompt: 시스템 프롬프트 (선택)
             max_tokens: 최대 생성 토큰 수
             temperature: 샘플링 온도
+            top_p: Top-p (nucleus) 샘플링 값
+            top_k: Top-k 샘플링 값
+            repetition_penalty: 반복 패널티 (1.0=없음, 높을수록 반복 방지)
 
         Returns:
             생성된 텍스트
@@ -129,7 +135,9 @@ class LlamaTextAnalyzer:
                 **inputs,
                 max_new_tokens=max_tokens,
                 temperature=temperature,
-                top_p=0.9,
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repetition_penalty,
                 do_sample=True if temperature > 0 else False,
                 pad_token_id=self.tokenizer.eos_token_id,
                 eos_token_id=self.tokenizer.eos_token_id
@@ -324,7 +332,7 @@ class LlamaTextAnalyzer:
         transcript: str,
         user_query: Optional[str] = None,
         max_tokens: int = 4096,
-        temperature: float = 0.7
+        temperature: float = 0.2
     ) -> str:
         """
         영상 내용을 바탕으로 마인드맵 구조를 JSON 형식으로 생성
@@ -335,7 +343,7 @@ class LlamaTextAnalyzer:
             transcript: 영상 자막
             user_query: 사용자 질문/프롬프트 (예: "이 기술로 어떤 프로젝트를 만들 수 있을까?")
             max_tokens: 최대 생성 토큰 수
-            temperature: 샘플링 온도
+            temperature: 샘플링 온도 (JSON 생성을 위해 낮게 설정)
 
         Returns:
             마인드맵 JSON 문자열
@@ -528,7 +536,10 @@ Now output ONLY valid JSON following the correct format above:"""
             user_prompt,
             system_prompt=system_prompt,
             max_tokens=max_tokens,
-            temperature=temperature
+            temperature=temperature,
+            top_p=0.85,  # JSON 생성에 최적화
+            top_k=40,
+            repetition_penalty=1.15
         )
 
         return result.strip()

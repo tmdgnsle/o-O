@@ -328,7 +328,10 @@ def create_mindmap_from_image_llm(
             prompt=user_prompt_text,
             system_prompt=system_prompt,
             max_tokens=4096,
-            temperature=0.7
+            temperature=0.2,
+            top_p=0.85,
+            top_k=40,
+            repetition_penalty=1.15
         )
 
         print("=" * 80)
@@ -479,7 +482,10 @@ def create_mindmap_from_text_llm(
             prompt=user_prompt_text,
             system_prompt=system_prompt,
             max_tokens=max_tokens,
-            temperature=0.7
+            temperature=0.2,
+            top_p=0.85,
+            top_k=40,
+            repetition_penalty=1.15
         )
 
         print("=" * 80)
