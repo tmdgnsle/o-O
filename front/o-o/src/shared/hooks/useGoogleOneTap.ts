@@ -2,6 +2,8 @@
 import { useCallback, useEffect } from "react";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { useAppDispatch } from "@/store/hooks";
+import { loginSuccess } from "@/store/slices/authSlice";
 
 interface UseGoogleOneTapOptions {
   buttonType?: "standard" | "icon"; // 버튼 타입 추가
@@ -13,6 +15,7 @@ export function useGoogleOneTap(
   options: UseGoogleOneTapOptions = {}
 ) {
   const { buttonType = "standard", elementId = "googleSignInDiv" } = options;
+  const dispatch = useAppDispatch();
 
   const handleCredentialResponse = useCallback(
     async (response: CredentialResponse) => {
@@ -20,11 +23,20 @@ export function useGoogleOneTap(
         const credential = GoogleAuthProvider.credential(response.credential);
         const result = await signInWithCredential(auth, credential);
         console.log("로그인 성공:", result.user);
+
+        const userData = {
+          googleId: result.user.uid,
+          name: result.user.displayName || "사용자",
+          email: result.user.email || "",
+          profileImage: result.user.photoURL || "",
+        };
+
+        dispatch(loginSuccess(userData));
       } catch (error) {
         console.error("로그인 실패:", error);
       }
     },
-    []
+    [dispatch]
   );
 
   const initializeOneTap = useCallback(() => {
@@ -34,6 +46,11 @@ export function useGoogleOneTap(
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: handleCredentialResponse,
     });
+
+    const savedUser = localStorage.getItem("user");
+    if (!savedUser && !isLoggedIn) {
+      globalThis.google.accounts.id.prompt();
+    }
 
     globalThis.google.accounts.id.prompt();
 
@@ -54,7 +71,7 @@ export function useGoogleOneTap(
         type: "icon", // 아이콘 타입
       });
     }
-  }, [handleCredentialResponse, buttonType, elementId]);
+  }, [handleCredentialResponse, buttonType, elementId, isLoggedIn]);
 
   useEffect(() => {
     if (isLoggedIn) return;

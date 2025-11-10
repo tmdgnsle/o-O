@@ -3,10 +3,11 @@ import popo from "@/shared/assets/images/popo1.png";
 import { SearchButton } from "@/shared/components/Search/SearchButton";
 import { useGoogleOneTap } from "@/shared/hooks/useGoogleOneTap";
 import MiniNav from "@/shared/ui/MiniNav";
+import { useAppSelector } from "@/store/hooks";
 import { AvatarImage } from "@radix-ui/react-avatar";
 
 export function TrendMindmapHeader() {
-  const isLoggedIn = false;
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   useGoogleOneTap(isLoggedIn, {
     buttonType: "icon",
