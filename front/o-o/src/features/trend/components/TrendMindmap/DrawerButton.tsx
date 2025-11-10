@@ -1,52 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import CustomScrollbar from "@/shared/ui/CustomScrollbar";
+import { useFullscreen } from "@/shared/hooks/useFullscreen";
 
 export function DrawerButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // 전체화면 감지
-  useEffect(() => {
-    const checkFullscreen = () => {
-      // 1️⃣ HTML5 fullscreen API 방식
-      const isFull =
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement;
-
-      // 2️⃣ F11 방식 (window 크기로 판별)
-      const heightDiff = Math.abs(window.innerHeight - window.screen.height);
-      const widthDiff = Math.abs(window.innerWidth - window.screen.width);
-      const isF11Full = heightDiff < 50 && widthDiff < 50;
-
-      // 3️⃣ 최종 결과
-      const fullscreenNow = !!isFull || isF11Full;
-      setIsFullscreen(fullscreenNow);
-      console.log("전체화면 감지:", fullscreenNow);
-    };
-
-    // 이벤트 등록
-    document.addEventListener("fullscreenchange", checkFullscreen);
-    document.addEventListener("webkitfullscreenchange", checkFullscreen);
-    document.addEventListener("mozfullscreenchange", checkFullscreen);
-    document.addEventListener("MSFullscreenChange", checkFullscreen);
-    window.addEventListener("resize", checkFullscreen);
-
-    // 초기 확인
-    checkFullscreen();
-
-    return () => {
-      document.removeEventListener("fullscreenchange", checkFullscreen);
-      document.removeEventListener("webkitfullscreenchange", checkFullscreen);
-      document.removeEventListener("mozfullscreenchange", checkFullscreen);
-      document.removeEventListener("MSFullscreenChange", checkFullscreen);
-      window.removeEventListener("resize", checkFullscreen);
-    };
-  }, []);
+  const isFullscreen = useFullscreen();
 
   const expandKeywords = [
     { id: 1, keyword: "소영언니" },
@@ -72,11 +33,19 @@ export function DrawerButton() {
     ? "h-[12vh] sm:h-[10vh] md:h-[14vh]"
     : "h-[25vh] sm:h-[20vh] md:h-[18vh]";
 
-  const buttonBottom = isOpen
-    ? isFullscreen
-      ? "bottom-[calc(12vh+1rem)] sm:bottom-[calc(10vh+1rem)] md:bottom-[calc(14vh+1rem)]"
-      : "bottom-[calc(25vh+1rem)] sm:bottom-[calc(20vh+1rem)] md:bottom-[calc(18vh+1rem)]"
-    : "bottom-4";
+  const getButtonBottom = () => {
+    if (!isOpen) {
+      return "bottom-4";
+    }
+
+    if (isFullscreen) {
+      return "bottom-[calc(12vh+1rem)] sm:bottom-[calc(10vh+1rem)] md:bottom-[calc(14vh+1rem)]";
+    }
+
+    return "bottom-[calc(25vh+1rem)] sm:bottom-[calc(20vh+1rem)] md:bottom-[calc(18vh+1rem)]";
+  };
+
+  const buttonBottom = getButtonBottom();
 
   return (
     <div className="relative">
@@ -128,7 +97,7 @@ export function DrawerButton() {
 
             {/* 가로 스크롤 영역 */}
             <div className="flex-1 overflow-hidden">
-              <CustomScrollbar maxWidth="10[0%" direction="horizontal">
+              <CustomScrollbar maxWidth="100%" direction="horizontal">
                 <div className="flex gap-1.5 sm:gap-2 md:gap-3 pb-3 sm:pb-4 md:pb-6 pr-2">
                   {expandKeywords.map((item) => (
                     <button
