@@ -1,12 +1,24 @@
 package com.ssafy.mindmapservice.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * AI가 반환하는 개별 노드 정보
- * tempId를 통해 새로 생성될 노드를 식별하고, parentId를 통해 계층 구조를 정의합니다.
+ * INITIAL: tempId, parentId, keyword, memo 모두 포함
+ * CONTEXTUAL: keyword, memo만 포함 (tempId, parentId는 null)
  */
+@Schema(description = "AI 생성 노드 DTO")
 public record AiNodeDto(
-    String tempId,      // AI가 생성한 임시 ID (예: "temp-1", "temp-2")
-    String parentId,    // 부모 노드 ID (숫자 문자열 또는 tempId, 루트인 경우 null)
-    String keyword,     // 노드의 주요 키워드
-    String memo         // 해당 키워드의 요약 설명 또는 메모
+
+        @Schema(description = "임시 ID (INITIAL 전용, 예: 'temp-1')", example = "temp-1", nullable = true)
+        String tempId,
+
+        @Schema(description = "부모 노드 ID (INITIAL 전용, 숫자 문자열 또는 tempId)", example = "1", nullable = true)
+        String parentId,
+
+        @Schema(description = "노드 키워드", example = "소고기 요리", required = true)
+        String keyword,
+
+        @Schema(description = "노드 메모 (키워드 설명)", example = "고급 레스토랑 중심의 메뉴 아이디어", required = true)
+        String memo
 ) {}
