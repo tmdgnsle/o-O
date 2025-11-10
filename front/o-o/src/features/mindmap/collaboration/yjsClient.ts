@@ -25,6 +25,10 @@ export const createYClient = (
     connect: options?.connect ?? true,
   });
 
+  provider.on("status", (event) => {
+    console.log("🔌 WebSocket status:", event.status);
+  });
+
   const connect = () => provider.connect();
   const disconnect = () => provider.disconnect();
   const destroy = () => {
