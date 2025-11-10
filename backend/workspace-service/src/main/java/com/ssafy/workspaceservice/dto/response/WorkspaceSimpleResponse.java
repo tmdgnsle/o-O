@@ -1,13 +1,14 @@
 package com.ssafy.workspaceservice.dto.response;
 
 import com.ssafy.workspaceservice.entity.Workspace;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 
 import java.time.LocalDateTime;
 
 public record WorkspaceSimpleResponse(
         Long id,
         String subject,
-        String visibility,
+        WorkspaceVisibility visibility,
         LocalDateTime createdAt,
         String thumbnail
 ) {

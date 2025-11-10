@@ -1,13 +1,15 @@
 package com.ssafy.workspaceservice.dto.response;
 
 import com.ssafy.workspaceservice.entity.Workspace;
+import com.ssafy.workspaceservice.enums.WorkspaceType;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 
 import java.time.LocalDateTime;
 
 public record WorkspaceDetailResponse(
         Long id,
-        String mode,
-        String visibility,
+        WorkspaceType type,
+        WorkspaceVisibility visibility,
         String subject,
         String thumbnail,
         LocalDateTime createdAt,
@@ -17,7 +19,7 @@ public record WorkspaceDetailResponse(
 ) {
     public static WorkspaceDetailResponse of(Workspace w, boolean isMember, String myRole, Long memberCount) {
         return new WorkspaceDetailResponse(
-                w.getId(), w.getMode(), w.getVisibility(), w.getSubject(),
+                w.getId(), w.getType(), w.getVisibility(), w.getSubject(),
                 w.getThumbnail(), w.getCreatedAt(), isMember, myRole, memberCount
         );
     }

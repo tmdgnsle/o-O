@@ -4,6 +4,10 @@ import com.ssafy.workspaceservice.dto.request.*;
 import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
+import com.ssafy.workspaceservice.enums.WorkspaceRole;
+import com.ssafy.workspaceservice.enums.WorkspaceTheme;
+import com.ssafy.workspaceservice.enums.WorkspaceType;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import com.ssafy.workspaceservice.repository.WorkspaceMemberRepository;
 import com.ssafy.workspaceservice.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,26 +30,23 @@ public class WorkspaceService {
     // 문자열 normalize(대문자) -> Workspace 저장
     // Owner 멤버 자동 등록
     // WorkspaceResponse 반환
-    public WorkspaceResponse create(Long ownerUserId, WorkspaceCreateRequest req) {
-        String mode = req.mode().toUpperCase();
-        String visibility = req.visibility().toUpperCase();
-
+    public WorkspaceResponse create(Long userId) {
         Workspace workspace = Workspace.builder()
-                .mode(mode)
-                .visibility(visibility)
-                .subject(req.subject())
-                .thumbnail(req.thumbnail())
+                .theme(WorkspaceTheme.PASTEL)
+                .type(WorkspaceType.PERSONAL)
+                .visibility(WorkspaceVisibility.PRIVATE)
+                .subject("")
+                .thumbnail("")
                 .build();
         Workspace saved = workspaceRepository.save(workspace);
 
-        // OWNER 자동 등록
-        WorkspaceMember owner = WorkspaceMember.builder()
+        WorkspaceMember member = WorkspaceMember.builder()
                 .workspace(saved)
-                .userId(ownerUserId)
-                .role("OWNER")
+                .userId(userId)
+                .role(WorkspaceRole.MAINTAINER)
                 .pointerColor(null)
                 .build();
-        workspaceMemberRepository.save(owner);
+        workspaceMemberRepository.save(member);
 
         return WorkspaceResponse.from(saved);
     }

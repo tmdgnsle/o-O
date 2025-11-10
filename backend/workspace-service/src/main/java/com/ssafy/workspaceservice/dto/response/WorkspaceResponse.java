@@ -1,20 +1,22 @@
 package com.ssafy.workspaceservice.dto.response;
 
 import com.ssafy.workspaceservice.entity.Workspace;
+import com.ssafy.workspaceservice.enums.WorkspaceType;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 
 import java.time.LocalDateTime;
 
 public record WorkspaceResponse(
         Long id,
-        String mode,
-        String visibility,
+        WorkspaceType type,
+        WorkspaceVisibility visibility,
         String subject,
         String thumbnail,
         LocalDateTime createdAt
 ) {
     public static WorkspaceResponse from(Workspace w) {
         return new WorkspaceResponse(
-                w.getId(), w.getMode(), w.getVisibility(),
+                w.getId(), w.getType(), w.getVisibility(),
                 w.getSubject(), w.getThumbnail(), w.getCreatedAt()
         );
     }

@@ -71,28 +71,8 @@ public class WorkspaceController {
     @PostMapping
     public ResponseEntity<WorkspaceResponse> create(
             @Parameter(description = "생성자 사용자 ID (API Gateway에서 주입)", required = true, example = "1")
-            @RequestHeader("X-USER-ID") Long ownerUserId,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "워크스페이스 생성 요청 정보",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = WorkspaceCreateRequest.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "name": "팀 프로젝트 기획",
-                                              "description": "새 프로젝트 아이디어 브레인스토밍",
-                                              "isPublic": false
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody @Valid WorkspaceCreateRequest request
-    ) {
-        return ResponseEntity.ok(workspaceService.create(ownerUserId, request));
+            @RequestHeader("X-USER-ID") Long userId) {
+        return ResponseEntity.ok(workspaceService.create(userId));
     }
 
     @Operation(
