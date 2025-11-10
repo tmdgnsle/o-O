@@ -11,7 +11,7 @@ import { useHeader } from "@/shared/hooks/useHeader";
 import { Navigation } from "@/shared/components/Header/Navigation";
 import { UserProfile } from "@/shared/components/Header/UserProfile";
 import { MobileMenu } from "@/shared/components/Header/MobileMenu";
-import { useGoogleOneTap } from "../hooks/useGoogleOneTap";
+import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { useAppSelector } from "@/store/hooks";
 
 const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
@@ -28,11 +28,6 @@ export function Header() {
     closeMobileMenu,
     handleProfileClick,
   } = useHeader();
-
-  useGoogleOneTap(isLoggedIn, {
-    buttonType: "standard",
-    elementId: "googleSignInDiv",
-  });
 
   return (
     <>
@@ -59,10 +54,7 @@ export function Header() {
               onClick={openProfileModal}
             />
           ) : (
-            <div
-              id="googleSignInDiv"
-              className="flex justify-center items-center rounded-full"
-            />
+            <GoogleLoginButton />
           )}
         </div>
 

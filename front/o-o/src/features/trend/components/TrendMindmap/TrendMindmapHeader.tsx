@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/ui/avatar";
 import popo from "@/shared/assets/images/popo1.png";
+import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { SearchButton } from "@/shared/components/Search/SearchButton";
 import { useGoogleOneTap } from "@/shared/hooks/useGoogleOneTap";
 import MiniNav from "@/shared/ui/MiniNav";
@@ -26,11 +27,7 @@ export function TrendMindmapHeader() {
             </Avatar>
           </div>
         ) : (
-          <div
-            id="googleSignInDiv"
-            className="flex justify-center items-center "
-            style={{ transform: "scale(1.2)" }}
-          />
+          <GoogleLoginButton />
         )}
       </div>
     </div>
