@@ -9,10 +9,8 @@ import { ImportToMindmapButton } from "./ImportToMindmapButton";
 import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
-import {
-  MindmapSelectionModal,
-  type MindmapProject,
-} from "../Modal/MindmapSelectionModal";
+import { MindmapSelectionModal } from "../Modal/MindmapSelectionModal";
+import type { Project } from "@/features/trend/types";
 
 export interface Keyword {
   readonly id: number;
@@ -38,7 +36,7 @@ export const EXPAND_KEYWORDS: Keyword[] = [
   { id: 16, keyword: "키워드16" },
 ];
 
-const DUMMY_MINDMAP_PROJECTS: MindmapProject[] = [
+const DUMMY_MINDMAP_PROJECTS: Project[] = [
   {
     id: "1",
     title: "알고리즘 관련 기록",
