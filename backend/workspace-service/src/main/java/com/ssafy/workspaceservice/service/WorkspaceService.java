@@ -5,6 +5,9 @@ import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
 import com.ssafy.workspaceservice.enums.*;
+import com.ssafy.workspaceservice.exception.ErrorCode;
+import com.ssafy.workspaceservice.exception.ForbiddenException;
+import com.ssafy.workspaceservice.exception.ResourceNotFoundException;
 import com.ssafy.workspaceservice.repository.WorkspaceMemberRepository;
 import com.ssafy.workspaceservice.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -128,9 +131,29 @@ public class WorkspaceService {
         return new WorkspaceCalendarSummaryResponse(from, to, stats);
     }
 
-    // 워크스페이스 삭제(사전에 cascade/제약 고려)
-    public void delete(Long workspaceId) {
+    // 워크스페이스 삭제
+    @Transactional
+    public void delete(Long workspaceId, Long userId) {
+        // 1. 워크스페이스 존재 확인
+        workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.WORKSPACE_NOT_FOUND));
+
+        // 2. 멤버 여부 확인
+        WorkspaceMember member = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
+                .orElseThrow(() -> new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MEMBER));
+
+        // 3. MAINTAINER 권한 확인
+        if (member.getRole() != WorkspaceRole.MAINTAINER) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MAINTAINER);
+        }
+
+        // 4. Cascade 삭제: WorkspaceMember 먼저 삭제
+        workspaceMemberRepository.deleteByWorkspaceId(workspaceId);
+
+        // 5. TODO: Mindmap-Service에 workspaceId의 모든 마인드맵 노드 삭제 요청
+        // mindmapClient.deleteAllNodesByWorkspaceId(workspaceId);
+
+        // 6. 워크스페이스 삭제
         workspaceRepository.deleteById(workspaceId);
-        // TODO: Mindmap-Service에 workspaceId의 모든 마인드맵 노드 지우는 API도 호출해야 함.
     }
 }

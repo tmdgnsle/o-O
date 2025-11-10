@@ -253,10 +253,13 @@ public class WorkspaceController {
     })
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<Void> delete(
-            @Parameter(description = "삭제할 워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId
+            @Parameter(description = "삭제할 워크스페이스 ID", required = true)
+            @PathVariable Long workspaceId,
+
+            @Parameter(hidden = true)
+            @RequestHeader(value = "X-USER-ID", required = false) Long userId
     ) {
-        workspaceService.delete(workspaceId);
+        workspaceService.delete(workspaceId, userId);
         return ResponseEntity.noContent().build();
     }
 }
