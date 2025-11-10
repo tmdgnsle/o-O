@@ -10,7 +10,7 @@ public record WorkspaceDetailResponse(
         Long id,
         WorkspaceType type,
         WorkspaceVisibility visibility,
-        String subject,
+        String title,
         String thumbnail,
         LocalDateTime createdAt,
         boolean isMember,     // 요청자 기준 입장 여부
@@ -19,7 +19,7 @@ public record WorkspaceDetailResponse(
 ) {
     public static WorkspaceDetailResponse of(Workspace w, boolean isMember, String myRole, Long memberCount) {
         return new WorkspaceDetailResponse(
-                w.getId(), w.getType(), w.getVisibility(), w.getSubject(),
+                w.getId(), w.getType(), w.getVisibility(), w.getTitle(),
                 w.getThumbnail(), w.getCreatedAt(), isMember, myRole, memberCount
         );
     }

@@ -4,10 +4,7 @@ import com.ssafy.workspaceservice.dto.request.*;
 import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
-import com.ssafy.workspaceservice.enums.WorkspaceRole;
-import com.ssafy.workspaceservice.enums.WorkspaceTheme;
-import com.ssafy.workspaceservice.enums.WorkspaceType;
-import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
+import com.ssafy.workspaceservice.enums.*;
 import com.ssafy.workspaceservice.repository.WorkspaceMemberRepository;
 import com.ssafy.workspaceservice.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,19 +20,17 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional
 public class WorkspaceService {
-
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
-    // 문자열 normalize(대문자) -> Workspace 저장
-    // Owner 멤버 자동 등록
-    // WorkspaceResponse 반환
     public WorkspaceResponse create(Long userId) {
+        String INITIAL_TITLE = "제목 없음";
+
         Workspace workspace = Workspace.builder()
                 .theme(WorkspaceTheme.PASTEL)
                 .type(WorkspaceType.PERSONAL)
                 .visibility(WorkspaceVisibility.PRIVATE)
-                .subject("")
+                .title(INITIAL_TITLE)
                 .thumbnail("")
                 .build();
         Workspace saved = workspaceRepository.save(workspace);
@@ -44,7 +39,7 @@ public class WorkspaceService {
                 .workspace(saved)
                 .userId(userId)
                 .role(WorkspaceRole.MAINTAINER)
-                .pointerColor(null)
+                .pointerColor(PointerColor.randomColor())
                 .build();
         workspaceMemberRepository.save(member);
 
@@ -66,7 +61,7 @@ public class WorkspaceService {
         }
 
         boolean isMember = mine.isPresent();
-        String myRole = mine.map(WorkspaceMember::getRole).orElse(null);
+        String myRole = String.valueOf(mine.map(WorkspaceMember::getRole).orElse(null));
         Long memberCount = workspaceMemberRepository.countByWorkspaceId(workspaceId);
 
         return WorkspaceDetailResponse.of(w, isMember, myRole, memberCount);
@@ -83,8 +78,8 @@ public class WorkspaceService {
         WorkspaceMember member = WorkspaceMember.builder()
                 .workspace(w)
                 .userId(req.userId())
-                .role(req.role().toUpperCase())
-                .pointerColor(req.pointerColor())
+                .role(WorkspaceRole.valueOf(req.role().toUpperCase()))
+                .pointerColor(PointerColor.valueOf(req.pointerColor()))
                 .build();
         workspaceMemberRepository.save(member);
     }
@@ -96,7 +91,7 @@ public class WorkspaceService {
         if (!m.getWorkspace().getId().equals(workspaceId)) {
             throw new IllegalArgumentException("Member does not belong to workspace");
         }
-        m.changeRole(newRole.toUpperCase());
+        m.changeRole(WorkspaceRole.valueOf(newRole.toUpperCase()));
     }
 
     // 존재만 확인함.
@@ -111,7 +106,7 @@ public class WorkspaceService {
     public void changeVisibility(Long workspaceId, VisibilityChangeRequest req) {
         Workspace w = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
-        w.changeVisibility(req.visibility().toUpperCase());
+        w.changeVisibility(WorkspaceVisibility.valueOf(req.visibility().toUpperCase()));
     }
 
     // 최신순 목록. WorkspaceSimpleResponse 리스트
@@ -136,5 +131,6 @@ public class WorkspaceService {
     // 워크스페이스 삭제(사전에 cascade/제약 고려)
     public void delete(Long workspaceId) {
         workspaceRepository.deleteById(workspaceId);
+        // TODO: Mindmap-Service에 workspaceId의 모든 마인드맵 노드 지우는 API도 호출해야 함.
     }
 }

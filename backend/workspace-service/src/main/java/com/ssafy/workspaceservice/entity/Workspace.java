@@ -36,7 +36,7 @@ public class Workspace {
     private WorkspaceVisibility visibility;
 
     @Column(nullable = false, length = 100)
-    private String subject;
+    private String title;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -46,6 +46,6 @@ public class Workspace {
     private String thumbnail;
 
     public void changeVisibility(WorkspaceVisibility visibility) { this.visibility = visibility; }
-    public void changeSubject(String subject) { this.subject = subject; }
+    public void changeSubject(String subject) { this.title = subject; }
     public void changeThumbnail(String thumbnail) { this.thumbnail = thumbnail; }
 }
