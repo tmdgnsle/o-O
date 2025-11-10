@@ -1,5 +1,8 @@
 package com.ssafy.workspaceservice.entity;
 
+import com.ssafy.workspaceservice.enums.WorkspaceTheme;
+import com.ssafy.workspaceservice.enums.WorkspaceType;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,8 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "workspace",
-        indexes = @Index(name = "idx_workspace_visibility", columnList = "visibility"))
+@Table(name = "workspace")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,14 +23,20 @@ public class Workspace {
     @Column(name = "workspace_id")
     private Long id;
 
-    @Column(nullable = false, length = 20)     // ex) TEAM / PERSONAL
-    private String mode;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private WorkspaceTheme theme;
 
-    @Column(nullable = false, length = 20)     // ex) PUBLIC / PRIVATE
-    private String visibility;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private WorkspaceType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private WorkspaceVisibility visibility;
 
     @Column(nullable = false, length = 100)
-    private String subject;
+    private String title;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -37,11 +45,7 @@ public class Workspace {
     @Column(length = 300)
     private String thumbnail;
 
-//    @UpdateTimestamp
-//    @Column(nullable = false)
-//    private LocalDateTime updatedAt;
-
-    public void changeVisibility(String visibility) { this.visibility = visibility; }
-    public void changeSubject(String subject) { this.subject = subject; }
+    public void changeVisibility(WorkspaceVisibility visibility) { this.visibility = visibility; }
+    public void changeSubject(String subject) { this.title = subject; }
     public void changeThumbnail(String thumbnail) { this.thumbnail = thumbnail; }
 }
