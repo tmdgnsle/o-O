@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.config;
+package com.ssafy.workspaceservice.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
@@ -12,20 +12,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @OpenAPIDefinition(
         info = @Info(
-                title = "Mindmap Service API",
+                title = "Workspace Service API",
                 version = "v1.0",
-                description = "마인드맵 노드 관리 및 실시간 협업 API"
+                description = "워크스페이스 관련 API"
         ),
         servers = {
                 @Server
                         (
                                 url = "https://api.o-o.io.kr/",
-                                description = "Production - Gateway through Mindmap Service"
+                                description = "Production - Gateway through Workspace Service"
                         ),
                 @Server
                         (
-                                url = "http://localhost:8082/",
-                                description = "Local - Direct Mindmap Service"
+                                url = "http://localhost:8083/",
+                                description = "Local - Direct Workspace Service"
                         )
         },
         security = @SecurityRequirement(name = "bearerAuth")

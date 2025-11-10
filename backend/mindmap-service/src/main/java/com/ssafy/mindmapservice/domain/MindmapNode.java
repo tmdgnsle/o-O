@@ -70,12 +70,6 @@ public class MindmapNode {
     private String contentUrl;
 
     /**
-     * AI 분석 결과 요약
-     * 이미지/영상 분석 후 저장
-     */
-    private String aiSummary;
-
-    /**
      * AI 분석 상태
      * NONE: 분석 불필요 (텍스트 노드)
      * PENDING: 분석 요청됨
