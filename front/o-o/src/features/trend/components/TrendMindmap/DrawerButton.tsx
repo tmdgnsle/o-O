@@ -31,7 +31,7 @@ export function DrawerButton() {
   // 전체화면일 때 높이 조정
   const drawerHeight = isFullscreen
     ? "h-[12vh] sm:h-[10vh] md:h-[14vh]"
-    : "h-[25vh] sm:h-[20vh] md:h-[18vh]";
+    : "h-[18vh] sm:h-[18vh] md:h-[18vh]";
 
   const getButtonBottom = () => {
     if (!isOpen) {
@@ -93,42 +93,67 @@ export function DrawerButton() {
         <DrawerContent className={drawerHeight}>
           <div className="w-full max-w-full h-full flex flex-col px-2 sm:px-4 md:px-6">
             {/* 드래그 핸들 */}
-            <div className="mx-auto w-8 sm:w-10 md:w-12 h-1 sm:h-1.5 flex-shrink-0 rounded-full bg-gray-300 mt-2 sm:mt-3 md:mt-4 mb-2 sm:mb-3 cursor-grab active:cursor-grabbing" />
+            <div className="mx-auto w-8 sm:w-10 md:w-12 h-1 flex-shrink-0 rounded-full bg-gray-300 mb-2 cursor-grab active:cursor-grabbing" />
 
             {/* 가로 스크롤 영역 */}
             <div className="flex-1 overflow-hidden">
               <CustomScrollbar maxWidth="100%" direction="horizontal">
-                <div className="flex gap-1.5 sm:gap-2 md:gap-3 pb-3 sm:pb-4 md:pb-6 pr-2">
-                  {expandKeywords.map((item) => (
-                    <button
-                      key={item.id}
-                      className="
-                        px-3 py-1.5 
-                        sm:px-4 sm:py-2 
-                        md:px-6 md:py-3
-                        bg-white
-                        border border-gray-200
-                        hover:bg-primary
-                        hover:border-primary
-                        active:scale-95
-                        rounded-md 
-                        sm:rounded-lg 
-                        md:rounded-xl
-                        hover:text-white
-                        transition-all
-                        duration-200
-                        text-xs 
-                        sm:text-sm
-                        font-medium
-                        whitespace-nowrap
-                        flex-shrink-0
-                        shadow-sm
-                        hover:shadow-md
-                      "
-                    >
-                      {item.keyword}
-                    </button>
-                  ))}
+                <div className="flex gap-3 sm:gap-4 md:gap-5 pb-3 pr-2 items-center">
+                  {expandKeywords.map((item, index) => {
+                    // 다양한 색상 조합
+                    const colors = [
+                      { bg: "bg-purple-200/60", blur: "bg-purple-300/40" },
+                      { bg: "bg-orange-200/60", blur: "bg-orange-300/40" },
+                      { bg: "bg-blue-200/60", blur: "bg-blue-300/40" },
+                      { bg: "bg-pink-200/60", blur: "bg-pink-300/40" },
+                      { bg: "bg-green-200/60", blur: "bg-green-300/40" },
+                      { bg: "bg-yellow-200/60", blur: "bg-yellow-300/40" },
+                    ];
+                    const color = colors[index % colors.length];
+
+                    return (
+                      <button
+                        key={item.id}
+                        className="relative flex-shrink-0 hover:scale-110 active:scale-95 transition-transform duration-200"
+                      >
+                        {/* 블러 효과 배경 (더 큰 원) */}
+                        <div
+                          className={`
+                            absolute inset-2
+                            ${color.blur}
+                            rounded-full 
+                            blur-sm
+                            scale-100
+                          `}
+                        />
+
+                        {/* 메인 원형 배경 */}
+                        <div
+                          className={`
+                            relative
+                            w-20 h-20
+                            backdrop-blur-sm
+                            rounded-full
+                            flex items-center justify-center
+                          `}
+                        >
+                          {/* 텍스트 */}
+                          <span
+                            className="
+                              text-gray-800
+                              font-semibold
+                              text-sm
+                              px-2
+                              text-center
+                              leading-tight
+                            "
+                          >
+                            {item.keyword}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </CustomScrollbar>
             </div>
