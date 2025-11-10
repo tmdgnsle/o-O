@@ -25,6 +25,7 @@ import { useAccessType } from "../hooks/custom/useAccessType";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
+  shareLink: string;
 };
 
 // 더미 데이터
@@ -37,9 +38,7 @@ const initialCollaborators: Collaborator[] = [
   { id: "6", name: "박소영", avatar: popo2, role: "Viewer", permission: "can View" },
 ];
 
-const shareLink = "https://o-O/mindmap/abc123";
-
-export default function StatusBox({ onStartVoiceChat }: StatusBoxProps = {}) {
+export default function StatusBox({ onStartVoiceChat, shareLink }: StatusBoxProps) {
   // Custom hooks
   const { copied, handleCopyLink } = useShareLink(shareLink);
   const { collaborators, handlePermissionChange } = useCollaborators(initialCollaborators);

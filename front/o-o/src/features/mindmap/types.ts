@@ -31,6 +31,8 @@ export type CytoscapeCanvasProps = Readonly<{
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onDeleteNode: (payload: DeleteNodePayload) => void;
+  onEditNode: (payload: EditNodePayload) => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
   onCyReady?: (cy: any) => void;
@@ -54,6 +56,8 @@ export type CytoscapeNodeOverlayProps = {
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onDeleteNode: (payload: DeleteNodePayload) => void;
+  onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   detachedSelection?: DetachedSelectionState;
   onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
@@ -119,6 +123,22 @@ export type ChildNodeRequest = {
   parentX: number;
   parentY: number;
   text: string;
+};
+
+// ============================================
+//  Yjs · REST API · Redux가 동일한 데이터 구조를 공유하도록 함
+// ============================================
+
+export type DeleteNodePayload = {
+  nodeId: string;
+  deleteDescendants?: boolean;
+};
+
+export type EditNodePayload = {
+  nodeId: string;
+  newText?: string;
+  newColor?: string;
+  newParentId?: string | null;
 };
 
 export type DetachedSelectionState = {

@@ -3,7 +3,7 @@ export const PATHS = {
   HOME: "/",
   TREND: "/trend",
   TREND_MINDMAP: "/trend/:trendId",
-  MINDMAP: "/mindmap",
+  MINDMAP: "/mindmap/:workspaceId",
   NEWPROJECT: "/newproject",
   MYPAGE: "/mypage",
   PROJECT_DETAIL: "/project/:id",
@@ -14,3 +14,5 @@ export type PathType = (typeof PATHS)[keyof typeof PATHS];
 
 // 동적 경로 생성 헬퍼 함수
 export const getProjectDetailPath = (id: string) => `/project/${id}`;
+
+export const getMindmapPath = (workspaceId: string) => `/mindmap/${workspaceId}`;

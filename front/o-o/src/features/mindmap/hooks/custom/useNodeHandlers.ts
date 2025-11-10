@@ -1,6 +1,9 @@
-import { useCallback } from 'react';
-import type { UseMutationResult } from '@tanstack/react-query';
-import type { ChildNodeRequest, NodeData } from '../../types';
+import { useCallback } from "react";
+import type {
+  ChildNodeRequest,
+  DeleteNodePayload,
+  EditNodePayload,
+} from "../../types";
 import type { FocusedButton } from './useNodeFocus';
 
 type UseNodeHandlersParams = {
@@ -12,8 +15,8 @@ type UseNodeHandlersParams = {
   onSelect: () => void;
   onDeselect: () => void;
   setFocusedButton: (button: FocusedButton) => void;
-  deleteNodeMutation: UseMutationResult<NodeData[], Error, { nodeId: string; deleteDescendants?: boolean }, unknown>;
-  editNodeMutation: UseMutationResult<NodeData[], Error, { nodeId: string; newText?: string; newColor?: string }, unknown>;
+  deleteNode: (payload: DeleteNodePayload) => void;
+  editNode: (payload: EditNodePayload) => void;
   startEdit: () => void;
   cancelEdit: () => void;
   confirmEdit: () => string | null;
@@ -34,8 +37,8 @@ export const useNodeHandlers = ({
   onSelect,
   onDeselect,
   setFocusedButton,
-  deleteNodeMutation,
-  editNodeMutation,
+  deleteNode,
+  editNode,
   startEdit,
   cancelEdit,
   confirmEdit,
@@ -58,14 +61,14 @@ export const useNodeHandlers = ({
 
   const handleDelete = useCallback(
     (options?: { deleteDescendants?: boolean }) => {
-      deleteNodeMutation.mutate({
+      deleteNode({
         nodeId: id,
         deleteDescendants: options?.deleteDescendants,
       });
       onDeselect();
       setFocusedButton(null);
     },
-    [deleteNodeMutation, id, onDeselect, setFocusedButton]
+    [deleteNode, id, onDeselect, setFocusedButton]
   );
 
   const handleEdit = useCallback(() => {
@@ -81,10 +84,10 @@ export const useNodeHandlers = ({
   const handleEditConfirm = useCallback(() => {
     const newText = confirmEdit();
     if (newText) {
-      editNodeMutation.mutate({ nodeId: id, newText });
+      editNode({ nodeId: id, newText });
     }
     setFocusedButton(null);
-  }, [confirmEdit, editNodeMutation, id, setFocusedButton]);
+  }, [confirmEdit, editNode, id, setFocusedButton]);
 
   const handleAdd = useCallback(() => {
     openAddInput();
@@ -123,9 +126,9 @@ export const useNodeHandlers = ({
       if (newColor === initialColor) {
         return;
       }
-      editNodeMutation.mutate({ nodeId: id, newColor });
+      editNode({ nodeId: id, newColor });
     },
-    [id, initialColor, editNodeMutation]
+    [id, initialColor, editNode]
   );
 
   const handlePaletteClose = useCallback(() => {

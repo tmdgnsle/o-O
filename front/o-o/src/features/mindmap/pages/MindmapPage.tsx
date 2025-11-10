@@ -1,52 +1,76 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import MiniNav from '@/shared/ui/MiniNav';
-import AskPopo from '../components/AskPopoButton'
-import StatusBox from '../components/StatusBox';
-import ModeToggleButton from '../components/ModeToggleButton';
-import { Textbox } from '../components/Textbox';
-import AnalyzeSelectionPanel from '../components/AnalyzeSelectionPanel';
-import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions, useEditNode } from '../hooks/mutation/useNodeMutations';
-import CytoscapeCanvas from '../components/CytoscapeCanvas';
-import VoiceChat from '../components/VoiceChat/VoiceChat';
-import type { NodeData, MindmapMode, DetachedSelectionState } from '../types';
-import type { Core } from 'cytoscape';
-import { useColorTheme } from '../hooks/useColorTheme';
-import { useNodePositioning } from '../hooks/useNodePositioning';
-import popo1 from '@/shared/assets/images/popo1.png';
-import popo2 from '@/shared/assets/images/popo2.png';
-import popo3 from '@/shared/assets/images/popo3.png';
-
-// MindmapPage 전용 QueryClient
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5분
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import * as Y from "yjs";
+import { useParams } from "react-router-dom";
+import MiniNav from "@/shared/ui/MiniNav";
+import AskPopo from "../components/AskPopoButton";
+import StatusBox from "../components/StatusBox";
+import ModeToggleButton from "../components/ModeToggleButton";
+import { Textbox } from "../components/Textbox";
+import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
+import CytoscapeCanvas from "../components/CytoscapeCanvas";
+import VoiceChat from "../components/VoiceChat/VoiceChat";
+import type {
+  NodeData,
+  MindmapMode,
+  DetachedSelectionState,
+  DeleteNodePayload,
+  EditNodePayload,
+} from "../types";
+import type { Core } from "cytoscape";
+import { useColorTheme } from "../hooks/useColorTheme";
+import { useNodePositioning } from "../hooks/useNodePositioning";
+import popo1 from "@/shared/assets/images/popo1.png";
+import popo2 from "@/shared/assets/images/popo2.png";
+import popo3 from "@/shared/assets/images/popo3.png";
+import { createYClient, type YClient } from "../collaboration/yjsClient";
+import { useYMapState } from "../collaboration/useYMapState";
+import { createYMapCrud } from "../collaboration/yMapCrud";
+import {
+  DEFAULT_WORKSPACE_ID,
+  DEFAULT_Y_WEBSOCKET_URL,
+  NODES_YMAP_KEY,
+  buildMindmapRoomId,
+  buildMindmapShareLink,
+} from "../collaboration/constants";
 
 const MindmapPageContent: React.FC = () => {
+  const params = useParams<{ workspaceId?: string }>();
+  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const roomId = useMemo(() => buildMindmapRoomId(workspaceId), [workspaceId]);
+  const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
+  const wsUrl = import.meta.env.VITE_Y_WEBSOCKET_URL ?? DEFAULT_Y_WEBSOCKET_URL;
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [mode, setMode] = useState<MindmapMode>("edit");
   const [analyzeSelection, setAnalyzeSelection] = useState<string[]>([]);
   const [voiceChatVisible, setVoiceChatVisible] = useState(false);
   const [detachedSelectionMap, setDetachedSelectionMap] = useState<Record<string, DetachedSelectionState>>({});
   const cyRef = useRef<Core | null>(null);
+  const [collab, setCollab] = useState<{ client: YClient; map: Y.Map<NodeData> } | null>(null);
 
-  // Query & Mutation hooks
-  const { data: nodes = [], isLoading } = useNodesQuery();
-  const addNodeMutation = useAddNode();
-  const editNodeMutation = useEditNode();
-  const applyThemeMutation = useApplyThemeToAllNodes();
-  const updateNodePositionMutation = useUpdateNodePosition();
-  const batchUpdatePositionsMutation = useBatchUpdateNodePositions();
-
-  // Color theme hook
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
+
+  useEffect(() => {
+    const client = createYClient(wsUrl, roomId);
+    const map = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
+    setCollab({ client, map });
+
+    return () => {
+      setCollab(null);
+      client.destroy();
+    };
+  }, [roomId, wsUrl]);
+
+  const nodesState = useYMapState<NodeData>(collab?.map);
+  const nodes = useMemo<NodeData[]>(() => Object.values(nodesState), [nodesState]);
+
+  const crud = useMemo(() => {
+    if (!collab) {
+      return null;
+    }
+    return createYMapCrud<NodeData>(collab.client.doc, collab.map, "mindmap-page");
+  }, [collab]);
 
   useEffect(() => {
     setAnalyzeSelection([]);
@@ -59,11 +83,10 @@ const MindmapPageContent: React.FC = () => {
     setMode(nextMode);
   }, []);
 
-  const handleAddNode = (text: string) => {
-    if (mode === "analyze") return;
+  const handleAddNode = useCallback((text: string) => {
+    if (mode === "analyze" || !crud) return;
     const randomColor = getRandomThemeColor();
 
-    // 현재 뷰포트 중심 좌표 계산
     let baseX = 0;
     let baseY = 0;
 
@@ -73,7 +96,6 @@ const MindmapPageContent: React.FC = () => {
       const container = cyRef.current.container();
 
       if (container) {
-        // 뷰포트 중심 좌표를 모델 좌표로 변환
         const centerX = container.clientWidth / 2;
         const centerY = container.clientHeight / 2;
 
@@ -82,7 +104,6 @@ const MindmapPageContent: React.FC = () => {
       }
     }
 
-    // 기존 노드와 겹치지 않는 위치 찾기
     const { x, y } = findNonOverlappingPosition(nodes, baseX, baseY);
 
     const newNode: NodeData = {
@@ -92,25 +113,54 @@ const MindmapPageContent: React.FC = () => {
       y,
       color: randomColor,
     };
-    addNodeMutation.mutate(newNode);
-  };
+    crud.set(newNode.id, newNode);
+  }, [crud, findNonOverlappingPosition, getRandomThemeColor, mode, nodes]);
 
   const handleApplyTheme = useCallback((colors: string[]) => {
-    applyThemeMutation.mutate(colors);
-  }, [applyThemeMutation]);
+    if (!crud || colors.length === 0) return;
+    const entries = nodes.map((node, index) => [
+      node.id,
+      {
+        ...node,
+        color: colors[index % colors.length],
+      },
+    ]) as Array<[string, NodeData]>;
+    crud.setMany(entries);
+  }, [crud, nodes]);
 
   const handleNodePositionChange = useCallback((nodeId: string, x: number, y: number) => {
-    // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
-    updateNodePositionMutation.mutate({ nodeId, x, y });
-  }, [updateNodePositionMutation]);
+    if (!crud) return;
+    crud.update(nodeId, (current) => {
+      if (!current) return current;
+      return { ...current, x, y };
+    });
+  }, [crud]);
 
   const handleBatchNodePositionChange = useCallback((positions: Array<{ id: string; x: number; y: number }>) => {
-    // 여러 노드 위치를 한 번에 업데이트
-    batchUpdatePositionsMutation.mutate(positions);
-  }, [batchUpdatePositionsMutation]);
+    if (!crud || positions.length === 0) return;
+    const positionMap = new Map(positions.map((pos) => [pos.id, pos]));
 
-  const handleCreateChildNode = useCallback(({ parentId, parentX, parentY, text }: { parentId: string; parentX: number; parentY: number; text: string }) => {
-    if (!text) return;
+    crud.transact((map) => {
+      positionMap.forEach(({ id, x, y }) => {
+        const current = map.get(id);
+        if (!current) return;
+        map.set(id, { ...current, x, y });
+      });
+    });
+  }, [crud]);
+
+  const handleCreateChildNode = useCallback(({
+    parentId,
+    parentX,
+    parentY,
+    text,
+  }: {
+    parentId: string;
+    parentX: number;
+    parentY: number;
+    text: string;
+  }) => {
+    if (!crud || !text) return;
 
     const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, parentY);
 
@@ -123,8 +173,59 @@ const MindmapPageContent: React.FC = () => {
       parentId,
     };
 
-    addNodeMutation.mutate(newNode);
-  }, [nodes, findNonOverlappingPosition, getRandomThemeColor, addNodeMutation]);
+    crud.set(newNode.id, newNode);
+  }, [crud, findNonOverlappingPosition, getRandomThemeColor, nodes]);
+
+  const handleDeleteNode = useCallback(({ nodeId, deleteDescendants }: DeleteNodePayload) => {
+    if (!crud) return;
+
+    const idsToDelete = new Set<string>([nodeId]);
+
+    if (deleteDescendants) {
+      const childrenMap = nodes.reduce<Record<string, string[]>>((acc, node) => {
+        if (!node.parentId) {
+          return acc;
+        }
+        if (!acc[node.parentId]) {
+          acc[node.parentId] = [];
+        }
+        acc[node.parentId]!.push(node.id);
+        return acc;
+      }, {});
+
+      const stack = [nodeId];
+      while (stack.length > 0) {
+        const currentId = stack.pop()!;
+        const children = childrenMap[currentId];
+        if (!children) continue;
+        children.forEach((childId) => {
+          if (!idsToDelete.has(childId)) {
+            idsToDelete.add(childId);
+            stack.push(childId);
+          }
+        });
+      }
+    }
+
+    crud.transact((map) => {
+      idsToDelete.forEach((id) => {
+        map.delete(id);
+      });
+    });
+  }, [crud, nodes]);
+
+  const handleEditNode = useCallback(({ nodeId, newText, newColor, newParentId }: EditNodePayload) => {
+    if (!crud) return;
+    crud.update(nodeId, (current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        ...(newText !== undefined ? { text: newText } : {}),
+        ...(newColor !== undefined ? { color: newColor } : {}),
+        ...(newParentId !== undefined ? { parentId: newParentId ?? undefined } : {}),
+      };
+    });
+  }, [crud]);
 
   const handleAnalyzeNodeToggle = useCallback((nodeId: string) => {
     setAnalyzeSelection((prev) =>
@@ -145,33 +246,36 @@ const MindmapPageContent: React.FC = () => {
     setAnalyzeSelection((prev) => prev.filter((id) => id !== nodeId));
   }, []);
 
-  const handleKeepChildrenDelete = useCallback(
-    ({ deletedNodeId, parentId = null }: { deletedNodeId: string; parentId?: string | null }) => {
-      if (!parentId) return;
+  const handleKeepChildrenDelete = useCallback(({
+    deletedNodeId,
+    parentId = null,
+  }: {
+    deletedNodeId: string;
+    parentId?: string | null;
+  }) => {
+    if (!crud) return;
 
-      const orphanRoots = nodes.filter((node) => node.parentId === deletedNodeId);
-      if (orphanRoots.length === 0) return;
+    const orphanRoots = nodes.filter((node) => node.parentId === deletedNodeId);
+    if (orphanRoots.length === 0) return;
 
-      const timestamp = Date.now();
-      setDetachedSelectionMap((prev) => {
-        const next = { ...prev };
-        orphanRoots.forEach((child, index) => {
-          next[child.id] = {
-            id: `${deletedNodeId}-${child.id}-${timestamp + index}`,
-            anchorNodeId: child.id,
-            originalParentId: deletedNodeId,
-            targetParentId: parentId,
-          };
-        });
-        return next;
+    const timestamp = Date.now();
+    setDetachedSelectionMap((prev) => {
+      const next = { ...prev };
+      orphanRoots.forEach((child, index) => {
+        next[child.id] = {
+          id: `${deletedNodeId}-${child.id}-${timestamp + index}`,
+          anchorNodeId: child.id,
+          originalParentId: deletedNodeId,
+          targetParentId: parentId,
+        };
       });
+      return next;
+    });
 
-      orphanRoots.forEach((child) => {
-        editNodeMutation.mutate({ nodeId: child.id, newParentId: null });
-      });
-    },
-    [nodes, editNodeMutation]
-  );
+    orphanRoots.forEach((child) => {
+      handleEditNode({ nodeId: child.id, newParentId: null });
+    });
+  }, [crud, handleEditNode, nodes]);
 
   const handleConnectDetachedSelection = useCallback((anchorNodeId: string) => {
     let selection: DetachedSelectionState | undefined;
@@ -186,11 +290,11 @@ const MindmapPageContent: React.FC = () => {
 
     if (!selection) return;
 
-    editNodeMutation.mutate({
+    handleEditNode({
       nodeId: selection.anchorNodeId,
       newParentId: selection.targetParentId ?? null,
     });
-  }, [editNodeMutation]);
+  }, [handleEditNode]);
 
   const handleDismissDetachedSelection = useCallback((anchorNodeId: string) => {
     setDetachedSelectionMap((prev) => {
@@ -222,19 +326,16 @@ const MindmapPageContent: React.FC = () => {
     [nodes, analyzeSelection]
   );
 
-  // TODO : Dummy Data
   const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "포포 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "포포 B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "포포 C", avatar: popo3, colorIndex: 2 },
+    { id: "1", name: "���� A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
+    { id: "2", name: "���� B", avatar: popo2, colorIndex: 1 },
+    { id: "3", name: "���� C", avatar: popo3, colorIndex: 2 },
   ], []);
 
-
-  // TODO : 로딩 화면
-  if (isLoading) {
+  if (!collab || !crud) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        Loading...
+        ��ũ�����̽��� ���� ���Դϴ�...
       </div>
     );
   }
@@ -259,7 +360,7 @@ const MindmapPageContent: React.FC = () => {
       </div>
       {!voiceChatVisible && (
         <div className="fixed top-4 right-4 z-50">
-          <StatusBox onStartVoiceChat={() => setVoiceChatVisible(true)} />
+          <StatusBox onStartVoiceChat={() => setVoiceChatVisible(true)} shareLink={shareLink} />
         </div>
       )}
       {!voiceChatVisible ? (
@@ -284,7 +385,7 @@ const MindmapPageContent: React.FC = () => {
         </div>
       )}
 
-      {/* Cytoscape Canvas - 전체 화면 */}
+      {/* Cytoscape Canvas - ��ü ȭ�� */}
       <CytoscapeCanvas
         nodes={nodes}
         mode={mode}
@@ -293,6 +394,8 @@ const MindmapPageContent: React.FC = () => {
         onNodeSelect={setSelectedNodeId}
         onNodeUnselect={() => setSelectedNodeId(null)}
         onApplyTheme={handleApplyTheme}
+        onDeleteNode={handleDeleteNode}
+        onEditNode={handleEditNode}
         onNodePositionChange={handleNodePositionChange}
         onBatchNodePositionChange={handleBatchNodePositionChange}
         onCyReady={(cy) => { cyRef.current = cy; }}
@@ -308,52 +411,8 @@ const MindmapPageContent: React.FC = () => {
   );
 };
 
-// Provider로 감싼 MindmapPage
 const MindmapPage: React.FC = () => {
-  //   const sampleContent = `
-  // # 1. 기획 배경
-
-  // - **알고리즘 학습의 어려움**: 완전탐색, BFS 같은 탐색 알고리즘은 개념은 단순하지만, 실제 동작 과정을 이해하기 어려움.
-  // - **서비스화의 필요성**: 단순한 코드 구현이 아니라, 시각화와 AI 설명을 통해 직관적으로 이해할 수 있는 환경 제공 필요.
-  // - **응용 가능성**: BFS는 경로 탐색, 추천 시스템, 네트워크 분석 등 실제 개발 현장에서 핵심적으로 쓰이고 있어, 교육뿐만 아니라 다양한 서비스로 확장 가능.
-
-  // ## 2. 주요 기능
-
-  // ### 1. 알고리즘 시각화 학습
-  // - 완전탐색 & BFS 진행 과정을 단계별 애니메이션으로 제공.
-  // - 큐, 그래프, 트리 구조 변화를 실시간으로 확인 가능.
-
-  // ### 2. AI 튜터 챗봇
-  // - 사용자가 문제를 입력하면 AI가 풀이 과정을 BFS 방식으로 설명.
-  // - 완전탐색과 BFS를 비교하며 효율성 차이를 알려줌.
-
-  // ### 3. 실전 응용 모듈
-  // - 예시: 지도 내 최단 경로 탐색, 추천 시스템 미니 시뮬레이터.
-  // - 단순 이론이 아닌 실제 개발 서비스 맥락에서 BFS 활용 경험 제공.
-
-  // ## 3. 기대 효과
-
-  // - **학습 효과 강화**: 추상적인 알고리즘 개념을 시각적·대화형으로 이해, 학습 곡선 완화.
-  // - **개발 실무 연결**: 알고리즘을 단순 공부가 아니라 실제 서비스 기능과 연결해 학습자 동기 부여.
-
-  // \`\`\`javascript
-  // const bfs = (graph, start) => {
-  //   const queue = [start];
-  //   const visited = new Set();
-
-  //   while (queue.length > 0) {
-  //     const node = queue.shift();
-  //     visited.add(node);
-  //   }
-  // };
-  // \`\`\`
-  //   `;
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <MindmapPageContent />
-    </QueryClientProvider>
-  );
+  return <MindmapPageContent />;
 };
 
 export default MindmapPage;
