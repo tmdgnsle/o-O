@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
 import { TrendExpandKeyword } from "../components/TrendMindmap/TrendExpandKeyword";
-import { DrawerButton } from "../components/TrendMindmap/DrawerButton";
+import { DrawerButton } from "../components/TrendMindmap/Drawer/DrawerButton";
 
 export function TrendMindmapPage() {
   const { trendId } = useParams<{ trendId: string }>();

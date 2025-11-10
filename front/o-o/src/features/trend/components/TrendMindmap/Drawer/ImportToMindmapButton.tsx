@@ -1,5 +1,5 @@
 interface ImportToMindmapButtonProps {
-  onClick?: () => void;
+  readonly onClick?: () => void;
 }
 
 export function ImportToMindmapButton({ onClick }: ImportToMindmapButtonProps) {
