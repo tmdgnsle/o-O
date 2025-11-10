@@ -47,7 +47,8 @@ class LlamaTextAnalyzer:
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
                 bnb_4bit_use_double_quant=True,
-                bnb_4bit_quant_type="nf4"
+                bnb_4bit_quant_type="nf4",
+                llm_int8_enable_fp32_cpu_offload=True
             )
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -57,7 +58,10 @@ class LlamaTextAnalyzer:
             )
         elif quantization == "int8" and torch.cuda.is_available():
             logger.info("⚙️  INT8 양자화 설정 (VRAM ~8GB)")
-            quantization_config = BitsAndBytesConfig(load_in_8bit=True)
+            quantization_config = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_enable_fp32_cpu_offload=True
+            )
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 quantization_config=quantization_config,

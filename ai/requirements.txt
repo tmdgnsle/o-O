@@ -24,20 +24,8 @@ uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
 pydantic>=2.0.0
 
-# 유튜브 도구
-yt-dlp>=2023.11.0
-youtube-transcript-api>=0.6.1
-
-# 영상 도구
-opencv-python>=4.8.0
-scenedetect[opencv]>=0.6.2
-ffmpeg-python>=0.2.0
-
-# Whisper (로컬 음성 인식)
-openai-whisper>=20231117
-
-# 실시간 STT (마이크 입력)
-sounddevice>=0.5.0  # 마이크 오디오 입력
+# Kafka
+kafka-python>=2.0.2
 
 # Llama 3.2 Vision 모델용 추가 의존성
 protobuf
@@ -52,12 +40,6 @@ psutil>=7.1.0
 PyYAML>=6.0.3
 
 # 추가 필수 패키지
-av>=13.1.0  # ffmpeg 바인딩 (whisper용)
-tiktoken>=0.8.0  # OpenAI tokenizer (whisper용)
-numba>=0.60.0  # JIT 컴파일러 (whisper용)
-llvmlite>=0.43.0  # numba 의존성
-soundfile>=0.12.1  # 오디오 파일 처리
-librosa>=0.10.2  # 오디오 분석
 more-itertools>=10.5.0  # 유틸리티
 click>=8.1.0  # CLI 툴
 starlette>=0.42.0  # FastAPI 의존성

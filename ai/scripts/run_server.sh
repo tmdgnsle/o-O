@@ -20,14 +20,20 @@ echo "📡 Server will run on: http://0.0.0.0:$PORT"
 echo "📖 API Docs: http://localhost:$PORT/docs"
 echo "📖 ReDoc: http://localhost:$PORT/redoc"
 echo ""
-echo "Press Ctrl+C to stop the server"
+echo "Running in background with nohup"
+echo "Check logs: tail -f nohup.out"
 echo "================================================"
 echo ""
 
-# 서버 실행 (타임아웃 설정: 30분)
-python -m uvicorn src.api.main:app \
+# 가상환경 활성화
+source venv/bin/activate
+
+# 서버 실행 (백그라운드, nohup)
+nohup python -m uvicorn src.api.main:app \
     --host 0.0.0.0 \
     --port "$PORT" \
-    --reload \
     --timeout-keep-alive 1800 \
-    --timeout-graceful-shutdown 30
+    --timeout-graceful-shutdown 30 > nohup.out 2>&1 &
+
+echo "✅ Server started in background (PID: $!)"
+echo "📋 To stop: kill $!"

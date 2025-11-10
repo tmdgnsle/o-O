@@ -1,19 +1,22 @@
 """
-유튜브 자막 추출 모듈
-- youtube-transcript-api 우선
-- 실패시 Whisper 백업
+유튜브 자막 추출 모듈 (ngrok 서버 사용)
+- 로컬 컴퓨터에서 실행 중인 ngrok 서버로 자막 요청
 """
 import logging
+import os
+import requests
 from typing import List, Dict, Optional
-from youtube_transcript_api import YouTubeTranscriptApi
-from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 import re
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
 class TranscriptExtractor:
-    """유튜브 자막 추출기"""
+    """유튜브 자막 추출기 (ngrok 서버 사용)"""
 
     @staticmethod
     def extract_video_id(url: str) -> Optional[str]:
@@ -33,19 +36,20 @@ class TranscriptExtractor:
     @staticmethod
     def get_transcript(url: str, languages: List[str] = ['ko', 'en']) -> Dict:
         """
-        유튜브 자막 추출
+        ngrok 서버로부터 유튜브 자막 추출
 
         Args:
             url: 유튜브 URL
-            languages: 우선순위 언어 리스트
+            languages: 우선순위 언어 리스트 (ngrok 서버가 처리)
 
         Returns:
             {
                 'success': bool,
-                'method': 'youtube_api' or 'whisper',
+                'method': 'ngrok_server',
                 'language': str,
                 'segments': [{'start': float, 'duration': float, 'text': str}],
-                'full_text': str
+                'full_text': str,
+                'video_id': str
             }
         """
         video_id = TranscriptExtractor.extract_video_id(url)
@@ -55,62 +59,100 @@ class TranscriptExtractor:
                 'error': 'Invalid YouTube URL'
             }
 
+        # ngrok 서버 URL 가져오기
+        ngrok_server_url = os.getenv('NGROK_SUBTITLE_SERVER_URL')
+
+        if not ngrok_server_url:
+            logger.error("NGROK_SUBTITLE_SERVER_URL 환경변수가 설정되지 않았습니다.")
+            return {
+                'success': False,
+                'error': 'NGROK_SUBTITLE_SERVER_URL not configured in .env file',
+                'video_id': video_id
+            }
+
+        # ngrok 서버 URL 정리 (trailing slash 제거)
+        ngrok_server_url = ngrok_server_url.rstrip('/')
+
         try:
-            # 유튜브 API로 자막 추출 시도 (v1.2.3+ 인스턴스 메서드 사용)
-            api = YouTubeTranscriptApi()
+            # ngrok 서버에 자막 요청
+            endpoint = f"{ngrok_server_url}/youtube/subtitles"
 
-            # 우선순위대로 언어 시도
-            fetched_transcript = None
-            detected_language = None
+            logger.info(f"ngrok 서버로 자막 요청: {endpoint}")
+            logger.info(f"YouTube URL: {url}")
 
-            for lang in languages:
-                try:
-                    fetched_transcript = api.fetch(video_id, languages=[lang])
-                    detected_language = lang
-                    break
-                except:
-                    continue
+            response = requests.post(
+                endpoint,
+                json={"url": url},
+                timeout=30  # 30초 타임아웃
+            )
 
-            # 지정 언어가 없으면 영어 시도
-            if not fetched_transcript:
-                try:
-                    fetched_transcript = api.fetch(video_id, languages=['en'])
-                    detected_language = 'en'
-                except:
-                    pass
+            response.raise_for_status()  # HTTP 에러 발생시 예외 발생
 
-            if not fetched_transcript:
-                raise NoTranscriptFound("No transcript available")
+            data = response.json()
 
-            # FetchedTranscript를 iterable로 변환
+            # 응답 데이터 검증
+            if 'video_id' not in data or 'subtitles' not in data:
+                return {
+                    'success': False,
+                    'error': 'Invalid response format from ngrok server',
+                    'video_id': video_id
+                }
+
+            # segments 형식으로 변환
             segments = []
-            for snippet in fetched_transcript:
+            for subtitle in data['subtitles']:
                 segments.append({
-                    'text': snippet.text,
-                    'start': snippet.start,
-                    'duration': snippet.duration
+                    'text': subtitle['text'],
+                    'start': subtitle['start'],
+                    'duration': subtitle['duration']
                 })
 
             # 전체 텍스트 생성
             full_text = ' '.join([seg['text'] for seg in segments])
 
+            logger.info(f"✅ ngrok 서버로부터 자막 추출 성공: {len(segments)}개 세그먼트")
+
             return {
                 'success': True,
-                'method': 'youtube_api',
-                'language': detected_language,
+                'method': 'ngrok_server',
+                'language': 'auto',  # ngrok 서버가 자동 감지
                 'segments': segments,
                 'full_text': full_text,
+                'video_id': data['video_id']
+            }
+
+        except requests.exceptions.Timeout:
+            logger.error("ngrok 서버 요청 타임아웃")
+            return {
+                'success': False,
+                'error': 'ngrok server request timeout (30s)',
                 'video_id': video_id
             }
 
-        except (TranscriptsDisabled, NoTranscriptFound) as e:
+        except requests.exceptions.ConnectionError:
+            logger.error("ngrok 서버 연결 실패")
             return {
                 'success': False,
-                'error': f'No transcript available: {str(e)}',
-                'video_id': video_id,
-                'fallback_needed': True
+                'error': 'Failed to connect to ngrok server. Please check if the server is running.',
+                'video_id': video_id
             }
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"ngrok 서버 HTTP 에러: {e}")
+            error_detail = ""
+            try:
+                error_detail = response.json().get('detail', str(e))
+            except:
+                error_detail = str(e)
+
+            return {
+                'success': False,
+                'error': f'ngrok server HTTP error: {error_detail}',
+                'video_id': video_id
+            }
+
         except Exception as e:
+            logger.error(f"자막 추출 중 예상치 못한 오류: {e}")
             return {
                 'success': False,
                 'error': f'Unexpected error: {str(e)}',
@@ -148,16 +190,15 @@ if __name__ == "__main__":
     # 테스트용
     test_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
-    extractor = TranscriptExtractor()
-    result = extractor.get_transcript(test_url)
+    result = TranscriptExtractor.get_transcript(test_url)
 
     if result['success']:
-        logger.info(f"✅ 자막 추출 성공!")
-        logger.info(f"방법: {result['method']}")
-        logger.info(f"언어: {result['language']}")
-        logger.info(f"세그먼트 수: {len(result['segments'])}")
-        logger.info(f"\n첫 3줄:")
+        print(f"✅ 자막 추출 성공!")
+        print(f"방법: {result['method']}")
+        print(f"Video ID: {result['video_id']}")
+        print(f"세그먼트 수: {len(result['segments'])}")
+        print(f"\n첫 3줄:")
         for seg in result['segments'][:3]:
-            logger.info(f"  [{seg['start']:.1f}s] {seg['text']}")
+            print(f"  [{seg['start']:.1f}s] {seg['text']}")
     else:
-        logger.info(f"❌ 실패: {result['error']}")
+        print(f"❌ 실패: {result['error']}")

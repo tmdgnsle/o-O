@@ -21,6 +21,11 @@ import sys
 from pathlib import Path
 import re
 
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:     %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # 프로젝트 루트를 PYTHONPATH에 추가
@@ -91,6 +96,8 @@ from src.api.models import (
     TextAnalysisResult,
     MindMapNode
 )
+from src.kafka.kafka_handler import kafka_handler
+from src.kafka.analysis_processor import AnalysisProcessor
 import torch
 
 
@@ -652,12 +659,34 @@ def create_mindmap_from_llm(
 
 @app.on_event("startup")
 async def startup_event():
-    """서버 시작 시 모델 로드"""
+    """서버 시작 시 모델 로드 및 Kafka Consumer 시작"""
     # 환경 변수로 양자화 방식 설정 가능
     vision_quant = os.getenv("VISION_QUANTIZATION", "int4")
     text_quant = os.getenv("TEXT_QUANTIZATION", "int4")
 
     load_models(vision_quantization=vision_quant, text_quantization=text_quant)
+
+    # Kafka Consumer 시작
+    logger.info("Kafka Consumer 시작 중...")
+    text_analyzer = get_text_analyzer()
+    vision_analyzer = get_vision_analyzer()
+    analysis_processor = AnalysisProcessor(text_analyzer, vision_analyzer)
+
+    # 분석 콜백 설정
+    kafka_handler.set_analysis_callback(analysis_processor.process_request)
+
+    # Kafka 시작
+    if kafka_handler.start():
+        logger.info("✅ Kafka Consumer 시작 완료")
+    else:
+        logger.error("❌ Kafka Consumer 시작 실패")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """서버 종료 시 Kafka Consumer 종료"""
+    logger.info("Kafka Consumer 종료 중...")
+    kafka_handler.stop()
 
 
 # ============================================================================
@@ -671,130 +700,58 @@ def analyze_video_sync(
     user_prompt: Optional[str] = None
 ) -> AnalysisResult:
     """
-    영상 분석을 수행하고 결과를 반환합니다.
+    영상 분석을 수행하고 결과를 반환합니다. (자막 기반 - 영상 다운로드 없음)
     """
     task_id = str(uuid.uuid4())
-    output_dir = f"temp_analysis_{task_id}"
 
     # 초기 결과 객체 생성
     result = AnalysisResult(
         task_id=task_id,
-        status=TaskStatus.DOWNLOADING,
+        status=TaskStatus.EXTRACTING_TRANSCRIPT,
         youtube_url=youtube_url,
         created_at=datetime.now().isoformat()
     )
 
     try:
-
-        # 1. 영상 다운로드 및 프레임 추출
-        os.makedirs(output_dir, exist_ok=True)
-        frame_extractor = FrameExtractor(output_dir=output_dir)
-
-        download_result = frame_extractor.download_video(youtube_url)
-        if not download_result['success']:
-            raise Exception(f"영상 다운로드 실패: {download_result['error']}")
-
-        video_path = download_result['path']
-        video_duration = download_result['duration']
-        result.video_info = {
-            "title": download_result['title'],
-            "duration": video_duration,
-            "channel": download_result.get('channel', 'Unknown')
-        }
-
-        # 동적으로 최적 프레임 수 계산 (max_frames가 None이면 자동 계산)
-        if max_frames is None:
-            optimal_frames = FrameExtractor.calculate_optimal_frames(video_duration)
-        else:
-            optimal_frames = max_frames
-            logger.info(f"📌 사용자 지정 프레임 수: {optimal_frames}")
-
-        # 프레임 추출
-        result.status = TaskStatus.EXTRACTING_FRAMES
-        frames_result = frame_extractor.extract_frames_scene_detect(
-            video_path,
-            max_frames=optimal_frames
-        )
-
-        if not frames_result['success']:
-            raise Exception(f"프레임 추출 실패: {frames_result['error']}")
-
-        frames = [frame['path'] for frame in frames_result['frames']]
-
-        # 영상 파일 삭제
-        if os.path.exists(video_path):
-            os.remove(video_path)
-
-        # 2. 자막 추출
-        result.status = TaskStatus.EXTRACTING_TRANSCRIPT
+        # 1. 자막 추출 (ngrok 서버 사용)
+        logger.info("자막 추출 시작...")
         transcript_result = TranscriptExtractor.get_transcript(
             youtube_url,
             languages=['ko', 'en']
         )
 
-        transcript = transcript_result['full_text'] if transcript_result['success'] else "[자막 없음]"
+        if not transcript_result['success']:
+            raise Exception(f"자막 추출 실패: {transcript_result['error']}")
+
+        transcript = transcript_result['full_text']
+        video_id = transcript_result['video_id']
+
+        result.video_info = {
+            "video_id": video_id,
+            "title": f"YouTube Video {video_id}",  # 제목 정보 없음
+            "subtitle_method": transcript_result['method']
+        }
         result.transcript = transcript
 
-        # 3. Vision 분석 (캐싱된 모델 사용)
-        result.status = TaskStatus.ANALYZING_VISION
-        vision_analyzer = get_vision_analyzer()
+        # 2. 마인드맵 생성 (자막 기반)
+        result.status = TaskStatus.CREATING_MINDMAP
+        logger.info("마인드맵 생성 중...")
 
-        # 프롬프트 구성
-        base_prompt = "이 프레임에서 다음을 설명하세요:\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트"
-
-        if user_prompt:
-            final_prompt = f"{user_prompt}\n\n{base_prompt}"
-        else:
-            final_prompt = base_prompt
-
-        # 프레임 분석 (순차 처리)
-        frame_analyses = []
-        for i, frame_path in enumerate(frames):
-            logger.info(f"📸 프레임 {i+1}/{len(frames)} 분석 중...")
-
-            if transcript and transcript != "[자막 없음]":
-                analysis = vision_analyzer.analyze_with_context(
-                    image=frame_path,
-                    prompt=final_prompt,
-                    context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
-                    max_tokens=150,
-                    temperature=0.0
-                )
-            else:
-                analysis = vision_analyzer.analyze_image(
-                    image=frame_path,
-                    prompt=final_prompt,
-                    max_tokens=150,
-                    temperature=0.0
-                )
-
-            # 반복 문장 제거
-            cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
-            frame_analyses.append(cleaned_analysis)
-
-            # 프레임 삭제
-            if os.path.exists(frame_path):
-                os.remove(frame_path)
-
-        result.frame_analyses = frame_analyses
-
-        # 4. Text 분석 (캐싱된 모델 사용)
-        result.status = TaskStatus.ANALYZING_TEXT
         text_analyzer = get_text_analyzer()
 
-        summary = text_analyzer.summarize_video(
-            frame_analyses=frame_analyses,
+        # 자막 기반 마인드맵 생성
+        mindmap = create_mindmap_from_llm(
+            video_title=f"YouTube Video {video_id}",
+            frame_analyses=[],  # 프레임 분석 없음
             transcript=transcript,
-            max_tokens=2048,
-            temperature=0.3
+            user_query=user_prompt,
+            youtube_url=youtube_url
         )
-        result.summary = summary
 
-        key_points = text_analyzer.extract_key_points(
-            transcript if transcript != "[자막 없음]" else "\n".join(frame_analyses),
-            max_points=5
-        )
-        result.key_points = key_points
+        result.mindmap = mindmap
+        result.frame_analyses = []  # 프레임 분석 없음
+        result.summary = None  # summary는 마인드맵으로 대체
+        result.key_points = None  # key_points는 마인드맵으로 대체
 
         # 완료
         result.status = TaskStatus.COMPLETED
@@ -804,15 +761,6 @@ def analyze_video_sync(
         result.status = TaskStatus.FAILED
         result.error = str(e)
         result.completed_at = datetime.now().isoformat()
-
-    finally:
-        # 임시 디렉토리 정리
-        import shutil
-        if os.path.exists(output_dir):
-            try:
-                shutil.rmtree(output_dir)
-            except Exception as e:
-                logger.warning(f"임시 디렉토리 삭제 실패: {e}")
 
     return result
 
@@ -824,74 +772,17 @@ async def analyze_video_stream(
     user_prompt: Optional[str] = None
 ):
     """
-    영상 분석을 수행하면서 실시간으로 진행 상황을 스트리밍합니다.
+    영상 분석을 수행하면서 실시간으로 진행 상황을 스트리밍합니다. (자막 기반 - 영상 다운로드 없음)
     """
     task_id = str(uuid.uuid4())
-    output_dir = f"temp_analysis_{task_id}"
 
     try:
         # 시작 메시지
         yield f"data: {json.dumps({'status': 'started', 'task_id': task_id, 'progress': 0, 'message': '분석 시작'})}\n\n"
         await asyncio.sleep(0.1)
 
-        # 1. 영상 다운로드 및 프레임 추출
-        yield f"data: {json.dumps({'status': 'downloading', 'progress': 10, 'message': '영상 다운로드 중...'})}\n\n"
-        await asyncio.sleep(0.1)
-
-        os.makedirs(output_dir, exist_ok=True)
-        frame_extractor = FrameExtractor(output_dir=output_dir)
-
-        download_result = frame_extractor.download_video(youtube_url)
-        if not download_result['success']:
-            error_msg = f"영상 다운로드 실패: {download_result['error']}"
-            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
-            return
-
-        video_path = download_result['path']
-        video_duration = download_result['duration']
-        video_info = {
-            "title": download_result['title'],
-            "duration": video_duration,
-            "channel": download_result.get('channel', 'Unknown')
-        }
-
-        # 동적으로 최적 프레임 수 계산 (max_frames가 None이면 자동 계산)
-        if max_frames is None:
-            optimal_frames = FrameExtractor.calculate_optimal_frames(video_duration)
-        else:
-            optimal_frames = max_frames
-            logger.info(f"📌 사용자 지정 프레임 수: {optimal_frames}")
-
-        message = f"다운로드 완료: {video_info['title']} (최적 프레임: {optimal_frames}개)"
-        yield f"data: {json.dumps({'status': 'download_complete', 'progress': 20, 'message': message, 'video_info': video_info})}\n\n"
-        await asyncio.sleep(0.1)
-
-        # 프레임 추출
-        yield f"data: {json.dumps({'status': 'extracting_frames', 'progress': 25, 'message': f'프레임 {optimal_frames}개 추출 중...'})}\n\n"
-        await asyncio.sleep(0.1)
-
-        frames_result = frame_extractor.extract_frames_scene_detect(
-            video_path,
-            max_frames=optimal_frames
-        )
-
-        if not frames_result['success']:
-            error_msg = f"프레임 추출 실패: {frames_result['error']}"
-            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
-            return
-
-        frames = [frame['path'] for frame in frames_result['frames']]
-
-        # 영상 파일 삭제
-        if os.path.exists(video_path):
-            os.remove(video_path)
-
-        message = f"{len(frames)}개 프레임 추출 완료"
-        yield f"data: {json.dumps({'status': 'frames_extracted', 'progress': 35, 'message': message})}\n\n"
-        await asyncio.sleep(0.1)
-
-        # 2. 자막 추출
-        yield f"data: {json.dumps({'status': 'extracting_transcript', 'progress': 40, 'message': '자막 추출 중...'})}\n\n"
+        # 1. 자막 추출 (ngrok 서버 사용)
+        yield f"data: {json.dumps({'status': 'extracting_transcript', 'progress': 20, 'message': 'ngrok 서버로부터 자막 추출 중...'})}\n\n"
         await asyncio.sleep(0.1)
 
         transcript_result = TranscriptExtractor.get_transcript(
@@ -899,79 +790,38 @@ async def analyze_video_stream(
             languages=['ko', 'en']
         )
 
-        transcript = transcript_result['full_text'] if transcript_result['success'] else "[자막 없음]"
+        if not transcript_result['success']:
+            error_msg = f"자막 추출 실패: {transcript_result['error']}"
+            yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
+            return
 
-        yield f"data: {json.dumps({'status': 'transcript_extracted', 'progress': 45, 'message': '자막 추출 완료'})}\n\n"
+        transcript = transcript_result['full_text']
+        video_id = transcript_result['video_id']
+
+        video_info = {
+            "video_id": video_id,
+            "title": f"YouTube Video {video_id}",
+            "subtitle_method": transcript_result['method']
+        }
+
+        message = f"자막 추출 완료: {len(transcript_result['segments'])}개 세그먼트"
+        yield f"data: {json.dumps({'status': 'transcript_extracted', 'progress': 50, 'message': message, 'video_info': video_info})}\n\n"
         await asyncio.sleep(0.1)
 
-        # 3. Vision 분석
-        yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': 50, 'message': 'Vision 모델로 프레임 분석 중...'})}\n\n"
-        await asyncio.sleep(0.1)
-
-        vision_analyzer = get_vision_analyzer()
-
-        # 프롬프트 구성
-        base_prompt = "이 프레임에서 다음을 설명하세요:\n1. 주요 객체\n2. 사람이나 행동\n3. 화면에 보이는 텍스트"
-
-        if user_prompt:
-            final_prompt = f"{user_prompt}\n\n{base_prompt}"
-        else:
-            final_prompt = base_prompt
-
-        # 프레임 분석 (순차 처리)
-        frame_analyses = []
-        for i, frame_path in enumerate(frames):
-            # 진행률 업데이트
-            progress = 50 + int((i / len(frames)) * 30)  # 50% ~ 80%
-            message = f"프레임 {i+1}/{len(frames)} 분석 중..."
-            yield f"data: {json.dumps({'status': 'analyzing_vision', 'progress': progress, 'message': message})}\n\n"
-            await asyncio.sleep(0.1)
-
-            if transcript and transcript != "[자막 없음]":
-                analysis = vision_analyzer.analyze_with_context(
-                    image=frame_path,
-                    prompt=final_prompt,
-                    context=f"영상 자막 컨텍스트:\n{transcript[:500]}",
-                    max_tokens=150,
-                    temperature=0.0
-                )
-            else:
-                analysis = vision_analyzer.analyze_image(
-                    image=frame_path,
-                    prompt=final_prompt,
-                    max_tokens=150,
-                    temperature=0.0
-                )
-
-            # 반복 문장 제거
-            cleaned_analysis = remove_repetitive_sentences(analysis, max_repetition=1)
-            frame_analyses.append(cleaned_analysis)
-
-            # 프레임 삭제
-            if os.path.exists(frame_path):
-                os.remove(frame_path)
-
-        yield f"data: {json.dumps({'status': 'vision_complete', 'progress': 80, 'message': 'Vision 분석 완료'})}\n\n"
-        await asyncio.sleep(0.1)
-
-        # 4. 마인드맵 생성 (핵심 기능)
-        yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 85, 'message': 'LLM으로 마인드맵 생성 중...'})}\n\n"
+        # 2. 마인드맵 생성 (자막 기반)
+        yield f"data: {json.dumps({'status': 'creating_mindmap', 'progress': 60, 'message': 'LLM으로 마인드맵 생성 중...'})}\n\n"
         await asyncio.sleep(0.1)
 
         mindmap = create_mindmap_from_llm(
-            video_title=video_info['title'],
-            frame_analyses=frame_analyses,
+            video_title=f"YouTube Video {video_id}",
+            frame_analyses=[],  # 프레임 분석 없음
             transcript=transcript,
-            user_query=user_prompt,  # 사용자 프롬프트를 마인드맵 생성에 활용
+            user_query=user_prompt,
             youtube_url=youtube_url
         )
 
         yield f"data: {json.dumps({'status': 'mindmap_complete', 'progress': 95, 'message': '마인드맵 생성 완료'})}\n\n"
         await asyncio.sleep(0.1)
-
-        # Summary와 Key Points는 내부적으로 생성하지만 UI에 표시하지 않음
-        summary = None
-        key_points = None
 
         # 최종 결과
         result = {
@@ -981,9 +831,9 @@ async def analyze_video_stream(
             "created_at": datetime.now().isoformat(),
             "completed_at": datetime.now().isoformat(),
             "video_info": video_info,
-            "summary": summary,
-            "key_points": key_points,
-            "frame_analyses": frame_analyses,
+            "summary": None,  # 자막 기반이므로 summary 제외
+            "key_points": None,  # 자막 기반이므로 key_points 제외
+            "frame_analyses": [],  # 프레임 분석 없음
             "transcript": transcript,
             "mindmap": mindmap.dict()  # 마인드맵 데이터 (항상 존재)
         }
@@ -995,15 +845,6 @@ async def analyze_video_stream(
         logger.error(f"분석 중 오류 발생: {error_msg}")
         yield f"data: {json.dumps({'status': 'failed', 'error': error_msg})}\n\n"
 
-    finally:
-        # 임시 디렉토리 정리
-        import shutil
-        if os.path.exists(output_dir):
-            try:
-                shutil.rmtree(output_dir)
-            except Exception as e:
-                logger.warning(f"임시 디렉토리 삭제 실패: {e}")
-
 
 # ============================================================================
 # API 엔드포인트
@@ -1014,11 +855,12 @@ def root():
     """API 정보"""
     return {
         "name": "AI Analysis API - Video, Image & Text",
-        "version": "1.0.0",
-        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 멀티모달 분석 및 마인드맵 생성",
+        "version": "2.0.0",
+        "description": "Llama 3.2 Vision + Llama 3.1을 사용한 멀티모달 분석 및 마인드맵 생성 (자막 기반)",
+        "note": "YouTube 분석은 영상 다운로드 없이 ngrok 서버를 통한 자막만 사용합니다",
         "endpoints": {
-            "POST /analyze/youtube": "YouTube 영상 분석 (스트리밍)",
-            "POST /analyze/youtube/sync": "YouTube 영상 분석 (동기식)",
+            "POST /analyze/youtube": "YouTube 영상 분석 (스트리밍, 자막 기반)",
+            "POST /analyze/youtube/sync": "YouTube 영상 분석 (동기식, 자막 기반)",
             "POST /analyze/image": "이미지 URL 분석 (스트리밍)",
             "POST /analyze/text": "텍스트 프롬프트 분석 (스트리밍)",
             "GET /tasks/{task_id}": "작업 상태 및 결과 조회",
@@ -1032,13 +874,15 @@ def root():
 @app.post("/analyze/youtube")
 async def analyze_video(request: AnalyzeRequest):
     """
-    YouTube 영상 분석 (스트리밍 - 실시간 진행 상황 + 최종 결과)
+    YouTube 영상 분석 (스트리밍 - 자막 기반)
 
     Server-Sent Events (SSE) 형식으로 실시간 진행 상황을 전달합니다.
 
+    ⚠️ **중요**: 이 API는 영상 다운로드를 하지 않고 자막만 사용합니다.
+    ngrok 서버를 통해 자막을 가져와서 마인드맵을 생성합니다.
+
     - **youtube_url**: YouTube 영상 URL
-    - **max_frames**: 최대 추출 프레임 수 (기본: 8)
-    - **proxy**: 프록시 서버 (선택)
+    - **user_prompt**: 사용자 질문/프롬프트 (선택)
 
     ### 응답 형식 (SSE)
     각 이벤트는 다음 형식으로 전달됩니다:
@@ -1048,17 +892,10 @@ async def analyze_video(request: AnalyzeRequest):
 
     ### 상태 종류
     - `started`: 분석 시작
-    - `downloading`: 영상 다운로드 중
-    - `download_complete`: 다운로드 완료
-    - `extracting_frames`: 프레임 추출 중
-    - `frames_extracted`: 프레임 추출 완료
-    - `extracting_transcript`: 자막 추출 중
+    - `extracting_transcript`: ngrok 서버로부터 자막 추출 중
     - `transcript_extracted`: 자막 추출 완료
-    - `analyzing_vision`: Vision 모델 분석 중
-    - `vision_complete`: Vision 분석 완료
-    - `analyzing_text`: Text 모델 분석 중
-    - `summary_complete`: 요약 생성 완료
-    - `extracting_keypoints`: 핵심 포인트 추출 중
+    - `creating_mindmap`: 마인드맵 생성 중
+    - `mindmap_complete`: 마인드맵 생성 완료
     - `completed`: 분석 완료 (result 포함)
     - `failed`: 오류 발생 (error 포함)
     """
@@ -1076,13 +913,15 @@ async def analyze_video(request: AnalyzeRequest):
 @app.post("/analyze/youtube/sync", response_model=AnalysisResult)
 def analyze_video_sync_endpoint(request: AnalyzeRequest):
     """
-    YouTube 영상 분석 (동기식 - 분석 완료 후 결과 반환)
+    YouTube 영상 분석 (동기식 - 자막 기반)
+
+    ⚠️ **중요**: 이 API는 영상 다운로드를 하지 않고 자막만 사용합니다.
+    ngrok 서버를 통해 자막을 가져와서 마인드맵을 생성합니다.
 
     타임아웃이 발생할 수 있으므로 /analyze/youtube (스트리밍) 사용을 권장합니다.
 
     - **youtube_url**: YouTube 영상 URL
-    - **max_frames**: 최대 추출 프레임 수 (기본: 8)
-    - **proxy**: 프록시 서버 (선택)
+    - **user_prompt**: 사용자 질문/프롬프트 (선택)
     """
     result = analyze_video_sync(
         youtube_url=str(request.youtube_url),
