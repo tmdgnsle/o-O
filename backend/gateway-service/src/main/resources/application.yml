@@ -85,3 +85,14 @@ springdoc:
       - name: mindmap-service
         url: /mindmap-service/v3/api-docs
     urls-primary-name: user-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info   # 필요하면 '*' (운영에선 health 정도 권장)
+  endpoint:
+    health:
+      probes:
+        enabled: true          # /actuator/health/liveness, /readiness 자동 생성
+      show-details: never      # 운영 기본값. 필요시 when_authorized
