@@ -4,7 +4,9 @@ import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.AiNodeDto;
-import com.ssafy.mindmapservice.dto.ParentContextDto;
+import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
+import com.ssafy.mindmapservice.dto.NodeContextDto;
 import com.ssafy.mindmapservice.kafka.AiAnalysisProducer;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
@@ -82,9 +84,6 @@ public class NodeService {
         if (updates.getContentUrl() != null) {
             existingNode.setContentUrl(updates.getContentUrl());
         }
-        if (updates.getAiSummary() != null) {
-            existingNode.setAiSummary(updates.getAiSummary());
-        }
         if (updates.getAnalysisStatus() != null) {
             existingNode.setAnalysisStatus(updates.getAnalysisStatus());
         }
@@ -157,7 +156,6 @@ public class NodeService {
                         .keyword(node.getKeyword())
                         .memo(node.getMemo())
                         .contentUrl(node.getContentUrl())
-                        .aiSummary(node.getAiSummary())
                         .analysisStatus(node.getAnalysisStatus())
                         .x(node.getX())
                         .y(node.getY())
@@ -182,10 +180,14 @@ public class NodeService {
      * @param nodeId 시작 노드 ID
      * @return 조상 노드들의 컨텍스트 정보 (루트부터 현재 노드까지)
      */
-    public List<ParentContextDto> getAncestorContext(Long workspaceId, Long nodeId) {
+    /**
+     * 노드의 조상 경로를 수집합니다 (CONTEXTUAL 분석용)
+     * nodeId부터 루트까지의 모든 노드 정보를 수집하여 반환합니다.
+     */
+    public List<NodeContextDto> getAncestorContext(Long workspaceId, Long nodeId) {
         log.debug("Collecting ancestor context: workspaceId={}, startNodeId={}", workspaceId, nodeId);
 
-        List<ParentContextDto> context = new ArrayList<>();
+        List<NodeContextDto> context = new ArrayList<>();
         Long currentNodeId = nodeId;
         int depth = 0;
         final int MAX_DEPTH = 100; // 순환 참조 방지
@@ -196,8 +198,9 @@ public class NodeService {
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Node not found: workspaceId=" + workspaceId + ", nodeId=" + finalNodeId));
 
-            context.add(new ParentContextDto(
+            context.add(new NodeContextDto(
                     node.getNodeId(),
+                    node.getParentId(),
                     node.getKeyword(),
                     node.getMemo()
             ));
@@ -340,7 +343,7 @@ public class NodeService {
      * @param analysisType "INITIAL" or "CONTEXTUAL"
      */
     public void requestAiAnalysis(Long workspaceId, Long nodeId, String contentUrl,
-                                  String contentType, String prompt, String userId,
+                                  String contentType, String prompt,
                                   String analysisType) {
         log.info("Requesting AI analysis: workspaceId={}, nodeId={}, type={}, contentType={}",
                 workspaceId, nodeId, analysisType, contentType);
@@ -349,11 +352,11 @@ public class NodeService {
         MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
                 .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
 
-        // 2. 부모 컨텍스트 수집 (CONTEXTUAL인 경우)
-        List<ParentContextDto> parentContext = null;
+        // 2. 노드 컨텍스트 수집 (CONTEXTUAL인 경우)
+        List<NodeContextDto> nodes = null;
         if ("CONTEXTUAL".equals(analysisType)) {
-            parentContext = getAncestorContext(workspaceId, nodeId);
-            log.debug("Collected parent context with {} nodes", parentContext.size());
+            nodes = getAncestorContext(workspaceId, nodeId);
+            log.debug("Collected node context with {} nodes", nodes.size());
         }
 
         // 3. 분석 상태를 PENDING으로 변경
@@ -371,13 +374,78 @@ public class NodeService {
                 contentUrl,
                 contentType,
                 prompt,
-                userId,
                 analysisType,
-                parentContext
+                nodes
         );
 
         aiAnalysisProducer.sendAnalysisRequest(request);
 
         log.info("AI analysis request sent successfully: nodeId={}, type={}", nodeId, analysisType);
+    }
+
+    /**
+     * 홈 화면에서 새 마인드맵을 생성합니다.
+     * 1. 워크스페이스 생성 (workspace-service 호출)
+     * 2. 첫 번째 노드 생성
+     * 3. INITIAL AI 분석 요청 (Kafka)
+     * 4. 생성 정보 반환
+     *
+     * @param request 초기 마인드맵 생성 요청
+     * @return 생성된 워크스페이스 및 노드 정보
+     */
+    @Transactional
+    public InitialMindmapResponse createInitialMindmap(InitialMindmapRequest request) {
+        log.info("Creating initial mindmap: workspaceName={}, contentType={}",
+                request.workspaceName(), request.contentType());
+
+        // 1. 워크스페이스 생성 (workspace-service 호출)
+        Long workspaceId = workspaceServiceClient.createWorkspace(
+                request.workspaceName(),
+                request.workspaceDescription()
+        );
+        log.info("Workspace created: workspaceId={}", workspaceId);
+
+        // 2. 첫 번째 노드 생성
+        String nodeKeyword = request.keyword() != null && !request.keyword().isBlank()
+                ? request.keyword()
+                : request.workspaceName(); // keyword가 없으면 워크스페이스 이름 사용
+
+        MindmapNode firstNode = MindmapNode.builder()
+                .workspaceId(workspaceId)
+                .parentId(null) // 루트 노드
+                .type("root")
+                .keyword(nodeKeyword)
+                .memo("")
+                .contentUrl(request.contentUrl())
+                .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                .build();
+
+        MindmapNode createdNode = createNode(firstNode);
+        log.info("First node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
+
+        // 3. INITIAL AI 분석 요청 (Kafka)
+        AiAnalysisRequest analysisRequest = new AiAnalysisRequest(
+                workspaceId,
+                createdNode.getNodeId(),
+                request.contentUrl(),
+                request.contentType(),
+                request.prompt(),
+                "INITIAL",
+                null // INITIAL 요청에서는 nodes = null
+        );
+
+        aiAnalysisProducer.sendAnalysisRequest(analysisRequest);
+        log.info("INITIAL AI analysis request sent: workspaceId={}, nodeId={}",
+                workspaceId, createdNode.getNodeId());
+
+        // 4. 응답 생성
+        return new InitialMindmapResponse(
+                workspaceId,
+                createdNode.getNodeId(),
+                createdNode.getKeyword(),
+                createdNode.getMemo(),
+                createdNode.getAnalysisStatus().name(),
+                "마인드맵이 생성되었습니다. AI 분석이 진행 중입니다."
+        );
     }
 }
