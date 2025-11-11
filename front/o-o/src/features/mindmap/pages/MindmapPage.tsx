@@ -9,6 +9,7 @@ import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
 import CytoscapeCanvas from "../components/CytoscapeCanvas";
 import VoiceChat from "../components/VoiceChat/VoiceChat";
+import { fetchMindmapNodes } from "@/services/mindmapService";
 import type {
   NodeData,
   MindmapMode,
@@ -33,6 +34,13 @@ import {
   buildMindmapShareLink,
 } from "../collaboration/constants";
 
+// Tracks peer cursor metadata broadcast over Yjs awareness
+type CursorAwareness = {
+  x: number;
+  y: number;
+  color?: string;
+};
+
 const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
@@ -51,6 +59,20 @@ const MindmapPageContent: React.FC = () => {
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
 
+  // Prevents duplicate REST bootstraps per workspace
+  const hasBootstrappedRef = useRef(false);
+  // Stable color used for local awareness cursor
+  const cursorColorRef = useRef<string | null>(null);
+  // Keeps remote awareness cursors mirrored in React state
+  const [peerCursors, setPeerCursors] = useState<Record<number, CursorAwareness>>({});
+  // Derived count used for instrumentation/testing hooks
+  const remoteCursorCount = useMemo(() => Object.keys(peerCursors).length, [peerCursors]);
+
+  // Lazily assign cursor color once per session
+  if (!cursorColorRef.current) {
+    cursorColorRef.current = getRandomThemeColor();
+  }
+
   useEffect(() => {
     const client = createYClient(wsUrl, roomId);
     const map = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
@@ -61,6 +83,53 @@ const MindmapPageContent: React.FC = () => {
       client.destroy();
     };
   }, [roomId, wsUrl]);
+
+  // Reset bootstrap guard whenever the workspace changes
+  useEffect(() => {
+    hasBootstrappedRef.current = false;
+  }, [workspaceId]);
+
+  // Seed the collaborative document with REST data exactly once
+  useEffect(() => {
+    if (!collab || hasBootstrappedRef.current) {
+      return;
+    }
+
+    if (collab.map.size > 0) {
+      hasBootstrappedRef.current = true;
+      return;
+    }
+
+    hasBootstrappedRef.current = true;
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const restNodes = await fetchMindmapNodes(workspaceId);
+        if (cancelled || restNodes.length === 0) {
+          return;
+        }
+        collab.client.doc.transact(() => {
+          restNodes.forEach((node) => {
+            if (!collab.map.has(node.id)) {
+              collab.map.set(node.id, node);
+            }
+          });
+        }, "mindmap-bootstrap");
+      } catch (error) {
+        if (!cancelled) {
+          hasBootstrappedRef.current = false;
+          console.error("[MindmapPage] Failed to bootstrap nodes:", error);
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collab, workspaceId]);
 
   const nodesState = useYMapState<NodeData>(collab?.map);
   const nodes = useMemo<NodeData[]>(() => Object.values(nodesState), [nodesState]);
@@ -321,6 +390,51 @@ const MindmapPageContent: React.FC = () => {
     });
   }, [nodes]);
 
+  // Mirror y-websocket awareness updates into React state
+  useEffect(() => {
+    if (!collab) {
+      return;
+    }
+
+    const awareness = collab.client.provider.awareness;
+    if (!awareness) {
+      return;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      awareness.setLocalStateField("cursor", {
+        x: event.clientX,
+        y: event.clientY,
+        color: cursorColorRef.current,
+      });
+    };
+
+    const handleAwarenessChange = () => {
+      const next: Record<number, CursorAwareness> = {};
+      awareness.getStates().forEach((state, clientId) => {
+        if (clientId === awareness.clientID) {
+          return;
+        }
+
+        const cursorState = (state as { cursor?: CursorAwareness }).cursor;
+        if (cursorState) {
+          next[clientId] = cursorState;
+        }
+      });
+      setPeerCursors(next);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    awareness.on("change", handleAwarenessChange);
+    handleAwarenessChange();
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      awareness.off("change", handleAwarenessChange);
+      awareness.setLocalStateField("cursor", null);
+    };
+  }, [collab]);
+
   const selectedAnalyzeNodes = useMemo(
     () => nodes.filter((node) => analyzeSelection.includes(node.id)),
     [nodes, analyzeSelection]
@@ -341,7 +455,7 @@ const MindmapPageContent: React.FC = () => {
   }
 
   return(
-    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden'>
+    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden' data-remote-cursors={remoteCursorCount}>
       {/* Fixed UI Elements */}
       <div className='fixed top-4 left-4 z-50'>
         <MiniNav />

@@ -4,7 +4,7 @@ import { WebsocketProvider } from "y-websocket";
 export type YClient = {
   doc: Y.Doc;
   provider: WebsocketProvider;
-  roomId: string;
+  workspaceId: string;
   connect: () => void;
   disconnect: () => void;
   destroy: () => void;
@@ -17,11 +17,12 @@ export type YClient = {
  */
 export const createYClient = (
   wsUrl: string,
-  roomId: string,
+  workspaceId: string,
   options?: { connect?: boolean }
 ): YClient => {
   const doc = new Y.Doc();
-  const provider = new WebsocketProvider(wsUrl, roomId, doc, {
+  // Allows callers to pick the websocket endpoint and defer auto-connect when needed
+  const provider = new WebsocketProvider(wsUrl, workspaceId, doc, {
     connect: options?.connect ?? true,
   });
 
@@ -39,7 +40,7 @@ export const createYClient = (
   return {
     doc,
     provider,
-    roomId,
+    workspaceId,
     connect,
     disconnect,
     destroy,

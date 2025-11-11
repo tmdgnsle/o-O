@@ -1,5 +1,5 @@
 // ============================================
-// Component Props Types
+// Mindmap UI Component Props Types
 // ============================================
 
 // NodeAddInput.tsx
@@ -107,15 +107,28 @@ export type TextboxProps = Readonly<{
 
 // ============================================
 // Data Types
+//  Yjs · REST API · Redux가 동일한 데이터 구조를 공유하도록 함
 // ============================================
 
+export type MindmapNodeType = "text" | "image" | "link";
+
+export type NodeAnalysisStatus = "NONE" | "PENDING" | "DONE";
+
+// Mindmap nodes can carry optional metadata from REST → Yjs → UI
 export type NodeData = {
   id: string;
   text: string;
   x: number;
   y: number;
   color: string;
-  parentId?: string;
+  parentId?: string | null;
+  memo?: string;
+  type?: MindmapNodeType;
+  contentUrl?: string;
+  analysisStatus?: NodeAnalysisStatus;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ChildNodeRequest = {
@@ -124,10 +137,6 @@ export type ChildNodeRequest = {
   parentY: number;
   text: string;
 };
-
-// ============================================
-//  Yjs · REST API · Redux가 동일한 데이터 구조를 공유하도록 함
-// ============================================
 
 export type DeleteNodePayload = {
   nodeId: string;
