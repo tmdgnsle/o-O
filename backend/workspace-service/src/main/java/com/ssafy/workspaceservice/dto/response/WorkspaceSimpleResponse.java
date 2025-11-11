@@ -10,12 +10,17 @@ public record WorkspaceSimpleResponse(
         String title,
         WorkspaceVisibility visibility,
         LocalDateTime createdAt,
-        String thumbnail
+        String thumbnail,
+        String startPrompt
 ) {
     public static WorkspaceSimpleResponse from(Workspace w) {
         return new WorkspaceSimpleResponse(
-                w.getId(), w.getTitle(), w.getVisibility(), w.getCreatedAt(), w.getThumbnail()
+                w.getId(),
+                w.getTitle(),
+                w.getVisibility(),
+                w.getCreatedAt(),
+                w.getThumbnail(),
+                w.getStartPrompt()
         );
     }
 }
-// 목록 표시에 필요한 최소 정보. 최신순 조회에서 가벼운 응답

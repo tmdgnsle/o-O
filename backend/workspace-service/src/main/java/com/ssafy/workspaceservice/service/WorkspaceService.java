@@ -163,7 +163,7 @@ public class WorkspaceService {
 
         // nextCursor는 마지막 항목의 id
         Long nextCursor = hasNext && !content.isEmpty()
-                ? content.get(content.size() - 1).id()
+                ? content.getLast().id()
                 : null;
 
         return WorkspaceCursorResponse.of(content, nextCursor, hasNext);

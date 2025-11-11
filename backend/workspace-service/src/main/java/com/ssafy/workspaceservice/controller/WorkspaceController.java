@@ -156,7 +156,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "400", content = @Content, description = "잘못된 날짜 형식 또는 범위")
     })
-    @GetMapping("/calendar")
+    @GetMapping("my/calendar")
     public ResponseEntity<List<WorkspaceCalendarDailyResponse>> calendar(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId,
