@@ -16,7 +16,7 @@ export function Navigation({ isLoggedIn, getNavLinkClass }: NavigationProps) {
       <NavLink to="/trend" className={getNavLinkClass}>
         Trend
       </NavLink>
-      {isLoggedIn && (
+      {/* {isLoggedIn && (
         <>
           <NavLink to="/new-project" className={getNavLinkClass}>
             New Project
@@ -25,7 +25,15 @@ export function Navigation({ isLoggedIn, getNavLinkClass }: NavigationProps) {
             My Page
           </NavLink>
         </>
-      )}
+      )} */}
+
+      <NavLink to="/new-project" className={getNavLinkClass}>
+        New Project
+      </NavLink>
+      <NavLink to="/mypage" className={getNavLinkClass}>
+        My Page
+      </NavLink>
+
     </nav>
   );
 }
