@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/di/injection_container.dart' as di;
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/record/presentation/bloc/record_bloc.dart';
 import 'features/recording/presentation/bloc/recording_bloc.dart';
 import 'features/user/presentation/bloc/user_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // 환경 변수 로드
+  await dotenv.load(fileName: ".env");
 
   // 시스템 UI 설정 - 상태바/네비게이션바 투명화
   SystemChrome.setSystemUIOverlayStyle(
@@ -35,9 +42,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // AuthBloc Provider
+        // AuthBloc Provider - 앱 시작 시 자동 로그인 체크
         BlocProvider(
-          create: (context) => di.sl<AuthBloc>(),
+          create: (context) => di.sl<AuthBloc>()
+            ..add(const AuthEvent.checkAuthStatus()),
         ),
         // UserBloc Provider
         BlocProvider(
@@ -52,14 +60,16 @@ class MyApp extends StatelessWidget {
           create: (context) => di.sl<RecordBloc>(),
         ),
       ],
-      child: MaterialApp.router(
-        title: 'o_o Project',
-        theme: ThemeData(
-          useMaterial3: true,
-          fontFamily: 'Paperlogy',
+      child: Builder(
+        builder: (context) => MaterialApp.router(
+          title: 'o-O',
+          theme: ThemeData(
+            useMaterial3: true,
+            fontFamily: 'Paperlogy',
+          ),
+          routerConfig: AppRouter.router(context),
+          debugShowCheckedModeBanner: false,
         ),
-        routerConfig: AppRouter.router,
-        debugShowCheckedModeBanner: false,
       ),
     );
   }

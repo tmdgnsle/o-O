@@ -120,7 +120,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                   ),
                                   child: Icon(
                                     Icons.search,
-                                    color: AppColors.semi_black,
+                                    color: AppColors.semiBlack,
                                     size: 24,
                                   ),
                                 ),
@@ -143,7 +143,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                       const SizedBox(width: 16),
                                       Icon(
                                         Icons.search,
-                                        color: AppColors.deep_gray,
+                                        color: AppColors.deepGray,
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
@@ -156,7 +156,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                             hintText: '검색어를 입력하세요.',
                                             hintStyle: AppTextStyles.regular16
                                                 .copyWith(
-                                                  color: AppColors.deep_gray,
+                                                  color: AppColors.deepGray,
                                                 ),
                                             border: InputBorder.none,
                                             isDense: true,
@@ -164,14 +164,14 @@ class _RecordListPageState extends State<RecordListPage> {
                                           ),
                                           style: AppTextStyles.regular16
                                               .copyWith(
-                                                color: AppColors.semi_black,
+                                                color: AppColors.semiBlack,
                                               ),
                                         ),
                                       ),
                                       IconButton(
                                         icon: Icon(
                                           Icons.close,
-                                          color: AppColors.deep_gray,
+                                          color: AppColors.deepGray,
                                           size: 20,
                                         ),
                                         onPressed: _toggleSearch,
@@ -272,7 +272,7 @@ class _RecordListPageState extends State<RecordListPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('녹음 기록이 삭제되었습니다'),
-                      backgroundColor: AppColors.deep_blue,
+                      backgroundColor: AppColors.deepBlue,
                     ),
                   );
                 },
@@ -297,7 +297,7 @@ class _RecordListPageState extends State<RecordListPage> {
                         const Expanded(
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.deep_blue,
+                              color: AppColors.deepBlue,
                             ),
                           ),
                         ),
@@ -335,7 +335,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                   Text(
                                     '검색 결과가 없습니다',
                                     style: AppTextStyles.regular16.copyWith(
-                                      color: AppColors.deep_gray,
+                                      color: AppColors.deepGray,
                                     ),
                                   ),
                                 ],
@@ -376,7 +376,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                 Text(
                                   '저장된 아이디어가 없습니다.',
                                   style: AppTextStyles.semiBold20.copyWith(
-                                    color: AppColors.semi_black,
+                                    color: AppColors.semiBlack,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -393,7 +393,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                 Text(
                                   '지금 떠오르는 생각을\nPopo에게 말해주세요.',
                                   style: AppTextStyles.semiBold20.copyWith(
-                                    color: AppColors.semi_black,
+                                    color: AppColors.semiBlack,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -402,7 +402,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                 ElevatedButton(
                                   onPressed: () => context.go('/'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.deep_blue,
+                                    backgroundColor: AppColors.deepBlue,
                                     foregroundColor: AppColors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -455,7 +455,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('아직 마인드맵이 생성되지 않았습니다'),
-                                      backgroundColor: AppColors.deep_gray,
+                                      backgroundColor: AppColors.deepGray,
                                     ),
                                   );
                                 }
@@ -486,7 +486,7 @@ class _RecordListPageState extends State<RecordListPage> {
                         const Expanded(
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.deep_blue,
+                              color: AppColors.deepBlue,
                             ),
                           ),
                         ),
@@ -522,7 +522,7 @@ class _RecordListPageState extends State<RecordListPage> {
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.deep_blue,
+                                    backgroundColor: AppColors.deepBlue,
                                     foregroundColor: AppColors.white,
                                   ),
                                   child: const Text('다시 시도'),
@@ -557,7 +557,7 @@ class _RecordListPageState extends State<RecordListPage> {
                 child: Text(
                   '취소',
                   style: AppTextStyles.regular16.copyWith(
-                    color: AppColors.deep_gray,
+                    color: AppColors.deepGray,
                   ),
                 ),
               ),

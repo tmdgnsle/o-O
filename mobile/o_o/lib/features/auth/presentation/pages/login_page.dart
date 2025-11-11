@@ -38,7 +38,12 @@ class LoginPage extends StatelessWidget {
               error: (message) {
                 // 에러 메시지 표시
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(message), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text(message),
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               },
             );

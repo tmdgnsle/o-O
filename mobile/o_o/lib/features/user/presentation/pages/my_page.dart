@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
@@ -9,6 +10,10 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/di/injection_container.dart';
+import '../bloc/user_bloc.dart';
+import '../bloc/user_event.dart';
+import '../bloc/user_state.dart';
 
 /// 키워드 구슬 데이터
 class KeywordMarble {
@@ -97,7 +102,7 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
       text: TextSpan(
         text: keyword,
         style: TextStyle(
-          color: AppColors.semi_black,
+          color: AppColors.semiBlack,
           fontSize: (radius * 0.35).clamp(10, 18),
           fontWeight: FontWeight.bold,
         ),
@@ -234,14 +239,26 @@ class MarblePhysicsGame extends Forge2DGame {
 }
 
 /// 마이페이지
-class MyPage extends StatefulWidget {
+class MyPage extends StatelessWidget {
   const MyPage({super.key});
 
   @override
-  State<MyPage> createState() => _MyPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => sl<UserBloc>()..add(const UserEvent.load()),
+      child: const _MyPageContent(),
+    );
+  }
 }
 
-class _MyPageState extends State<MyPage> {
+class _MyPageContent extends StatefulWidget {
+  const _MyPageContent();
+
+  @override
+  State<_MyPageContent> createState() => _MyPageState();
+}
+
+class _MyPageState extends State<_MyPageContent> {
   late List<KeywordMarble> marbles;
   MarblePhysicsGame? game;
   final Random random = Random();
@@ -362,20 +379,39 @@ class _MyPageState extends State<MyPage> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // 사용자 이름
-                  Text(
-                    '한동근',
-                    style: AppTextStyles.semiBold20.copyWith(
-                      color: AppColors.semi_black,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 이메일
-                  Text(
-                    'dongri@gmail.com',
-                    style: AppTextStyles.regular15.copyWith(
-                      color: AppColors.black_gray,
-                    ),
+                  // 사용자 정보 (API 연동)
+                  BlocBuilder<UserBloc, UserState>(
+                    builder: (context, state) {
+                      return state.when(
+                        initial: () => const SizedBox.shrink(),
+                        loading: () => const CircularProgressIndicator(),
+                        loaded: (user) => Column(
+                          children: [
+                            // 닉네임
+                            Text(
+                              user.nickname,
+                              style: AppTextStyles.semiBold20.copyWith(
+                                color: AppColors.semiBlack,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // 이메일
+                            Text(
+                              user.email,
+                              style: AppTextStyles.regular15.copyWith(
+                                color: AppColors.blackGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                        error: (message) => Text(
+                          message,
+                          style: AppTextStyles.regular16.copyWith(
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

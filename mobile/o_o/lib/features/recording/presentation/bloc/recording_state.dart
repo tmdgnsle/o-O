@@ -9,13 +9,19 @@ class RecordingState with _$RecordingState {
   const factory RecordingState.initial() = RecordingInitial;
 
   /// 녹음 중
-  const factory RecordingState.recording() = RecordingInProgress;
+  const factory RecordingState.recording({
+    @Default('') String recognizedText,
+  }) = RecordingInProgress;
 
   /// 녹음 일시정지
-  const factory RecordingState.paused() = RecordingPaused;
+  const factory RecordingState.paused({
+    @Default('') String recognizedText,
+  }) = RecordingPaused;
 
   /// 녹음 중지
-  const factory RecordingState.stopped({String? filePath}) = RecordingStopped;
+  const factory RecordingState.stopped({
+    required String recognizedText,
+  }) = RecordingStopped;
 
   /// 에러
   const factory RecordingState.error({required String message}) = RecordingError;

@@ -1,25 +1,81 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 
-import '../../features/auth/data/repositories/auth_repository_mock.dart';
+import '../../features/auth/data/datasources/auth_api_data_source.dart';
+import '../../features/auth/data/datasources/auth_local_data_source.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/record/data/repositories/record_repository_mock.dart';
 import '../../features/record/domain/repositories/record_repository.dart';
 import '../../features/record/domain/usecases/get_records.dart';
 import '../../features/record/presentation/bloc/record_bloc.dart';
-import '../../features/recording/data/repositories/recording_repository_mock.dart';
+import '../../features/recording/data/repositories/recording_repository_impl.dart';
 import '../../features/recording/domain/repositories/recording_repository.dart';
+import '../../features/recording/domain/usecases/pause_recording.dart';
+import '../../features/recording/domain/usecases/resume_recording.dart';
 import '../../features/recording/domain/usecases/start_recording.dart';
 import '../../features/recording/domain/usecases/stop_recording.dart';
 import '../../features/recording/presentation/bloc/recording_bloc.dart';
-import '../../features/user/data/repositories/user_repository_mock.dart';
+import '../../features/user/data/datasources/user_api_data_source.dart';
+import '../../features/user/data/repositories/user_repository_impl.dart';
 import '../../features/user/domain/repositories/user_repository.dart';
+import '../../features/user/domain/usecases/get_user_info.dart';
 import '../../features/user/presentation/bloc/user_bloc.dart';
+import '../../features/workspace/data/datasources/workspace_api_data_source.dart';
+import '../../features/workspace/data/repositories/workspace_repository_impl.dart';
+import '../../features/workspace/domain/repositories/workspace_repository.dart';
+import '../../features/workspace/domain/usecases/get_workspaces.dart';
+import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
+import '../constants/api_constants.dart';
+import '../network/auth_interceptor.dart';
 
 final sl = GetIt.instance;
 
 /// Initialize all dependencies
 Future<void> init() async {
+  //! External
+  // FlutterSecureStorage
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
+  sl.registerLazySingleton(() => secureStorage);
+
+  // AuthLocalDataSource (Dio보다 먼저 등록 - 인터셉터에서 사용)
+  sl.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(secureStorage: sl()),
+  );
+
+  // Dio (AuthInterceptor 포함)
+  sl.registerLazySingleton(
+    () {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConstants.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      // AuthInterceptor 추가
+      dio.interceptors.add(
+        AuthInterceptor(
+          localDataSource: sl<AuthLocalDataSource>(),
+          dio: dio,
+        ),
+      );
+
+      return dio;
+    },
+  );
+
   //! Features - Auth
   // Bloc
   sl.registerFactory(
@@ -28,24 +84,45 @@ Future<void> init() async {
     ),
   );
 
-  // Repository (Mock)
-  // TODO: 실제 Google Sign-In 구현 시 AuthRepositoryImpl로 교체
+  // Repository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryMock(),
+    () => AuthRepositoryImpl(
+      remoteDataSource: sl(),
+      apiDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(),
+  );
+
+  sl.registerLazySingleton<AuthApiDataSource>(
+    () => AuthApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - User
   // Bloc
   sl.registerFactory(
     () => UserBloc(
-      repository: sl(),
+      getUserInfo: sl(),
     ),
   );
 
-  // Repository (Mock)
-  // TODO: 실제 API 구현 시 UserRepositoryImpl로 교체
+  // Use cases
+  sl.registerLazySingleton(() => GetUserInfo(sl()));
+
+  // Repository
   sl.registerLazySingleton<UserRepository>(
-    () => UserRepositoryMock(),
+    () => UserRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<UserApiDataSource>(
+    () => UserApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Recording
@@ -54,17 +131,21 @@ Future<void> init() async {
     () => RecordingBloc(
       startRecording: sl(),
       stopRecording: sl(),
+      pauseRecording: sl(),
+      resumeRecording: sl(),
+      repository: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => StartRecording(sl()));
   sl.registerLazySingleton(() => StopRecording(sl()));
+  sl.registerLazySingleton(() => PauseRecording(sl()));
+  sl.registerLazySingleton(() => ResumeRecording(sl()));
 
-  // Repository (Mock)
-  // TODO: 실제 녹음 기능 구현 시 RecordingRepositoryImpl로 교체
+  // Repository (Real Implementation with STT)
   sl.registerLazySingleton<RecordingRepository>(
-    () => RecordingRepositoryMock(),
+    () => RecordingRepositoryImpl(),
   );
 
   //! Features - Record
@@ -83,6 +164,29 @@ Future<void> init() async {
   // TODO: 실제 API 구현 시 RecordRepositoryImpl로 교체
   sl.registerLazySingleton<RecordRepository>(
     () => RecordRepositoryMock(),
+  );
+
+  //! Features - Workspace
+  // Bloc
+  sl.registerFactory(
+    () => WorkspaceBloc(
+      getWorkspaces: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetWorkspaces(sl()));
+
+  // Repository
+  sl.registerLazySingleton<WorkspaceRepository>(
+    () => WorkspaceRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<WorkspaceApiDataSource>(
+    () => WorkspaceApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Example
@@ -116,10 +220,4 @@ Future<void> init() async {
 
   //! Core
   // sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
-
-  //! External
-  // final sharedPreferences = await SharedPreferences.getInstance();
-  // sl.registerLazySingleton(() => sharedPreferences);
-  // sl.registerLazySingleton(() => http.Client());
-  // sl.registerLazySingleton(() => InternetConnectionChecker());
 }

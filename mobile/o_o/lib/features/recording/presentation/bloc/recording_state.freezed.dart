@@ -20,25 +20,25 @@ mixin _$RecordingState {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
@@ -135,9 +135,9 @@ class _$RecordingInitialImpl implements RecordingInitial {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) {
     return initial();
@@ -147,9 +147,9 @@ class _$RecordingInitialImpl implements RecordingInitial {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) {
     return initial?.call();
@@ -159,9 +159,9 @@ class _$RecordingInitialImpl implements RecordingInitial {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -222,6 +222,8 @@ abstract class _$$RecordingInProgressImplCopyWith<$Res> {
     _$RecordingInProgressImpl value,
     $Res Function(_$RecordingInProgressImpl) then,
   ) = __$$RecordingInProgressImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String recognizedText});
 }
 
 /// @nodoc
@@ -235,64 +237,94 @@ class __$$RecordingInProgressImplCopyWithImpl<$Res>
 
   /// Create a copy of RecordingState
   /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? recognizedText = null}) {
+    return _then(
+      _$RecordingInProgressImpl(
+        recognizedText:
+            null == recognizedText
+                ? _value.recognizedText
+                : recognizedText // ignore: cast_nullable_to_non_nullable
+                    as String,
+      ),
+    );
+  }
 }
 
 /// @nodoc
 
 class _$RecordingInProgressImpl implements RecordingInProgress {
-  const _$RecordingInProgressImpl();
+  const _$RecordingInProgressImpl({this.recognizedText = ''});
+
+  @override
+  @JsonKey()
+  final String recognizedText;
 
   @override
   String toString() {
-    return 'RecordingState.recording()';
+    return 'RecordingState.recording(recognizedText: $recognizedText)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$RecordingInProgressImpl);
+            other is _$RecordingInProgressImpl &&
+            (identical(other.recognizedText, recognizedText) ||
+                other.recognizedText == recognizedText));
   }
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(runtimeType, recognizedText);
+
+  /// Create a copy of RecordingState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RecordingInProgressImplCopyWith<_$RecordingInProgressImpl> get copyWith =>
+      __$$RecordingInProgressImplCopyWithImpl<_$RecordingInProgressImpl>(
+        this,
+        _$identity,
+      );
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) {
-    return recording();
+    return recording(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) {
-    return recording?.call();
+    return recording?.call(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (recording != null) {
-      return recording();
+      return recording(recognizedText);
     }
     return orElse();
   }
@@ -339,7 +371,16 @@ class _$RecordingInProgressImpl implements RecordingInProgress {
 }
 
 abstract class RecordingInProgress implements RecordingState {
-  const factory RecordingInProgress() = _$RecordingInProgressImpl;
+  const factory RecordingInProgress({final String recognizedText}) =
+      _$RecordingInProgressImpl;
+
+  String get recognizedText;
+
+  /// Create a copy of RecordingState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$RecordingInProgressImplCopyWith<_$RecordingInProgressImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -348,6 +389,8 @@ abstract class _$$RecordingPausedImplCopyWith<$Res> {
     _$RecordingPausedImpl value,
     $Res Function(_$RecordingPausedImpl) then,
   ) = __$$RecordingPausedImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String recognizedText});
 }
 
 /// @nodoc
@@ -361,63 +404,94 @@ class __$$RecordingPausedImplCopyWithImpl<$Res>
 
   /// Create a copy of RecordingState
   /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? recognizedText = null}) {
+    return _then(
+      _$RecordingPausedImpl(
+        recognizedText:
+            null == recognizedText
+                ? _value.recognizedText
+                : recognizedText // ignore: cast_nullable_to_non_nullable
+                    as String,
+      ),
+    );
+  }
 }
 
 /// @nodoc
 
 class _$RecordingPausedImpl implements RecordingPaused {
-  const _$RecordingPausedImpl();
+  const _$RecordingPausedImpl({this.recognizedText = ''});
+
+  @override
+  @JsonKey()
+  final String recognizedText;
 
   @override
   String toString() {
-    return 'RecordingState.paused()';
+    return 'RecordingState.paused(recognizedText: $recognizedText)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$RecordingPausedImpl);
+        (other.runtimeType == runtimeType &&
+            other is _$RecordingPausedImpl &&
+            (identical(other.recognizedText, recognizedText) ||
+                other.recognizedText == recognizedText));
   }
 
   @override
-  int get hashCode => runtimeType.hashCode;
+  int get hashCode => Object.hash(runtimeType, recognizedText);
+
+  /// Create a copy of RecordingState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RecordingPausedImplCopyWith<_$RecordingPausedImpl> get copyWith =>
+      __$$RecordingPausedImplCopyWithImpl<_$RecordingPausedImpl>(
+        this,
+        _$identity,
+      );
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) {
-    return paused();
+    return paused(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) {
-    return paused?.call();
+    return paused?.call(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (paused != null) {
-      return paused();
+      return paused(recognizedText);
     }
     return orElse();
   }
@@ -464,7 +538,16 @@ class _$RecordingPausedImpl implements RecordingPaused {
 }
 
 abstract class RecordingPaused implements RecordingState {
-  const factory RecordingPaused() = _$RecordingPausedImpl;
+  const factory RecordingPaused({final String recognizedText}) =
+      _$RecordingPausedImpl;
+
+  String get recognizedText;
+
+  /// Create a copy of RecordingState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$RecordingPausedImplCopyWith<_$RecordingPausedImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -474,7 +557,7 @@ abstract class _$$RecordingStoppedImplCopyWith<$Res> {
     $Res Function(_$RecordingStoppedImpl) then,
   ) = __$$RecordingStoppedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String? filePath});
+  $Res call({String recognizedText});
 }
 
 /// @nodoc
@@ -490,14 +573,14 @@ class __$$RecordingStoppedImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? filePath = freezed}) {
+  $Res call({Object? recognizedText = null}) {
     return _then(
       _$RecordingStoppedImpl(
-        filePath:
-            freezed == filePath
-                ? _value.filePath
-                : filePath // ignore: cast_nullable_to_non_nullable
-                    as String?,
+        recognizedText:
+            null == recognizedText
+                ? _value.recognizedText
+                : recognizedText // ignore: cast_nullable_to_non_nullable
+                    as String,
       ),
     );
   }
@@ -506,14 +589,14 @@ class __$$RecordingStoppedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$RecordingStoppedImpl implements RecordingStopped {
-  const _$RecordingStoppedImpl({this.filePath});
+  const _$RecordingStoppedImpl({required this.recognizedText});
 
   @override
-  final String? filePath;
+  final String recognizedText;
 
   @override
   String toString() {
-    return 'RecordingState.stopped(filePath: $filePath)';
+    return 'RecordingState.stopped(recognizedText: $recognizedText)';
   }
 
   @override
@@ -521,12 +604,12 @@ class _$RecordingStoppedImpl implements RecordingStopped {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$RecordingStoppedImpl &&
-            (identical(other.filePath, filePath) ||
-                other.filePath == filePath));
+            (identical(other.recognizedText, recognizedText) ||
+                other.recognizedText == recognizedText));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, filePath);
+  int get hashCode => Object.hash(runtimeType, recognizedText);
 
   /// Create a copy of RecordingState
   /// with the given fields replaced by the non-null parameter values.
@@ -543,38 +626,38 @@ class _$RecordingStoppedImpl implements RecordingStopped {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) {
-    return stopped(filePath);
+    return stopped(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) {
-    return stopped?.call(filePath);
+    return stopped?.call(recognizedText);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (stopped != null) {
-      return stopped(filePath);
+      return stopped(recognizedText);
     }
     return orElse();
   }
@@ -621,10 +704,10 @@ class _$RecordingStoppedImpl implements RecordingStopped {
 }
 
 abstract class RecordingStopped implements RecordingState {
-  const factory RecordingStopped({final String? filePath}) =
+  const factory RecordingStopped({required final String recognizedText}) =
       _$RecordingStoppedImpl;
 
-  String? get filePath;
+  String get recognizedText;
 
   /// Create a copy of RecordingState
   /// with the given fields replaced by the non-null parameter values.
@@ -708,9 +791,9 @@ class _$RecordingErrorImpl implements RecordingError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
-    required TResult Function() recording,
-    required TResult Function() paused,
-    required TResult Function(String? filePath) stopped,
+    required TResult Function(String recognizedText) recording,
+    required TResult Function(String recognizedText) paused,
+    required TResult Function(String recognizedText) stopped,
     required TResult Function(String message) error,
   }) {
     return error(message);
@@ -720,9 +803,9 @@ class _$RecordingErrorImpl implements RecordingError {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
-    TResult? Function()? recording,
-    TResult? Function()? paused,
-    TResult? Function(String? filePath)? stopped,
+    TResult? Function(String recognizedText)? recording,
+    TResult? Function(String recognizedText)? paused,
+    TResult? Function(String recognizedText)? stopped,
     TResult? Function(String message)? error,
   }) {
     return error?.call(message);
@@ -732,9 +815,9 @@ class _$RecordingErrorImpl implements RecordingError {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
-    TResult Function()? recording,
-    TResult Function()? paused,
-    TResult Function(String? filePath)? stopped,
+    TResult Function(String recognizedText)? recording,
+    TResult Function(String recognizedText)? paused,
+    TResult Function(String recognizedText)? stopped,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {

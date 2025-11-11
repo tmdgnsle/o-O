@@ -19,4 +19,7 @@ class RecordingEvent with _$RecordingEvent {
 
   /// 녹음 토글 (시작/종료)
   const factory RecordingEvent.toggle() = RecordingToggle;
+
+  /// 텍스트 업데이트 (실시간)
+  const factory RecordingEvent.updateText(String text) = RecordingUpdateText;
 }

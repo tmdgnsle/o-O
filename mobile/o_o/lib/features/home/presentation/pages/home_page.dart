@@ -4,11 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:o_o/core/constants/app_colors.dart';
 
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../recording/presentation/bloc/recording_bloc.dart';
 import '../../../recording/presentation/bloc/recording_event.dart';
 import '../../../recording/presentation/bloc/recording_state.dart';
+import '../../../workspace/presentation/bloc/workspace_bloc.dart';
+import '../../../workspace/presentation/bloc/workspace_event.dart';
+import '../../../workspace/presentation/bloc/workspace_state.dart';
 import '../widgets/animated_circular_button.dart';
 import '../widgets/circular_button.dart';
 import '../widgets/mindmap_card.dart';
@@ -53,14 +57,14 @@ class HomePage extends StatelessWidget {
                     Text(
                       '창을 벗어나면',
                       style: AppTextStyles.semiBold20.copyWith(
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     Text(
                       '기록을 되돌릴 수 없어요.',
                       style: AppTextStyles.semiBold20.copyWith(
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -78,7 +82,7 @@ class HomePage extends StatelessWidget {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.deep_blue,
+                          backgroundColor: AppColors.deepBlue,
                           foregroundColor: AppColors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -135,15 +139,17 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
+    return BlocProvider(
+      create: (context) => sl<WorkspaceBloc>()..add(const WorkspaceEvent.load()),
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: BlocBuilder<RecordingBloc, RecordingState>(
+          child: BlocBuilder<RecordingBloc, RecordingState>(
           builder: (context, recordingState) {
             final isRecording = recordingState is RecordingInProgress ||
                 recordingState is RecordingPaused;
@@ -221,7 +227,8 @@ class HomePage extends StatelessWidget {
                                       context.read<RecordingBloc>().add(
                                         const RecordingEvent.stop(),
                                       );
-                                      context.go('/processing');
+                                      // push: 홈을 스택에 유지하면서 processing으로 이동
+                                      context.push('/processing');
                                     },
                                     containerSize: 220,
                                     imageSize: 170,
@@ -255,7 +262,7 @@ class HomePage extends StatelessWidget {
                                         '지금 떠오르는 아이디어를',
                                         style: AppTextStyles.semiBold20
                                             .copyWith(
-                                              color: AppColors.semi_black,
+                                              color: AppColors.semiBlack,
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -263,7 +270,7 @@ class HomePage extends StatelessWidget {
                                         '말해보세요.',
                                         style: AppTextStyles.semiBold20
                                             .copyWith(
-                                              color: AppColors.semi_black,
+                                              color: AppColors.semiBlack,
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -294,7 +301,7 @@ class HomePage extends StatelessWidget {
                                           ),
                                           child: const Icon(
                                             Icons.close,
-                                            color: AppColors.semi_black,
+                                            color: AppColors.semiBlack,
                                             size: 32,
                                           ),
                                         ),
@@ -358,53 +365,82 @@ class HomePage extends StatelessWidget {
                                   Text(
                                     '최근 마인드맵',
                                     style: AppTextStyles.semiBold20.copyWith(
-                                      color: AppColors.semi_black,
+                                      color: AppColors.semiBlack,
                                     ),
                                   ),
                                   const SizedBox(height: 20),
-                                  // 마인드맵 카드 리스트
-                                  MindmapCard(
-                                    title: '알고리즘 공부 계획',
-                                    imagePath:
-                                        'assets/images/dummy_mindmap.png',
-                                    onTap: () {
-                                      context.push(
-                                        '/mindmap',
-                                        extra: {
-                                          'title': '알고리즘 공부 계획',
-                                          'imagePath': '',
-                                          'mindmapId': '1',
+                                  // 마인드맵 카드 리스트 (API 연동)
+                                  BlocBuilder<WorkspaceBloc, WorkspaceState>(
+                                    builder: (context, workspaceState) {
+                                      return workspaceState.when(
+                                        initial: () => const SizedBox.shrink(),
+                                        loading: () => const Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(32.0),
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        ),
+                                        loaded: (workspaces) {
+                                          if (workspaces.isEmpty) {
+                                            return Center(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(32.0),
+                                                child: Text(
+                                                  '아직 마인드맵이 없습니다',
+                                                  style: AppTextStyles.medium14.copyWith(
+                                                    color: AppColors.gray,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+
+                                          return Column(
+                                            children: workspaces.map((workspace) {
+                                              return MindmapCard(
+                                                title: workspace.title,
+                                                imagePath: workspace.thumbnail,
+                                                isNetworkImage: true,
+                                                onTap: () {
+                                                  context.push(
+                                                    '/mindmap',
+                                                    extra: {
+                                                      'title': workspace.title,
+                                                      'imagePath': workspace.thumbnail,
+                                                      'mindmapId': workspace.id.toString(),
+                                                    },
+                                                  );
+                                                },
+                                              );
+                                            }).toList(),
+                                          );
                                         },
-                                      );
-                                    },
-                                  ),
-                                  MindmapCard(
-                                    title: '포포 프로젝트',
-                                    imagePath:
-                                        'assets/images/dummy_mindmap.png',
-                                    onTap: () {
-                                      context.push(
-                                        '/mindmap',
-                                        extra: {
-                                          'title': '포포 프로젝트',
-                                          'imagePath': '',
-                                          'mindmapId': '2',
-                                        },
-                                      );
-                                    },
-                                  ),
-                                  MindmapCard(
-                                    title: '제주도 여행',
-                                    imagePath:
-                                        'assets/images/dummy_mindmap.png',
-                                    onTap: () {
-                                      context.push(
-                                        '/mindmap',
-                                        extra: {
-                                          'title': '제주도 여행',
-                                          'imagePath': '',
-                                          'mindmapId': '3',
-                                        },
+                                        error: (message) => Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(32.0),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  message,
+                                                  style: AppTextStyles.medium14.copyWith(
+                                                    color: AppColors.danger,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 16),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    context.read<WorkspaceBloc>().add(
+                                                      const WorkspaceEvent.load(),
+                                                    );
+                                                  },
+                                                  child: const Text('다시 시도'),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       );
                                     },
                                   ),
@@ -422,6 +458,7 @@ class HomePage extends StatelessWidget {
             );
           },
         ),
+      ),
       ),
     );
   }

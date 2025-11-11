@@ -24,6 +24,7 @@ mixin _$RecordingEvent {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
@@ -32,6 +33,7 @@ mixin _$RecordingEvent {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
@@ -40,6 +42,7 @@ mixin _$RecordingEvent {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -49,6 +52,7 @@ mixin _$RecordingEvent {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
@@ -57,6 +61,7 @@ mixin _$RecordingEvent {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
@@ -65,6 +70,7 @@ mixin _$RecordingEvent {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -139,6 +145,7 @@ class _$RecordingStartImpl implements RecordingStart {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) {
     return start();
   }
@@ -151,6 +158,7 @@ class _$RecordingStartImpl implements RecordingStart {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) {
     return start?.call();
   }
@@ -163,6 +171,7 @@ class _$RecordingStartImpl implements RecordingStart {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) {
     if (start != null) {
@@ -179,6 +188,7 @@ class _$RecordingStartImpl implements RecordingStart {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) {
     return start(this);
   }
@@ -191,6 +201,7 @@ class _$RecordingStartImpl implements RecordingStart {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) {
     return start?.call(this);
   }
@@ -203,6 +214,7 @@ class _$RecordingStartImpl implements RecordingStart {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) {
     if (start != null) {
@@ -264,6 +276,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) {
     return pause();
   }
@@ -276,6 +289,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) {
     return pause?.call();
   }
@@ -288,6 +302,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) {
     if (pause != null) {
@@ -304,6 +319,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) {
     return pause(this);
   }
@@ -316,6 +332,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) {
     return pause?.call(this);
   }
@@ -328,6 +345,7 @@ class _$RecordingPauseImpl implements RecordingPause {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) {
     if (pause != null) {
@@ -389,6 +407,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) {
     return resume();
   }
@@ -401,6 +420,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) {
     return resume?.call();
   }
@@ -413,6 +433,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) {
     if (resume != null) {
@@ -429,6 +450,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) {
     return resume(this);
   }
@@ -441,6 +463,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) {
     return resume?.call(this);
   }
@@ -453,6 +476,7 @@ class _$RecordingResumeImpl implements RecordingResume {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) {
     if (resume != null) {
@@ -514,6 +538,7 @@ class _$RecordingStopImpl implements RecordingStop {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) {
     return stop();
   }
@@ -526,6 +551,7 @@ class _$RecordingStopImpl implements RecordingStop {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) {
     return stop?.call();
   }
@@ -538,6 +564,7 @@ class _$RecordingStopImpl implements RecordingStop {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) {
     if (stop != null) {
@@ -554,6 +581,7 @@ class _$RecordingStopImpl implements RecordingStop {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) {
     return stop(this);
   }
@@ -566,6 +594,7 @@ class _$RecordingStopImpl implements RecordingStop {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) {
     return stop?.call(this);
   }
@@ -578,6 +607,7 @@ class _$RecordingStopImpl implements RecordingStop {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) {
     if (stop != null) {
@@ -639,6 +669,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     required TResult Function() resume,
     required TResult Function() stop,
     required TResult Function() toggle,
+    required TResult Function(String text) updateText,
   }) {
     return toggle();
   }
@@ -651,6 +682,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     TResult? Function()? resume,
     TResult? Function()? stop,
     TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
   }) {
     return toggle?.call();
   }
@@ -663,6 +695,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     TResult Function()? resume,
     TResult Function()? stop,
     TResult Function()? toggle,
+    TResult Function(String text)? updateText,
     required TResult orElse(),
   }) {
     if (toggle != null) {
@@ -679,6 +712,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     required TResult Function(RecordingResume value) resume,
     required TResult Function(RecordingStop value) stop,
     required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
   }) {
     return toggle(this);
   }
@@ -691,6 +725,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     TResult? Function(RecordingResume value)? resume,
     TResult? Function(RecordingStop value)? stop,
     TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
   }) {
     return toggle?.call(this);
   }
@@ -703,6 +738,7 @@ class _$RecordingToggleImpl implements RecordingToggle {
     TResult Function(RecordingResume value)? resume,
     TResult Function(RecordingStop value)? stop,
     TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
     required TResult orElse(),
   }) {
     if (toggle != null) {
@@ -714,4 +750,174 @@ class _$RecordingToggleImpl implements RecordingToggle {
 
 abstract class RecordingToggle implements RecordingEvent {
   const factory RecordingToggle() = _$RecordingToggleImpl;
+}
+
+/// @nodoc
+abstract class _$$RecordingUpdateTextImplCopyWith<$Res> {
+  factory _$$RecordingUpdateTextImplCopyWith(
+    _$RecordingUpdateTextImpl value,
+    $Res Function(_$RecordingUpdateTextImpl) then,
+  ) = __$$RecordingUpdateTextImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String text});
+}
+
+/// @nodoc
+class __$$RecordingUpdateTextImplCopyWithImpl<$Res>
+    extends _$RecordingEventCopyWithImpl<$Res, _$RecordingUpdateTextImpl>
+    implements _$$RecordingUpdateTextImplCopyWith<$Res> {
+  __$$RecordingUpdateTextImplCopyWithImpl(
+    _$RecordingUpdateTextImpl _value,
+    $Res Function(_$RecordingUpdateTextImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of RecordingEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? text = null}) {
+    return _then(
+      _$RecordingUpdateTextImpl(
+        null == text
+            ? _value.text
+            : text // ignore: cast_nullable_to_non_nullable
+                as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$RecordingUpdateTextImpl implements RecordingUpdateText {
+  const _$RecordingUpdateTextImpl(this.text);
+
+  @override
+  final String text;
+
+  @override
+  String toString() {
+    return 'RecordingEvent.updateText(text: $text)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$RecordingUpdateTextImpl &&
+            (identical(other.text, text) || other.text == text));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, text);
+
+  /// Create a copy of RecordingEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$RecordingUpdateTextImplCopyWith<_$RecordingUpdateTextImpl> get copyWith =>
+      __$$RecordingUpdateTextImplCopyWithImpl<_$RecordingUpdateTextImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() start,
+    required TResult Function() pause,
+    required TResult Function() resume,
+    required TResult Function() stop,
+    required TResult Function() toggle,
+    required TResult Function(String text) updateText,
+  }) {
+    return updateText(text);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? start,
+    TResult? Function()? pause,
+    TResult? Function()? resume,
+    TResult? Function()? stop,
+    TResult? Function()? toggle,
+    TResult? Function(String text)? updateText,
+  }) {
+    return updateText?.call(text);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? start,
+    TResult Function()? pause,
+    TResult Function()? resume,
+    TResult Function()? stop,
+    TResult Function()? toggle,
+    TResult Function(String text)? updateText,
+    required TResult orElse(),
+  }) {
+    if (updateText != null) {
+      return updateText(text);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(RecordingStart value) start,
+    required TResult Function(RecordingPause value) pause,
+    required TResult Function(RecordingResume value) resume,
+    required TResult Function(RecordingStop value) stop,
+    required TResult Function(RecordingToggle value) toggle,
+    required TResult Function(RecordingUpdateText value) updateText,
+  }) {
+    return updateText(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(RecordingStart value)? start,
+    TResult? Function(RecordingPause value)? pause,
+    TResult? Function(RecordingResume value)? resume,
+    TResult? Function(RecordingStop value)? stop,
+    TResult? Function(RecordingToggle value)? toggle,
+    TResult? Function(RecordingUpdateText value)? updateText,
+  }) {
+    return updateText?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(RecordingStart value)? start,
+    TResult Function(RecordingPause value)? pause,
+    TResult Function(RecordingResume value)? resume,
+    TResult Function(RecordingStop value)? stop,
+    TResult Function(RecordingToggle value)? toggle,
+    TResult Function(RecordingUpdateText value)? updateText,
+    required TResult orElse(),
+  }) {
+    if (updateText != null) {
+      return updateText(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class RecordingUpdateText implements RecordingEvent {
+  const factory RecordingUpdateText(final String text) =
+      _$RecordingUpdateTextImpl;
+
+  String get text;
+
+  /// Create a copy of RecordingEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$RecordingUpdateTextImplCopyWith<_$RecordingUpdateTextImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }

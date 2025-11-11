@@ -57,7 +57,7 @@ class _RecordListItemState extends State<RecordListItem> {
             Text(
               widget.record.formattedDate,
               style: AppTextStyles.bold18.copyWith(
-                color: AppColors.deep_blue,
+                color: AppColors.deepBlue,
               ),
             ),
             const SizedBox(height: 8),
@@ -66,7 +66,7 @@ class _RecordListItemState extends State<RecordListItem> {
               firstChild: Text(
                 widget.record.content,
                 style: AppTextStyles.medium14.copyWith(
-                  color: AppColors.semi_black,
+                  color: AppColors.semiBlack,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -74,7 +74,7 @@ class _RecordListItemState extends State<RecordListItem> {
               secondChild: Text(
                 widget.record.content,
                 style: AppTextStyles.medium14.copyWith(
-                  color: AppColors.semi_black,
+                  color: AppColors.semiBlack,
                 ),
               ),
               crossFadeState: _isExpanded
@@ -90,7 +90,7 @@ class _RecordListItemState extends State<RecordListItem> {
                 child: ElevatedButton(
                   onPressed: widget.onTap,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.deep_blue,
+                    backgroundColor: AppColors.deepBlue,
                     foregroundColor: AppColors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

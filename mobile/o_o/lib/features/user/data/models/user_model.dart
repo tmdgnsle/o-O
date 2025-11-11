@@ -19,11 +19,9 @@ part 'user_model.g.dart';
 @freezed
 class UserModel with _$UserModel {
   const factory UserModel({
-    required String id,
-    required String name,
     required String email,
-    @JsonKey(name: 'avatar_url') String? avatarUrl, // JSON 키 매핑 예제
-    @Default(false) @JsonKey(name: 'is_active') bool isActive,
+    required String nickname,
+    required String profileImage,
   }) = _UserModel;
 
   // fromJson factory - json_serializable이 자동 생성
@@ -36,22 +34,18 @@ class UserModel with _$UserModel {
   // Entity로 변환하는 메서드
   UserEntity toEntity() {
     return UserEntity(
-      id: id,
-      name: name,
       email: email,
-      avatarUrl: avatarUrl,
-      isActive: isActive,
+      nickname: nickname,
+      profileImage: profileImage,
     );
   }
 
   // Entity에서 Model로 변환하는 factory
   factory UserModel.fromEntity(UserEntity entity) {
     return UserModel(
-      id: entity.id,
-      name: entity.name,
       email: entity.email,
-      avatarUrl: entity.avatarUrl,
-      isActive: entity.isActive,
+      nickname: entity.nickname,
+      profileImage: entity.profileImage,
     );
   }
 }
