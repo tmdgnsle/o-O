@@ -33,6 +33,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> EXCLUDED_PATHS = Arrays.asList(
             "/auth/app/google-login",
             "/oauth2/authorization/google",
+            "/login/oauth2/",
             "/auth/reissue",
             "/actuator",
             "/health",
