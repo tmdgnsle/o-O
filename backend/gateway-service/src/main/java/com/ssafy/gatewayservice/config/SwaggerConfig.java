@@ -27,12 +27,6 @@ public class SwaggerConfig {
     @Value("${MINDMAP_SERVICE_URL:http://localhost:8083}")
     private String mindmapServiceUrl;
 
-    @Value("${services.ai.host:localhost}")
-    private String aiServiceHost;
-
-    @Value("${services.ai.port:8084}")
-    private int aiServicePort;
-
     /**
      * User Service API 그룹
      */
@@ -63,17 +57,6 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("mindmap-service")
                 .pathsToMatch("/mindmap/**")
-                .build();
-    }
-
-    /**
-     * AI Service API 그룹
-     */
-    @Bean
-    public GroupedOpenApi aiServiceApi() {
-        return GroupedOpenApi.builder()
-                .group("ai-service")
-                .pathsToMatch("/ai/**")
                 .build();
     }
 }
