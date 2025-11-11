@@ -14,12 +14,21 @@ import '../../features/record/domain/usecases/get_records.dart';
 import '../../features/record/presentation/bloc/record_bloc.dart';
 import '../../features/recording/data/repositories/recording_repository_impl.dart';
 import '../../features/recording/domain/repositories/recording_repository.dart';
+import '../../features/recording/domain/usecases/pause_recording.dart';
+import '../../features/recording/domain/usecases/resume_recording.dart';
 import '../../features/recording/domain/usecases/start_recording.dart';
 import '../../features/recording/domain/usecases/stop_recording.dart';
 import '../../features/recording/presentation/bloc/recording_bloc.dart';
-import '../../features/user/data/repositories/user_repository_mock.dart';
+import '../../features/user/data/datasources/user_api_data_source.dart';
+import '../../features/user/data/repositories/user_repository_impl.dart';
 import '../../features/user/domain/repositories/user_repository.dart';
+import '../../features/user/domain/usecases/get_user_info.dart';
 import '../../features/user/presentation/bloc/user_bloc.dart';
+import '../../features/workspace/data/datasources/workspace_api_data_source.dart';
+import '../../features/workspace/data/repositories/workspace_repository_impl.dart';
+import '../../features/workspace/domain/repositories/workspace_repository.dart';
+import '../../features/workspace/domain/usecases/get_workspaces.dart';
+import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
 import '../constants/api_constants.dart';
 import '../network/auth_interceptor.dart';
 
@@ -97,14 +106,23 @@ Future<void> init() async {
   // Bloc
   sl.registerFactory(
     () => UserBloc(
-      repository: sl(),
+      getUserInfo: sl(),
     ),
   );
 
-  // Repository (Mock)
-  // TODO: 실제 API 구현 시 UserRepositoryImpl로 교체
+  // Use cases
+  sl.registerLazySingleton(() => GetUserInfo(sl()));
+
+  // Repository
   sl.registerLazySingleton<UserRepository>(
-    () => UserRepositoryMock(),
+    () => UserRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<UserApiDataSource>(
+    () => UserApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Recording
@@ -113,6 +131,8 @@ Future<void> init() async {
     () => RecordingBloc(
       startRecording: sl(),
       stopRecording: sl(),
+      pauseRecording: sl(),
+      resumeRecording: sl(),
       repository: sl(),
     ),
   );
@@ -120,6 +140,8 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => StartRecording(sl()));
   sl.registerLazySingleton(() => StopRecording(sl()));
+  sl.registerLazySingleton(() => PauseRecording(sl()));
+  sl.registerLazySingleton(() => ResumeRecording(sl()));
 
   // Repository (Real Implementation with STT)
   sl.registerLazySingleton<RecordingRepository>(
@@ -142,6 +164,29 @@ Future<void> init() async {
   // TODO: 실제 API 구현 시 RecordRepositoryImpl로 교체
   sl.registerLazySingleton<RecordRepository>(
     () => RecordRepositoryMock(),
+  );
+
+  //! Features - Workspace
+  // Bloc
+  sl.registerFactory(
+    () => WorkspaceBloc(
+      getWorkspaces: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetWorkspaces(sl()));
+
+  // Repository
+  sl.registerLazySingleton<WorkspaceRepository>(
+    () => WorkspaceRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<WorkspaceApiDataSource>(
+    () => WorkspaceApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Example

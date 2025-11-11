@@ -17,12 +17,9 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$UserEntity {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
-  String? get avatarUrl =>
-      throw _privateConstructorUsedError; // nullable with default value
-  bool get isActive => throw _privateConstructorUsedError;
+  String get nickname => throw _privateConstructorUsedError;
+  String get profileImage => throw _privateConstructorUsedError;
 
   /// Create a copy of UserEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -38,13 +35,7 @@ abstract class $UserEntityCopyWith<$Res> {
     $Res Function(UserEntity) then,
   ) = _$UserEntityCopyWithImpl<$Res, UserEntity>;
   @useResult
-  $Res call({
-    String id,
-    String name,
-    String email,
-    String? avatarUrl,
-    bool isActive,
-  });
+  $Res call({String email, String nickname, String profileImage});
 }
 
 /// @nodoc
@@ -62,39 +53,27 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
-    Object? name = null,
     Object? email = null,
-    Object? avatarUrl = freezed,
-    Object? isActive = null,
+    Object? nickname = null,
+    Object? profileImage = null,
   }) {
     return _then(
       _value.copyWith(
-            id:
-                null == id
-                    ? _value.id
-                    : id // ignore: cast_nullable_to_non_nullable
-                        as String,
-            name:
-                null == name
-                    ? _value.name
-                    : name // ignore: cast_nullable_to_non_nullable
-                        as String,
             email:
                 null == email
                     ? _value.email
                     : email // ignore: cast_nullable_to_non_nullable
                         as String,
-            avatarUrl:
-                freezed == avatarUrl
-                    ? _value.avatarUrl
-                    : avatarUrl // ignore: cast_nullable_to_non_nullable
-                        as String?,
-            isActive:
-                null == isActive
-                    ? _value.isActive
-                    : isActive // ignore: cast_nullable_to_non_nullable
-                        as bool,
+            nickname:
+                null == nickname
+                    ? _value.nickname
+                    : nickname // ignore: cast_nullable_to_non_nullable
+                        as String,
+            profileImage:
+                null == profileImage
+                    ? _value.profileImage
+                    : profileImage // ignore: cast_nullable_to_non_nullable
+                        as String,
           )
           as $Val,
     );
@@ -110,13 +89,7 @@ abstract class _$$UserEntityImplCopyWith<$Res>
   ) = __$$UserEntityImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String name,
-    String email,
-    String? avatarUrl,
-    bool isActive,
-  });
+  $Res call({String email, String nickname, String profileImage});
 }
 
 /// @nodoc
@@ -133,39 +106,27 @@ class __$$UserEntityImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
-    Object? name = null,
     Object? email = null,
-    Object? avatarUrl = freezed,
-    Object? isActive = null,
+    Object? nickname = null,
+    Object? profileImage = null,
   }) {
     return _then(
       _$UserEntityImpl(
-        id:
-            null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                    as String,
-        name:
-            null == name
-                ? _value.name
-                : name // ignore: cast_nullable_to_non_nullable
-                    as String,
         email:
             null == email
                 ? _value.email
                 : email // ignore: cast_nullable_to_non_nullable
                     as String,
-        avatarUrl:
-            freezed == avatarUrl
-                ? _value.avatarUrl
-                : avatarUrl // ignore: cast_nullable_to_non_nullable
-                    as String?,
-        isActive:
-            null == isActive
-                ? _value.isActive
-                : isActive // ignore: cast_nullable_to_non_nullable
-                    as bool,
+        nickname:
+            null == nickname
+                ? _value.nickname
+                : nickname // ignore: cast_nullable_to_non_nullable
+                    as String,
+        profileImage:
+            null == profileImage
+                ? _value.profileImage
+                : profileImage // ignore: cast_nullable_to_non_nullable
+                    as String,
       ),
     );
   }
@@ -175,30 +136,21 @@ class __$$UserEntityImplCopyWithImpl<$Res>
 
 class _$UserEntityImpl extends _UserEntity {
   const _$UserEntityImpl({
-    required this.id,
-    required this.name,
     required this.email,
-    this.avatarUrl = '',
-    this.isActive = false,
+    required this.nickname,
+    required this.profileImage,
   }) : super._();
 
   @override
-  final String id;
-  @override
-  final String name;
-  @override
   final String email;
   @override
-  @JsonKey()
-  final String? avatarUrl;
-  // nullable with default value
+  final String nickname;
   @override
-  @JsonKey()
-  final bool isActive;
+  final String profileImage;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, name: $name, email: $email, avatarUrl: $avatarUrl, isActive: $isActive)';
+    return 'UserEntity(email: $email, nickname: $nickname, profileImage: $profileImage)';
   }
 
   @override
@@ -206,18 +158,15 @@ class _$UserEntityImpl extends _UserEntity {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$UserEntityImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
             (identical(other.email, email) || other.email == email) &&
-            (identical(other.avatarUrl, avatarUrl) ||
-                other.avatarUrl == avatarUrl) &&
-            (identical(other.isActive, isActive) ||
-                other.isActive == isActive));
+            (identical(other.nickname, nickname) ||
+                other.nickname == nickname) &&
+            (identical(other.profileImage, profileImage) ||
+                other.profileImage == profileImage));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, email, avatarUrl, isActive);
+  int get hashCode => Object.hash(runtimeType, email, nickname, profileImage);
 
   /// Create a copy of UserEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -230,24 +179,18 @@ class _$UserEntityImpl extends _UserEntity {
 
 abstract class _UserEntity extends UserEntity {
   const factory _UserEntity({
-    required final String id,
-    required final String name,
     required final String email,
-    final String? avatarUrl,
-    final bool isActive,
+    required final String nickname,
+    required final String profileImage,
   }) = _$UserEntityImpl;
   const _UserEntity._() : super._();
 
   @override
-  String get id;
-  @override
-  String get name;
-  @override
   String get email;
   @override
-  String? get avatarUrl; // nullable with default value
+  String get nickname;
   @override
-  bool get isActive;
+  String get profileImage;
 
   /// Create a copy of UserEntity
   /// with the given fields replaced by the non-null parameter values.

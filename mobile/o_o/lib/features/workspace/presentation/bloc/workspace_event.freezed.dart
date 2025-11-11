@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'user_event.dart';
+part of 'workspace_event.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -16,7 +16,7 @@ final _privateConstructorUsedError = UnsupportedError(
 );
 
 /// @nodoc
-mixin _$UserEvent {
+mixin _$WorkspaceEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() load,
@@ -35,77 +35,79 @@ mixin _$UserEvent {
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(LoadUserInfo value) load,
-    required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(WorkspaceLoadEvent value) load,
+    required TResult Function(WorkspaceRefreshEvent value) refresh,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(LoadUserInfo value)? load,
-    TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(WorkspaceLoadEvent value)? load,
+    TResult? Function(WorkspaceRefreshEvent value)? refresh,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(LoadUserInfo value)? load,
-    TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(WorkspaceLoadEvent value)? load,
+    TResult Function(WorkspaceRefreshEvent value)? refresh,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $UserEventCopyWith<$Res> {
-  factory $UserEventCopyWith(UserEvent value, $Res Function(UserEvent) then) =
-      _$UserEventCopyWithImpl<$Res, UserEvent>;
+abstract class $WorkspaceEventCopyWith<$Res> {
+  factory $WorkspaceEventCopyWith(
+    WorkspaceEvent value,
+    $Res Function(WorkspaceEvent) then,
+  ) = _$WorkspaceEventCopyWithImpl<$Res, WorkspaceEvent>;
 }
 
 /// @nodoc
-class _$UserEventCopyWithImpl<$Res, $Val extends UserEvent>
-    implements $UserEventCopyWith<$Res> {
-  _$UserEventCopyWithImpl(this._value, this._then);
+class _$WorkspaceEventCopyWithImpl<$Res, $Val extends WorkspaceEvent>
+    implements $WorkspaceEventCopyWith<$Res> {
+  _$WorkspaceEventCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of UserEvent
+  /// Create a copy of WorkspaceEvent
   /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
-abstract class _$$LoadUserInfoImplCopyWith<$Res> {
-  factory _$$LoadUserInfoImplCopyWith(
-    _$LoadUserInfoImpl value,
-    $Res Function(_$LoadUserInfoImpl) then,
-  ) = __$$LoadUserInfoImplCopyWithImpl<$Res>;
+abstract class _$$WorkspaceLoadEventImplCopyWith<$Res> {
+  factory _$$WorkspaceLoadEventImplCopyWith(
+    _$WorkspaceLoadEventImpl value,
+    $Res Function(_$WorkspaceLoadEventImpl) then,
+  ) = __$$WorkspaceLoadEventImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$LoadUserInfoImplCopyWithImpl<$Res>
-    extends _$UserEventCopyWithImpl<$Res, _$LoadUserInfoImpl>
-    implements _$$LoadUserInfoImplCopyWith<$Res> {
-  __$$LoadUserInfoImplCopyWithImpl(
-    _$LoadUserInfoImpl _value,
-    $Res Function(_$LoadUserInfoImpl) _then,
+class __$$WorkspaceLoadEventImplCopyWithImpl<$Res>
+    extends _$WorkspaceEventCopyWithImpl<$Res, _$WorkspaceLoadEventImpl>
+    implements _$$WorkspaceLoadEventImplCopyWith<$Res> {
+  __$$WorkspaceLoadEventImplCopyWithImpl(
+    _$WorkspaceLoadEventImpl _value,
+    $Res Function(_$WorkspaceLoadEventImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of UserEvent
+  /// Create a copy of WorkspaceEvent
   /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
 
-class _$LoadUserInfoImpl implements LoadUserInfo {
-  const _$LoadUserInfoImpl();
+class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
+  const _$WorkspaceLoadEventImpl();
 
   @override
   String toString() {
-    return 'UserEvent.load()';
+    return 'WorkspaceEvent.load()';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$LoadUserInfoImpl);
+        (other.runtimeType == runtimeType && other is _$WorkspaceLoadEventImpl);
   }
 
   @override
@@ -145,8 +147,8 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(LoadUserInfo value) load,
-    required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(WorkspaceLoadEvent value) load,
+    required TResult Function(WorkspaceRefreshEvent value) refresh,
   }) {
     return load(this);
   }
@@ -154,8 +156,8 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(LoadUserInfo value)? load,
-    TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(WorkspaceLoadEvent value)? load,
+    TResult? Function(WorkspaceRefreshEvent value)? refresh,
   }) {
     return load?.call(this);
   }
@@ -163,8 +165,8 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(LoadUserInfo value)? load,
-    TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(WorkspaceLoadEvent value)? load,
+    TResult Function(WorkspaceRefreshEvent value)? refresh,
     required TResult orElse(),
   }) {
     if (load != null) {
@@ -174,45 +176,46 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   }
 }
 
-abstract class LoadUserInfo implements UserEvent {
-  const factory LoadUserInfo() = _$LoadUserInfoImpl;
+abstract class WorkspaceLoadEvent implements WorkspaceEvent {
+  const factory WorkspaceLoadEvent() = _$WorkspaceLoadEventImpl;
 }
 
 /// @nodoc
-abstract class _$$RefreshUserInfoImplCopyWith<$Res> {
-  factory _$$RefreshUserInfoImplCopyWith(
-    _$RefreshUserInfoImpl value,
-    $Res Function(_$RefreshUserInfoImpl) then,
-  ) = __$$RefreshUserInfoImplCopyWithImpl<$Res>;
+abstract class _$$WorkspaceRefreshEventImplCopyWith<$Res> {
+  factory _$$WorkspaceRefreshEventImplCopyWith(
+    _$WorkspaceRefreshEventImpl value,
+    $Res Function(_$WorkspaceRefreshEventImpl) then,
+  ) = __$$WorkspaceRefreshEventImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
-class __$$RefreshUserInfoImplCopyWithImpl<$Res>
-    extends _$UserEventCopyWithImpl<$Res, _$RefreshUserInfoImpl>
-    implements _$$RefreshUserInfoImplCopyWith<$Res> {
-  __$$RefreshUserInfoImplCopyWithImpl(
-    _$RefreshUserInfoImpl _value,
-    $Res Function(_$RefreshUserInfoImpl) _then,
+class __$$WorkspaceRefreshEventImplCopyWithImpl<$Res>
+    extends _$WorkspaceEventCopyWithImpl<$Res, _$WorkspaceRefreshEventImpl>
+    implements _$$WorkspaceRefreshEventImplCopyWith<$Res> {
+  __$$WorkspaceRefreshEventImplCopyWithImpl(
+    _$WorkspaceRefreshEventImpl _value,
+    $Res Function(_$WorkspaceRefreshEventImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of UserEvent
+  /// Create a copy of WorkspaceEvent
   /// with the given fields replaced by the non-null parameter values.
 }
 
 /// @nodoc
 
-class _$RefreshUserInfoImpl implements RefreshUserInfo {
-  const _$RefreshUserInfoImpl();
+class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
+  const _$WorkspaceRefreshEventImpl();
 
   @override
   String toString() {
-    return 'UserEvent.refresh()';
+    return 'WorkspaceEvent.refresh()';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$RefreshUserInfoImpl);
+        (other.runtimeType == runtimeType &&
+            other is _$WorkspaceRefreshEventImpl);
   }
 
   @override
@@ -252,8 +255,8 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   @override
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
-    required TResult Function(LoadUserInfo value) load,
-    required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(WorkspaceLoadEvent value) load,
+    required TResult Function(WorkspaceRefreshEvent value) refresh,
   }) {
     return refresh(this);
   }
@@ -261,8 +264,8 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(LoadUserInfo value)? load,
-    TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(WorkspaceLoadEvent value)? load,
+    TResult? Function(WorkspaceRefreshEvent value)? refresh,
   }) {
     return refresh?.call(this);
   }
@@ -270,8 +273,8 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
-    TResult Function(LoadUserInfo value)? load,
-    TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(WorkspaceLoadEvent value)? load,
+    TResult Function(WorkspaceRefreshEvent value)? refresh,
     required TResult orElse(),
   }) {
     if (refresh != null) {
@@ -281,6 +284,6 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   }
 }
 
-abstract class RefreshUserInfo implements UserEvent {
-  const factory RefreshUserInfo() = _$RefreshUserInfoImpl;
+abstract class WorkspaceRefreshEvent implements WorkspaceEvent {
+  const factory WorkspaceRefreshEvent() = _$WorkspaceRefreshEventImpl;
 }

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:o_o/core/constants/app_colors.dart';
 import 'package:o_o/core/constants/app_text_styles.dart';
@@ -7,12 +8,14 @@ class MindmapCard extends StatelessWidget {
   final String title;
   final String imagePath;
   final VoidCallback? onTap;
+  final bool isNetworkImage;
 
   const MindmapCard({
     super.key,
     required this.title,
     required this.imagePath,
     this.onTap,
+    this.isNetworkImage = true,
   });
 
   @override
@@ -46,7 +49,18 @@ class MindmapCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset(imagePath, fit: BoxFit.cover),
+                child: isNetworkImage
+                    ? CachedNetworkImage(
+                        imageUrl: imagePath,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        errorWidget: (context, url, error) => const Center(
+                          child: Icon(Icons.error, color: Colors.grey),
+                        ),
+                      )
+                    : Image.asset(imagePath, fit: BoxFit.cover),
               ),
             ),
 

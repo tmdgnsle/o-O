@@ -8,16 +8,14 @@ part 'user_entity.freezed.dart';
 @freezed
 class UserEntity with _$UserEntity {
   const factory UserEntity({
-    required String id,
-    required String name,
     required String email,
-    @Default('') String? avatarUrl, // nullable with default value
-    @Default(false) bool isActive,
+    required String nickname,
+    required String profileImage,
   }) = _UserEntity;
 
   // Custom methods는 private constructor 아래에 추가 가능
   const UserEntity._();
 
   // 커스텀 getter 예제
-  String get displayName => name.isEmpty ? email : name;
+  String get displayName => nickname.isEmpty ? email : nickname;
 }

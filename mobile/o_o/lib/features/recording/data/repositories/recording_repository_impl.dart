@@ -147,6 +147,64 @@ class RecordingRepositoryImpl implements RecordingRepository {
   }
 
   @override
+  Future<Either<Failure, void>> pauseRecording() async {
+    try {
+      if (_isListening) {
+        // 현재 텍스트를 이전 텍스트에 저장
+        if (_currentText.isNotEmpty) {
+          _previousText = '$_previousText$_currentText ';
+          logger.i('⏸️ 일시정지 - "$_currentText" 저장 → 누적: "$_previousText"');
+        } else {
+          logger.i('⏸️ 일시정지 - 현재 텍스트 없음, 기존 누적: "$_previousText"');
+        }
+
+        // STT 중단 및 자동 재시작 방지
+        await _speech.stop();
+        _isListening = false;
+        logger.i('⏸️ STT 일시정지 완료');
+      }
+
+      return const Right(null);
+    } catch (e) {
+      logger.e('⏸️ STT 일시정지 실패: $e');
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resumeRecording() async {
+    try {
+      if (!_isListening) {
+        logger.i('▶️ STT 재개 시작 - 기존 누적: "$_previousText"');
+
+        // 자동 재시작 활성화
+        _isListening = true;
+
+        // 현재 세션 텍스트 초기화
+        _currentText = '';
+
+        // 전체 텍스트 업데이트 (이전 텍스트 = 전체 텍스트)
+        _recognizedText = _previousText;
+
+        // 기존 누적 텍스트를 즉시 스트림에 전송 (UI 업데이트)
+        if (_recognizedText.isNotEmpty) {
+          _textStreamController.add(_recognizedText);
+          logger.i('▶️ 기존 텍스트 복원: "$_recognizedText"');
+        }
+
+        // STT 재시작
+        await _restartListening();
+        logger.i('▶️ STT 재개 완료 - 전체: "$_recognizedText"');
+      }
+
+      return const Right(null);
+    } catch (e) {
+      logger.e('▶️ STT 재개 실패: $e');
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, String>> stopRecording() async {
     try {
       if (_isListening) {

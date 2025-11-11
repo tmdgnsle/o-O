@@ -10,7 +10,6 @@ import '../../features/mindmap/presentation/pages/mindmap_page.dart';
 import '../../features/record/presentation/pages/record_list_page.dart';
 import '../../features/recording/presentation/pages/processing_page.dart';
 import '../../features/user/presentation/pages/my_page.dart';
-import '../../features/user/presentation/pages/user_page.dart';
 
 /// GoRouter 설정
 ///
@@ -58,11 +57,7 @@ class AppRouter {
         name: 'home',
         builder: (context, state) => const HomePage(),
       ),
-      GoRoute(
-        path: '/users',
-        name: 'users',
-        builder: (context, state) => const UserPage(),
-      ),
+
       GoRoute(
         path: '/records',
         name: 'records',

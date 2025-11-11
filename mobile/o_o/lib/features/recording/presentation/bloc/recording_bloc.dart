@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/repositories/recording_repository.dart';
+import '../../domain/usecases/pause_recording.dart';
+import '../../domain/usecases/resume_recording.dart';
 import '../../domain/usecases/start_recording.dart';
 import '../../domain/usecases/stop_recording.dart';
 import 'recording_event.dart';
@@ -13,6 +15,8 @@ import 'recording_state.dart';
 class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
   final StartRecording startRecording;
   final StopRecording stopRecording;
+  final PauseRecording pauseRecording;
+  final ResumeRecording resumeRecording;
   final RecordingRepository repository;
 
   StreamSubscription<String>? _textStreamSubscription;
@@ -21,6 +25,8 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
   RecordingBloc({
     required this.startRecording,
     required this.stopRecording,
+    required this.pauseRecording,
+    required this.resumeRecording,
     required this.repository,
   }) : super(const RecordingState.initial()) {
     on<RecordingStart>(_onStart);
@@ -60,16 +66,26 @@ class RecordingBloc extends Bloc<RecordingEvent, RecordingState> {
     RecordingPause event,
     Emitter<RecordingState> emit,
   ) async {
-    // 녹음 일시정지 (실제 녹음은 계속되지만 UI 상태만 변경)
-    emit(RecordingState.paused(recognizedText: _currentRecognizedText));
+    // 실제 STT 일시정지
+    final result = await pauseRecording(NoParams());
+
+    result.fold(
+      (failure) => emit(RecordingState.error(message: '일시정지 실패')),
+      (_) => emit(RecordingState.paused(recognizedText: _currentRecognizedText)),
+    );
   }
 
   Future<void> _onResume(
     RecordingResume event,
     Emitter<RecordingState> emit,
   ) async {
-    // 녹음 재개
-    emit(RecordingState.recording(recognizedText: _currentRecognizedText));
+    // 실제 STT 재개
+    final result = await resumeRecording(NoParams());
+
+    result.fold(
+      (failure) => emit(RecordingState.error(message: '재개 실패')),
+      (_) => emit(RecordingState.recording(recognizedText: _currentRecognizedText)),
+    );
   }
 
   Future<void> _onStop(

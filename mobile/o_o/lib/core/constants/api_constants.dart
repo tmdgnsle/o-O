@@ -11,6 +11,12 @@ class ApiConstants {
   static const String googleLogin = '/auth/app/google-login';
   static const String reissue = '/auth/reissue';
 
+  /// Workspace Endpoints
+  static const String getWorkspaces = '/workspace';
+
+  /// User Endpoints
+  static const String getUsers = '/users';
+
   /// 전체 URL 생성
   static String getUrl(String endpoint) => '$baseUrl$endpoint';
 }

@@ -36,7 +36,7 @@ class AuthInterceptor extends Interceptor {
       if (accessToken != null && accessToken.isNotEmpty) {
         // Authorization 헤더에 AccessToken 추가
         options.headers['Authorization'] = accessToken;
-        logger.d('🔐 Authorization 헤더 추가: ${accessToken.substring(0, 20)}...');
+        logger.d('🔐 Authorization 헤더 추가: $accessToken');
       }
     } catch (e) {
       logger.e('❌ AccessToken 조회 실패: $e');

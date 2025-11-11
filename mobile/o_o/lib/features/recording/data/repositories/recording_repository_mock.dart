@@ -29,6 +29,20 @@ class RecordingRepositoryMock implements RecordingRepository {
   }
 
   @override
+  Future<Either<Failure, void>> pauseRecording() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    logger.i('⏸️ Mock 일시정지');
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, void>> resumeRecording() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    logger.i('▶️ Mock 재개');
+    return const Right(null);
+  }
+
+  @override
   Future<Either<Failure, String>> stopRecording() async {
     try {
       await Future.delayed(const Duration(milliseconds: 500));
