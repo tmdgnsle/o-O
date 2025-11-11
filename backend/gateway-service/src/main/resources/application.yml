@@ -13,6 +13,10 @@ spring:
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/oauth2/**
+          - id: user-service-oauth2-callback
+            uri: ${USER_SERVICE_URL:http://localhost:8081}
+            predicates:
+              - Path=/login/oauth2/**
           - id: user-service-users
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
