@@ -114,29 +114,33 @@ class AnalysisProcessor:
             # 마인드맵 생성 프롬프트
             system_prompt = """You are an expert at analyzing content and generating hierarchical mindmap nodes in JSON format.
 
-CRITICAL: You MUST output ONLY valid JSON. No explanations, no markdown, no code blocks.
+CRITICAL REQUIREMENTS:
+1. Output ONLY valid JSON - No explanations, no markdown, no code blocks
+2. MUST include both "aiSummary" and "nodes" fields
+3. The root node already exists - DO NOT create a top-level category node
 
-Generate nodes with appropriate depth based on content complexity:
-- Main category nodes under root nodeId={node_id}
-- Sub-nodes under each category as needed
-- Logical hierarchical structure
+Generate nodes with appropriate depth (5-15 nodes recommended):
+- All first-level nodes MUST have parentId={node_id}
+- Create sub-nodes under categories as needed
+- Build a logical hierarchical structure
 
-Output this EXACT JSON structure:
+REQUIRED JSON structure (copy this format exactly):
 {{
-  "aiSummary": "Brief 1-2 sentence summary",
+  "aiSummary": "Brief 1-2 sentence summary of the content",
   "nodes": [
-    {{"tempId": "temp-1", "parentId": {node_id}, "keyword": "Category 1", "memo": "Description"}},
-    {{"tempId": "temp-2", "parentId": {node_id}, "keyword": "Category 2", "memo": "Description"}},
-    {{"tempId": "temp-3", "parentId": "temp-1", "keyword": "Subtopic 1-1", "memo": "Details"}},
-    {{"tempId": "temp-4", "parentId": "temp-1", "keyword": "Subtopic 1-2", "memo": "Details"}}
+    {{"tempId": "temp-1", "parentId": {node_id}, "keyword": "Main Topic 1", "memo": "Detailed description"}},
+    {{"tempId": "temp-2", "parentId": {node_id}, "keyword": "Main Topic 2", "memo": "Detailed description"}},
+    {{"tempId": "temp-3", "parentId": "temp-1", "keyword": "Subtopic 1-1", "memo": "Specific details"}},
+    {{"tempId": "temp-4", "parentId": "temp-1", "keyword": "Subtopic 1-2", "memo": "Specific details"}}
   ]
 }}
 
-Rules:
-1. tempId: "temp-1", "temp-2", etc (sequential)
-2. keyword: 2-5 words, concise
-3. memo: 10-30 characters, specific
-4. Output ONLY JSON, nothing else
+MANDATORY Rules:
+1. "aiSummary" field is REQUIRED at the top level
+2. tempId: "temp-1", "temp-2", etc (sequential)
+3. parentId: MUST be {node_id} or another tempId (NEVER null)
+4. keyword: 2-5 words, concise
+5. memo: 10-50 characters, informative (NEVER empty)
 """.format(node_id=node_id)
 
             # contentType에 따라 user prompt 구성
@@ -202,11 +206,28 @@ Rules:
                 logger.error(f"파싱하려던 문자열:\n{response}")
                 raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e}")
 
-            # 결과 검증
-            if 'aiSummary' not in result_data or 'nodes' not in result_data:
-                raise ValueError("응답에 aiSummary 또는 nodes가 없습니다")
+            # 결과 검증 및 보정
+            if 'nodes' not in result_data:
+                raise ValueError("응답에 nodes가 없습니다")
+
+            # aiSummary가 없으면 기본값 생성
+            if 'aiSummary' not in result_data or not result_data['aiSummary']:
+                logger.warning("⚠️ aiSummary가 없습니다. 기본값을 생성합니다.")
+                result_data['aiSummary'] = f"{content_type} 컨텐츠 분석 결과입니다."
 
             logger.info(f"✅ 생성된 노드 개수: {len(result_data['nodes'])}개")
+
+            # 후처리: parentId가 None/null인 노드를 nodeId로 변경
+            for node in result_data['nodes']:
+                if node.get('parentId') is None or node.get('parentId') == 'null':
+                    logger.warning(f"⚠️ 노드 {node.get('tempId')}의 parentId가 null입니다. nodeId({node_id})로 변경합니다.")
+                    node['parentId'] = node_id
+
+                # memo가 비어있으면 keyword 기반 기본 설명 추가
+                if not node.get('memo') or node.get('memo').strip() == '':
+                    default_memo = f"{node.get('keyword', 'Topic')}에 대한 내용"
+                    logger.warning(f"⚠️ 노드 {node.get('tempId')}의 memo가 비어있습니다. 기본값으로 설정: {default_memo}")
+                    node['memo'] = default_memo
 
             # Kafka 응답 형식으로 변환
             kafka_response = {
@@ -468,6 +489,166 @@ Rules:
             context_lines.append(f"{i}. {keyword}: {memo}")
 
         return "\n".join(context_lines)
+
+    def process_organize(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        ORGANIZE 처리 - text 노드만 정리, image/video는 유지
+
+        Args:
+            request: Kafka 요청 메시지
+                - workspaceId: 워크스페이스 ID
+                - nodes: 전체 노드 리스트 (text, image, video)
+
+        Returns:
+            정리된 마인드맵 결과
+        """
+        # workspaceId를 int로 변환
+        workspace_id = int(request['workspaceId'])
+        all_nodes = request.get('nodes', [])
+
+        logger.info(f"ORGANIZE 시작: workspaceId={workspace_id}, 전체 노드 수={len(all_nodes)}")
+
+        try:
+            # text, image, video 노드 분리
+            text_nodes = [node for node in all_nodes if node.get('type') == 'text']
+            non_text_nodes = [node for node in all_nodes if node.get('type') in ['image', 'video']]
+
+            logger.info(f"📝 text 노드: {len(text_nodes)}개, 🖼️ image/video 노드: {len(non_text_nodes)}개")
+
+            if not text_nodes:
+                logger.warning("⚠️ text 노드가 없습니다. 원본 그대로 반환합니다.")
+                # analyzedAt 추가
+                from datetime import datetime, timezone
+                analyzed_at = datetime.now(timezone.utc).astimezone().isoformat()
+
+                return {
+                    "workspaceId": workspace_id,
+                    "status": "COMPLETED",
+                    "nodes": all_nodes,
+                    "analyzedAt": analyzed_at
+                }
+
+            # LLM으로 text 노드 정리
+            logger.info("🤖 LLM으로 text 노드 정리 중...")
+            organized_json = self.text_analyzer.organize_mindmap(
+                nodes=all_nodes,  # 전체 노드 전달 (내부에서 text만 필터링)
+                max_tokens=4096,
+                temperature=0.2
+            )
+
+            # 응답 검증 및 로깅
+            logger.info(f"📄 LLM 원본 응답 길이: {len(organized_json)}자")
+            logger.info(f"📄 LLM 응답 미리보기:\n{organized_json[:500]}")
+
+            # 빈 응답 체크
+            if not organized_json or not organized_json.strip():
+                raise ValueError("LLM이 빈 응답을 반환했습니다")
+
+            # JSON 파싱 전처리
+            organized_json = organized_json.strip()
+
+            # JSON 코드 블록 제거
+            if '```json' in organized_json:
+                organized_json = organized_json.split('```json')[1]
+            if '```' in organized_json:
+                organized_json = organized_json.split('```')[0]
+
+            # JSON 배열 추출 (첫 번째 [ 부터 마지막 ] 까지)
+            start_idx = organized_json.find('[')
+            end_idx = organized_json.rfind(']')
+
+            if start_idx == -1 or end_idx == -1:
+                raise ValueError("응답에서 JSON 배열을 찾을 수 없습니다")
+
+            organized_json = organized_json[start_idx:end_idx+1].strip()
+
+            # JSON 파싱
+            import json
+            try:
+                organized_text_nodes = json.loads(organized_json)
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON 파싱 실패!")
+                logger.error(f"파싱하려던 문자열:\n{organized_json}")
+                raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e}")
+
+            if not isinstance(organized_text_nodes, list):
+                raise ValueError(f"LLM 응답이 배열이 아닙니다: {type(organized_text_nodes)}")
+
+            logger.info(f"✅ 정리된 text 노드: {len(organized_text_nodes)}개 (원본: {len(text_nodes)}개)")
+
+            # 정리된 text 노드에 원본의 x, y, color 정보 복원
+            original_node_map = {node['nodeId']: node for node in text_nodes}
+
+            # 루트 노드 추출 (parentId=null)
+            root_nodes_map = {node['nodeId']: node for node in text_nodes if node.get('parentId') is None}
+
+            for organized_node in organized_text_nodes:
+                node_id = organized_node.get('nodeId')
+                if node_id in original_node_map:
+                    original = original_node_map[node_id]
+                    # x, y, color, type 복원
+                    organized_node['x'] = original.get('x', 0.0)
+                    organized_node['y'] = original.get('y', 0.0)
+                    organized_node['color'] = original.get('color', '#3b82f6')
+                    organized_node['type'] = 'text'
+
+                    # 루트 노드 보호: keyword와 memo를 원본으로 강제 복원
+                    if node_id in root_nodes_map:
+                        original_keyword = original.get('keyword')
+                        original_memo = original.get('memo')
+                        current_keyword = organized_node.get('keyword')
+                        current_memo = organized_node.get('memo')
+
+                        # keyword 복원
+                        if current_keyword != original_keyword:
+                            logger.warning(f"🔒 루트 노드 {node_id}의 keyword 변경 감지 - 원본으로 복원: '{current_keyword}' → '{original_keyword}'")
+                            organized_node['keyword'] = original_keyword
+
+                        # memo 복원
+                        if current_memo != original_memo:
+                            logger.warning(f"🔒 루트 노드 {node_id}의 memo 변경 감지 - 원본으로 복원")
+                            organized_node['memo'] = original_memo
+
+                        # parentId도 null 유지
+                        if organized_node.get('parentId') is not None:
+                            logger.warning(f"🔒 루트 노드 {node_id}의 parentId 변경 감지 - null로 복원")
+                            organized_node['parentId'] = None
+
+                else:
+                    logger.warning(f"⚠️ nodeId={node_id}인 원본 노드를 찾을 수 없습니다")
+
+            # text + non-text 노드 병합
+            final_nodes = organized_text_nodes + non_text_nodes
+
+            logger.info(f"📊 최종 노드 수: {len(final_nodes)}개")
+
+            # analyzedAt 추가
+            from datetime import datetime, timezone
+            analyzed_at = datetime.now(timezone.utc).astimezone().isoformat()
+
+            # Kafka 응답 형식
+            kafka_response = {
+                "workspaceId": workspace_id,
+                "status": "COMPLETED",
+                "nodes": final_nodes,
+                "analyzedAt": analyzed_at
+            }
+
+            logger.info(f"✅ ORGANIZE 완료: {len(final_nodes)}개 노드 반환")
+            return kafka_response
+
+        except Exception as e:
+            logger.error(f"❌ ORGANIZE 실패: {e}", exc_info=True)
+            from datetime import datetime, timezone
+            analyzed_at = datetime.now(timezone.utc).astimezone().isoformat()
+
+            return {
+                "workspaceId": workspace_id,
+                "status": "FAILED",
+                "nodes": all_nodes,  # 실패 시 원본 반환
+                "analyzedAt": analyzed_at,
+                "error": str(e)
+            }
 
     def process_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """

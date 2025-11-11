@@ -96,9 +96,12 @@ from src.api.models import (
     TextAnalysisResult,
     MindMapNode
 )
-from src.kafka.kafka_handler import kafka_handler
+from src.kafka.kafka_handler import kafka_handler, KafkaHandler
 from src.kafka.analysis_processor import AnalysisProcessor
 import torch
+
+# Organize 전용 Kafka Handler
+organize_kafka_handler: Optional[KafkaHandler] = None
 
 
 # ============================================================================
@@ -666,33 +669,51 @@ def create_mindmap_from_llm(
 @app.on_event("startup")
 async def startup_event():
     """서버 시작 시 모델 로드 및 Kafka Consumer 시작"""
+    global organize_kafka_handler
+
     # 환경 변수로 양자화 방식 설정 가능
     vision_quant = os.getenv("VISION_QUANTIZATION", "int4")
     text_quant = os.getenv("TEXT_QUANTIZATION", "int4")
 
     load_models(vision_quantization=vision_quant, text_quantization=text_quant)
 
-    # Kafka Consumer 시작
-    logger.info("Kafka Consumer 시작 중...")
+    # Analysis Processor 생성
     text_analyzer = get_text_analyzer()
     vision_analyzer = get_vision_analyzer()
     analysis_processor = AnalysisProcessor(text_analyzer, vision_analyzer)
 
-    # 분석 콜백 설정
+    # 1. Analysis Kafka Consumer 시작
+    logger.info("Analysis Kafka Consumer 시작 중...")
     kafka_handler.set_analysis_callback(analysis_processor.process_request)
 
-    # Kafka 시작
     if kafka_handler.start():
-        logger.info("✅ Kafka Consumer 시작 완료")
+        logger.info("✅ Analysis Kafka Consumer 시작 완료")
     else:
-        logger.error("❌ Kafka Consumer 시작 실패")
+        logger.error("❌ Analysis Kafka Consumer 시작 실패")
+
+    # 2. Organize Kafka Consumer 시작
+    logger.info("Organize Kafka Consumer 시작 중...")
+    organize_kafka_handler = KafkaHandler(topics={
+        'request': os.getenv('KAFKA_ORGANIZE_REQUEST_TOPIC', 'ai.organize.request'),
+        'response': os.getenv('KAFKA_ORGANIZE_RESULT_TOPIC', 'ai.organize.result')
+    })
+    organize_kafka_handler.set_analysis_callback(analysis_processor.process_organize)
+
+    if organize_kafka_handler.start():
+        logger.info("✅ Organize Kafka Consumer 시작 완료")
+    else:
+        logger.error("❌ Organize Kafka Consumer 시작 실패")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """서버 종료 시 Kafka Consumer 종료"""
-    logger.info("Kafka Consumer 종료 중...")
+    logger.info("Analysis Kafka Consumer 종료 중...")
     kafka_handler.stop()
+
+    if organize_kafka_handler:
+        logger.info("Organize Kafka Consumer 종료 중...")
+        organize_kafka_handler.stop()
 
 
 # ============================================================================

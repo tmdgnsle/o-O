@@ -94,5 +94,32 @@ class TextAnalysisResult(BaseModel):
     error: Optional[str] = None
 
 
+class OrganizeNode(BaseModel):
+    """마인드맵 정리용 노드"""
+    nodeId: int
+    parentId: Optional[int]
+    type: str  # "text", "image", "video"
+    keyword: str
+    memo: str
+    x: float
+    y: float
+    color: str
+
+
+class OrganizeRequest(BaseModel):
+    """마인드맵 정리 요청"""
+    workspaceId: int
+    nodes: List[OrganizeNode]
+
+
+class OrganizeResult(BaseModel):
+    """마인드맵 정리 결과"""
+    workspaceId: int
+    status: str  # "COMPLETED", "FAILED"
+    nodes: List[OrganizeNode]
+    analyzedAt: str
+    error: Optional[str] = None
+
+
 # Forward reference 해결
 MindMapNode.model_rebuild()

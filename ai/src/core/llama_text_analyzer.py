@@ -544,6 +544,108 @@ Now output ONLY valid JSON following the correct format above:"""
 
         return result.strip()
 
+    def organize_mindmap(
+        self,
+        nodes: List[Dict],
+        max_tokens: int = 4096,
+        temperature: float = 0.2
+    ) -> str:
+        """
+        마인드맵의 text 노드들을 정리하여 구조 최적화
+
+        Args:
+            nodes: 전체 노드 리스트 (text, image, video 포함)
+            max_tokens: 최대 생성 토큰 수
+            temperature: 샘플링 온도 (낮을수록 일관성 높음)
+
+        Returns:
+            정리된 text 노드 JSON 문자열
+        """
+        # text 노드만 추출
+        text_nodes = [node for node in nodes if node.get('type') == 'text']
+
+        if not text_nodes:
+            return "[]"
+
+        # 노드 정보를 텍스트로 구성
+        nodes_text = []
+        for node in text_nodes:
+            node_info = f"""
+노드 ID: {node.get('nodeId')}
+부모 ID: {node.get('parentId')}
+키워드: {node.get('keyword')}
+메모: {node.get('memo')}
+"""
+            nodes_text.append(node_info.strip())
+
+        nodes_summary = "\n\n".join(nodes_text)
+
+        system_prompt = """You are an expert at organizing mindmap nodes. Your PRIMARY goal is to MERGE similar/duplicate nodes.
+
+🎯 CORE RULES (READ CAREFULLY):
+1. **MERGE DUPLICATES**: If 2+ nodes have similar meanings → combine into ONE node
+2. **KEEP LANGUAGE**: Korean stays Korean, English stays English (NO translation)
+3. **PROTECT ROOT**: Nodes with parentId=null → keep keyword/memo EXACTLY as-is
+
+📚 FEW-SHOT EXAMPLES:
+
+Example 1 - MERGING DUPLICATES:
+INPUT:
+[
+  {"nodeId": 3, "parentId": 2, "keyword": "요구사항 분석하기", "memo": "사용자가 원하는 기능을 조사하고 분석"},
+  {"nodeId": 4, "parentId": 2, "keyword": "요구사항 수집", "memo": "사용자 인터뷰를 통해 니즈 파악"}
+]
+OUTPUT (nodeId 4 removed, merged into 3):
+[
+  {"nodeId": 3, "parentId": 2, "keyword": "요구사항 분석 및 수집", "memo": "사용자가 원하는 기능을 조사하고 인터뷰를 통해 니즈를 파악"}
+]
+
+Example 2 - MORE MERGING:
+INPUT:
+[
+  {"nodeId": 13, "parentId": 1, "keyword": "개발 진행", "memo": "실제 코딩 작업을 진행하는 단계"},
+  {"nodeId": 14, "parentId": 13, "keyword": "개발 작업", "memo": "코드를 작성하고 구현하는 과정"}
+]
+OUTPUT (nodeId 14 removed, merged into 13):
+[
+  {"nodeId": 13, "parentId": 1, "keyword": "개발 진행", "memo": "실제 코딩 작업을 진행하고 코드를 작성하여 구현"}
+]
+
+Example 3 - ROOT NODE PROTECTION:
+INPUT:
+[
+  {"nodeId": 1, "parentId": null, "keyword": "AI 협업 플랫폼 개발 프로젝트", "memo": "팀 협업을 위한 AI 기반 마인드맵 플랫폼 구축 프로젝트입니다. 이 내용은 절대 변경되면 안 됩니다!"}
+]
+OUTPUT (UNCHANGED):
+[
+  {"nodeId": 1, "parentId": null, "keyword": "AI 협업 플랫폼 개발 프로젝트", "memo": "팀 협업을 위한 AI 기반 마인드맵 플랫폼 구축 프로젝트입니다. 이 내용은 절대 변경되면 안 됩니다!"}
+]
+
+⚠️ CRITICAL: Output ONLY valid JSON array. NO explanations, NO markdown blocks, NO comments."""
+
+        user_prompt = f"""Input nodes to organize:
+
+{nodes_summary}
+
+🎯 YOUR TASK:
+1. **MERGE similar nodes** (reduce count by 20-30%)
+2. **Keep same language** (Korean→Korean, English→English)
+3. **Protect root nodes** (parentId=null → no changes)
+
+Apply the FEW-SHOT EXAMPLES from above. Output ONLY JSON array:"""
+
+        result = self.generate(
+            user_prompt,
+            system_prompt=system_prompt,
+            max_tokens=max_tokens,
+            temperature=0.1,  # 매우 낮게 설정 (일관성 향상)
+            top_p=0.85,
+            top_k=40,
+            repetition_penalty=1.15
+        )
+
+        return result.strip()
+
     def get_vram_usage(self) -> Dict[str, float]:
         """현재 VRAM 사용량 반환"""
         if torch.cuda.is_available():

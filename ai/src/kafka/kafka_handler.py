@@ -20,11 +20,23 @@ logger = logging.getLogger(__name__)
 class KafkaHandler:
     """Kafka Consumer/Producer 핸들러"""
 
-    def __init__(self):
-        """초기화"""
+    def __init__(self, topics: Optional[Dict[str, str]] = None):
+        """
+        초기화
+
+        Args:
+            topics: 토픽 설정 딕셔너리 (None이면 기본 analysis 토픽 사용)
+                예: {"request": "ai.analysis.request", "response": "ai.analysis.result"}
+        """
         self.bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
-        self.request_topic = os.getenv('KAFKA_REQUEST_TOPIC', 'ai.analysis.request')
-        self.response_topic = os.getenv('KAFKA_RESPONSE_TOPIC', 'ai.analysis.result')
+
+        if topics:
+            self.request_topic = topics.get('request')
+            self.response_topic = topics.get('response')
+        else:
+            self.request_topic = os.getenv('KAFKA_REQUEST_TOPIC', 'ai.analysis.request')
+            self.response_topic = os.getenv('KAFKA_RESPONSE_TOPIC', 'ai.analysis.result')
+
         self.group_id = os.getenv('KAFKA_GROUP_ID', 'ai-analysis-consumer')
 
         self.consumer: Optional[KafkaConsumer] = None
@@ -36,6 +48,8 @@ class KafkaHandler:
         self.analysis_callback = None
 
         logger.info(f"Kafka Handler 초기화: {self.bootstrap_servers}")
+        logger.info(f"Request Topic: {self.request_topic}")
+        logger.info(f"Response Topic: {self.response_topic}")
 
     def connect_producer(self):
         """Kafka Producer 연결"""
