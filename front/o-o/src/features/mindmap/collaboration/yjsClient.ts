@@ -20,14 +20,26 @@ export const createYClient = (
   workspaceId: string,
   options?: { connect?: boolean }
 ): YClient => {
+  if (!wsUrl) throw new Error("wsUrl missing");
+  if (!workspaceId) throw new Error("workspaceId missing");
   const doc = new Y.Doc();
   // Allows callers to pick the websocket endpoint and defer auto-connect when needed
   const provider = new WebsocketProvider(wsUrl, workspaceId, doc, {
     connect: options?.connect ?? true,
   });
 
-  provider.on("status", (event) => {
-    console.log("🔌 WebSocket status:", event.status);
+  provider.on("status", (event: { status: "connected" | "disconnected" | "connecting" }) => {
+    let emoji = "❌";
+    if (event.status === "connected") {
+      emoji = "✅";
+    } else if (event.status === "connecting") {
+      emoji = "🔄";
+    }
+    console.log(`${emoji} WebSocket status:`, event.status);
+  });
+
+  provider.on("sync", (isSynced: boolean) => {
+    console.log("🔄 Document sync:", isSynced ? "synced" : "syncing...");
   });
 
   const connect = () => provider.connect();

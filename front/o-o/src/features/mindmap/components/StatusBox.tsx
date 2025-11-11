@@ -38,7 +38,7 @@ const initialCollaborators: Collaborator[] = [
   { id: "6", name: "박소영", avatar: popo2, role: "Viewer", permission: "can View" },
 ];
 
-export default function StatusBox({ onStartVoiceChat, shareLink }: StatusBoxProps) {
+export default function StatusBox({ onStartVoiceChat, shareLink }: Readonly <StatusBoxProps>) {
   // Custom hooks
   const { copied, handleCopyLink } = useShareLink(shareLink);
   const { collaborators, handlePermissionChange } = useCollaborators(initialCollaborators);

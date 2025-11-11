@@ -10,6 +10,8 @@ import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
 import CytoscapeCanvas from "../components/CytoscapeCanvas";
 import VoiceChat from "../components/VoiceChat/VoiceChat";
 import { fetchMindmapNodes } from "@/services/mindmapService";
+import { PeerCursorProvider } from "../collaboration/PeerCursorProvider";
+import { RemoteCursorsOverlay } from "../components/RemoteCursorsOverlay";
 import type {
   NodeData,
   MindmapMode,
@@ -28,25 +30,19 @@ import { useYMapState } from "../collaboration/useYMapState";
 import { createYMapCrud } from "../collaboration/yMapCrud";
 import {
   DEFAULT_WORKSPACE_ID,
-  DEFAULT_Y_WEBSOCKET_URL,
   NODES_YMAP_KEY,
   buildMindmapRoomId,
   buildMindmapShareLink,
-} from "../collaboration/constants";
+  resolveMindmapWsUrl,
+} from "@/constants/mindmapCollaboration";
 
-// Tracks peer cursor metadata broadcast over Yjs awareness
-type CursorAwareness = {
-  x: number;
-  y: number;
-  color?: string;
-};
 
 const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const roomId = useMemo(() => buildMindmapRoomId(workspaceId), [workspaceId]);
   const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
-  const wsUrl = import.meta.env.VITE_Y_WEBSOCKET_URL ?? DEFAULT_Y_WEBSOCKET_URL;
+  const wsUrl = resolveMindmapWsUrl();
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [mode, setMode] = useState<MindmapMode>("edit");
@@ -54,6 +50,7 @@ const MindmapPageContent: React.FC = () => {
   const [voiceChatVisible, setVoiceChatVisible] = useState(false);
   const [detachedSelectionMap, setDetachedSelectionMap] = useState<Record<string, DetachedSelectionState>>({});
   const cyRef = useRef<Core | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [collab, setCollab] = useState<{ client: YClient; map: Y.Map<NodeData> } | null>(null);
 
   const { getRandomThemeColor } = useColorTheme();
@@ -63,11 +60,6 @@ const MindmapPageContent: React.FC = () => {
   const hasBootstrappedRef = useRef(false);
   // Stable color used for local awareness cursor
   const cursorColorRef = useRef<string | null>(null);
-  // Keeps remote awareness cursors mirrored in React state
-  const [peerCursors, setPeerCursors] = useState<Record<number, CursorAwareness>>({});
-  // Derived count used for instrumentation/testing hooks
-  const remoteCursorCount = useMemo(() => Object.keys(peerCursors).length, [peerCursors]);
-
   // Lazily assign cursor color once per session
   if (!cursorColorRef.current) {
     cursorColorRef.current = getRandomThemeColor();
@@ -130,6 +122,73 @@ const MindmapPageContent: React.FC = () => {
       cancelled = true;
     };
   }, [collab, workspaceId]);
+
+  // Initialize awareness state
+  useEffect(() => {
+    if (!collab) return;
+
+    const awareness = collab.client.provider.awareness;
+    if (!awareness) return;
+
+    const color = cursorColorRef.current!;
+    const initialState = {
+      user: { name: "You", color },
+      cursor: null,
+    };
+    console.log("ðŸŽ¨ [MindmapPage] Setting initial awareness state:", initialState);
+    awareness.setLocalState(initialState);
+
+    return () => {
+      awareness.setLocalState(null);
+    };
+  }, [collab]);
+
+  // Broadcast cursor position when cy is ready
+  useEffect(() => {
+    if (!collab) return;
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    const awareness = collab.client.provider.awareness;
+    if (!awareness) return;
+
+    const color = cursorColorRef.current!;
+    let raf = 0;
+    let lastLog = 0;
+
+    const handleMouseMove = (event: cytoscape.EventObject) => {
+      if (raf) {
+        cancelAnimationFrame(raf);
+      }
+      raf = requestAnimationFrame(() => {
+        const position = event.position;
+        if (!position) return;
+
+        const cursorData = {
+          x: position.x,
+          y: position.y,
+          color,
+        };
+
+        if (Date.now() - lastLog > 5000) {
+          console.log("ðŸ–±ï¸ [MindmapPage] Setting cursor (model coords):", cursorData);
+          lastLog = Date.now();
+        }
+
+        awareness.setLocalStateField("cursor", cursorData);
+      });
+    };
+
+    console.log("ðŸŽ® [MindmapPage] Attaching mousemove to cy");
+    cy.on("mousemove", handleMouseMove);
+
+    return () => {
+      cy.off("mousemove", handleMouseMove);
+      if (raf) {
+        cancelAnimationFrame(raf);
+      }
+    };
+  }, [collab, cyRef.current]);
 
   const nodesState = useYMapState<NodeData>(collab?.map);
   const nodes = useMemo<NodeData[]>(() => Object.values(nodesState), [nodesState]);
@@ -390,50 +449,6 @@ const MindmapPageContent: React.FC = () => {
     });
   }, [nodes]);
 
-  // Mirror y-websocket awareness updates into React state
-  useEffect(() => {
-    if (!collab) {
-      return;
-    }
-
-    const awareness = collab.client.provider.awareness;
-    if (!awareness) {
-      return;
-    }
-
-    const handleMouseMove = (event: MouseEvent) => {
-      awareness.setLocalStateField("cursor", {
-        x: event.clientX,
-        y: event.clientY,
-        color: cursorColorRef.current,
-      });
-    };
-
-    const handleAwarenessChange = () => {
-      const next: Record<number, CursorAwareness> = {};
-      awareness.getStates().forEach((state, clientId) => {
-        if (clientId === awareness.clientID) {
-          return;
-        }
-
-        const cursorState = (state as { cursor?: CursorAwareness }).cursor;
-        if (cursorState) {
-          next[clientId] = cursorState;
-        }
-      });
-      setPeerCursors(next);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    awareness.on("change", handleAwarenessChange);
-    handleAwarenessChange();
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      awareness.off("change", handleAwarenessChange);
-      awareness.setLocalStateField("cursor", null);
-    };
-  }, [collab]);
 
   const selectedAnalyzeNodes = useMemo(
     () => nodes.filter((node) => analyzeSelection.includes(node.id)),
@@ -441,21 +456,22 @@ const MindmapPageContent: React.FC = () => {
   );
 
   const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "Æ÷Æ÷ A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "Æ÷Æ÷ B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "Æ÷Æ÷ C", avatar: popo3, colorIndex: 2 },
+    { id: "1", name: "ï¿½ï¿½ï¿½ï¿½ A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
+    { id: "2", name: "ï¿½ï¿½ï¿½ï¿½ B", avatar: popo2, colorIndex: 1 },
+    { id: "3", name: "ï¿½ï¿½ï¿½ï¿½ C", avatar: popo3, colorIndex: 2 },
   ], []);
 
   if (!collab || !crud) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        ¿öÅ©½ºÆäÀÌ½º¿¡ ¿¬°á ÁßÀÔ´Ï´Ù...
+        ï¿½ï¿½Å©ï¿½ï¿½ï¿½ï¿½ï¿½Ì½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ô´Ï´ï¿½...
       </div>
     );
   }
 
   return(
-    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden' data-remote-cursors={remoteCursorCount}>
+    <PeerCursorProvider awareness={collab.client.provider.awareness}>
+      <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden'>
       {/* Fixed UI Elements */}
       <div className='fixed top-4 left-4 z-50'>
         <MiniNav />
@@ -499,29 +515,33 @@ const MindmapPageContent: React.FC = () => {
         </div>
       )}
 
-      {/* Cytoscape Canvas - ÀüÃ¼ È­¸é */}
-      <CytoscapeCanvas
-        nodes={nodes}
-        mode={mode}
-        analyzeSelection={analyzeSelection}
-        selectedNodeId={selectedNodeId}
-        onNodeSelect={setSelectedNodeId}
-        onNodeUnselect={() => setSelectedNodeId(null)}
-        onApplyTheme={handleApplyTheme}
-        onDeleteNode={handleDeleteNode}
-        onEditNode={handleEditNode}
-        onNodePositionChange={handleNodePositionChange}
-        onBatchNodePositionChange={handleBatchNodePositionChange}
-        onCyReady={(cy) => { cyRef.current = cy; }}
-        onCreateChildNode={handleCreateChildNode}
-        onAnalyzeNodeToggle={handleAnalyzeNodeToggle}
-        detachedSelectionMap={detachedSelectionMap}
-        onKeepChildrenDelete={handleKeepChildrenDelete}
-        onConnectDetachedSelection={handleConnectDetachedSelection}
-        onDismissDetachedSelection={handleDismissDetachedSelection}
-        className="absolute inset-0"
-      />
-    </div>
+      {/* Cytoscape Canvas - ??? ??? */}
+      <div className="absolute inset-0" ref={canvasContainerRef}>
+        <CytoscapeCanvas
+          nodes={nodes}
+          mode={mode}
+          analyzeSelection={analyzeSelection}
+          selectedNodeId={selectedNodeId}
+          onNodeSelect={setSelectedNodeId}
+          onNodeUnselect={() => setSelectedNodeId(null)}
+          onApplyTheme={handleApplyTheme}
+          onDeleteNode={handleDeleteNode}
+          onEditNode={handleEditNode}
+          onNodePositionChange={handleNodePositionChange}
+          onBatchNodePositionChange={handleBatchNodePositionChange}
+          onCyReady={(cy) => { cyRef.current = cy; }}
+          onCreateChildNode={handleCreateChildNode}
+          onAnalyzeNodeToggle={handleAnalyzeNodeToggle}
+          detachedSelectionMap={detachedSelectionMap}
+          onKeepChildrenDelete={handleKeepChildrenDelete}
+          onConnectDetachedSelection={handleConnectDetachedSelection}
+          onDismissDetachedSelection={handleDismissDetachedSelection}
+          className="absolute inset-0"
+        />
+        <RemoteCursorsOverlay cy={cyRef.current} />
+      </div>
+      </div>
+    </PeerCursorProvider>
   );
 };
 
