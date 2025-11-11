@@ -12,7 +12,8 @@ public record WorkspaceResponse(
         WorkspaceTheme theme,
         WorkspaceType type,
         WorkspaceVisibility visibility,
-        String title
+        String title,
+        String token
 ) {
     public static WorkspaceResponse from(Workspace w) {
         return new WorkspaceResponse(
@@ -20,7 +21,8 @@ public record WorkspaceResponse(
                 w.getTheme(),
                 w.getType(),
                 w.getVisibility(),
-                w.getTitle()
+                w.getTitle(),
+                w.getToken()
         );
     }
 }

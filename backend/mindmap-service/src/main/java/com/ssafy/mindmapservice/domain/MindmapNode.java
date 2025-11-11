@@ -65,11 +65,6 @@ public class MindmapNode {
     private String memo;
 
     /**
-     * 첨부 콘텐츠 URL (이미지/영상)
-     */
-    private String contentUrl;
-
-    /**
      * AI 분석 상태
      * NONE: 분석 불필요 (텍스트 노드)
      * PENDING: 분석 요청됨
@@ -94,11 +89,6 @@ public class MindmapNode {
      * 예: "#ffd700", "#3b82f6"
      */
     private String color;
-
-    /**
-     * 생성자 사용자 ID
-     */
-    private String createdBy;
 
     /**
      * 생성 시각
