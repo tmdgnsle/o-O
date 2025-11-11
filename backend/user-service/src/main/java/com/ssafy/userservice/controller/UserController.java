@@ -4,6 +4,7 @@ import com.ssafy.userservice.dto.UserResponse;
 import com.ssafy.userservice.dto.UserUpdateRequest;
 import com.ssafy.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,7 +31,9 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content)
     })
     @GetMapping("")
-    public ResponseEntity<UserResponse> getUser(@RequestHeader("X-USER-ID") Long userId) {
+    public ResponseEntity<UserResponse> getUser(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long userId) {
         log.info("GET /users - Retrieving user information for userId: {}", userId);
         UserResponse response = userService.getUserById(userId);
         return ResponseEntity.ok(response);
@@ -45,6 +48,7 @@ public class UserController {
     })
     @PutMapping("")
     public ResponseEntity<UserResponse> updateUser(
+            @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId,
             @RequestBody UserUpdateRequest request) {
         log.info("PUT /users - Updating user information for userId: {}", userId);
