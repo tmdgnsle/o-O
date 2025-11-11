@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +33,7 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     private static final int MAX_MEMBERS = 6;
+    private static final int DEFAULT_PAGE_SIZE = 20;
 
     public WorkspaceResponse create(Long userId) {
         String INITIAL_TITLE = "제목 없음";
@@ -108,11 +112,61 @@ public class WorkspaceService {
         w.changeVisibility(newVisibility); // @Transaction 어노테이션으로 더티 체킹을 통해 자동 업데이트
     }
 
-    // 최신순 목록. WorkspaceSimpleResponse 리스트
+    // 내가 속한 워크스페이스 조회 (커서 기반 페이징)
     @Transactional(readOnly = true)
-    public List<WorkspaceSimpleResponse> listLatest() {
-        return workspaceRepository.findAllByOrderByCreatedAtDesc()
-                .stream().map(WorkspaceSimpleResponse::from).toList();
+    public WorkspaceCursorResponse getMyWorkspaces(Long userId, String category, Long cursor) {
+        // size+1개 조회하여 hasNext 판단
+        Pageable pageable = PageRequest.of(0, DEFAULT_PAGE_SIZE + 1);
+        List<Workspace> workspaces;
+
+        // category에 따라 쿼리 분기
+        switch (category.toLowerCase()) {
+            case "recent":
+                // 전체 워크스페이스
+                if (cursor == null) {
+                    workspaces = workspaceRepository.findMyWorkspacesInitial(userId, pageable);
+                } else {
+                    workspaces = workspaceRepository.findMyWorkspacesWithCursor(userId, cursor, pageable);
+                }
+                break;
+
+            case "team":
+                // TEAM 타입만
+                if (cursor == null) {
+                    workspaces = workspaceRepository.findMyWorkspacesByTypeInitial(userId, WorkspaceType.TEAM, pageable);
+                } else {
+                    workspaces = workspaceRepository.findMyWorkspacesByTypeWithCursor(userId, WorkspaceType.TEAM, cursor, pageable);
+                }
+                break;
+
+            case "personal":
+                // PERSONAL 타입만
+                if (cursor == null) {
+                    workspaces = workspaceRepository.findMyWorkspacesByTypeInitial(userId, WorkspaceType.PERSONAL, pageable);
+                } else {
+                    workspaces = workspaceRepository.findMyWorkspacesByTypeWithCursor(userId, WorkspaceType.PERSONAL, cursor, pageable);
+                }
+                break;
+
+            default:
+                throw new BadRequestException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        // hasNext 확인 (size+1개 조회했으므로)
+        boolean hasNext = workspaces.size() > DEFAULT_PAGE_SIZE;
+
+        // 실제 반환할 데이터 (size개만)
+        List<WorkspaceSimpleResponse> content = workspaces.stream()
+                .limit(DEFAULT_PAGE_SIZE)
+                .map(WorkspaceSimpleResponse::from)
+                .toList();
+
+        // nextCursor는 마지막 항목의 id
+        Long nextCursor = hasNext && !content.isEmpty()
+                ? content.get(content.size() - 1).id()
+                : null;
+
+        return WorkspaceCursorResponse.of(content, nextCursor, hasNext);
     }
 
     // 날짜별 사용자 워크스페이스 조회

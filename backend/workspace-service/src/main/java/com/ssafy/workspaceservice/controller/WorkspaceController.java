@@ -127,15 +127,25 @@ public class WorkspaceController {
     }
 
     @Operation(
-            summary = "워크스페이스 목록 조회 (최신순)",
-            description = "접근 가능한 워크스페이스 목록을 최신순으로 조회합니다. 공개 워크스페이스와 사용자가 멤버로 참여 중인 워크스페이스를 포함합니다."
+            summary = "내가 속한 워크스페이스 조회 (커서 기반 페이징)",
+            description = "카테고리별로 내가 속한 워크스페이스를 조회합니다. category: recent(전체 최신순), team(팀 프로젝트), personal(개인 프로젝트). 페이지 크기는 20개 고정입니다."
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공")
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 category 값")
     })
-    @GetMapping
-    public ResponseEntity<List<WorkspaceSimpleResponse>> listLatest() {
-        return ResponseEntity.ok(workspaceService.listLatest());
+    @GetMapping("/my")
+    public ResponseEntity<WorkspaceCursorResponse> getMyWorkspaces(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long userId,
+
+            @Parameter(description = "카테고리 (recent, team, personal)", required = true, example = "recent")
+            @RequestParam String category,
+
+            @Parameter(description = "커서 (페이징용, 이전 응답의 nextCursor 사용)", example = "105")
+            @RequestParam(required = false) Long cursor
+    ) {
+        return ResponseEntity.ok(workspaceService.getMyWorkspaces(userId, category, cursor));
     }
 
     @Operation(
