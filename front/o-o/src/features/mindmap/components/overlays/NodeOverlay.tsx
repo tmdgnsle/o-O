@@ -8,7 +8,6 @@ import { useNodeColorEdit } from "../../hooks/custom/useNodeColorEdit";
 import { useNodeFocus } from "../../hooks/custom/useNodeFocus";
 import { useNodeZIndex } from "../../hooks/custom/useNodeZIndex";
 import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
-import { useDeleteNode, useEditNode } from "../../hooks/mutation/useNodeMutations";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 import type { CytoscapeNodeOverlayProps } from "../../types";
 import warningPopoImage from "@/shared/assets/images/warning_popo.png";
@@ -27,6 +26,8 @@ function NodeOverlay({
   onSelect,
   onDeselect,
   onApplyTheme,
+  onDeleteNode,
+  onEditNode,
   onCreateChildNode,
   detachedSelection,
   onKeepChildrenDelete,
@@ -36,9 +37,6 @@ function NodeOverlay({
   const { text, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  const deleteNodeMutation = useDeleteNode();
-  const editNodeMutation = useEditNode();
 
   const { isEditing, editValue, setEditValue, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(text);
   const { showAddInput, openAddInput, closeAddInput } = useNodeAdd();
@@ -67,8 +65,8 @@ function NodeOverlay({
     onSelect,
     onDeselect,
     setFocusedButton,
-    deleteNodeMutation,
-    editNodeMutation,
+    deleteNode: onDeleteNode,
+    editNode: onEditNode,
     startEdit,
     cancelEdit,
     confirmEdit,
