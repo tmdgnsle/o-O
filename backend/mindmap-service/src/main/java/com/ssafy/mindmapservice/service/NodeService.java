@@ -81,9 +81,6 @@ public class NodeService {
         if (updates.getParentId() != null) {
             existingNode.setParentId(updates.getParentId());
         }
-        if (updates.getContentUrl() != null) {
-            existingNode.setContentUrl(updates.getContentUrl());
-        }
         if (updates.getAnalysisStatus() != null) {
             existingNode.setAnalysisStatus(updates.getAnalysisStatus());
         }
@@ -155,12 +152,10 @@ public class NodeService {
                         .type(node.getType())
                         .keyword(node.getKeyword())
                         .memo(node.getMemo())
-                        .contentUrl(node.getContentUrl())
                         .analysisStatus(node.getAnalysisStatus())
                         .x(node.getX())
                         .y(node.getY())
                         .color(node.getColor())
-                        .createdBy(node.getCreatedBy())
                         .createdAt(LocalDateTime.now())
                         .updatedAt(LocalDateTime.now())
                         .build())
@@ -361,9 +356,6 @@ public class NodeService {
 
         // 3. 분석 상태를 PENDING으로 변경
         node.setAnalysisStatus(MindmapNode.AnalysisStatus.PENDING);
-        if (contentUrl != null) {
-            node.setContentUrl(contentUrl);
-        }
         node.setUpdatedAt(LocalDateTime.now());
         nodeRepository.save(node);
 
@@ -416,7 +408,6 @@ public class NodeService {
                 .type("root")
                 .keyword(nodeKeyword)
                 .memo("")
-                .contentUrl(request.contentUrl())
                 .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                 .build();
 
