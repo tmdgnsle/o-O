@@ -1,5 +1,5 @@
 // ============================================
-// Component Props Types
+// Mindmap UI Component Props Types
 // ============================================
 
 // NodeAddInput.tsx
@@ -31,6 +31,8 @@ export type CytoscapeCanvasProps = Readonly<{
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onDeleteNode: (payload: DeleteNodePayload) => void;
+  onEditNode: (payload: EditNodePayload) => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
   onCyReady?: (cy: any) => void;
@@ -54,6 +56,8 @@ export type CytoscapeNodeOverlayProps = {
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onDeleteNode: (payload: DeleteNodePayload) => void;
+  onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   detachedSelection?: DetachedSelectionState;
   onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
@@ -103,15 +107,28 @@ export type TextboxProps = Readonly<{
 
 // ============================================
 // Data Types
+//  Yjs · REST API · Redux가 동일한 데이터 구조를 공유하도록 함
 // ============================================
 
+export type MindmapNodeType = "text" | "image" | "link";
+
+export type NodeAnalysisStatus = "NONE" | "PENDING" | "DONE";
+
+// Mindmap nodes can carry optional metadata from REST → Yjs → UI
 export type NodeData = {
   id: string;
   text: string;
   x: number;
   y: number;
   color: string;
-  parentId?: string;
+  parentId?: string | null;
+  memo?: string;
+  type?: MindmapNodeType;
+  contentUrl?: string;
+  analysisStatus?: NodeAnalysisStatus;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ChildNodeRequest = {
@@ -119,6 +136,18 @@ export type ChildNodeRequest = {
   parentX: number;
   parentY: number;
   text: string;
+};
+
+export type DeleteNodePayload = {
+  nodeId: string;
+  deleteDescendants?: boolean;
+};
+
+export type EditNodePayload = {
+  nodeId: string;
+  newText?: string;
+  newColor?: string;
+  newParentId?: string | null;
 };
 
 export type DetachedSelectionState = {

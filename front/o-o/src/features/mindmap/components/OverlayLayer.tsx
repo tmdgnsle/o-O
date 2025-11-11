@@ -5,7 +5,14 @@
  */
 import type { Core } from "cytoscape";
 import NodeOverlay from "./overlays/NodeOverlay";
-import type { NodeData, ChildNodeRequest, MindmapMode, DetachedSelectionState } from "../types";
+import type {
+  NodeData,
+  ChildNodeRequest,
+  MindmapMode,
+  DetachedSelectionState,
+  DeleteNodePayload,
+  EditNodePayload,
+} from "../types";
 
 export default function OverlayLayer({
   cy,
@@ -16,6 +23,8 @@ export default function OverlayLayer({
   onNodeSelect,
   onNodeUnselect,
   onApplyTheme,
+  onDeleteNode,
+  onEditNode,
   onCreateChildNode,
   detachedSelectionMap,
   onKeepChildrenDelete,
@@ -30,6 +39,8 @@ export default function OverlayLayer({
   onNodeSelect: (id: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
+  onDeleteNode: (payload: DeleteNodePayload) => void;
+  onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   detachedSelectionMap?: Record<string, DetachedSelectionState>;
   onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
@@ -81,6 +92,8 @@ export default function OverlayLayer({
               onSelect={() => onNodeSelect(node.id)}
               onDeselect={onNodeUnselect}
               onApplyTheme={onApplyTheme}
+              onDeleteNode={onDeleteNode}
+              onEditNode={onEditNode}
               onCreateChildNode={onCreateChildNode}
               detachedSelection={detachedSelectionMap?.[node.id]}
               onKeepChildrenDelete={onKeepChildrenDelete}

@@ -22,6 +22,8 @@ export default function CytoscapeCanvas({
   onNodeSelect,
   onNodeUnselect,
   onApplyTheme,
+  onDeleteNode,
+  onEditNode,
   onNodePositionChange,
   onBatchNodePositionChange,
   onCyReady,
@@ -264,6 +266,8 @@ export default function CytoscapeCanvas({
         onNodeSelect={onNodeSelect}
         onNodeUnselect={onNodeUnselect}
         onApplyTheme={onApplyTheme}
+        onDeleteNode={onDeleteNode}
+        onEditNode={onEditNode}
         onCreateChildNode={onCreateChildNode}
         detachedSelectionMap={detachedSelectionMap}
         onKeepChildrenDelete={onKeepChildrenDelete}
