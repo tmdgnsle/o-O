@@ -202,7 +202,7 @@ public class WorkspaceController {
     })
     @PostMapping("/join")
     public ResponseEntity<Void> joinWorkspace(
-            @Parameter(description = "초대 토큰", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @Parameter(description = "초대 토큰", required = true, example = "550e8400-e29b-41d4-a716-446655")
             @RequestParam String token,
 
             @Parameter(hidden = true)

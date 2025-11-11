@@ -44,6 +44,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/user-service/v3/api-docs",
             "/workspace-service/v3/api-docs",
             "/mindmap-service/v3/api-docs",
+            "/trend-service/v3/api-docs",
             "/webjars"
     );
 
