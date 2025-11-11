@@ -7,7 +7,7 @@ export const PATHS = {
   NEWPROJECT: "/newproject",
   MYPAGE: "/mypage",
   PROJECT_DETAIL: "/project/:id",
-  LOGIN: "/auth/callback",
+  CALLBACK: "/callback",
 } as const;
 
 // 경로 타입 정의

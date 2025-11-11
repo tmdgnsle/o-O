@@ -1,4 +1,4 @@
-import type { User } from "@/shared/types/user";
+import type { User } from "@/features/auth/types/user";
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
@@ -6,55 +6,72 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 interface AuthState {
   isLoggedIn: boolean;
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
 }
 
-// 처음 시작할 때 상태
-const initialState: AuthState = {
-  isLoggedIn: false,
-  user: null,
-  token: null,
-};
+// localStorage에서 초기값 가져오기
+const getInitialState = (): AuthState => {
+  const token = localStorage.getItem("accessToken");
+  const userStr = localStorage.getItem("user");
 
+  if (token && userStr) {
+    try {
+      return {
+        accessToken: token,
+        user: JSON.parse(userStr),
+        isLoggedIn: true,
+      };
+    } catch {
+      // JSON 파싱 실패 시 초기화
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+    }
+  }
+
+  return {
+    accessToken: null,
+    user: null,
+    isLoggedIn: false,
+  };
+};
 // Slice 생성 (상태 + 상태를 바꾸는 함수들)
 const authSlice = createSlice({
-  name: "auth", // 이름
-  initialState, // 초기 상태
+  name: "auth",
+  initialState: getInitialState(),
   reducers: {
-    // 로그인 성공했을 때
-    loginSuccess: (
+    // 로그인 성공 시 호출
+    setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ accessToken: string; user: User }>
     ) => {
-      state.isLoggedIn = true;
+      state.accessToken = action.payload.accessToken;
       state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.isLoggedIn = true;
 
-      // localStorage 에도 저장 (새로고침해도 로그인 유지)
-      localStorage.setItem("user", JSON.stringify(action.payload));
-      localStorage.setItem("token", action.payload.token);
+      // localStorage에 저장
+      localStorage.setItem("accessToken", action.payload.accessToken);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
     },
-    // 로그아웃 했을 때
-    logout: (state) => {
-      state.isLoggedIn = false;
+
+    // accessToken만 업데이트 (refresh 시)
+    updateAccessToken: (state, action: PayloadAction<string>) => {
+      state.accessToken = action.payload;
+      localStorage.setItem("accessToken", action.payload);
+    },
+
+    // 로그아웃 시 호출
+    clearCredentials: (state) => {
+      state.accessToken = null;
       state.user = null;
-      state.token = null;
+      state.isLoggedIn = false;
 
+      localStorage.removeItem("accessToken");
       localStorage.removeItem("user");
-      localStorage.removeItem("token");
-    },
-    // 페이지 새로고침 후 복구
-    restoreSession: (
-      state,
-      action: PayloadAction<{ user: User; token: string }>
-    ) => {
-      state.isLoggedIn = true;
-      state.user = action.payload.user;
-      state.token = action.payload.token;
     },
   },
 });
 
 // 다른 파일에서 쓸 수 있게 내보내기
-export const { loginSuccess, logout, restoreSession } = authSlice.actions;
+export const { setCredentials, updateAccessToken, clearCredentials } =
+  authSlice.actions;
 export default authSlice.reducer;
