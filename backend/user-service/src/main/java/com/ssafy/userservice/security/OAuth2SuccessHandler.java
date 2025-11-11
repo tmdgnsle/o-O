@@ -14,6 +14,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -30,6 +31,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
+
+    @Value("${oauth2.redirect.frontend-url}")
+    private String frontendRedirectUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -54,18 +58,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         Long ttlSeconds = refreshTokenExpiration / 1000;  // 밀리초를 초로 변환 (TTL은 초 단위)
         refreshTokenService.saveRefreshToken(userId, platform.getValue(), refreshToken, ttlSeconds);
 
-        // Access Token은 헤더로 전달
-        response.setHeader("Authorization", "Bearer " + accessToken);
-
         // Refresh Token은 HttpOnly Cookie로 전달
         ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken);
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        // 응답
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"message\": \"login success\", \"userId\": " + userId + "}");
+        // 프론트엔드로 리다이렉트 (URL에 accessToken과 userId 포함)
+        String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
+                .queryParam("token", accessToken)
+                .queryParam("userId", userId)
+                .build()
+                .toUriString();
 
-        log.info("JWT tokens issued for userId: {}", userId);
+        log.info("Redirecting to frontend with JWT tokens for userId: {}", userId);
+
+        // 리다이렉트 수행
+        response.sendRedirect(redirectUrl);
     }
 }
