@@ -45,6 +45,9 @@ public class Workspace {
     @Column(length = 300)
     private String thumbnail;
 
+    @Column(length = 300)
+    private String startPrompt;
+
     @Column(unique = true, nullable = false, length = 36)
     private String token;
 

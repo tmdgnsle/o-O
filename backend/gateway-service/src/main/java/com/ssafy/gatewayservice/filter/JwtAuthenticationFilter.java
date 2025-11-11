@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.gatewayservice.jwt.JwtException;
 import com.ssafy.gatewayservice.jwt.JwtTokenProvider;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
@@ -86,9 +88,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
         } catch (JwtException e) {
+            log.error("[JWT Filter] JWT Exception - Path: {}, Error: {}", path, e.getMessage());
             return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, e.getMessage());
         } catch (Exception e) {
-            return sendErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, "인증 처리 중 오류가 발생했습니다.");
+            log.error("[JWT Filter] Unexpected Exception - Path: {}, Type: {}, Message: {}",
+                    path, e.getClass().getName(), e.getMessage(), e);
+            return sendErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
