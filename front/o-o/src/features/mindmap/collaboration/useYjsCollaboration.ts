@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import * as Y from "yjs";
 import type { Core } from "cytoscape";
 import { createYClient, type YClient } from "./yjsClient";
@@ -56,6 +56,7 @@ export function useYjsCollaboration(
     const initialState = {
       user: { name: "You", color: cursorColor },
       cursor: null, // Will be updated by mousemove
+      chat: null, // Will be updated when user types
     };
     console.log("🎨 [useYjsCollaboration] Setting initial awareness state:", initialState);
     awareness.setLocalState(initialState);
@@ -113,9 +114,18 @@ export function useYjsCollaboration(
     };
   }, [collab, cyRef.current, cursorColor]);
 
+  // Method to update chat awareness state
+  const updateChatState = (chatData: { isTyping: boolean; currentText: string; timestamp: number } | null) => {
+    if (!collab) return;
+    const awareness = collab.client.provider.awareness;
+    if (!awareness) return;
+    awareness.setLocalStateField("chat", chatData);
+  };
+
   return {
     collab,
     crud,
     cursorColor,
+    updateChatState,
   };
 }

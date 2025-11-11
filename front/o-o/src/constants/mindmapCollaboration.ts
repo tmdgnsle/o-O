@@ -10,7 +10,7 @@ export const buildMindmapShareLink = (
   origin?: string
 ) => {
   const resolvedOrigin =
-    origin ?? (typeof window === "undefined" ? "" : window.location.origin);
+    origin ?? (globalThis.window === undefined ? "" : globalThis.window.location.origin);
   return `${resolvedOrigin}/mindmap/${workspaceId}`;
 };
 

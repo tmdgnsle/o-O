@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { Core } from "cytoscape";
 import MiniNav from "@/shared/ui/MiniNav";
@@ -11,6 +11,9 @@ import CytoscapeCanvas from "../components/CytoscapeCanvas";
 import VoiceChat from "../components/VoiceChat/VoiceChat";
 import { PeerCursorProvider } from "../collaboration/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../components/RemoteCursorsOverlay";
+import { ChatBubblesOverlay } from "../collaboration/ChatBubblesOverlay";
+import { ChatInputBubble } from "../collaboration/ChatInputBubble";
+import { useChatInput } from "../collaboration/useChatInput";
 import { useColorTheme } from "../hooks/useColorTheme";
 import { useNodePositioning } from "../hooks/useNodePositioning";
 import { useYjsCollaboration } from "../collaboration/useYjsCollaboration";
@@ -52,13 +55,16 @@ const MindmapPageContent: React.FC = () => {
   }
 
   // 5. Collaboration hooks
-  const { collab, crud } = useYjsCollaboration(
+  const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
     roomId,
     cyRef,
     cursorColorRef.current
   );
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
+
+  // 5b. Chat input hook
+  const chatInput = useChatInput();
 
   // 6. UI state hook
   const {
@@ -92,6 +98,25 @@ const MindmapPageContent: React.FC = () => {
     { id: "2", name: "사용자 B", avatar: popo2, colorIndex: 1 },
     { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
   ], []);
+
+  // 10b. Track cursor position for chat input (model coordinates only)
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+
+    const handleMouseMove = (event: cytoscape.EventObject) => {
+      const position = event.position;
+      if (!position) return;
+
+      // Store model coordinates directly (no screen coordinate conversion)
+      chatInput.updateCursorPosition({ x: position.x, y: position.y });
+    };
+
+    cy.on("mousemove", handleMouseMove);
+    return () => {
+      cy.off("mousemove", handleMouseMove);
+    };
+  }, [cyRef.current, chatInput]);
 
   // 11. Loading state
   if (!collab || !crud || isBootstrapping) {
@@ -133,11 +158,7 @@ const MindmapPageContent: React.FC = () => {
           </div>
         )}
 
-        {!voiceChatVisible ? (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
-            <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
-          </div>
-        ) : (
+        {voiceChatVisible ? (
           <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
             <VoiceChat
               users={voiceChatUsers}
@@ -146,6 +167,10 @@ const MindmapPageContent: React.FC = () => {
               onOrganize={() => console.log("Organize clicked")}
               onShare={() => console.log("Share clicked")}
             />
+          </div>
+        ) : (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+            <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
           </div>
         )}
 
@@ -179,6 +204,16 @@ const MindmapPageContent: React.FC = () => {
             className="absolute inset-0"
           />
           <RemoteCursorsOverlay cy={cyRef.current} />
+          <ChatBubblesOverlay cy={cyRef.current} awareness={collab.client.provider.awareness} />
+          {chatInput.isInputVisible && chatInput.inputPosition && (
+            <ChatInputBubble
+              cy={cyRef.current}
+              position={chatInput.inputPosition}
+              color={cursorColorRef.current}
+              onClose={chatInput.closeChatInput}
+              onUpdateChat={updateChatState}
+            />
+          )}
         </div>
       </div>
     </PeerCursorProvider>

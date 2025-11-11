@@ -61,11 +61,11 @@ export function useCollaborativeNodes(
 
         // Use transaction to batch all insertions for performance
         collab.client.doc.transact(() => {
-          restNodes.forEach((node) => {
+          for (const node of restNodes) {
             if (!collab.map.has(node.id)) {
               collab.map.set(node.id, node);
             }
-          });
+          }
         }, "mindmap-bootstrap");
 
         console.log(`✅ [useCollaborativeNodes] Bootstrapped ${restNodes.length} nodes`);
