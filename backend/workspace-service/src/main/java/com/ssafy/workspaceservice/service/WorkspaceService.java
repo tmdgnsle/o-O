@@ -108,15 +108,6 @@ public class WorkspaceService {
         targetMember.changeRole(newRole);  // 더티 체킹으로 자동 업데이트
     }
 
-    // 존재만 확인함.
-    //TODO: 초대했을 때 플로우가 어떻게 되는건지?
-    public void inviteMember(Long workspaceId, String email) {
-        // 스텁: 존재 확인만. 실제로는 초대 토큰 생성/저장/메일 발송 등을 구현.
-        workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
-        // no-op
-    }
-
     // 워크스페이스 공개/비공개 토글
     //TODO: 트렌드 반영할 때마다 퍼블릭인 것만 대상으로 할 거라 회수할 수 없다는 메시지 안 띄워도 될 거 같은데..
     public void changeVisibility(Long workspaceId) {

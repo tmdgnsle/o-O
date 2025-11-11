@@ -146,42 +146,6 @@ public class WorkspaceController {
     }
 
     @Operation(
-            summary = "멤버 초대 (이메일)",
-            description = "이메일을 통해 워크스페이스에 멤버를 초대합니다. 초대 메일은 비동기로 발송됩니다. MAINTAINER 또는 EDIT 권한이 필요합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "202", description = "초대 요청 접수"),
-            @ApiResponse(responseCode = "400", description = "잘못된 이메일 형식"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
-    })
-    @PostMapping("/{workspaceId}/member")
-    public ResponseEntity<Void> inviteMember(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "초대할 사용자의 이메일 정보",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = MemberInviteRequest.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "email": "user@example.com"
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody @Valid MemberInviteRequest request
-    ) {
-        workspaceService.inviteMember(workspaceId, request.email());
-        return ResponseEntity.accepted().build(); // 202
-    }
-
-    @Operation(
             summary = "워크스페이스 공개 설정 변경",
             description = "워크스페이스의 공개/비공개 상태를 변경합니다. 공개 시 누구나 조회 가능하며, 비공개 시 멤버만 접근 가능합니다. MAINTAINER 권한이 필요합니다."
     )
