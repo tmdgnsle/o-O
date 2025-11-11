@@ -32,7 +32,7 @@ public class JwtTokenProvider {
 
     public String getUserId(String token) {
         Claims claims = parseClaims(token);
-        return claims.get("userId", String.class);
+        return String.valueOf(claims.get("userId", Long.class));
     }
 
     public void validateToken(String token) {
