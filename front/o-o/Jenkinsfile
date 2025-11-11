@@ -51,21 +51,9 @@ VITE_GOOGLE_CLIENT_ID=${GG_CLIENT_ID}
 VITE_API_URL=${VITE_API_URL}
 EOF
 
-                echo "=== Node / NPM version ==="
                 node -v && npm -v
-
-                echo "=== Install dependencies (with fallback) ==="
-                if ! npm ci --include=optional --prefer-online; then
-                  echo "npm ci failed — clean reinstall fallback"
-                  rm -rf node_modules package-lock.json
-                  npm cache clean --force || true
-                  npm install --include=optional --prefer-online
-
-                  node -e "try{require.resolve('@rollup/rollup-linux-x64-gnu');process.exit(0)}catch(e){process.exit(1)}" \
-                    || npm i -D @rollup/rollup-linux-x64-gnu
-                fi
-
-                echo "=== Run build ==="
+                [ -f package-lock.json ] && npm ci || npm install
+                npm i -D @rollup/rollup-linux-x64-gnu
                 npm run build
 
                 echo "=== Build output check ==="
