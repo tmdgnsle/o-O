@@ -51,8 +51,21 @@ VITE_GOOGLE_CLIENT_ID=${GG_CLIENT_ID}
 VITE_API_URL=${VITE_API_URL}
 EOF
 
+                echo "=== Node / NPM version ==="
                 node -v && npm -v
-                [ -f package-lock.json ] && npm ci || npm install
+
+                echo "=== Install dependencies (with fallback) ==="
+                npm config set optional true
+                npm config set prefer-online true
+
+                if ! npm ci; then
+                  echo "⚠️ npm ci failed — trying clean reinstall"
+                  rm -rf node_modules package-lock.json
+                  npm cache clean --force || true
+                  npm install
+                fi
+
+                echo "=== Run build ==="
                 npm run build
 
                 echo "=== Build output check ==="
