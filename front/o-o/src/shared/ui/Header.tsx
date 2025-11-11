@@ -5,25 +5,20 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 
 import logo from "@/shared/assets/images/logo.png";
-import popo1 from "@/shared/assets/images/popo1.png";
+
 import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal";
 import { useHeader } from "@/shared/hooks/useHeader";
 import { Navigation } from "@/shared/components/Header/Navigation";
 import { UserProfile } from "@/shared/components/Header/UserProfile";
 import { MobileMenu } from "@/shared/components/Header/MobileMenu";
-import { useGoogleOneTap } from "../hooks/useGoogleOneTap";
-
-const MOCK_USER = {
-  name: "홍길동",
-  profileImage: popo1,
-  email: "gildong@gmail.com",
-};
+import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
+import { useAppSelector } from "@/store/hooks";
 
 const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const isLoggedIn = false;
+  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
   const {
     isProfileModalOpen,
     isMobileMenuOpen,
@@ -32,12 +27,7 @@ export function Header() {
     toggleMobileMenu,
     closeMobileMenu,
     handleProfileClick,
-  } = useHeader({ isLoggedIn });
-
-  useGoogleOneTap(isLoggedIn, {
-    buttonType: "standard",
-    elementId: "googleSignInDiv",
-  });
+  } = useHeader();
 
   return (
     <>
@@ -57,17 +47,14 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex">
-          {isLoggedIn ? (
+          {isLoggedIn && user ? (
             <UserProfile
-              userName={MOCK_USER.name}
-              profileImage={MOCK_USER.profileImage}
+              userName={user.nickname}
+              profileImage={user.profileImage}
               onClick={openProfileModal}
             />
           ) : (
-            <div
-              id="googleSignInDiv"
-              className="flex justify-center items-center rounded-full"
-            />
+            <GoogleLoginButton />
           )}
         </div>
 
@@ -83,19 +70,19 @@ export function Header() {
       <MobileMenu
         isOpen={isMobileMenuOpen}
         isLoggedIn={isLoggedIn}
-        userProfileImage={MOCK_USER.profileImage}
-        userName={MOCK_USER.name}
+        userProfileImage={user?.profileImage}
+        userName={user?.nickname}
         onClose={closeMobileMenu}
         onProfileClick={handleProfileClick}
         getNavLinkClass={getNavLinkClass}
       />
 
-      {isProfileModalOpen && (
+      {isProfileModalOpen && user && (
         <ProfileEditModal
           onClose={closeProfileModal}
-          currentName={MOCK_USER.name}
-          currentEmail={MOCK_USER.email}
-          currentImage={MOCK_USER.profileImage}
+          currentName={user.nickname}
+          currentEmail={user.email}
+          currentImage={user.profileImage}
         />
       )}
     </>

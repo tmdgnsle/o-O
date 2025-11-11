@@ -1,11 +1,9 @@
-// hooks/useHeader.ts
 import { useState, useEffect } from "react";
+import { useAppSelector } from "@/store/hooks";
 
-interface UseHeaderProps {
-  isLoggedIn: boolean;
-}
+export function useHeader() {
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
-export function useHeader({ isLoggedIn }: UseHeaderProps) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
