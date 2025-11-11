@@ -1,22 +1,35 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import MiniNav from '@/shared/ui/MiniNav';
-import AskPopo from '../components/AskPopoButton'
-import StatusBox from '../components/StatusBox';
-import ModeToggleButton from '../components/ModeToggleButton';
-import { Textbox } from '../components/Textbox';
-import AnalyzeSelectionPanel from '../components/AnalyzeSelectionPanel';
-import { useNodesQuery } from '../hooks/query/useNodesQuery';
-import { useAddNode, useApplyThemeToAllNodes, useUpdateNodePosition, useBatchUpdateNodePositions, useEditNode } from '../hooks/mutation/useNodeMutations';
-import CytoscapeCanvas from '../components/CytoscapeCanvas';
-import VoiceChat from '../components/VoiceChat/VoiceChat';
-import type { NodeData, MindmapMode, DetachedSelectionState } from '../types';
-import type { Core } from 'cytoscape';
-import { useColorTheme } from '../hooks/useColorTheme';
-import { useNodePositioning } from '../hooks/useNodePositioning';
-import popo1 from '@/shared/assets/images/popo1.png';
-import popo2 from '@/shared/assets/images/popo2.png';
-import popo3 from '@/shared/assets/images/popo3.png';
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import MiniNav from "@/shared/ui/MiniNav";
+import AskPopo from "../components/AskPopoButton";
+import StatusBox from "../components/StatusBox";
+import ModeToggleButton from "../components/ModeToggleButton";
+import { Textbox } from "../components/Textbox";
+import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
+import { useNodesQuery } from "../hooks/query/useNodesQuery";
+import {
+  useAddNode,
+  useApplyThemeToAllNodes,
+  useUpdateNodePosition,
+  useBatchUpdateNodePositions,
+  useEditNode,
+} from "../hooks/mutation/useNodeMutations";
+import CytoscapeCanvas from "../components/CytoscapeCanvas";
+import VoiceChat from "../components/VoiceChat/VoiceChat";
+import type { NodeData, MindmapMode, DetachedSelectionState } from "../types";
+import type { Core } from "cytoscape";
+import { useColorTheme } from "../hooks/useColorTheme";
+import { useNodePositioning } from "../hooks/useNodePositioning";
+import popo1 from "@/shared/assets/images/popo1.png";
+import popo2 from "@/shared/assets/images/popo2.png";
+import popo3 from "@/shared/assets/images/popo3.png";
+import { RecordIdeaDialog } from "../components/RecordIdea/RecordIdeaDialog";
 
 // MindmapPage 전용 QueryClient
 const queryClient = new QueryClient({
@@ -33,7 +46,9 @@ const MindmapPageContent: React.FC = () => {
   const [mode, setMode] = useState<MindmapMode>("edit");
   const [analyzeSelection, setAnalyzeSelection] = useState<string[]>([]);
   const [voiceChatVisible, setVoiceChatVisible] = useState(false);
-  const [detachedSelectionMap, setDetachedSelectionMap] = useState<Record<string, DetachedSelectionState>>({});
+  const [detachedSelectionMap, setDetachedSelectionMap] = useState<
+    Record<string, DetachedSelectionState>
+  >({});
   const cyRef = useRef<Core | null>(null);
 
   // Query & Mutation hooks
@@ -95,40 +110,68 @@ const MindmapPageContent: React.FC = () => {
     addNodeMutation.mutate(newNode);
   };
 
-  const handleApplyTheme = useCallback((colors: string[]) => {
-    applyThemeMutation.mutate(colors);
-  }, [applyThemeMutation]);
+  const handleApplyTheme = useCallback(
+    (colors: string[]) => {
+      applyThemeMutation.mutate(colors);
+    },
+    [applyThemeMutation]
+  );
 
-  const handleNodePositionChange = useCallback((nodeId: string, x: number, y: number) => {
-    // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
-    updateNodePositionMutation.mutate({ nodeId, x, y });
-  }, [updateNodePositionMutation]);
+  const handleNodePositionChange = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      // Cytoscape에서 드래그로 위치가 변경되면 노드 데이터 업데이트
+      updateNodePositionMutation.mutate({ nodeId, x, y });
+    },
+    [updateNodePositionMutation]
+  );
 
-  const handleBatchNodePositionChange = useCallback((positions: Array<{ id: string; x: number; y: number }>) => {
-    // 여러 노드 위치를 한 번에 업데이트
-    batchUpdatePositionsMutation.mutate(positions);
-  }, [batchUpdatePositionsMutation]);
+  const handleBatchNodePositionChange = useCallback(
+    (positions: Array<{ id: string; x: number; y: number }>) => {
+      // 여러 노드 위치를 한 번에 업데이트
+      batchUpdatePositionsMutation.mutate(positions);
+    },
+    [batchUpdatePositionsMutation]
+  );
 
-  const handleCreateChildNode = useCallback(({ parentId, parentX, parentY, text }: { parentId: string; parentX: number; parentY: number; text: string }) => {
-    if (!text) return;
-
-    const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, parentY);
-
-    const newNode: NodeData = {
-      id: Date.now().toString(),
-      text,
-      x,
-      y,
-      color: getRandomThemeColor(),
+  const handleCreateChildNode = useCallback(
+    ({
       parentId,
-    };
+      parentX,
+      parentY,
+      text,
+    }: {
+      parentId: string;
+      parentX: number;
+      parentY: number;
+      text: string;
+    }) => {
+      if (!text) return;
 
-    addNodeMutation.mutate(newNode);
-  }, [nodes, findNonOverlappingPosition, getRandomThemeColor, addNodeMutation]);
+      const { x, y } = findNonOverlappingPosition(
+        nodes,
+        parentX + 200,
+        parentY
+      );
+
+      const newNode: NodeData = {
+        id: Date.now().toString(),
+        text,
+        x,
+        y,
+        color: getRandomThemeColor(),
+        parentId,
+      };
+
+      addNodeMutation.mutate(newNode);
+    },
+    [nodes, findNonOverlappingPosition, getRandomThemeColor, addNodeMutation]
+  );
 
   const handleAnalyzeNodeToggle = useCallback((nodeId: string) => {
     setAnalyzeSelection((prev) =>
-      prev.includes(nodeId) ? prev.filter((id) => id !== nodeId) : [...prev, nodeId]
+      prev.includes(nodeId)
+        ? prev.filter((id) => id !== nodeId)
+        : [...prev, nodeId]
     );
   }, []);
 
@@ -146,10 +189,18 @@ const MindmapPageContent: React.FC = () => {
   }, []);
 
   const handleKeepChildrenDelete = useCallback(
-    ({ deletedNodeId, parentId = null }: { deletedNodeId: string; parentId?: string | null }) => {
+    ({
+      deletedNodeId,
+      parentId = null,
+    }: {
+      deletedNodeId: string;
+      parentId?: string | null;
+    }) => {
       if (!parentId) return;
 
-      const orphanRoots = nodes.filter((node) => node.parentId === deletedNodeId);
+      const orphanRoots = nodes.filter(
+        (node) => node.parentId === deletedNodeId
+      );
       if (orphanRoots.length === 0) return;
 
       const timestamp = Date.now();
@@ -173,24 +224,27 @@ const MindmapPageContent: React.FC = () => {
     [nodes, editNodeMutation]
   );
 
-  const handleConnectDetachedSelection = useCallback((anchorNodeId: string) => {
-    let selection: DetachedSelectionState | undefined;
-    setDetachedSelectionMap((prev) => {
-      selection = prev[anchorNodeId];
-      if (!selection) {
-        return prev;
-      }
-      const { [anchorNodeId]: _, ...rest } = prev;
-      return rest;
-    });
+  const handleConnectDetachedSelection = useCallback(
+    (anchorNodeId: string) => {
+      let selection: DetachedSelectionState | undefined;
+      setDetachedSelectionMap((prev) => {
+        selection = prev[anchorNodeId];
+        if (!selection) {
+          return prev;
+        }
+        const { [anchorNodeId]: _, ...rest } = prev;
+        return rest;
+      });
 
-    if (!selection) return;
+      if (!selection) return;
 
-    editNodeMutation.mutate({
-      nodeId: selection.anchorNodeId,
-      newParentId: selection.targetParentId ?? null,
-    });
-  }, [editNodeMutation]);
+      editNodeMutation.mutate({
+        nodeId: selection.anchorNodeId,
+        newParentId: selection.targetParentId ?? null,
+      });
+    },
+    [editNodeMutation]
+  );
 
   const handleDismissDetachedSelection = useCallback((anchorNodeId: string) => {
     setDetachedSelectionMap((prev) => {
@@ -206,7 +260,9 @@ const MindmapPageContent: React.FC = () => {
       const next: Record<string, DetachedSelectionState> = { ...prev };
 
       Object.entries(prev).forEach(([anchorId, selection]) => {
-        const anchorExists = nodes.some((node) => node.id === selection.anchorNodeId);
+        const anchorExists = nodes.some(
+          (node) => node.id === selection.anchorNodeId
+        );
         if (!anchorExists) {
           delete next[anchorId];
           mutated = true;
@@ -223,12 +279,20 @@ const MindmapPageContent: React.FC = () => {
   );
 
   // TODO : Dummy Data
-  const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "포포 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "포포 B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "포포 C", avatar: popo3, colorIndex: 2 },
-  ], []);
-
+  const voiceChatUsers = useMemo(
+    () => [
+      {
+        id: "1",
+        name: "포포 A",
+        avatar: popo1,
+        isSpeaking: true,
+        colorIndex: 0,
+      },
+      { id: "2", name: "포포 B", avatar: popo2, colorIndex: 1 },
+      { id: "3", name: "포포 C", avatar: popo3, colorIndex: 2 },
+    ],
+    []
+  );
 
   // TODO : 로딩 화면
   if (isLoading) {
@@ -239,10 +303,10 @@ const MindmapPageContent: React.FC = () => {
     );
   }
 
-  return(
-    <div className='bg-dotted font-paperlogy h-screen relative overflow-hidden'>
+  return (
+    <div className="bg-dotted font-paperlogy h-screen relative overflow-hidden">
       {/* Fixed UI Elements */}
-      <div className='fixed top-4 left-4 z-50'>
+      <div className="fixed top-4 left-4 z-50">
         <MiniNav />
       </div>
       <div className="fixed bottom-4 right-4 z-50">
@@ -267,15 +331,20 @@ const MindmapPageContent: React.FC = () => {
           <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
         </div>
       ) : (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <VoiceChat
-            users={voiceChatUsers}
-            onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
-            onCallEnd={() => setVoiceChatVisible(false)}
-            onOrganize={() => console.log("Organize clicked")}
-            onShare={() => console.log("Share clicked")}
-          />
-        </div>
+        <>
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+            <VoiceChat
+              users={voiceChatUsers}
+              onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
+              onCallEnd={() => setVoiceChatVisible(false)}
+              onOrganize={() => console.log("Organize clicked")}
+              onShare={() => console.log("Share clicked")}
+            />
+          </div>
+          <div className="fixed right-8 top-20">
+            <RecordIdeaDialog />
+          </div>
+        </>
       )}
 
       {mode === "edit" && (
@@ -295,7 +364,9 @@ const MindmapPageContent: React.FC = () => {
         onApplyTheme={handleApplyTheme}
         onNodePositionChange={handleNodePositionChange}
         onBatchNodePositionChange={handleBatchNodePositionChange}
-        onCyReady={(cy) => { cyRef.current = cy; }}
+        onCyReady={(cy) => {
+          cyRef.current = cy;
+        }}
         onCreateChildNode={handleCreateChildNode}
         onAnalyzeNodeToggle={handleAnalyzeNodeToggle}
         detachedSelectionMap={detachedSelectionMap}
