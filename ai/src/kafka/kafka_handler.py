@@ -120,7 +120,16 @@ class KafkaHandler:
             message_value: Kafka 메시지 내용
         """
         try:
-            workspace_id = message_value.get('workspaceId')
+            # workspaceId를 int로 변환 (Java long과 호환)
+            raw_workspace_id = message_value.get('workspaceId')
+            if raw_workspace_id is None:
+                raise ValueError("workspaceId is required")
+
+            try:
+                workspace_id = int(raw_workspace_id)
+            except (ValueError, TypeError) as e:
+                raise ValueError(f"workspaceId must be a valid integer, got: {raw_workspace_id}")
+
             node_id = message_value.get('nodeId')
             analysis_type = message_value.get('analysisType')
 

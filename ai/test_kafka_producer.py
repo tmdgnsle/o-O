@@ -56,7 +56,7 @@ class KafkaTestProducer:
     def test_initial_text(self):
         """INITIAL - TEXT 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-001",
+            "workspaceId": 1001,
             "nodeId": 100,
             "analysisType": "INITIAL",
             "contentType": "TEXT",
@@ -68,7 +68,7 @@ class KafkaTestProducer:
     def test_initial_video(self):
         """INITIAL - VIDEO 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-002",
+            "workspaceId": 1002,
             "nodeId": 200,
             "analysisType": "INITIAL",
             "contentType": "VIDEO",
@@ -80,7 +80,7 @@ class KafkaTestProducer:
     def test_initial_image(self):
         """INITIAL - IMAGE 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-003",
+            "workspaceId": 1003,
             "nodeId": 300,
             "analysisType": "INITIAL",
             "contentType": "IMAGE",
@@ -92,7 +92,7 @@ class KafkaTestProducer:
     def test_contextual_text(self):
         """CONTEXTUAL - TEXT 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-004",
+            "workspaceId": 1004,
             "nodeId": 402,
             "analysisType": "CONTEXTUAL",
             "contentType": "TEXT",
@@ -119,7 +119,7 @@ class KafkaTestProducer:
     def test_contextual_video(self):
         """CONTEXTUAL - VIDEO 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-005",
+            "workspaceId": 1005,
             "nodeId": 502,
             "analysisType": "CONTEXTUAL",
             "contentType": "VIDEO",
@@ -146,7 +146,7 @@ class KafkaTestProducer:
     def test_contextual_image(self):
         """CONTEXTUAL - IMAGE 타입 테스트"""
         message = {
-            "workspaceId": "test-workspace-006",
+            "workspaceId": 1006,
             "nodeId": 602,
             "analysisType": "CONTEXTUAL",
             "contentType": "IMAGE",

@@ -63,3 +63,4 @@ networkx>=3.5
 mpmath>=1.3.0
 sympy>=1.13.1
 setuptools>=80.9.0
+opencv-python>=4.8.0

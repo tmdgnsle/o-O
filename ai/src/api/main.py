@@ -79,7 +79,7 @@ def remove_repetitive_sentences(text: str, max_repetition: int = 2) -> str:
     return ' '.join(result).strip()
 
 from src.core import (
-    FrameExtractor,
+    # FrameExtractor,  # 사용 안함 (영상 다운로드 안함)
     TranscriptExtractor,
     LlamaVisionAnalyzer,
     LlamaTextAnalyzer

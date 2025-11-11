@@ -41,7 +41,8 @@ class AnalysisProcessor:
         Returns:
             분석 결과 딕셔너리
         """
-        workspace_id = request['workspaceId']
+        # workspaceId를 int로 변환 (Java long과 호환)
+        workspace_id = int(request['workspaceId'])
         node_id = request['nodeId']
         content_url = request.get('contentUrl')
         content_type = request.get('contentType', 'TEXT')
@@ -241,7 +242,8 @@ Rules:
         Returns:
             분석 결과 딕셔너리
         """
-        workspace_id = request['workspaceId']
+        # workspaceId를 int로 변환 (Java long과 호환)
+        workspace_id = int(request['workspaceId'])
         node_id = request['nodeId']
         parent_nodes = request.get('nodes', [])
         content_type = request.get('contentType', 'TEXT')
