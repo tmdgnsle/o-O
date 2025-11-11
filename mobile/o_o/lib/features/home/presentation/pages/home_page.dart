@@ -53,14 +53,14 @@ class HomePage extends StatelessWidget {
                     Text(
                       '창을 벗어나면',
                       style: AppTextStyles.semiBold20.copyWith(
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     Text(
                       '기록을 되돌릴 수 없어요.',
                       style: AppTextStyles.semiBold20.copyWith(
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -78,7 +78,7 @@ class HomePage extends StatelessWidget {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.deep_blue,
+                          backgroundColor: AppColors.deepBlue,
                           foregroundColor: AppColors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -256,7 +256,7 @@ class HomePage extends StatelessWidget {
                                         '지금 떠오르는 아이디어를',
                                         style: AppTextStyles.semiBold20
                                             .copyWith(
-                                              color: AppColors.semi_black,
+                                              color: AppColors.semiBlack,
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -264,7 +264,7 @@ class HomePage extends StatelessWidget {
                                         '말해보세요.',
                                         style: AppTextStyles.semiBold20
                                             .copyWith(
-                                              color: AppColors.semi_black,
+                                              color: AppColors.semiBlack,
                                             ),
                                         textAlign: TextAlign.center,
                                       ),
@@ -295,7 +295,7 @@ class HomePage extends StatelessWidget {
                                           ),
                                           child: const Icon(
                                             Icons.close,
-                                            color: AppColors.semi_black,
+                                            color: AppColors.semiBlack,
                                             size: 32,
                                           ),
                                         ),
@@ -359,7 +359,7 @@ class HomePage extends StatelessWidget {
                                   Text(
                                     '최근 마인드맵',
                                     style: AppTextStyles.semiBold20.copyWith(
-                                      color: AppColors.semi_black,
+                                      color: AppColors.semiBlack,
                                     ),
                                   ),
                                   const SizedBox(height: 20),

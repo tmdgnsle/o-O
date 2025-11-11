@@ -97,7 +97,7 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
       text: TextSpan(
         text: keyword,
         style: TextStyle(
-          color: AppColors.semi_black,
+          color: AppColors.semiBlack,
           fontSize: (radius * 0.35).clamp(10, 18),
           fontWeight: FontWeight.bold,
         ),
@@ -366,7 +366,7 @@ class _MyPageState extends State<MyPage> {
                   Text(
                     '한동근',
                     style: AppTextStyles.semiBold20.copyWith(
-                      color: AppColors.semi_black,
+                      color: AppColors.semiBlack,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -374,7 +374,7 @@ class _MyPageState extends State<MyPage> {
                   Text(
                     'dongri@gmail.com',
                     style: AppTextStyles.regular15.copyWith(
-                      color: AppColors.black_gray,
+                      color: AppColors.blackGray,
                     ),
                   ),
                 ],

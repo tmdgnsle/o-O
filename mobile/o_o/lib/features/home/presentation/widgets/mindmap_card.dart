@@ -70,7 +70,7 @@ class MindmapCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: AppTextStyles.semiBold15.copyWith(
-                    color: AppColors.deep_blue,
+                    color: AppColors.deepBlue,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

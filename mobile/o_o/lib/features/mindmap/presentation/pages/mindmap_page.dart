@@ -113,7 +113,7 @@ class _MindmapPageState extends State<MindmapPage> {
                     child: Text(
                       widget.title,
                       style: AppTextStyles.semiBold20.copyWith(
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -127,7 +127,7 @@ class _MindmapPageState extends State<MindmapPage> {
                       child: const Icon(
                         Icons.close,
                         size: 24,
-                        color: AppColors.semi_black,
+                        color: AppColors.semiBlack,
                       ),
                     ),
                   ),
@@ -210,7 +210,7 @@ class _MindmapPageState extends State<MindmapPage> {
                   ? loadingProgress.cumulativeBytesLoaded /
                       loadingProgress.expectedTotalBytes!
                   : null,
-              color: AppColors.deep_blue,
+              color: AppColors.deepBlue,
             ),
           );
         },
