@@ -67,43 +67,6 @@ public class WorkspaceController {
     }
 
     @Operation(
-            summary = "멤버 직접 추가",
-            description = "워크스페이스에 사용자를 직접 추가합니다. MAINTAINER 또는 EDIT 권한이 필요합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "멤버 추가 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 (중복 등)"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
-    })
-    @PostMapping("/{workspaceId}/member/add") //TODO: url에 동사 제거
-    public ResponseEntity<Void> addMember(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "추가할 멤버 정보",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = MemberAddRequest.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "userId": 42,
-                                              "role": "EDITOR"
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody @Valid MemberAddRequest request
-    ) {
-        workspaceService.addMember(workspaceId, request);
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(
             summary = "멤버 권한 변경",
             description = "멤버의 역할(MAINTAINER, EDIT, VIEW)을 변경합니다. MAINTAINER 권한이 필요합니다."
     )
@@ -216,5 +179,26 @@ public class WorkspaceController {
     ) {
         workspaceService.delete(workspaceId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "초대 링크로 워크스페이스 참여",
+            description = "초대 토큰을 사용하여 워크스페이스에 바로 참여합니다. 참여 시 기본 권한은 VIEW로 설정됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "참여 성공"),
+            @ApiResponse(responseCode = "400", description = "이미 멤버이거나 인원이 가득 참"),
+            @ApiResponse(responseCode = "404", description = "유효하지 않은 초대 링크")
+    })
+    @PostMapping("/join")
+    public ResponseEntity<Void> joinWorkspace(
+            @Parameter(description = "초대 토큰", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @RequestParam String token,
+
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long userId
+    ) {
+        workspaceService.joinByToken(token, userId);
+        return ResponseEntity.ok().build();
     }
 }

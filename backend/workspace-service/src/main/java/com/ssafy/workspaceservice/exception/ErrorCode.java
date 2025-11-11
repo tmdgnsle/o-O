@@ -13,6 +13,8 @@ public enum ErrorCode {
     WORKSPACE_ALREADY_EXISTS(HttpStatus.CONFLICT, "W002", "이미 존재하는 워크스페이스입니다"),
     WORKSPACE_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "W003", "워크스페이스 멤버를 찾을 수 없습니다"),
     WORKSPACE_ALREADY_MEMBER(HttpStatus.CONFLICT, "W004", "이미 워크스페이스 멤버입니다"),
+    INVALID_INVITE_TOKEN(HttpStatus.NOT_FOUND, "W005", "유효하지 않은 초대 링크입니다"),
+    WORKSPACE_FULL(HttpStatus.BAD_REQUEST, "W006", "워크스페이스 인원이 가득 찼습니다 (최대 6명)"),
 
     // 권한 관련 (P로 시작 - Permission)
     FORBIDDEN_NOT_MEMBER(HttpStatus.FORBIDDEN, "P001", "워크스페이스 멤버가 아닙니다"),

@@ -1,6 +1,5 @@
 package com.ssafy.workspaceservice.service;
 
-import com.ssafy.workspaceservice.dto.request.*;
 import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
@@ -20,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
+
+    private static final int MAX_MEMBERS = 6;
 
     public WorkspaceResponse create(Long userId) {
         String INITIAL_TITLE = "제목 없음";
@@ -38,6 +40,7 @@ public class WorkspaceService {
                 .visibility(WorkspaceVisibility.PRIVATE)
                 .title(INITIAL_TITLE)
                 .thumbnail("")
+                .token(UUID.randomUUID().toString())
                 .build();
         Workspace saved = workspaceRepository.save(workspace);
 
@@ -71,23 +74,6 @@ public class WorkspaceService {
         Long memberCount = workspaceMemberRepository.countByWorkspaceId(workspaceId);
 
         return WorkspaceDetailResponse.of(w, isMember, myRole, memberCount);
-    }
-
-    // 존재/중복 가입 검증. 멤버 생성/저장
-    public void addMember(Long workspaceId, MemberAddRequest req) {
-        Workspace w = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
-
-        workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, req.userId())
-                .ifPresent(m -> { throw new IllegalStateException("Already a member"); });
-
-        WorkspaceMember member = WorkspaceMember.builder()
-                .workspace(w)
-                .userId(req.userId())
-                .role(WorkspaceRole.valueOf(req.role().toUpperCase()))
-                .pointerColor(PointerColor.valueOf(req.pointerColor()))
-                .build();
-        workspaceMemberRepository.save(member);
     }
 
     // 멤버 권한 변경
@@ -178,5 +164,33 @@ public class WorkspaceService {
 
         // 6. 워크스페이스 삭제
         workspaceRepository.deleteById(workspaceId);
+    }
+
+    // 토큰으로 워크스페이스 참여
+    public void joinByToken(String token, Long userId) {
+        // 1. 토큰으로 워크스페이스 찾기
+        Workspace workspace = workspaceRepository.findByToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.INVALID_INVITE_TOKEN));
+
+        // 2. 이미 멤버인지 확인
+        if (workspaceMemberRepository.existsByWorkspaceIdAndUserId(workspace.getId(), userId)) {
+            throw new BadRequestException(ErrorCode.WORKSPACE_ALREADY_MEMBER);
+        }
+
+        // 3. 최대 인원 체크
+        long currentMemberCount = workspaceMemberRepository.countByWorkspaceId(workspace.getId());
+        if (currentMemberCount >= MAX_MEMBERS) {
+            throw new BadRequestException(ErrorCode.WORKSPACE_FULL);
+        }
+
+        // 4. 멤버 추가 (기본 권한: VIEW)
+        WorkspaceMember newMember = WorkspaceMember.builder()
+                .workspace(workspace)
+                .userId(userId)
+                .role(WorkspaceRole.VIEW)
+                .pointerColor(PointerColor.randomColor())
+                .build();
+
+        workspaceMemberRepository.save(newMember);
     }
 }
