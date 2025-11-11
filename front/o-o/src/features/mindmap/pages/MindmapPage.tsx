@@ -341,7 +341,7 @@ const MindmapPageContent: React.FC = () => {
               onShare={() => console.log("Share clicked")}
             />
           </div>
-          <div className="fixed right-8 top-20">
+          <div className="fixed right-8 top-20 z-50">
             <RecordIdeaDialog />
           </div>
         </>
