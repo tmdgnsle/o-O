@@ -5,6 +5,7 @@ import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
 import LoginPromptModel from "@/shared/ui/LoginPromptModal";
 import popo from "@/shared/assets/images/popo_chu.png";
+import { useAppSelector } from "@/store/hooks";
 
 export function SearchSection() {
   const [searchValue, setSearchValue] = useState("");
@@ -12,8 +13,7 @@ export function SearchSection() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  // TODO: 실제 로그인 로직으로 교체
-  const isLoggedIn = false;
+  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
 
   useEffect(() => {
     if (isLoginModalOpen && globalThis.google?.accounts?.id) {
