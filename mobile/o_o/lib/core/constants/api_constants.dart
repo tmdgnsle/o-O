@@ -5,7 +5,7 @@ class ApiConstants {
   ApiConstants._();
 
   /// Base URL (환경 변수에서 로드)
-  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'https://api.o-o.kr';
+  static String get baseUrl => dotenv.env['API_BASE_URL']!;
 
   /// Auth Endpoints
   static const String googleLogin = '/auth/app/google-login';

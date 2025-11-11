@@ -46,7 +46,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       logger.i('✅ 로그인 완료!');
       logger.i('💾 저장된 Access Token: ${backendResult['accessToken'].toString().substring(0, 50)}...');
-      logger.i('💾 저장된 Refresh Token: ${backendResult['refreshToken'].toString().substring(0, 50)}...');
+      logger.i('💾 저장된 Refresh Token: ${backendResult['refreshToken'].toString()}...');
       logger.i('💾 저장된 User ID: ${backendResult['userId']}');
 
       // 4. AuthUser 반환
