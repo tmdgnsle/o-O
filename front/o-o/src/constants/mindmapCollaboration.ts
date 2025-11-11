@@ -1,6 +1,6 @@
 export const DEFAULT_WORKSPACE_ID = "poc-workspace";
 export const NODES_YMAP_KEY = "mindmap:nodes";
-export const DEFAULT_Y_WEBSOCKET_URL = "ws://localhost:1234";
+export const DEFAULT_Y_WEBSOCKET_URL = "ws://localhost:8080";
 
 export const buildMindmapRoomId = (workspaceId: string) =>
   `mindmap:${workspaceId}`;

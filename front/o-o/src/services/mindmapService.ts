@@ -1,5 +1,5 @@
 import type { NodeData } from "@/features/mindmap/types";
-import { mapDtoToNodeData, type NodeDTO } from "./dto/mindmap";
+import { mapDtoToNodeData, type NodeDTO } from "./dto/mindmap.dto";
 
 // Optional API base path so the same code works in dev/prod
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
