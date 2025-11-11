@@ -26,7 +26,7 @@ apiClient.interceptors.request.use(
       const token = store.getState().auth.accessToken;
 
       if (token) {
-        config.headers.Authorization = "Bearer ${token}"; // API 호출할 때 자동으로 헤더에 token 넣어놓도록 처리
+        config.headers.Authorization = `Bearer ${token}`; // API 호출할 때 자동으로 헤더에 token 넣어놓도록 처리
       }
     }
 
