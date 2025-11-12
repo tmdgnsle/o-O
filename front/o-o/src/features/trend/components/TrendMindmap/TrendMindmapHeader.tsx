@@ -4,13 +4,15 @@ import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { SearchButton } from "@/shared/components/Search/SearchButton";
 import { useHeader } from "@/shared/hooks/useHeader";
 import MiniNav from "@/shared/ui/MiniNav";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 import { useAppSelector } from "@/store/hooks";
 import { AvatarImage } from "@radix-ui/react-avatar";
 
 export function TrendMindmapHeader() {
   const { isProfileModalOpen, openProfileModal, closeProfileModal } =
     useHeader();
-  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
+  const { user } = useAppSelector((state) => state.user);
 
   return (
     <>
@@ -24,7 +26,10 @@ export function TrendMindmapHeader() {
               className="shadow-md rounded-full bg-white p-1 "
             >
               <Avatar>
-                <AvatarImage src={user.profileImage} alt="profile-image" />
+                <AvatarImage
+                  src={getProfileImageUrl(user.profileImage)}
+                  alt="profile-image"
+                />
               </Avatar>
             </button>
           ) : (
