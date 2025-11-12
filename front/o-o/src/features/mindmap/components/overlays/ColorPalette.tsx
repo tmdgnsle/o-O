@@ -3,7 +3,7 @@ import {
   ColorPickerSelection,
   ColorPickerHue,
   ColorPickerEyeDropper,
-  ColorPickerFormat,
+  // ColorPickerFormat,
   ColorPickerAlpha,
 } from "@/components/ui/shadcn-io/color-picker";
 import {
@@ -36,20 +36,15 @@ export default function ColorPalette({
   );
 
   /** 내부 상태: 현재 색상(hex) + 투명도(0~1) */
-  const [currentColor, setCurrentColor] = useState<Color>(() =>
-    Color(value).alpha(1)
-  );
+  const [currentColor, setCurrentColor] = useState(() => Color(value).alpha(1));
 
   /** 🎨 색상/투명도 변경 */
   const handleChange = useCallback(
-    (input: string | Color) => {
-      try {
-        const c = Color(input);
-        setCurrentColor(c);
-        onColorChange?.(c.hex());
-      } catch (e) {
-        console.error("Invalid color input:", input);
-      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (input: any) => {
+      const c = Color(input);
+      setCurrentColor(c);
+      onColorChange?.(c.hex());
     },
     [onColorChange]
   );
@@ -68,9 +63,10 @@ export default function ColorPalette({
       const target = e.target as HTMLElement;
 
       // Radix UI portal 요소인지 확인 (Select dropdown 등)
-      const isRadixPortal = target.closest('[data-radix-popper-content-wrapper]') ||
-                           target.closest('[role="listbox"]') ||
-                           target.closest('[data-radix-select-content]');
+      const isRadixPortal =
+        target.closest("[data-radix-popper-content-wrapper]") ||
+        target.closest('[role="listbox"]') ||
+        target.closest("[data-radix-select-content]");
 
       if (
         paletteRef.current &&
