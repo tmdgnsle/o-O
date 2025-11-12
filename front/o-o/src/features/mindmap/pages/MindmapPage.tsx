@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { Core } from "cytoscape";
+import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
 import MiniNav from "@/shared/ui/MiniNav";
 import AskPopo from "../components/AskPopoButton";
 import StatusBox from "../../workspace/components/StatusBox";
@@ -221,6 +222,29 @@ const MindmapPageContent: React.FC = () => {
 };
 
 const MindmapPage: React.FC = () => {
+  // 1. Extract workspace ID from URL params
+  const params = useParams<{ workspaceId?: string }>();
+  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+
+  // 2. Check workspace access permissions
+  const { hasAccess, isLoading } = useWorkspaceAccessQuery(workspaceId);
+
+  // 3. Show loading state while checking access
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen font-paperlogy">
+        워크스페이스 접근 권한을 확인하는 중...
+      </div>
+    );
+  }
+
+  // 4. If no access, useWorkspaceAccessQuery will redirect automatically
+  // Return null to prevent rendering
+  if (!hasAccess) {
+    return null;
+  }
+
+  // 5. Access granted - render the main content
   return <MindmapPageContent />;
 };
 
