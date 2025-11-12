@@ -27,8 +27,8 @@ export default function RadialToolGroup({
   onApplyTheme,
 }: RadialToolGroupProps) {
   const angles = [-70, -35, 0, 35, 70]; // 우측에 펼쳐질 각도
-  const paletteButtonRef = useRef<HTMLButtonElement>(null);
-  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const paletteButtonRef = useRef<HTMLButtonElement | null>(null);
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
   if (!open) return null;
 
@@ -133,49 +133,49 @@ export default function RadialToolGroup({
 
   const content = (
     <div style={containerStyle}>
-        {items.map((it, i) => {
-          // focusedButton이 있으면 해당 버튼만 표시, 없으면 모두 표시
-          const shouldShow = focusedButton === null || focusedButton === it.key;
+      {items.map((it, i) => {
+        // focusedButton이 있으면 해당 버튼만 표시, 없으면 모두 표시
+        const shouldShow = focusedButton === null || focusedButton === it.key;
 
-          const rad = ((angles[i] ?? 0) * Math.PI) / 180;
-          const x = Math.cos(rad) * radius;
-          const y = Math.sin(rad) * radius;
-          const style: CSSProperties = {
-            position: "absolute",
-            left: `${x}px`,
-            top: `${y}px`,
-            transform: `translate(-50%, -50%) scale(${shouldShow ? 1 : 0.8})`,
-            opacity: shouldShow ? 1 : 0,
-            transition: "transform 240ms ease, opacity 240ms ease",
-            transitionDelay: `${i * 60}ms`,
-            pointerEvents: shouldShow ? "auto" : "none",
-          };
-          return (
-            <div key={it.key} style={style}>
-              {it.render}
-              {/* palette 버튼 옆에 ColorPalette 표시 */}
-              {it.key === "palette" && (
-                <ColorPalette
-                  open={paletteOpen}
-                  value={currentColor}
-                  onColorChange={onColorChange}
-                  onApplyTheme={onApplyTheme}
-                  onClose={onPaletteClose}
-                  buttonRef={paletteButtonRef}
-                />
-              )}
-              {/* add 버튼 옆에 NodeAddInput 표시 */}
-              {it.key === "add" && onAddConfirm && onAddCancel && (
-                <NodeAddInput
-                  open={addInputOpen}
-                  onConfirm={onAddConfirm}
-                  onCancel={onAddCancel}
-                  buttonRef={addButtonRef}
-                />
-              )}
-            </div>
-          );
-        })}
+        const rad = ((angles[i] ?? 0) * Math.PI) / 180;
+        const x = Math.cos(rad) * radius;
+        const y = Math.sin(rad) * radius;
+        const style: CSSProperties = {
+          position: "absolute",
+          left: `${x}px`,
+          top: `${y}px`,
+          transform: `translate(-50%, -50%) scale(${shouldShow ? 1 : 0.8})`,
+          opacity: shouldShow ? 1 : 0,
+          transition: "transform 240ms ease, opacity 240ms ease",
+          transitionDelay: `${i * 60}ms`,
+          pointerEvents: shouldShow ? "auto" : "none",
+        };
+        return (
+          <div key={it.key} style={style}>
+            {it.render}
+            {/* palette 버튼 옆에 ColorPalette 표시 */}
+            {it.key === "palette" && (
+              <ColorPalette
+                open={paletteOpen}
+                value={currentColor}
+                onColorChange={onColorChange}
+                onApplyTheme={onApplyTheme}
+                onClose={onPaletteClose}
+                buttonRef={paletteButtonRef}
+              />
+            )}
+            {/* add 버튼 옆에 NodeAddInput 표시 */}
+            {it.key === "add" && onAddConfirm && onAddCancel && (
+              <NodeAddInput
+                open={addInputOpen}
+                onConfirm={onAddConfirm}
+                onCancel={onAddCancel}
+                buttonRef={addButtonRef}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 
