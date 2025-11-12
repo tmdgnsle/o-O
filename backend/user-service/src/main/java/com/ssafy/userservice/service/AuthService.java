@@ -165,4 +165,22 @@ public class AuthService {
                 "userId", userId
         );
     }
+
+    @Transactional(readOnly = true)
+    public String issueAccessToken(Long userId, String platform) {
+        // Null 체크 및 플랫폼 검증
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID is required");
+        }
+        Platform platformEnum = validateAndConvertPlatform(platform);
+
+        // 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new com.ssafy.userservice.exception.UserNotFoundException("User not found with id: " + userId));
+
+        String role = user.getRole().name();
+
+        // Access Token만 생성
+        return jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platformEnum, accessTokenExpiration);
+    }
 }
