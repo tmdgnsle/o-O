@@ -49,7 +49,7 @@ export function Header() {
         <div className="hidden md:flex">
           {isLoggedIn && user ? (
             <UserProfile
-              userName={user.name}
+              userName={user.nickname}
               profileImage={user.profileImage}
               onClick={openProfileModal}
             />
@@ -71,7 +71,7 @@ export function Header() {
         isOpen={isMobileMenuOpen}
         isLoggedIn={isLoggedIn}
         userProfileImage={user?.profileImage}
-        userName={user?.name}
+        userName={user?.nickname}
         onClose={closeMobileMenu}
         onProfileClick={handleProfileClick}
         getNavLinkClass={getNavLinkClass}
@@ -80,7 +80,7 @@ export function Header() {
       {isProfileModalOpen && user && (
         <ProfileEditModal
           onClose={closeProfileModal}
-          currentName={user.name}
+          currentName={user.nickname}
           currentEmail={user.email}
           currentImage={user.profileImage}
         />

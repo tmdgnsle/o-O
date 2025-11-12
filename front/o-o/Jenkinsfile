@@ -34,7 +34,8 @@ pipeline {
             string(credentialsId: 'fb-storage-bucket', variable: 'FB_STORAGE_BUCKET'),
             string(credentialsId: 'fb-msg-sender', variable: 'FB_MESSAGING_SENDER_ID'),
             string(credentialsId: 'fb-app-id', variable: 'FB_APP_ID'),
-            string(credentialsId: 'gg-client-id', variable: 'GG_CLIENT_ID')
+            string(credentialsId: 'gg-client-id', variable: 'GG_CLIENT_ID'),
+            string(credentialsId: 'vite-api-url', variable: 'VITE_API_URL')
           ]) {
             dir('front/o-o') {
               sh '''
@@ -47,10 +48,12 @@ VITE_FIREBASE_STORAGE_BUCKET=${FB_STORAGE_BUCKET}
 VITE_FIREBASE_MESSAGING_SENDER_ID=${FB_MESSAGING_SENDER_ID}
 VITE_FIREBASE_APP_ID=${FB_APP_ID}
 VITE_GOOGLE_CLIENT_ID=${GG_CLIENT_ID}
+VITE_API_URL=${VITE_API_URL}
 EOF
 
                 node -v && npm -v
                 [ -f package-lock.json ] && npm ci || npm install
+                npm i -D @rollup/rollup-linux-x64-gnu
                 npm run build
 
                 echo "=== Build output check ==="

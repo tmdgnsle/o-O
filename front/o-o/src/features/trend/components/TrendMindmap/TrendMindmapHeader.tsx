@@ -33,12 +33,7 @@ export function TrendMindmapHeader() {
         </div>
       </div>
       {isProfileModalOpen && user && (
-        <ProfileEditModal
-          onClose={closeProfileModal}
-          currentName={user.nickname}
-          currentEmail={user.email}
-          currentImage={user.profileImage}
-        />
+        <ProfileEditModal onClose={closeProfileModal} />
       )}
     </>
   );
