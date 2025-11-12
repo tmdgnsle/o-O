@@ -161,6 +161,8 @@ function NodeOverlay({
             addInputOpen={showAddInput}
             currentColor={initialColor}
             focusedButton={focusedButton}
+            centerX={x}
+            centerY={y}
             onDelete={handleDeleteRequest}
             onEdit={handleEdit}
             onAdd={handleAdd}

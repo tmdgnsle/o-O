@@ -16,6 +16,7 @@ import {
 import Color from "color";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ColorPaletteProps } from "../../types";
 import { COLOR_THEMES, type ColorThemeName } from "../../styles/colorThemes";
 import { useColorTheme } from "../../hooks/useColorTheme";
@@ -28,8 +29,10 @@ export default function ColorPalette({
   onClose,
   value = "#263A6B",
   className,
+  buttonRef,
 }: ColorPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: 0, top: 0 });
   const { getCurrentTheme, setCurrentTheme } = useColorTheme();
   const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>(() =>
     getCurrentTheme()
@@ -119,15 +122,42 @@ export default function ColorPalette({
     }
   }, [currentColor]);
 
+  /** 버튼 위치 계산 */
+  useEffect(() => {
+    if (!open || !buttonRef?.current) return;
+
+    const updatePosition = () => {
+      const rect = buttonRef.current!.getBoundingClientRect();
+      setPosition({
+        left: rect.right + 8, // 버튼 오른쪽 + 8px margin
+        top: rect.top + rect.height / 2, // 버튼 중앙
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open, buttonRef]);
+
   if (!open) return null;
 
-  return (
+  const content = (
     <div
       ref={paletteRef}
       className={cn(
-        "absolute left-full ml-2 top-1/2 -translate-y-1/2 z-[1000] transition-all duration-300",
+        "fixed z-[9999] transition-all duration-300",
         className
       )}
+      style={{
+        left: `${position.left}px`,
+        top: `${position.top}px`,
+        transform: 'translateY(-50%)',
+      }}
     >
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[340px] font-paperlogy">
         <div className="flex flex-col gap-4">
@@ -221,4 +251,6 @@ export default function ColorPalette({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
