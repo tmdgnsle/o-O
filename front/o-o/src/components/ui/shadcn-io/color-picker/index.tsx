@@ -157,7 +157,6 @@ export type ColorPickerSelectionProps = HTMLAttributes<HTMLDivElement>;
 export const ColorPickerSelection = memo(
   ({ className, ...props }: ColorPickerSelectionProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [isDragging, setIsDragging] = useState(false);
     const { hue, saturation, lightness, setSaturation, setLightness } = useColorPicker();
 
     const backgroundGradient = useMemo(() => {
@@ -195,37 +194,35 @@ export const ColorPickerSelection = memo(
       [setSaturation, setLightness]
     );
 
-    const handlePointerMove = useCallback(
-      (event: PointerEvent) => {
-        if (!isDragging) return;
-        updateColor(event.clientX, event.clientY);
-      },
-      [isDragging, updateColor]
-    );
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    useEffect(() => {
-      const handlePointerUp = () => setIsDragging(false);
+      if (!containerRef.current) return;
 
-      if (isDragging) {
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-      }
+      // Pointer Capture 시작
+      containerRef.current.setPointerCapture(e.pointerId);
+      updateColor(e.clientX, e.clientY);
+    };
 
-      return () => {
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-      };
-    }, [isDragging, handlePointerMove]);
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+      // Pointer Capture 상태에서만 동작
+      if (!containerRef.current?.hasPointerCapture(e.pointerId)) return;
+      updateColor(e.clientX, e.clientY);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!containerRef.current) return;
+      // Pointer Capture 해제
+      containerRef.current.releasePointerCapture(e.pointerId);
+    };
 
     return (
       <div
         className={cn('relative size-full cursor-crosshair rounded', className)}
-        onPointerDown={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
-          // 클릭 즉시 색상 업데이트
-          updateColor(e.clientX, e.clientY);
-        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         ref={containerRef}
         style={{
           background: backgroundGradient,
@@ -260,6 +257,7 @@ export const ColorPickerHue = ({
       className={cn('relative flex h-4 w-full touch-none', className)}
       max={360}
       onValueChange={([hue]) => setHue(hue)}
+      onPointerDown={(e) => e.stopPropagation()}
       step={1}
       value={[hue]}
       {...props}

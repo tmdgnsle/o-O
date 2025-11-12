@@ -4,6 +4,7 @@ import {
   ColorPickerHue,
   ColorPickerEyeDropper,
   ColorPickerFormat,
+  ColorPickerAlpha,
 } from "@/components/ui/shadcn-io/color-picker";
 import {
   Select,
@@ -30,98 +31,157 @@ export default function ColorPalette({
 }: ColorPaletteProps) {
   const paletteRef = useRef<HTMLDivElement>(null);
   const { getCurrentTheme, setCurrentTheme } = useColorTheme();
-  const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>(() => getCurrentTheme());
+  const [selectedTheme, setSelectedTheme] = useState<ColorThemeName>(() =>
+    getCurrentTheme()
+  );
 
+  /** 내부 상태: 현재 색상(hex) + 투명도(0~1) */
+  const [currentColor, setCurrentColor] = useState<Color>(() =>
+    Color(value).alpha(1)
+  );
+
+  /** 🎨 색상/투명도 변경 */
+  const handleChange = useCallback(
+    (input: string | Color) => {
+      try {
+        const c = Color(input);
+        setCurrentColor(c);
+        onColorChange?.(c.hex());
+      } catch (e) {
+        console.error("Invalid color input:", input);
+      }
+    },
+    [onColorChange]
+  );
+
+  /** 🎨 테마 변경 */
   const handleThemeChange = (theme: ColorThemeName) => {
     setSelectedTheme(theme);
-    setCurrentTheme(theme); // localStorage에 저장
-    // 전체 노드에 테마 적용
-    if (onApplyTheme) {
-      onApplyTheme([...COLOR_THEMES[theme]]);
-    }
+    setCurrentTheme(theme);
+    onApplyTheme?.([...COLOR_THEMES[theme]]);
   };
 
-  const handleChange = useCallback((value: Parameters<typeof Color>[0]) => {
-    try {
-      const color = Color(value);
-      const hex = color.hex();
-      onColorChange?.(hex);
-    } catch (error) {
-      console.error("Color conversion error:", error);
-    }
-  }, [onColorChange]);
-
-  // 외부 클릭 감지
+  /** ✋ 외부 클릭 감지 */
   useEffect(() => {
     if (!open || !onClose) return;
+    const handleClickOutside = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (paletteRef.current && !paletteRef.current.contains(event.target as Node)) {
+      // Radix UI portal 요소인지 확인 (Select dropdown 등)
+      const isRadixPortal = target.closest('[data-radix-popper-content-wrapper]') ||
+                           target.closest('[role="listbox"]') ||
+                           target.closest('[data-radix-select-content]');
+
+      if (
+        paletteRef.current &&
+        !paletteRef.current.contains(target) &&
+        !isRadixPortal
+      ) {
         onClose();
       }
     };
-
-    // 약간의 딜레이 후 이벤트 리스너 등록 (팔레트 버튼 클릭과 충돌 방지)
     const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("pointerdown", handleClickOutside);
     }, 100);
-
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
     };
   }, [open, onClose]);
+
+  /** 🎨 투명도 슬라이더 값 */
+  const alphaPercent = Math.round(currentColor.alpha() * 100);
+
+  /** 투명도 입력 변경 */
+  const handleAlphaChange = (value: number) => {
+    const newColor = currentColor.alpha(value / 100);
+    setCurrentColor(newColor);
+    onColorChange?.(newColor.rgb().string());
+  };
+
+  /** 색상 입력창 (HEX 입력) 변경 */
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    try {
+      const c = Color(val);
+      setCurrentColor(c);
+      onColorChange?.(c.hex());
+    } catch {
+      // invalid 입력 시 무시
+    }
+  };
+
+  if (!open) return null;
 
   return (
     <div
       ref={paletteRef}
       className={cn(
-        "absolute left-full ml-2 top-1/2 -translate-y-1/2 transition-all duration-300 z-999",
-        open ? "opacity-100 visible" : "opacity-0 invisible",
+        "absolute left-full ml-2 top-1/2 -translate-y-1/2 z-[1000] transition-all duration-300",
         className
       )}
-      style={{
-        pointerEvents: open ? "auto" : "none",
-      }}
     >
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[280px] font-paperlogy">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[340px] font-paperlogy">
         <div className="flex flex-col gap-4">
-          {/* ColorPicker */}
-          <ColorPicker
-            key={value}
-            defaultValue={value}
-            onChange={handleChange}
-          >
-            {/* 제목 */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">
-                색상 테마
-              </span>
-            </div>
+          {/* 🎨 ColorPicker */}
+          <div className="relative z-[1001]">
+            <ColorPicker
+              value={currentColor.rgb().string()}
+              onChange={handleChange}
+            >
+              {/* 제목 */}
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-semibold text-gray-700">
+                  색상 테마
+                </span>
+              </div>
 
-            {/* 색상 선택 영역 */}
-            <div className="h-48 w-full">
-              <ColorPickerSelection />
-            </div>
+              {/* 색상 선택 영역 */}
+              <div className="h-48 w-full">
+                <ColorPickerSelection />
+              </div>
 
-            {/* Hue 슬라이더 */}
-            <ColorPickerHue />
+              {/* Hue + Alpha 슬라이더 */}
+              <div className="flex flex-col gap-2 mt-2">
+                <ColorPickerHue />
+                <ColorPickerAlpha />
+              </div>
 
-            {/* 색상 값 표시 및 EyeDropper */}
-            <div className="flex items-center gap-2">
-              <ColorPickerEyeDropper />
-              <ColorPickerFormat className="flex-1" />
-            </div>
-          </ColorPicker>
+              {/* 색상 값 + 투명도 입력 */}
+              <div className="flex items-center gap-1.5 mt-2">
+                <ColorPickerEyeDropper />
+                <input
+                  type="text"
+                  value={currentColor.hex().toUpperCase()}
+                  onChange={handleInputChange}
+                  className="flex-1 border rounded px-2 py-1 text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={alphaPercent}
+                    min={0}
+                    max={100}
+                    onChange={(e) => handleAlphaChange(Number(e.target.value))}
+                    className="w-[64px] border rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <span className="text-gray-600 text-xs font-medium">%</span>
+                </div>
+              </div>
+            </ColorPicker>
+          </div>
 
-          {/* 테마 선택 */}
+          {/* 🎨 테마 선택 */}
           <div>
             <span className="text-xs text-gray-600 block mb-2">테마 선택</span>
-            <Select value={selectedTheme} onValueChange={(value) => handleThemeChange(value as ColorThemeName)}>
+            <Select
+              value={selectedTheme}
+              onValueChange={(v) => handleThemeChange(v as ColorThemeName)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[1000]">
+              <SelectContent className="z-[1100]">
                 {Object.keys(COLOR_THEMES).map((theme) => (
                   <SelectItem key={theme} value={theme}>
                     {theme}
@@ -131,16 +191,18 @@ export default function ColorPalette({
             </Select>
           </div>
 
-          {/* 선택된 테마의 색상들 */}
+          {/* 🎨 컬러 팔레트 */}
           <div>
-            <span className="text-xs text-gray-600 block mb-2">컬러 팔레트</span>
+            <span className="text-xs text-gray-600 block mb-2">
+              컬러 팔레트
+            </span>
             <div className="flex gap-2 flex-wrap">
               {COLOR_THEMES[selectedTheme].map((color) => (
                 <button
                   key={color}
                   className="w-8 h-8 rounded-full border-2 border-gray-200 hover:border-gray-400 transition-colors"
                   style={{ background: createRadialGradient(color) }}
-                  onClick={() => onColorChange?.(color)}
+                  onClick={() => handleChange(color)}
                   type="button"
                 />
               ))}
