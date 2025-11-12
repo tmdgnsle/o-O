@@ -1,5 +1,6 @@
 package com.ssafy.userservice.dto;
 
+import com.ssafy.userservice.domain.ProfileImage;
 import com.ssafy.userservice.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -11,14 +12,14 @@ public record UserResponse(
         @Schema(description = "닉네임", example = "홍길동")
         String nickname,
 
-        @Schema(description = "프로필 이미지 URL", example = "https://example.com/profile.jpg")
+        @Schema(description = "프로필 이미지", example = "popo1")
         String profileImage
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getEmail(),
                 user.getNickname(),
-                user.getProfileImage()
+                user.getProfileImage() != null ? user.getProfileImage().getValue() : null
         );
     }
 }

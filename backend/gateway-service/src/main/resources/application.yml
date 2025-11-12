@@ -3,24 +3,38 @@ spring:
     name: gateway-service
   cloud:
     gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      httpclient:
+        wiretap: true
+      httpserver:
+        wiretap: true
       routes:
           # User Service 정적 라우팅
           - id: user-service-auth
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/auth/**
+            filters:
+              - PreserveHostHeader
           - id: user-service-oauth2
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/oauth2/**
+            filters:
+              - PreserveHostHeader
           - id: user-service-oauth2-callback
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/login/oauth2/**
+            filters:
+              - PreserveHostHeader
           - id: user-service-users
             uri: ${USER_SERVICE_URL:http://localhost:8081}
             predicates:
               - Path=/users/**
+            filters:
+              - PreserveHostHeader
           # User Service Swagger API Docs
           - id: user-service-swagger
             uri: ${USER_SERVICE_URL:http://localhost:8081}

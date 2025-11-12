@@ -38,6 +38,7 @@ public class AuthController {
     })
     @PostMapping("/reissue")
     public ResponseEntity<Void> reissue(@CookieValue("refreshToken") String refreshToken) {
+        log.info("POST /auth/reissue - Refresh Token: {}", refreshToken);
         Map<String, String> tokens = authService.reissueTokens(refreshToken);
 
         String newAccessToken = tokens.get("accessToken");
