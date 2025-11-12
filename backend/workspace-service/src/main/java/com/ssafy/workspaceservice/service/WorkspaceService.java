@@ -43,7 +43,6 @@ public class WorkspaceService {
                 .type(WorkspaceType.PERSONAL)
                 .visibility(WorkspaceVisibility.PRIVATE)
                 .title(INITIAL_TITLE)
-                .thumbnail("")
                 .token(UUID.randomUUID().toString())
                 .build();
         Workspace saved = workspaceRepository.save(workspace);
@@ -246,5 +245,12 @@ public class WorkspaceService {
                 .build();
 
         workspaceMemberRepository.save(newMember);
+    }
+
+    public List<WorkspaceSimpleResponse> getAllMyWorkspacesForMobile(Long userId) {
+        List<Workspace> workspaces = workspaceRepository.findAllMyRecentWorkspaces(userId);
+        return workspaces.stream()
+                .map(WorkspaceSimpleResponse::from)
+                .toList();
     }
 }

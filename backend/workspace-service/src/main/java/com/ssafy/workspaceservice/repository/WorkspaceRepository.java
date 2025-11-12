@@ -72,4 +72,12 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    @Query("SELECT DISTINCT w FROM Workspace w " +
+           "JOIN WorkspaceMember wm ON wm.workspace.id = w.id " +
+           "WHERE wm.userId = :userId " +
+           "ORDER BY w.createdAt DESC, w.id DESC")
+    List<Workspace> findAllMyRecentWorkspaces(
+            @Param("userId") Long userId
+    );
 }
