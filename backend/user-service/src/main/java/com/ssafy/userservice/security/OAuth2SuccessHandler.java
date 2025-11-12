@@ -62,8 +62,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken);
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
+        String origin = request.getHeader("Origin");
+        String referer = request.getHeader("Referer");
+        log.info("OAuth2 request origin: {}, referer: {}", origin, referer);
+
+        String redirectBaseUrl;
+
+        if (origin != null && origin.contains("localhost")) {
+            redirectBaseUrl = "http://localhost:5173/callback";
+        } else if (referer != null && referer.contains("localhost")) {
+            redirectBaseUrl = "http://localhost:5173/callback";
+        } else {
+            redirectBaseUrl = frontendRedirectUrl;
+        }
+
         // 프론트엔드로 리다이렉트 (URL에 accessToken과 userId 포함)
-        String redirectUrl = UriComponentsBuilder.fromUriString(frontendRedirectUrl)
+        String redirectUrl = UriComponentsBuilder.fromUriString(redirectBaseUrl)
                 .queryParam("token", accessToken)
                 .queryParam("userId", userId)
                 .build()
