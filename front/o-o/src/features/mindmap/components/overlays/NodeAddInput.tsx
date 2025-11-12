@@ -1,12 +1,20 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { NodeAddInputProps } from "../../types";
 
 export default function NodeAddInput({ open, onConfirm, onCancel }: NodeAddInputProps) {
   const [keyword, setKeyword] = useState("");
   const [description, setDescription] = useState("");
+
+  // 입력창이 닫힐 때 입력 필드 초기화
+  useEffect(() => {
+    if (!open) {
+      setKeyword("");
+      setDescription("");
+    }
+  }, [open]);
 
   const handleConfirm = () => {
     if (keyword.trim()) {
