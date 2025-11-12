@@ -1,6 +1,6 @@
 // components/ContentDialog/ContentDialog.tsx
 import React from "react";
-import type { ContentDialogProps } from "../../types";
+import type { ContentDialogProps } from "../../../features/mindmap/types";
 import DialogHeader from "./DialogHeader";
 import DialogContent from "./DialogContent";
 

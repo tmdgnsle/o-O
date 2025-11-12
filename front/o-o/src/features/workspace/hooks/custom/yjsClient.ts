@@ -23,8 +23,12 @@ export const createYClient = (
   if (!wsUrl) throw new Error("wsUrl missing");
   if (!workspaceId) throw new Error("workspaceId missing");
   const doc = new Y.Doc();
-  // Allows callers to pick the websocket endpoint and defer auto-connect when needed
-  const provider = new WebsocketProvider(wsUrl, workspaceId, doc, {
+
+  // Build WebSocket URL with workspace query parameter
+  const wsUrlWithParams = `${wsUrl}?workspace=${encodeURIComponent(workspaceId)}`;
+
+  // Use empty string as room name since workspace is in query params
+  const provider = new WebsocketProvider(wsUrlWithParams, "", doc, {
     connect: options?.connect ?? true,
   });
 

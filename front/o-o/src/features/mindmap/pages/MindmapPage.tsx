@@ -1,23 +1,24 @@
 import React, { useRef, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import type { Core } from "cytoscape";
+import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
 import MiniNav from "@/shared/ui/MiniNav";
 import AskPopo from "../components/AskPopoButton";
-import StatusBox from "../components/StatusBox";
+import StatusBox from "../../workspace/components/StatusBox";
 import ModeToggleButton from "../components/ModeToggleButton";
 import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
 import CytoscapeCanvas from "../components/CytoscapeCanvas";
-import VoiceChat from "../components/VoiceChat/VoiceChat";
-import { PeerCursorProvider } from "../collaboration/PeerCursorProvider";
-import { RemoteCursorsOverlay } from "../components/RemoteCursorsOverlay";
-import { ChatBubblesOverlay } from "../collaboration/ChatBubblesOverlay";
-import { ChatInputBubble } from "../collaboration/ChatInputBubble";
-import { useChatInput } from "../collaboration/useChatInput";
+import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
+import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
+import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
+import { ChatBubblesOverlay } from "../../workspace/components/ChatBubblesOverlay";
+import { ChatInputBubble } from "../../workspace/components/ChatInputBubble";
+import { useChatInput } from "../../workspace/hooks/custom/useChatInput";
 import { useColorTheme } from "../hooks/useColorTheme";
 import { useNodePositioning } from "../hooks/useNodePositioning";
-import { useYjsCollaboration } from "../collaboration/useYjsCollaboration";
-import { useCollaborativeNodes } from "../collaboration/useCollaborativeNodes";
+import { useYjsCollaboration } from "../../workspace/hooks/custom/useYjsCollaboration";
+import { useCollaborativeNodes } from "../../workspace/hooks/custom/useCollaborativeNodes";
 import { useNodeOperations } from "../hooks/custom/useNodeOperations";
 import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
@@ -221,6 +222,29 @@ const MindmapPageContent: React.FC = () => {
 };
 
 const MindmapPage: React.FC = () => {
+  // 1. Extract workspace ID from URL params
+  const params = useParams<{ workspaceId?: string }>();
+  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+
+  // 2. Check workspace access permissions
+  const { hasAccess, isLoading } = useWorkspaceAccessQuery(workspaceId);
+
+  // 3. Show loading state while checking access
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen font-paperlogy">
+        워크스페이스 접근 권한을 확인하는 중...
+      </div>
+    );
+  }
+
+  // 4. If no access, useWorkspaceAccessQuery will redirect automatically
+  // Return null to prevent rendering
+  if (!hasAccess) {
+    return null;
+  }
+
+  // 5. Access granted - render the main content
   return <MindmapPageContent />;
 };
 

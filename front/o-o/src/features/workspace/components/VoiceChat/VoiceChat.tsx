@@ -1,6 +1,6 @@
 // components/VoiceChat/VoiceChat.tsx
 import React, { useState } from "react";
-import type { VoiceChatProps } from "../../types";
+import type { VoiceChatProps } from "../../../mindmap/types";
 import VoiceAvatar from "./VoiceAvatar";
 import VoiceControls from "./VoiceContols";
 

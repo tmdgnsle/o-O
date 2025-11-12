@@ -12,9 +12,6 @@ import { TrendPage } from "@/features/trend/pages/TrendPage";
 import { TrendMindmapPage } from "@/features/trend/pages/TrendMindmapPage";
 import { CallbackPage } from "@/features/auth/pages/CallbackPage";
 
-function NewProjectPage() {
-  return <div className="container mx-auto px-6 py-8"></div>;
-}
 
 const routeConfig = [
   {
@@ -28,10 +25,6 @@ const routeConfig = [
   {
     path: PATHS.TREND_MINDMAP,
     element: <TrendMindmapPage />,
-  },
-  {
-    path: PATHS.NEWPROJECT,
-    element: <NewProjectPage />,
   },
   {
     path: PATHS.MINDMAP,
