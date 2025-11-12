@@ -95,17 +95,29 @@ export default function ColorPalette({
     onColorChange?.(newColor.rgb().string());
   };
 
+  /** 입력 필드용 로컬 상태 */
+  const [hexInput, setHexInput] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   /** 색상 입력창 (HEX 입력) 변경 */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    try {
+    setHexInput(val);
+
+    // 유효한 HEX 형식인 경우에만 색상 업데이트
+    if (/^#[0-9A-Fa-f]{6}$/.test(val) || /^#[0-9A-Fa-f]{3}$/.test(val)) {
       const c = Color(val);
       setCurrentColor(c);
       onColorChange?.(c.hex());
-    } catch {
-      // invalid 입력 시 무시
     }
   };
+
+  /** currentColor 변경 시 hexInput 동기화 (입력 필드가 포커스되어 있지 않을 때만) */
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setHexInput(currentColor.hex().toUpperCase());
+    }
+  }, [currentColor]);
 
   if (!open) return null;
 
@@ -147,8 +159,9 @@ export default function ColorPalette({
               <div className="flex items-center gap-1.5 mt-2">
                 <ColorPickerEyeDropper />
                 <input
+                  ref={inputRef}
                   type="text"
-                  value={currentColor.hex().toUpperCase()}
+                  value={hexInput}
                   onChange={handleInputChange}
                   className="flex-1 border rounded px-2 py-1 text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
