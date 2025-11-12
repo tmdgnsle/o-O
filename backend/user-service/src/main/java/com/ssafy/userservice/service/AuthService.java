@@ -1,5 +1,6 @@
 package com.ssafy.userservice.service;
 
+import com.ssafy.userservice.domain.ProfileImage;
 import com.ssafy.userservice.domain.RefreshToken;
 import com.ssafy.userservice.domain.User;
 import com.ssafy.userservice.domain.Platform;
@@ -131,7 +132,6 @@ public class AuthService {
 
         // 선택적 정보 (NULL 허용)
         String name = (String) userInfo.get("name");
-        String picture = (String) userInfo.get("picture");
 
         // 사용자 조회 또는 생성
         User user = userRepository.findByProviderId(providerId)
@@ -139,7 +139,7 @@ public class AuthService {
                     User newUser = User.builder()
                             .email(email)
                             .nickname(name != null ? name : email.split("@")[0])  // name이 없으면 이메일 앞부분 사용
-                            .profileImage(picture)
+                            .profileImage(ProfileImage.POPO1)  // 기본 프로필 이미지
                             .providerId(providerId)
                             .role(User.Role.USER)
                             .build();

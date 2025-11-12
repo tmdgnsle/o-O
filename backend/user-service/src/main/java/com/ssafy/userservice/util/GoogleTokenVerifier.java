@@ -50,10 +50,6 @@ public class GoogleTokenVerifier {
         userInfo.put("email", payload.getEmail());
         userInfo.put("email_verified", payload.getEmailVerified());
         userInfo.put("name", payload.get("name"));
-        userInfo.put("picture", payload.get("picture"));
-        userInfo.put("given_name", payload.get("given_name"));
-        userInfo.put("family_name", payload.get("family_name"));
-        userInfo.put("locale", payload.get("locale"));
 
         log.info("ID token verified successfully for user: {}", payload.getEmail());
 

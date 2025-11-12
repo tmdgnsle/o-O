@@ -1,5 +1,6 @@
 package com.ssafy.userservice.service;
 
+import com.ssafy.userservice.domain.ProfileImage;
 import com.ssafy.userservice.domain.User;
 import com.ssafy.userservice.repository.UserRepository;
 import com.ssafy.userservice.security.CustomOAuth2User;
@@ -31,22 +32,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String providerId = (String) attributes.get("sub");  // 구글 고유 ID
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
-        String picture = (String) attributes.get("picture");
 
         log.info("Google OAuth2 User Info - providerId: {}, email: {}", providerId, email);
 
         // DB에서 사용자 조회 또는 생성
         User user = userRepository.findByProviderId(providerId)
-                .orElseGet(() -> createUser(providerId, email, name, picture));
+                .orElseGet(() -> createUser(providerId, email, name));
 
         return new CustomOAuth2User(user, attributes);
     }
 
-    private User createUser(String providerId, String email, String name, String picture) {
+    private User createUser(String providerId, String email, String name) {
         User newUser = User.builder()
                 .email(email)
                 .nickname(name)
-                .profileImage(picture)
+                .profileImage(ProfileImage.POPO1)  // 기본 프로필 이미지
                 .providerId(providerId)
                 .role(User.Role.USER)
                 .build();

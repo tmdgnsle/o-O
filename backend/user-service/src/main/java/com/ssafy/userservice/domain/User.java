@@ -27,8 +27,9 @@ public class User {
     @Column(nullable = false, length = 50)
     private String nickname;
 
-    @Column(length = 500)
-    private String profileImage;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ProfileImage profileImage;
 
     @Column(nullable = false, unique = true, length = 100)
     private String providerId;  // 구글에서 제공하는 고유 ID
@@ -54,7 +55,7 @@ public class User {
         this.nickname = nickname;
     }
 
-    public void updateProfileImage(String profileImage) {
+    public void updateProfileImage(ProfileImage profileImage) {
         this.profileImage = profileImage;
     }
 }
