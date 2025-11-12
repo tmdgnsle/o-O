@@ -13,7 +13,7 @@ public class CookieUtil {
                 .maxAge(maxAge)
                 .path(COOKIE_PATH)
                 .httpOnly(true)
-                .secure(false)  // HTTPS 환경에서 활성화
+                .secure(true)  // HTTPS 환경에서 활성화
                 .sameSite("None")  // 크로스 사이트 요청 허용
                 .build();
     }
