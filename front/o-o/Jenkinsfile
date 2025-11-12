@@ -53,6 +53,7 @@ EOF
 
                 node -v && npm -v
                 [ -f package-lock.json ] && npm ci || npm install
+                npm i -D @rollup/rollup-linux-x64-gnu
                 npm run build
 
                 echo "=== Build output check ==="
