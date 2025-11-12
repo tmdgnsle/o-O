@@ -95,4 +95,17 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, CookieUtil.createRefreshTokenCookie(refreshToken).toString())
                 .body(Map.of("userId", userId));
     }
+
+    @Operation(summary = "Access Token 발급 (개발용)", description = "userId로 Access Token을 JSON으로 발급합니다")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "토큰 발급 성공",
+                    content = @Content(examples = @ExampleObject(value = "{\"accessToken\": \"eyJhbGci...\"}"))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content)
+    })
+    @SecurityRequirement(name = "")
+    @PostMapping("/issue-token")
+    public ResponseEntity<Map<String, String>> issueToken(@RequestParam Long userId, @RequestParam(defaultValue = "web") String platform) {
+        String accessToken = authService.issueAccessToken(userId, platform);
+        return ResponseEntity.ok(Map.of("accessToken", accessToken));
+    }
 }
