@@ -17,7 +17,7 @@ export default function ModeToggleButton({
 
       <button
         onClick={() => onModeChange("edit")}
-        className={`relative z-10 px-8 py-2 rounded-md transition-colors duration-300 ${
+        className={`relative z-10 px-4 py-1.5 md:px-8 md:py-2 rounded-md transition-colors duration-300 text-sm md:text-base ${
           mode === "edit" ? "text-[#F3F7FF] font-regular" : "text-primary"
         }`}
       >
@@ -26,7 +26,7 @@ export default function ModeToggleButton({
 
       <button
         onClick={() => onModeChange("analyze")}
-        className={`relative z-10 px-8 py-2 rounded-md transition-colors duration-300 ${
+        className={`relative z-10 px-4 py-1.5 md:px-8 md:py-2 rounded-md transition-colors duration-300 text-sm md:text-base ${
           mode === "analyze" ? "text-[#F3F7FF] font-regular" : "text-primary"
         }`}
       >

@@ -21,9 +21,9 @@ export function CallbackPage() {
     const handleCallback = async () => {
       try {
         // 1. URL에서 token과 userId 추출
-        const token = searchParams.get("token");
-        // const token =
-        //   "eyJhbGciOiJIUzI1NiJ9.eyJjYXRlZ29yeSI6ImFjY2VzcyIsInVzZXJJZCI6NCwicm9sZSI6IlVTRVIiLCJwbGF0Zm9ybSI6IndlYiIsImlhdCI6MTc2MjkzMzcwOCwiZXhwIjoxNzYyOTM0MDA4fQ._jT-aB0f_SE-BNBHGuyg2m23AWZ_xDIISNH-VbrrO2s";
+        // const token = searchParams.get("token");
+        const token =
+          "eyJhbGciOiJIUzI1NiJ9.eyJjYXRlZ29yeSI6ImFjY2VzcyIsInVzZXJJZCI6NCwicm9sZSI6IlVTRVIiLCJwbGF0Zm9ybSI6IndlYiIsImlhdCI6MTc2Mjk1MjQzNSwiZXhwIjoxNzYyOTUyNjE1fQ.w89uGzGTgTy1WnUsav4rzo6cYrdwho5sTC9AwxI0Uso";
         const userId = searchParams.get("userId");
 
         console.log("📥 Callback 받음:", { token, userId });
@@ -68,7 +68,7 @@ export function CallbackPage() {
           console.error("⚙️ 요청 설정 중 오류:", error.message);
         }
 
-        // navigate("/", { replace: true });
+        navigate("/", { replace: true });
       } finally {
         setIsLoading(false);
       }

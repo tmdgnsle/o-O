@@ -133,11 +133,11 @@ const MindmapPageContent: React.FC = () => {
     <PeerCursorProvider awareness={collab.client.provider.awareness}>
       <div className="bg-dotted font-paperlogy h-screen relative overflow-hidden">
         {/* Fixed UI Elements */}
-        <div className="fixed top-4 left-4 z-50">
+        <div className="fixed top-1 left-1 md:top-4 md:left-4 z-50">
           <MiniNav />
         </div>
 
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-24 right-2 lg:bottom-4 lg:right-4 z-50">
           {mode === "edit" ? (
             <AskPopo />
           ) : (
@@ -151,7 +151,7 @@ const MindmapPageContent: React.FC = () => {
         </div>
 
         {!voiceChatVisible && (
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed top-1 right-1 md:top-4 md:right-4 z-50">
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
               shareLink={shareLink}
@@ -160,7 +160,7 @@ const MindmapPageContent: React.FC = () => {
         )}
 
         {voiceChatVisible ? (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <div className="fixed top-1 md:top-4 left-1/2 -translate-x-1/2 z-50">
             <VoiceChat
               users={voiceChatUsers}
               onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
@@ -170,13 +170,13 @@ const MindmapPageContent: React.FC = () => {
             />
           </div>
         ) : (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+          <div className="fixed top-1 md:top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1 md:gap-2">
             <ModeToggleButton mode={mode} onModeChange={handleModeChange} />
           </div>
         )}
 
         {mode === "edit" && (
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
+          <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 w-[min(95vw,48rem)] px-2 md:bottom-4 md:px-4">
             <Textbox onAddNode={nodeOperations.handleAddNode} />
           </div>
         )}

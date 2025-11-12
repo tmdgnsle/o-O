@@ -1,12 +1,22 @@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { NodeAddInputProps } from "../../types";
 
-export default function NodeAddInput({ open, onConfirm, onCancel }: NodeAddInputProps) {
+export default function NodeAddInput({ open, onConfirm, onCancel, buttonRef }: NodeAddInputProps) {
   const [keyword, setKeyword] = useState("");
   const [description, setDescription] = useState("");
+  const [position, setPosition] = useState({ left: 0, top: 0 });
+
+  // 입력창이 닫힐 때 입력 필드 초기화
+  useEffect(() => {
+    if (!open) {
+      setKeyword("");
+      setDescription("");
+    }
+  }, [open]);
 
   const handleConfirm = () => {
     if (keyword.trim()) {
@@ -18,18 +28,42 @@ export default function NodeAddInput({ open, onConfirm, onCancel }: NodeAddInput
   const keywordId = "add-node-keyword";
   const descriptionId = "add-node-description";
 
+  /** 버튼 위치 계산 */
+  useEffect(() => {
+    if (!open || !buttonRef?.current) return;
+
+    const updatePosition = () => {
+      const rect = buttonRef.current!.getBoundingClientRect();
+      setPosition({
+        left: rect.right + 16, // 버튼 오른쪽 + 16px margin
+        top: rect.top + rect.height / 2, // 버튼 중앙
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open, buttonRef]);
+
   if (!open) return null;
 
-  return (
+  const content = (
     <>
       {/* 패널 */}
       <section
-        className="absolute left-[calc(100%+16px)] top-1/2 -translate-y-1/2 bg-[#D8E7F3] p-6 rounded-lg shadow-xl z-50 w-80 flex flex-col gap-4"
+        className="fixed bg-[#D8E7F3] p-6 rounded-lg shadow-xl z-[9999] w-80 flex flex-col gap-4"
         aria-labelledby="add-node-title"
         style={{
+          left: `${position.left}px`,
+          top: `${position.top}px`,
+          transform: 'translateY(-50%)',
           opacity: open ? 1 : 0,
-          transform: open ? 'translateY(-50%) scale(1)' : 'translateY(-50%) scale(0.8)',
-          transition: 'opacity 200ms ease, transform 200ms ease',
+          transition: 'opacity 200ms ease',
           pointerEvents: open ? 'auto' : 'none',
         }}
       >
@@ -98,4 +132,6 @@ export default function NodeAddInput({ open, onConfirm, onCancel }: NodeAddInput
         </section>
     </>
   );
+
+  return createPortal(content, document.body);
 }

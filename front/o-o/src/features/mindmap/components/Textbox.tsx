@@ -28,7 +28,7 @@ export function Textbox({ onAddNode, disabled = false }: Readonly<TextboxProps>)
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="떠오른 아이디어를 입력해주세요"
-          className="flex-1 h-16 min-h-0 resize-none"
+          className="flex-1 h-16 min-h-0 resize-none text-sm md:text-base"
         />
         <Button onClick={handleSubmit} className="h-16 px-5 shrink-0" disabled={disabled}>
           입력하기
