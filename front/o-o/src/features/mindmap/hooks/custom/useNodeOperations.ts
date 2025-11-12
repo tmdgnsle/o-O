@@ -1,6 +1,6 @@
 import { useCallback, type RefObject } from "react";
 import type { Core } from "cytoscape";
-import type { YMapCrud } from "../../collaboration/yMapCrud";
+import type { YMapCrud } from "../../../workspace/hooks/custom/yMapCrud";
 import type { NodeData, MindmapMode, DeleteNodePayload, EditNodePayload } from "../../types";
 
 /**

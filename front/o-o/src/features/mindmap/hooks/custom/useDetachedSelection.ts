@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { NodeData, DetachedSelectionState, EditNodePayload } from "../../types";
-import type { YMapCrud } from "../../collaboration/yMapCrud";
+import type { YMapCrud } from "../../../workspace/hooks/custom/yMapCrud";
 
 /**
  * 분리된 노드 선택 상태 관리 훅

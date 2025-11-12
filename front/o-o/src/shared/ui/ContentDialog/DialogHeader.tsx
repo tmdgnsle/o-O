@@ -1,6 +1,6 @@
 // components/ContentDialog/DialogHeader.tsx
 import React from "react";
-import type { DialogButton } from "../../types";
+import type { DialogButton } from "../../../features/mindmap/types";
 import { Button } from "@/components/ui/button";
 
 interface DialogHeaderProps {

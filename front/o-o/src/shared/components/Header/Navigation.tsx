@@ -1,9 +1,10 @@
 // components/Header/Navigation.tsx
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
 import { getMindmapPath } from "@/constants/paths";
-import { createWorkspace } from "@/services/workspaceService";
+import { useCreateWorkspaceMutation } from "@/features/workspace/hooks/mutation/useCreateWorkspaceMutation";
+import { useToast } from "@/shared/ui/ToastProvider";
 
 interface NavigationProps {
   readonly isLoggedIn: boolean;
@@ -12,22 +13,24 @@ interface NavigationProps {
 
 export function Navigation({ isLoggedIn, getNavLinkClass }: NavigationProps) {
   const navigate = useNavigate();
-  const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+  const { mutateAsync: createWorkspaceMutation, isPending } =
+    useCreateWorkspaceMutation();
+  const { showToast } = useToast();
 
   const handleClickNewProject = useCallback(async () => {
-    if (isCreatingWorkspace) return;
-    setIsCreatingWorkspace(true);
+    if (isPending) return;
 
     try {
-      const workspace = await createWorkspace();
+      const workspace = await createWorkspaceMutation();
       navigate(getMindmapPath(workspace.id));
     } catch (error) {
       console.error("Failed to create workspace", error);
-      // TODO: replace with toast/error UI
-    } finally {
-      setIsCreatingWorkspace(false);
+      showToast(
+        "워크스페이스 생성에 실패했어요. 잠시 후 다시 시도해주세요.",
+        "error"
+      );
     }
-  }, [isCreatingWorkspace, navigate]);
+  }, [createWorkspaceMutation, isPending, navigate, showToast]);
 
   return (
     <nav className="hidden md:flex items-baseline gap-3 lg:gap-6 text-sm lg:text-base">
@@ -42,12 +45,12 @@ export function Navigation({ isLoggedIn, getNavLinkClass }: NavigationProps) {
           <button
             type="button"
             className={`font-semibold text-semi-black transition-opacity ${
-              isCreatingWorkspace ? "opacity-60 cursor-not-allowed" : ""
+              isPending ? "opacity-60 cursor-not-allowed" : ""
             }`}
             onClick={handleClickNewProject}
-            disabled={isCreatingWorkspace}
+            disabled={isPending}
           >
-            {isCreatingWorkspace ? "Creating..." : "New Project"}
+            {isPending ? "Creating..." : "New Project"}
           </button>
           <NavLink to="/mypage" className={getNavLinkClass}>
             My Page

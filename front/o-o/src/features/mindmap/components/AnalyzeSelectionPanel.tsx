@@ -1,6 +1,6 @@
 ﻿import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import ContentDialog from "./ContentDialog/ContentDialog";
+import ContentDialog from "../../../shared/ui/ContentDialog/ContentDialog";
 import analyzePopoImage from "@/shared/assets/images/analyze_popo.png";
 import planningPopoImage from "@/shared/assets/images/planning_popo.png";
 import type { NodeData } from "../types";

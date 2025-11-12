@@ -5,6 +5,7 @@ import { store } from "./store/store";
 import { queryClient } from "./lib/query";
 import { injectStore } from "./lib/axios";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ToastProvider } from "@/shared/ui/ToastProvider";
 
 // axios 인터셉터에서 store 사용할 수 있도록 주입
 injectStore(store);
@@ -14,9 +15,11 @@ function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <div className="font-paperlogy">
-          <AppRouter />
-        </div>
+        <ToastProvider>
+          <div className="font-paperlogy">
+            <AppRouter />
+          </div>
+        </ToastProvider>
       </QueryClientProvider>
     </Provider>
   );

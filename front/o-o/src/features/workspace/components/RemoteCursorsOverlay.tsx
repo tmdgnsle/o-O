@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Core } from "cytoscape";
-import { usePeerCursors } from "../collaboration/PeerCursorProvider";
+import { usePeerCursors } from "./PeerCursorProvider";
 
 type RemoteCursorsOverlayProps = {
   cy: Core | null;

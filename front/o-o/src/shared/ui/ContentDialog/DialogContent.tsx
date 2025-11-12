@@ -11,7 +11,7 @@ import {
   MarkdownP,
   MarkdownStrong,
   MarkdownCode,
-} from "@/features/mindmap/components/MarkdownComponents";
+} from "@/shared/ui/MarkdownComponents";
 
 interface DialogContentProps {
   content: string;
