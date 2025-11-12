@@ -19,7 +19,13 @@ public class CookieUtil {
     }
 
     public static ResponseCookie createRefreshTokenCookie(String value) {
-        return createRefreshTokenCookie(value, DEFAULT_REFRESH_TOKEN_MAX_AGE);
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, value)
+                .maxAge(DEFAULT_REFRESH_TOKEN_MAX_AGE)
+                .path(COOKIE_PATH)
+                .httpOnly(true)
+                .secure(true)  // HTTPS 환경에서 활성화
+                .sameSite("None")  // 크로스 사이트 요청 허용
+                .build();
     }
 
     public static ResponseCookie deleteRefreshTokenCookie() {
