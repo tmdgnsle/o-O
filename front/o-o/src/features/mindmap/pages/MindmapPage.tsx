@@ -136,7 +136,7 @@ const MindmapPageContent: React.FC = () => {
           <MiniNav />
         </div>
 
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed bottom-24 right-2 lg:bottom-4 lg:right-4 z-50">
           {mode === "edit" ? (
             <AskPopo />
           ) : (
@@ -175,7 +175,7 @@ const MindmapPageContent: React.FC = () => {
         )}
 
         {mode === "edit" && (
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,48rem)] px-4">
+          <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 w-[min(95vw,48rem)] px-2 md:bottom-4 md:px-4">
             <Textbox onAddNode={nodeOperations.handleAddNode} />
           </div>
         )}
