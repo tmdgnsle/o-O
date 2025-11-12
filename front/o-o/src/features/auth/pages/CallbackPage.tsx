@@ -23,7 +23,7 @@ export function CallbackPage() {
         // 1. URL에서 token과 userId 추출
         // const token = searchParams.get("token");
         const token =
-          "eyJhbGciOiJIUzI1NiJ9.eyJjYXRlZ29yeSI6ImFjY2VzcyIsInVzZXJJZCI6NCwicm9sZSI6IlVTRVIiLCJwbGF0Zm9ybSI6IndlYiIsImlhdCI6MTc2Mjk1MTgzMiwiZXhwIjoxNzYyOTUyMTMyfQ.JOT4iJqHvfl79TN1I6RYAagi-4SVCnyrCX6QzPUhjeE";
+          "eyJhbGciOiJIUzI1NiJ9.eyJjYXRlZ29yeSI6ImFjY2VzcyIsInVzZXJJZCI6NCwicm9sZSI6IlVTRVIiLCJwbGF0Zm9ybSI6IndlYiIsImlhdCI6MTc2Mjk1MjQzNSwiZXhwIjoxNzYyOTUyNjE1fQ.w89uGzGTgTy1WnUsav4rzo6cYrdwho5sTC9AwxI0Uso";
         const userId = searchParams.get("userId");
 
         console.log("📥 Callback 받음:", { token, userId });
