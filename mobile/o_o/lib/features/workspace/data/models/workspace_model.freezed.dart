@@ -26,7 +26,7 @@ mixin _$WorkspaceModel {
   String get visibility => throw _privateConstructorUsedError;
   @JsonKey(name: 'createdAt')
   DateTime get createdAt => throw _privateConstructorUsedError;
-  String get thumbnail => throw _privateConstructorUsedError;
+  String? get thumbnail => throw _privateConstructorUsedError;
   String? get startPrompt => throw _privateConstructorUsedError;
 
   /// Serializes this WorkspaceModel to a JSON map.
@@ -51,7 +51,7 @@ abstract class $WorkspaceModelCopyWith<$Res> {
     String title,
     String visibility,
     @JsonKey(name: 'createdAt') DateTime createdAt,
-    String thumbnail,
+    String? thumbnail,
     String? startPrompt,
   });
 }
@@ -75,7 +75,7 @@ class _$WorkspaceModelCopyWithImpl<$Res, $Val extends WorkspaceModel>
     Object? title = null,
     Object? visibility = null,
     Object? createdAt = null,
-    Object? thumbnail = null,
+    Object? thumbnail = freezed,
     Object? startPrompt = freezed,
   }) {
     return _then(
@@ -101,10 +101,10 @@ class _$WorkspaceModelCopyWithImpl<$Res, $Val extends WorkspaceModel>
                     : createdAt // ignore: cast_nullable_to_non_nullable
                         as DateTime,
             thumbnail:
-                null == thumbnail
+                freezed == thumbnail
                     ? _value.thumbnail
                     : thumbnail // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as String?,
             startPrompt:
                 freezed == startPrompt
                     ? _value.startPrompt
@@ -130,7 +130,7 @@ abstract class _$$WorkspaceModelImplCopyWith<$Res>
     String title,
     String visibility,
     @JsonKey(name: 'createdAt') DateTime createdAt,
-    String thumbnail,
+    String? thumbnail,
     String? startPrompt,
   });
 }
@@ -153,7 +153,7 @@ class __$$WorkspaceModelImplCopyWithImpl<$Res>
     Object? title = null,
     Object? visibility = null,
     Object? createdAt = null,
-    Object? thumbnail = null,
+    Object? thumbnail = freezed,
     Object? startPrompt = freezed,
   }) {
     return _then(
@@ -179,10 +179,10 @@ class __$$WorkspaceModelImplCopyWithImpl<$Res>
                 : createdAt // ignore: cast_nullable_to_non_nullable
                     as DateTime,
         thumbnail:
-            null == thumbnail
+            freezed == thumbnail
                 ? _value.thumbnail
                 : thumbnail // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as String?,
         startPrompt:
             freezed == startPrompt
                 ? _value.startPrompt
@@ -201,7 +201,7 @@ class _$WorkspaceModelImpl extends _WorkspaceModel {
     required this.title,
     required this.visibility,
     @JsonKey(name: 'createdAt') required this.createdAt,
-    required this.thumbnail,
+    this.thumbnail,
     this.startPrompt,
   }) : super._();
 
@@ -218,7 +218,7 @@ class _$WorkspaceModelImpl extends _WorkspaceModel {
   @JsonKey(name: 'createdAt')
   final DateTime createdAt;
   @override
-  final String thumbnail;
+  final String? thumbnail;
   @override
   final String? startPrompt;
 
@@ -279,7 +279,7 @@ abstract class _WorkspaceModel extends WorkspaceModel {
     required final String title,
     required final String visibility,
     @JsonKey(name: 'createdAt') required final DateTime createdAt,
-    required final String thumbnail,
+    final String? thumbnail,
     final String? startPrompt,
   }) = _$WorkspaceModelImpl;
   const _WorkspaceModel._() : super._();
@@ -297,7 +297,7 @@ abstract class _WorkspaceModel extends WorkspaceModel {
   @JsonKey(name: 'createdAt')
   DateTime get createdAt;
   @override
-  String get thumbnail;
+  String? get thumbnail;
   @override
   String? get startPrompt;
 

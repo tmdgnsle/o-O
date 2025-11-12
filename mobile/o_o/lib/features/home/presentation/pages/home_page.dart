@@ -408,14 +408,14 @@ class HomePage extends StatelessWidget {
                                                 ...workspaces.map((workspace) {
                                                   return MindmapCard(
                                                     title: workspace.title,
-                                                    imagePath: workspace.thumbnail,
+                                                    imagePath: workspace.thumbnail ?? '',
                                                     isNetworkImage: true,
                                                     onTap: () {
                                                       context.push(
                                                         '/mindmap',
                                                         extra: {
                                                           'title': workspace.title,
-                                                          'imagePath': workspace.thumbnail,
+                                                          'imagePath': workspace.thumbnail ?? '',
                                                           'mindmapId': workspace.id.toString(),
                                                         },
                                                       );
@@ -437,14 +437,14 @@ class HomePage extends StatelessWidget {
                                               ...workspaces.map((workspace) {
                                                 return MindmapCard(
                                                   title: workspace.title,
-                                                  imagePath: workspace.thumbnail,
+                                                  imagePath: workspace.thumbnail ?? '',
                                                   isNetworkImage: true,
                                                   onTap: () {
                                                     context.push(
                                                       '/mindmap',
                                                       extra: {
                                                         'title': workspace.title,
-                                                        'imagePath': workspace.thumbnail,
+                                                        'imagePath': workspace.thumbnail ?? '',
                                                         'mindmapId': workspace.id.toString(),
                                                       },
                                                     );

@@ -39,9 +39,18 @@ class WorkspaceApiDataSourceImpl implements WorkspaceApiDataSource {
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
+        logger.d('📦 Raw API response: $data');
+
         final workspaceResponse = WorkspaceResponseModel.fromJson(data);
 
-        logger.i('✅ Fetched ${workspaceResponse.workspaces.length} workspaces, hasNext: ${workspaceResponse.hasNext}');
+        logger.i('✅ Fetched ${workspaceResponse.workspaces.length} workspaces, hasNext: ${workspaceResponse.hasNext}, nextCursor: ${workspaceResponse.nextCursor}');
+
+        // 각 워크스페이스 상세 로깅
+        for (var i = 0; i < workspaceResponse.workspaces.length; i++) {
+          final workspace = workspaceResponse.workspaces[i];
+          logger.d('  [$i] id: ${workspace.id}, title: "${workspace.title}", thumbnail: ${workspace.thumbnail ?? "null"}');
+        }
+
         return workspaceResponse;
       } else {
         logger.e('❌ Failed to fetch workspaces: ${response.statusCode}');

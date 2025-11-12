@@ -14,7 +14,7 @@ class WorkspaceModel with _$WorkspaceModel {
     required String title,
     required String visibility,
     @JsonKey(name: 'createdAt') required DateTime createdAt,
-    required String thumbnail,
+    String? thumbnail,
     String? startPrompt,
   }) = _WorkspaceModel;
 
