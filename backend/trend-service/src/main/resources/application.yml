@@ -3,8 +3,8 @@ spring:
     name: trend-service
   data:
     redis:
-      host: ${REDIS_HOST:k13d202.p.ssafy.io}
-      port: ${REDIS_PORT:6380}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
       password:
       lettuce:
         pool:
@@ -14,7 +14,7 @@ spring:
           max-wait: 2000ms
         shutdown-timeout: 200ms
   kafka:
-    bootstrap-servers: http://k13d202.p.ssafy.io:9092
+    bootstrap-servers: ${KAFKA_HOST}
     consumer:
       group-id: trend-service-group
       auto-offset-reset: earliest
@@ -30,9 +30,9 @@ spring:
       concurrency: 3
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:k13d202.p.ssafy.io}:${DB_PORT:5437}/${DB_NAME:trend_db}
-    username: ${DB_USERNAME:trend_db_app}
-    password: ${DB_PASSWORD:1oo4!}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
