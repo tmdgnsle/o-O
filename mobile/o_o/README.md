@@ -15,4 +15,3 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
-### 여기는 제 공간입니다. 아무도 못 건들죠? ㅋㅋ
