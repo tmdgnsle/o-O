@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +22,7 @@ import popo4 from "@/shared/assets/images/popo4.png";
 import { useShareLink } from "../hooks/custom/useShareLink";
 import { useCollaborators, type Collaborator, type Permission } from "../hooks/custom/useCollaborators";
 import { useAccessType } from "../hooks/custom/useAccessType";
+import { useWindowWidth } from "@/shared/hooks/useWindowWidth";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
@@ -48,15 +48,7 @@ export default function StatusBox({ onStartVoiceChat, shareLink }: Readonly <Sta
   // 현재 접속 중인 사용자들
   const activeUsers = collaborators;
 
-  // 화면 크기 상태
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-
-  // 화면 크기 변경 감지
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const windowWidth = useWindowWidth();
 
   // 반응형 아바타 개수 제한
   const getVisibleUsers = () => {
