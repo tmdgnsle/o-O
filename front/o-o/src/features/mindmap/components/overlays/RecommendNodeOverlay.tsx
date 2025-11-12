@@ -6,6 +6,7 @@ import {
   RECOMMENDATION_LAYOUT_CONFIG,
   type RecommendationType,
 } from "../../styles/recommendationThemes";
+import { createRadialGradient } from "@/shared/utils/gradientUtils";
 
 export default function RecommendNodeOverlay({
   open,
@@ -91,7 +92,7 @@ export default function RecommendNodeOverlay({
       >
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
-          style={{ backgroundColor: bgColor }}
+          style={{ background: createRadialGradient(bgColor) }}
         >
           <span className="text-sm font-paperlogy font-semibold px-4 text-center break-words">
             {node.text}

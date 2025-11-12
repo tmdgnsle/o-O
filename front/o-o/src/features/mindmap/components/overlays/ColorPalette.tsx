@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColorPaletteProps } from "../../types";
 import { COLOR_THEMES, type ColorThemeName } from "../../styles/colorThemes";
 import { useColorTheme } from "../../hooks/useColorTheme";
+import { createRadialGradient } from "@/shared/utils/gradientUtils";
 
 export default function ColorPalette({
   open,
@@ -138,7 +139,7 @@ export default function ColorPalette({
                 <button
                   key={color}
                   className="w-8 h-8 rounded-full border-2 border-gray-200 hover:border-gray-400 transition-colors"
-                  style={{ backgroundColor: color }}
+                  style={{ background: createRadialGradient(color) }}
                   onClick={() => onColorChange?.(color)}
                   type="button"
                 />
