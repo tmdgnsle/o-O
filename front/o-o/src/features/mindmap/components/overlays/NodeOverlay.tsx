@@ -9,6 +9,7 @@ import { useNodeFocus } from "../../hooks/custom/useNodeFocus";
 import { useNodeZIndex } from "../../hooks/custom/useNodeZIndex";
 import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
+import { createRadialGradient } from "@/shared/utils/gradientUtils";
 import type { CytoscapeNodeOverlayProps } from "../../types";
 import warningPopoImage from "@/shared/assets/images/warning_popo.png";
 import ConfirmDialog from "../ConfirmDialog";
@@ -140,7 +141,7 @@ function NodeOverlay({
         <div
           className={`w-40 h-40 rounded-full flex items-center justify-center transition-all ${selectionRingClass}`}
           style={{
-            backgroundColor: initialColor,
+            background: createRadialGradient(initialColor),
             pointerEvents: "none",
           }}
         >
@@ -160,6 +161,8 @@ function NodeOverlay({
             addInputOpen={showAddInput}
             currentColor={initialColor}
             focusedButton={focusedButton}
+            centerX={x}
+            centerY={y}
             onDelete={handleDeleteRequest}
             onEdit={handleEdit}
             onAdd={handleAdd}

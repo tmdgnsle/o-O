@@ -1,11 +1,13 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createPortal } from "react-dom";
 import type { RecommendNodeData, RecommendNodeOverlayProps } from "../../types";
 import {
   RECOMMENDATION_THEME,
   RECOMMENDATION_LAYOUT_CONFIG,
   type RecommendationType,
 } from "../../styles/recommendationThemes";
+import { createRadialGradient } from "@/shared/utils/gradientUtils";
 
 export default function RecommendNodeOverlay({
   open,
@@ -91,7 +93,7 @@ export default function RecommendNodeOverlay({
       >
         <div
           className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg"
-          style={{ backgroundColor: bgColor }}
+          style={{ background: createRadialGradient(bgColor) }}
         >
           <span className="text-sm font-paperlogy font-semibold px-4 text-center break-words">
             {node.text}
@@ -101,8 +103,8 @@ export default function RecommendNodeOverlay({
     );
   };
 
-  return (
-    <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 600 }}>
+  const content = (
+    <div className="fixed inset-0 pointer-events-none z-[9999]">
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         {/* AI 아이콘 */}
         {renderIconButton("ai", RECOMMENDATION_THEME.ai.angles[0])}
@@ -143,4 +145,6 @@ export default function RecommendNodeOverlay({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

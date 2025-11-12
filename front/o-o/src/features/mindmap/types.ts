@@ -7,6 +7,7 @@ export type NodeAddInputProps = Readonly<{
   open: boolean;
   onConfirm: (keyword: string, description: string) => void;
   onCancel: () => void;
+  buttonRef?: React.RefObject<HTMLButtonElement>;
 }>;
 
 // ColorPalette.tsx
@@ -17,6 +18,7 @@ export type ColorPaletteProps = Readonly<{
   onClose?: () => void;
   value?: string;
   className?: string;
+  buttonRef?: React.RefObject<HTMLButtonElement>;
 }>;
 
 export type MindmapMode = "edit" | "analyze";
@@ -73,6 +75,8 @@ export type RadialToolGroupProps = Readonly<{
   addInputOpen?: boolean;
   currentColor?: string;
   focusedButton?: "delete" | "add" | "edit" | "palette" | "recommend" | null;
+  centerX?: number;
+  centerY?: number;
   onDelete?: () => void;
   onEdit?: () => void;
   onAdd?: () => void;
