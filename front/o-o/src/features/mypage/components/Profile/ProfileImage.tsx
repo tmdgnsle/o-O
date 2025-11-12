@@ -4,6 +4,7 @@ import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
 import popo4 from "@/shared/assets/images/popo4.png";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 interface ProfileImageProps {
   readonly currentImage?: string;
@@ -27,7 +28,7 @@ export function ProfileImage({
     setSelectedImage(currentImage || null);
   }, [currentImage]);
 
-  const avatarOptions = [popo4, popo3, popo2, popo1];
+  const avatarOptions = ["popo4", "popo3", "popo2", "popo1"];
 
   // 반응형 radius 계산
   const getRadius = () => {
@@ -67,7 +68,7 @@ export function ProfileImage({
                 }}
               >
                 <img
-                  src={avatar}
+                  src={getProfileImageUrl(avatar)}
                   alt={`avatar-${index}`}
                   className="object-cover rounded-full w-full h-full"
                 />

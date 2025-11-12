@@ -6,19 +6,22 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import logo from "@/shared/assets/images/logo.png";
 
-import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal";
+import { ProfileEditModal } from "@/features/mypage/components/Profile/ProfileEditModal";
 import { useHeader } from "@/shared/hooks/useHeader";
 import { Navigation } from "@/shared/components/Header/Navigation";
 import { UserProfile } from "@/shared/components/Header/UserProfile";
 import { MobileMenu } from "@/shared/components/Header/MobileMenu";
 import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { useAppSelector } from "@/store/hooks";
+import { getProfileImageUrl } from "../utils/imageMapper";
 
 const getNavLinkClass = ({ isActive }: NavLinkRenderProps) =>
   ` ${isActive ? "text-primary font-bold" : "text-semi-black font-semibold"}`;
 
 export function Header() {
-  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
+  const { user } = useAppSelector((state) => state.user);
+
   const {
     isProfileModalOpen,
     isMobileMenuOpen,
@@ -50,7 +53,7 @@ export function Header() {
           {isLoggedIn && user ? (
             <UserProfile
               userName={user.nickname}
-              profileImage={user.profileImage}
+              profileImage={getProfileImageUrl(user.profileImage)}
               onClick={openProfileModal}
             />
           ) : (
@@ -78,12 +81,7 @@ export function Header() {
       />
 
       {isProfileModalOpen && user && (
-        <ProfileEditModal
-          onClose={closeProfileModal}
-          currentName={user.nickname}
-          currentEmail={user.email}
-          currentImage={user.profileImage}
-        />
+        <ProfileEditModal onClose={closeProfileModal} />
       )}
     </>
   );
