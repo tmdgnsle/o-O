@@ -3,7 +3,6 @@ interface ProfileFormProps {
   readonly email: string;
   readonly isEditing: boolean;
   readonly onNameChange: (name: string) => void;
-  readonly onEmailChange: (email: string) => void;
   readonly onSave: () => void;
   readonly onCancel: () => void;
 }
@@ -13,7 +12,6 @@ export function ProfileForm({
   email,
   isEditing,
   onNameChange,
-  onEmailChange,
   onSave,
   onCancel,
 }: ProfileFormProps) {
@@ -30,9 +28,12 @@ export function ProfileForm({
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           disabled={!isEditing}
+          maxLength={30}
           className={`w-full px-3 py-2 text-sm -m-3 text-deep-gray focus:outline-none ${
-            isEditing ? "bg-[#E8E8E8] m-0 rounded-md" : "bg-white"
-          } disabled:cursor-not-allowed`}
+            isEditing
+              ? "bg-[#E8E8E8] m-0 rounded-md"
+              : "bg-white truncate pointer-events-none"
+          } `}
         />
       </div>
       <div>
@@ -43,9 +44,8 @@ export function ProfileForm({
           id="email"
           type="email"
           value={email}
-          onChange={(e) => onEmailChange(e.target.value)}
-          disabled={!isEditing}
-          className="m-w-full px-3 py-2 bg-white focus:outline-none text-sm -m-3 text-deep-gray"
+          disabled={true}
+          className="m-w-full px-3 py-2 bg-white focus:outline-none text-sm -m-3 text-deep-gray truncate pointer-events-none"
         />
       </div>
 

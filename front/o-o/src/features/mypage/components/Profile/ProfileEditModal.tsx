@@ -1,38 +1,50 @@
 import { useState } from "react";
 import { ProfileImage } from "./ProfileImage";
 import { ProfileForm } from "./ProfileForm";
-import { ModalHeader } from "./ModalHeader";
+import { ModalHeader } from "../ModalHeader";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { updateUserProfile } from "@/store/slices/userSlice";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 interface ProfileEditModalProps {
   readonly onClose: () => void;
-  readonly currentName?: string;
-  readonly currentEmail?: string;
-  readonly currentImage?: string;
 }
 
-export function ProfileEditModal({
-  onClose,
-  currentName,
-  currentEmail,
-  currentImage,
-}: ProfileEditModalProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(currentName || "");
-  const [email, setEmail] = useState(currentEmail || "");
-  const [image, setImage] = useState(currentImage || "");
+export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.user);
 
-  const handleSave = () => {
-    setIsEditing(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [nickname, setNickname] = useState(user?.nickname || "");
+  const [profileImage, setProfileImage] = useState(
+    user?.profileImage || "popo1"
+  );
+
+  if (!user) return null;
+
+  const handleSave = async () => {
+    try {
+      await dispatch(
+        updateUserProfile({
+          nickname,
+          profileImage,
+        })
+      ).unwrap();
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
   };
 
   const handleCancel = () => {
-    setName(currentName || "");
-    setEmail(currentEmail || "");
+    setNickname(user.nickname || "");
+    setProfileImage(user.profileImage || "");
     setIsEditing(false);
   };
 
   const handleImageChange = (newImage: string) => {
-    setImage(newImage);
+    setProfileImage(newImage);
   };
 
   return (
@@ -52,16 +64,15 @@ export function ProfileEditModal({
 
           <div className="flex gap-10 py-3 px-6 items-center">
             <ProfileImage
-              currentImage={image}
+              currentImage={getProfileImageUrl(profileImage)}
               isEditing={isEditing}
               onImageChange={handleImageChange}
             />
             <ProfileForm
-              name={name}
-              email={email}
+              name={nickname}
+              email={user.email}
               isEditing={isEditing}
-              onNameChange={setName}
-              onEmailChange={setEmail}
+              onNameChange={setNickname}
               onSave={handleSave}
               onCancel={handleCancel}
             />
