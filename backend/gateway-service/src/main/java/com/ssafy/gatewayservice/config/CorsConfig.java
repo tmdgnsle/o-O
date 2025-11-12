@@ -19,7 +19,7 @@ public class CorsConfig {
         config.setAllowedOrigins(Arrays.asList(
                 "https://www.o-o.io.kr",
                 "https://api.o-o.io.kr",
-                "http://localhost:5713"
+                "http://localhost:5173"
         ));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
