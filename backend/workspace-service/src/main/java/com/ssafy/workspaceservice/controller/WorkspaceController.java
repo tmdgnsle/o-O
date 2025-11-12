@@ -6,6 +6,7 @@ import com.ssafy.workspaceservice.enums.WorkspaceRole;
 import com.ssafy.workspaceservice.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -148,9 +149,21 @@ public class WorkspaceController {
         return ResponseEntity.ok(workspaceService.getMyWorkspaces(userId, category, cursor));
     }
 
-    @GetMapping("/my/all")
+    @Operation(
+            summary = "모바일용 최근 워크스페이스 전체 조회",
+            description = """
+    모바일 환경에서 내가 속한 워크스페이스를 최근 생성/참여 순으로 전체 조회합니다.
+    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = WorkspaceSimpleResponse.class)))),
+            @ApiResponse(responseCode = "401", content = @Content, description = "인증 실패"),
+            @ApiResponse(responseCode = "500", content = @Content, description = "서버 오류")
+    })
+    @GetMapping("/my/recent")
     public ResponseEntity<List<WorkspaceSimpleResponse>> getAllMyWorkspacesForMobile(
-            @Parameter(hidden = false)
+            @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId
     ) {
         return ResponseEntity.ok(workspaceService.getAllMyWorkspacesForMobile(userId));
