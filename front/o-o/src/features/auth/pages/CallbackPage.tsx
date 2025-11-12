@@ -21,9 +21,7 @@ export function CallbackPage() {
     const handleCallback = async () => {
       try {
         // 1. URL에서 token과 userId 추출
-        // const token = searchParams.get("token");
-        const token =
-          "eyJhbGciOiJIUzI1NiJ9.eyJjYXRlZ29yeSI6ImFjY2VzcyIsInVzZXJJZCI6NCwicm9sZSI6IlVTRVIiLCJwbGF0Zm9ybSI6IndlYiIsImlhdCI6MTc2Mjk1NDIxOSwiZXhwIjoxNzYyOTU0Mzk5fQ.5ADCUrUjBvS12AfKY-lXYyPyf0ODxr9MHTVzMwCVG9M";
+        const token = searchParams.get("token");
         const userId = searchParams.get("userId");
 
         console.log("📥 Callback 받음:", { token, userId });
