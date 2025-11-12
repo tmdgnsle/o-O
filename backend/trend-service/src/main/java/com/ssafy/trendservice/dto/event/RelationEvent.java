@@ -1,27 +1,23 @@
 package com.ssafy.trendservice.dto.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.time.LocalDateTime;
-
-/**
- * Kafka로부터 수신하는 Relation 이벤트 DTO
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RelationEvent {
 
-    @JsonProperty("eventType")
-    private EventType eventType;
+    // ⬅️ 필드명은 반드시 "type" (프로듀서 JSON과 동일)
+    @JsonProperty("type")
+    private EventType type;          // RELATION_ADD
 
-    @JsonProperty("userId")
-    private String userId;
+    @JsonProperty("timestamp")
+    private long timestamp;          // epoch millis
+
+    @JsonProperty("workspaceId")
+    private long workspaceId;
 
     @JsonProperty("parentKeyword")
     private String parentKeyword;
@@ -29,9 +25,6 @@ public class RelationEvent {
     @JsonProperty("childKeyword")
     private String childKeyword;
 
-    @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
-
-    @JsonProperty("metadata")
-    private String metadata;
+    @JsonProperty("idempotencyKey")
+    private String idempotencyKey;
 }
