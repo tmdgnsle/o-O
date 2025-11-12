@@ -49,7 +49,7 @@ apiClient.interceptors.response.use(
       try {
         // refreshToken(쿠키)으로 새 accessToken 받기
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/reissue`,
+          "/auth/reissue",
           {},
           { withCredentials: true }
         );
@@ -73,7 +73,7 @@ apiClient.interceptors.response.use(
           store.dispatch(clearAuth());
           store.dispatch(clearUser());
         }
-        globalThis.location.href = "/";
+        // globalThis.location.href = "/";
         return Promise.reject(refreshError);
       }
     }
