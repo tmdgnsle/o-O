@@ -64,15 +64,24 @@ public class WorkspaceService {
     // WorkspaceDetailResponse 반환
      @Transactional(readOnly = true)
     public WorkspaceDetailResponse getDetail(Long workspaceId, Long requesterUserId) {
+        // 1. 워크스페이스 존재 확인
         Workspace w = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.WORKSPACE_NOT_FOUND));
 
+        // 2. 요청자가 멤버인지 확인
         Optional<WorkspaceMember> mine = Optional.empty();
         if (requesterUserId != null) {
             mine = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, requesterUserId);
         }
 
         boolean isMember = mine.isPresent();
+
+        // 3. 접근 권한 확인: 비공개 워크스페이스는 멤버만 조회 가능
+        if (w.getVisibility() == WorkspaceVisibility.PRIVATE && !isMember) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MEMBER);
+        }
+
+        // 4. 응답 생성
         String myRole = String.valueOf(mine.map(WorkspaceMember::getRole).orElse(null));
         Long memberCount = workspaceMemberRepository.countByWorkspaceId(workspaceId);
 
