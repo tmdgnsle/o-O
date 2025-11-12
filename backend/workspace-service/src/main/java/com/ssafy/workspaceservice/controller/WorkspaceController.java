@@ -148,6 +148,14 @@ public class WorkspaceController {
         return ResponseEntity.ok(workspaceService.getMyWorkspaces(userId, category, cursor));
     }
 
+    @GetMapping("/my/all")
+    public ResponseEntity<List<WorkspaceSimpleResponse>> getAllMyWorkspacesForMobile(
+            @Parameter(hidden = false)
+            @RequestHeader("X-USER-ID") Long userId
+    ) {
+        return ResponseEntity.ok(workspaceService.getAllMyWorkspacesForMobile(userId));
+    }
+
     @Operation(
             summary = "워크스페이스 활동 캘린더 조회",
             description = "지정된 기간 동안 사용자가 생성한 워크스페이스를 날짜별로 조회합니다. 날짜 형식은 yyyy-MM-dd입니다."

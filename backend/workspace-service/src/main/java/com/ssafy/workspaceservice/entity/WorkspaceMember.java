@@ -28,6 +28,7 @@ public class WorkspaceMember {
     @Column(name = "user_id", nullable = false)
     private Long userId;                     // 외부 user-service PK
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)   // MAINTAINER / EDIT / VIEW
     private WorkspaceRole role;
 
@@ -35,6 +36,7 @@ public class WorkspaceMember {
     @Column(name = "enter_time", nullable = false, updatable = false)
     private LocalDateTime enterTime;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "pointer_color", length = 20)
     private PointerColor pointerColor;
 
