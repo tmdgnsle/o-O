@@ -1,29 +1,45 @@
 import { Avatar } from "@/components/ui/avatar";
-import popo from "@/shared/assets/images/popo1.png";
+import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal";
 import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { SearchButton } from "@/shared/components/Search/SearchButton";
+import { useHeader } from "@/shared/hooks/useHeader";
 import MiniNav from "@/shared/ui/MiniNav";
 import { useAppSelector } from "@/store/hooks";
 import { AvatarImage } from "@radix-ui/react-avatar";
 
 export function TrendMindmapHeader() {
-  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+  const { isProfileModalOpen, openProfileModal, closeProfileModal } =
+    useHeader();
+  const { isLoggedIn, user } = useAppSelector((state) => state.auth);
 
   return (
-    <div className="flex justify-between items-start">
-      <MiniNav />
-      <div className="flex gap-4 items-center">
-        <SearchButton />
-        {isLoggedIn ? (
-          <div className="shadow-md rounded-full bg-white p-1 ">
-            <Avatar>
-              <AvatarImage src={popo} alt="popo" />
-            </Avatar>
-          </div>
-        ) : (
-          <GoogleLoginButton />
-        )}
+    <>
+      <div className="flex justify-between items-start">
+        <MiniNav />
+        <div className="flex gap-4 items-center">
+          <SearchButton />
+          {isLoggedIn && user ? (
+            <button
+              onClick={openProfileModal}
+              className="shadow-md rounded-full bg-white p-1 "
+            >
+              <Avatar>
+                <AvatarImage src={user.profileImage} alt="profile-image" />
+              </Avatar>
+            </button>
+          ) : (
+            <GoogleLoginButton />
+          )}
+        </div>
       </div>
-    </div>
+      {isProfileModalOpen && user && (
+        <ProfileEditModal
+          onClose={closeProfileModal}
+          currentName={user.nickname}
+          currentEmail={user.email}
+          currentImage={user.profileImage}
+        />
+      )}
+    </>
   );
 }
