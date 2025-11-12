@@ -155,6 +155,7 @@ const MindmapPageContent: React.FC = () => {
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
               shareLink={shareLink}
+              workspaceId={workspaceId}
             />
           </div>
         )}

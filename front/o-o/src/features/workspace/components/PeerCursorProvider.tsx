@@ -13,6 +13,8 @@ type PeerCursor = {
   y: number;
   color?: string;
   name?: string;
+  email?: string;
+  profileImage?: string;
 };
 
 type PeerCursorContextValue = {
@@ -59,7 +61,7 @@ export function PeerCursorProvider({
           continue;
         }
 
-        const cursor = (state as { cursor?: PeerCursor; user?: { name?: string } }).cursor;
+        const cursor = (state as { cursor?: PeerCursor; user?: { name?: string; email?: string; profileImage?: string } }).cursor;
         console.log(`   ↳ Cursor data:`, cursor);
 
         if (!cursor) {
@@ -67,12 +69,15 @@ export function PeerCursorProvider({
           continue;
         }
 
+        const userState = (state as { user?: { name?: string; email?: string; profileImage?: string } }).user;
         const peer = {
           id,
           x: cursor.x,
           y: cursor.y,
           color: cursor.color,
-          name: (state as { user?: { name?: string } }).user?.name,
+          name: userState?.name,
+          email: userState?.email,
+          profileImage: userState?.profileImage,
         };
         console.log(`   ↳ Adding peer:`, peer);
         next.push(peer);

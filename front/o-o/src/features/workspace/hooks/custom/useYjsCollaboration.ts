@@ -5,6 +5,7 @@ import { createYClient, type YClient } from "./yjsClient";
 import { createYMapCrud, type YMapCrud } from "./yMapCrud";
 import { NODES_YMAP_KEY } from "@/constants/mindmapCollaboration";
 import type { NodeData } from "../../../mindmap/types";
+import { useAppSelector } from "@/store/hooks";
 
 /**
  * Yjs 협업 로직을 관리하는 커스텀 훅
@@ -29,6 +30,7 @@ export function useYjsCollaboration(
 ) {
   const [collab, setCollab] = useState<{ client: YClient; map: Y.Map<NodeData> } | null>(null);
   const [crud, setCrud] = useState<YMapCrud<NodeData> | null>(null);
+  const currentUser = useAppSelector((state) => state.user.user);
 
   // Initialize Yjs client and provider
   useEffect(() => {
@@ -54,7 +56,12 @@ export function useYjsCollaboration(
     if (!awareness) return;
 
     const initialState = {
-      user: { name: "You", color: cursorColor },
+      user: {
+        name: currentUser?.nickname || "Anonymous",
+        email: currentUser?.email || "",
+        profileImage: currentUser?.profileImage,
+        color: cursorColor,
+      },
       cursor: null, // Will be updated by mousemove
       chat: null, // Will be updated when user types
     };
@@ -64,7 +71,7 @@ export function useYjsCollaboration(
     return () => {
       awareness.setLocalState(null);
     };
-  }, [collab, cursorColor]);
+  }, [collab, cursorColor, currentUser]);
 
   // Broadcast cursor position when Cytoscape is ready
   useEffect(() => {
