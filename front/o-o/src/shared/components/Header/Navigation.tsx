@@ -21,7 +21,7 @@ export function Navigation({ isLoggedIn, getNavLinkClass }: NavigationProps) {
     if (isPending) return;
 
     try {
-      const workspace = await createWorkspaceMutation();
+      const workspace = await createWorkspaceMutation(undefined);
       navigate(getMindmapPath(workspace.id));
     } catch (error) {
       console.error("Failed to create workspace", error);
