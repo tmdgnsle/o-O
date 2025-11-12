@@ -27,6 +27,7 @@ import '../../features/user/presentation/bloc/user_bloc.dart';
 import '../../features/workspace/data/datasources/workspace_api_data_source.dart';
 import '../../features/workspace/data/repositories/workspace_repository_impl.dart';
 import '../../features/workspace/domain/repositories/workspace_repository.dart';
+import '../../features/workspace/domain/usecases/get_workspace_calendar.dart';
 import '../../features/workspace/domain/usecases/get_workspaces.dart';
 import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
 import '../constants/api_constants.dart';
@@ -107,6 +108,7 @@ Future<void> init() async {
   sl.registerFactory(
     () => UserBloc(
       getUserInfo: sl(),
+      getWorkspaceCalendar: sl(),
     ),
   );
 
@@ -176,6 +178,7 @@ Future<void> init() async {
 
   // Use cases
   sl.registerLazySingleton(() => GetWorkspaces(sl()));
+  sl.registerLazySingleton(() => GetWorkspaceCalendar(sl()));
 
   // Repository
   sl.registerLazySingleton<WorkspaceRepository>(

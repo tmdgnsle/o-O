@@ -21,32 +21,38 @@ mixin _$UserEvent {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadCalendar,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadCalendar,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadCalendar,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(LoadUserInfo value) load,
     required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(LoadCalendar value) loadCalendar,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadUserInfo value)? load,
     TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(LoadCalendar value)? loadCalendar,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadUserInfo value)? load,
     TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(LoadCalendar value)? loadCalendar,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -116,6 +122,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadCalendar,
   }) {
     return load();
   }
@@ -125,6 +132,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadCalendar,
   }) {
     return load?.call();
   }
@@ -134,6 +142,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadCalendar,
     required TResult orElse(),
   }) {
     if (load != null) {
@@ -147,6 +156,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult map<TResult extends Object?>({
     required TResult Function(LoadUserInfo value) load,
     required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(LoadCalendar value) loadCalendar,
   }) {
     return load(this);
   }
@@ -156,6 +166,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadUserInfo value)? load,
     TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(LoadCalendar value)? loadCalendar,
   }) {
     return load?.call(this);
   }
@@ -165,6 +176,7 @@ class _$LoadUserInfoImpl implements LoadUserInfo {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadUserInfo value)? load,
     TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(LoadCalendar value)? loadCalendar,
     required TResult orElse(),
   }) {
     if (load != null) {
@@ -223,6 +235,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadCalendar,
   }) {
     return refresh();
   }
@@ -232,6 +245,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadCalendar,
   }) {
     return refresh?.call();
   }
@@ -241,6 +255,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadCalendar,
     required TResult orElse(),
   }) {
     if (refresh != null) {
@@ -254,6 +269,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult map<TResult extends Object?>({
     required TResult Function(LoadUserInfo value) load,
     required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(LoadCalendar value) loadCalendar,
   }) {
     return refresh(this);
   }
@@ -263,6 +279,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadUserInfo value)? load,
     TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(LoadCalendar value)? loadCalendar,
   }) {
     return refresh?.call(this);
   }
@@ -272,6 +289,7 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadUserInfo value)? load,
     TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(LoadCalendar value)? loadCalendar,
     required TResult orElse(),
   }) {
     if (refresh != null) {
@@ -283,4 +301,117 @@ class _$RefreshUserInfoImpl implements RefreshUserInfo {
 
 abstract class RefreshUserInfo implements UserEvent {
   const factory RefreshUserInfo() = _$RefreshUserInfoImpl;
+}
+
+/// @nodoc
+abstract class _$$LoadCalendarImplCopyWith<$Res> {
+  factory _$$LoadCalendarImplCopyWith(
+    _$LoadCalendarImpl value,
+    $Res Function(_$LoadCalendarImpl) then,
+  ) = __$$LoadCalendarImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$LoadCalendarImplCopyWithImpl<$Res>
+    extends _$UserEventCopyWithImpl<$Res, _$LoadCalendarImpl>
+    implements _$$LoadCalendarImplCopyWith<$Res> {
+  __$$LoadCalendarImplCopyWithImpl(
+    _$LoadCalendarImpl _value,
+    $Res Function(_$LoadCalendarImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of UserEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$LoadCalendarImpl implements LoadCalendar {
+  const _$LoadCalendarImpl();
+
+  @override
+  String toString() {
+    return 'UserEvent.loadCalendar()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$LoadCalendarImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() load,
+    required TResult Function() refresh,
+    required TResult Function() loadCalendar,
+  }) {
+    return loadCalendar();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? load,
+    TResult? Function()? refresh,
+    TResult? Function()? loadCalendar,
+  }) {
+    return loadCalendar?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? load,
+    TResult Function()? refresh,
+    TResult Function()? loadCalendar,
+    required TResult orElse(),
+  }) {
+    if (loadCalendar != null) {
+      return loadCalendar();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadUserInfo value) load,
+    required TResult Function(RefreshUserInfo value) refresh,
+    required TResult Function(LoadCalendar value) loadCalendar,
+  }) {
+    return loadCalendar(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadUserInfo value)? load,
+    TResult? Function(RefreshUserInfo value)? refresh,
+    TResult? Function(LoadCalendar value)? loadCalendar,
+  }) {
+    return loadCalendar?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadUserInfo value)? load,
+    TResult Function(RefreshUserInfo value)? refresh,
+    TResult Function(LoadCalendar value)? loadCalendar,
+    required TResult orElse(),
+  }) {
+    if (loadCalendar != null) {
+      return loadCalendar(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class LoadCalendar implements UserEvent {
+  const factory LoadCalendar() = _$LoadCalendarImpl;
 }

@@ -27,6 +27,7 @@ mixin _$WorkspaceModel {
   @JsonKey(name: 'createdAt')
   DateTime get createdAt => throw _privateConstructorUsedError;
   String get thumbnail => throw _privateConstructorUsedError;
+  String? get startPrompt => throw _privateConstructorUsedError;
 
   /// Serializes this WorkspaceModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -51,6 +52,7 @@ abstract class $WorkspaceModelCopyWith<$Res> {
     String visibility,
     @JsonKey(name: 'createdAt') DateTime createdAt,
     String thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -74,6 +76,7 @@ class _$WorkspaceModelCopyWithImpl<$Res, $Val extends WorkspaceModel>
     Object? visibility = null,
     Object? createdAt = null,
     Object? thumbnail = null,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -102,6 +105,11 @@ class _$WorkspaceModelCopyWithImpl<$Res, $Val extends WorkspaceModel>
                     ? _value.thumbnail
                     : thumbnail // ignore: cast_nullable_to_non_nullable
                         as String,
+            startPrompt:
+                freezed == startPrompt
+                    ? _value.startPrompt
+                    : startPrompt // ignore: cast_nullable_to_non_nullable
+                        as String?,
           )
           as $Val,
     );
@@ -123,6 +131,7 @@ abstract class _$$WorkspaceModelImplCopyWith<$Res>
     String visibility,
     @JsonKey(name: 'createdAt') DateTime createdAt,
     String thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -145,6 +154,7 @@ class __$$WorkspaceModelImplCopyWithImpl<$Res>
     Object? visibility = null,
     Object? createdAt = null,
     Object? thumbnail = null,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _$WorkspaceModelImpl(
@@ -173,6 +183,11 @@ class __$$WorkspaceModelImplCopyWithImpl<$Res>
                 ? _value.thumbnail
                 : thumbnail // ignore: cast_nullable_to_non_nullable
                     as String,
+        startPrompt:
+            freezed == startPrompt
+                ? _value.startPrompt
+                : startPrompt // ignore: cast_nullable_to_non_nullable
+                    as String?,
       ),
     );
   }
@@ -187,6 +202,7 @@ class _$WorkspaceModelImpl extends _WorkspaceModel {
     required this.visibility,
     @JsonKey(name: 'createdAt') required this.createdAt,
     required this.thumbnail,
+    this.startPrompt,
   }) : super._();
 
   factory _$WorkspaceModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -203,10 +219,12 @@ class _$WorkspaceModelImpl extends _WorkspaceModel {
   final DateTime createdAt;
   @override
   final String thumbnail;
+  @override
+  final String? startPrompt;
 
   @override
   String toString() {
-    return 'WorkspaceModel(id: $id, title: $title, visibility: $visibility, createdAt: $createdAt, thumbnail: $thumbnail)';
+    return 'WorkspaceModel(id: $id, title: $title, visibility: $visibility, createdAt: $createdAt, thumbnail: $thumbnail, startPrompt: $startPrompt)';
   }
 
   @override
@@ -221,13 +239,22 @@ class _$WorkspaceModelImpl extends _WorkspaceModel {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.thumbnail, thumbnail) ||
-                other.thumbnail == thumbnail));
+                other.thumbnail == thumbnail) &&
+            (identical(other.startPrompt, startPrompt) ||
+                other.startPrompt == startPrompt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, visibility, createdAt, thumbnail);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    title,
+    visibility,
+    createdAt,
+    thumbnail,
+    startPrompt,
+  );
 
   /// Create a copy of WorkspaceModel
   /// with the given fields replaced by the non-null parameter values.
@@ -253,6 +280,7 @@ abstract class _WorkspaceModel extends WorkspaceModel {
     required final String visibility,
     @JsonKey(name: 'createdAt') required final DateTime createdAt,
     required final String thumbnail,
+    final String? startPrompt,
   }) = _$WorkspaceModelImpl;
   const _WorkspaceModel._() : super._();
 
@@ -270,6 +298,8 @@ abstract class _WorkspaceModel extends WorkspaceModel {
   DateTime get createdAt;
   @override
   String get thumbnail;
+  @override
+  String? get startPrompt;
 
   /// Create a copy of WorkspaceModel
   /// with the given fields replaced by the non-null parameter values.

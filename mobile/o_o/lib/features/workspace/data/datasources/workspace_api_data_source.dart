@@ -3,12 +3,19 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/utils/app_logger.dart';
-import '../models/workspace_model.dart';
+import '../models/workspace_calendar_model.dart';
+import '../models/workspace_response_model.dart';
 
 /// Workspace API Data Source
 abstract class WorkspaceApiDataSource {
-  /// Get all workspaces
-  Future<List<WorkspaceModel>> getWorkspaces();
+  /// Get workspaces with pagination
+  Future<WorkspaceResponseModel> getWorkspaces({int? cursor});
+
+  /// Get workspace calendar
+  Future<List<WorkspaceCalendarModel>> getCalendar({
+    required String from,
+    required String to,
+  });
 }
 
 /// Workspace API Data Source Implementation
@@ -18,18 +25,24 @@ class WorkspaceApiDataSourceImpl implements WorkspaceApiDataSource {
   WorkspaceApiDataSourceImpl({required this.dio});
 
   @override
-  Future<List<WorkspaceModel>> getWorkspaces() async {
+  Future<WorkspaceResponseModel> getWorkspaces({int? cursor}) async {
     try {
-      logger.i('📡 Fetching workspaces from ${ApiConstants.getWorkspaces}');
+      logger.i('📡 Fetching workspaces from ${ApiConstants.getWorkspaces} with cursor: $cursor');
 
-      final response = await dio.get(ApiConstants.getWorkspaces);
+      final response = await dio.get(
+        ApiConstants.getWorkspaces,
+        queryParameters: {
+          'category': 'recent',
+          if (cursor != null) 'cursor': cursor,
+        },
+      );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        final workspaces = data.map((json) => WorkspaceModel.fromJson(json as Map<String, dynamic>)).toList();
+        final data = response.data as Map<String, dynamic>;
+        final workspaceResponse = WorkspaceResponseModel.fromJson(data);
 
-        logger.i('✅ Fetched ${workspaces.length} workspaces');
-        return workspaces;
+        logger.i('✅ Fetched ${workspaceResponse.workspaces.length} workspaces, hasNext: ${workspaceResponse.hasNext}');
+        return workspaceResponse;
       } else {
         logger.e('❌ Failed to fetch workspaces: ${response.statusCode}');
         throw ServerException('Failed to fetch workspaces: ${response.statusCode}');
@@ -40,6 +53,43 @@ class WorkspaceApiDataSourceImpl implements WorkspaceApiDataSource {
     } catch (e) {
       logger.e('❌ Unexpected error: $e');
       throw ServerException('Failed to fetch workspaces: $e');
+    }
+  }
+
+  @override
+  Future<List<WorkspaceCalendarModel>> getCalendar({
+    required String from,
+    required String to,
+  }) async {
+    try {
+      logger.i('📡 Fetching calendar from ${ApiConstants.getWorkspaceCalendar} (from: $from, to: $to)');
+
+      final response = await dio.get(
+        ApiConstants.getWorkspaceCalendar,
+        queryParameters: {
+          'from': from,
+          'to': to,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data as List<dynamic>;
+        final calendar = data
+            .map((json) => WorkspaceCalendarModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+
+        logger.i('✅ Fetched ${calendar.length} calendar entries');
+        return calendar;
+      } else {
+        logger.e('❌ Failed to fetch calendar: ${response.statusCode}');
+        throw ServerException('Failed to fetch calendar: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      logger.e('❌ DioException: ${e.message}');
+      throw ServerException('Failed to fetch calendar: ${e.message}');
+    } catch (e) {
+      logger.e('❌ Unexpected error: $e');
+      throw ServerException('Failed to fetch calendar: $e');
     }
   }
 }

@@ -12,7 +12,8 @@ class ApiConstants {
   static const String reissue = '/auth/reissue';
 
   /// Workspace Endpoints
-  static const String getWorkspaces = '/workspace';
+  static const String getWorkspaces = '/workspace/my';
+  static const String getWorkspaceCalendar = '/workspace/my/calendar';
 
   /// User Endpoints
   static const String getUsers = '/users';

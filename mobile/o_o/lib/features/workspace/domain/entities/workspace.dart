@@ -7,6 +7,7 @@ class Workspace extends Equatable {
   final String visibility;
   final DateTime createdAt;
   final String thumbnail;
+  final String? startPrompt;
 
   const Workspace({
     required this.id,
@@ -14,8 +15,9 @@ class Workspace extends Equatable {
     required this.visibility,
     required this.createdAt,
     required this.thumbnail,
+    this.startPrompt,
   });
 
   @override
-  List<Object?> get props => [id, title, visibility, createdAt, thumbnail];
+  List<Object?> get props => [id, title, visibility, createdAt, thumbnail, startPrompt];
 }

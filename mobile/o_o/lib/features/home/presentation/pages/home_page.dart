@@ -5,8 +5,6 @@ import 'package:o_o/core/constants/app_colors.dart';
 
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../recording/presentation/bloc/recording_bloc.dart';
 import '../../../recording/presentation/bloc/recording_event.dart';
 import '../../../recording/presentation/bloc/recording_state.dart';
@@ -380,7 +378,7 @@ class HomePage extends StatelessWidget {
                                             child: CircularProgressIndicator(),
                                           ),
                                         ),
-                                        loaded: (workspaces) {
+                                        loaded: (workspaces, hasNext, nextCursor) {
                                           if (workspaces.isEmpty) {
                                             return Center(
                                               child: Padding(
@@ -395,24 +393,69 @@ class HomePage extends StatelessWidget {
                                             );
                                           }
 
-                                          return Column(
-                                            children: workspaces.map((workspace) {
-                                              return MindmapCard(
-                                                title: workspace.title,
-                                                imagePath: workspace.thumbnail,
-                                                isNetworkImage: true,
-                                                onTap: () {
-                                                  context.push(
-                                                    '/mindmap',
-                                                    extra: {
-                                                      'title': workspace.title,
-                                                      'imagePath': workspace.thumbnail,
-                                                      'mindmapId': workspace.id.toString(),
+                                          return NotificationListener<ScrollNotification>(
+                                            onNotification: (scrollInfo) {
+                                              // 스크롤이 끝에 도달하고 더 불러올 데이터가 있을 때
+                                              if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 && hasNext) {
+                                                context.read<WorkspaceBloc>().add(
+                                                  const WorkspaceEvent.loadMore(),
+                                                );
+                                              }
+                                              return false;
+                                            },
+                                            child: Column(
+                                              children: [
+                                                ...workspaces.map((workspace) {
+                                                  return MindmapCard(
+                                                    title: workspace.title,
+                                                    imagePath: workspace.thumbnail,
+                                                    isNetworkImage: true,
+                                                    onTap: () {
+                                                      context.push(
+                                                        '/mindmap',
+                                                        extra: {
+                                                          'title': workspace.title,
+                                                          'imagePath': workspace.thumbnail,
+                                                          'mindmapId': workspace.id.toString(),
+                                                        },
+                                                      );
                                                     },
                                                   );
-                                                },
-                                              );
-                                            }).toList(),
+                                                }).toList(),
+                                                if (hasNext)
+                                                  const Padding(
+                                                    padding: EdgeInsets.all(16.0),
+                                                    child: CircularProgressIndicator(),
+                                                  ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        loadingMore: (workspaces) {
+                                          return Column(
+                                            children: [
+                                              ...workspaces.map((workspace) {
+                                                return MindmapCard(
+                                                  title: workspace.title,
+                                                  imagePath: workspace.thumbnail,
+                                                  isNetworkImage: true,
+                                                  onTap: () {
+                                                    context.push(
+                                                      '/mindmap',
+                                                      extra: {
+                                                        'title': workspace.title,
+                                                        'imagePath': workspace.thumbnail,
+                                                        'mindmapId': workspace.id.toString(),
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              }).toList(),
+                                              const Padding(
+                                                padding: EdgeInsets.all(16.0),
+                                                child: CircularProgressIndicator(),
+                                              ),
+                                            ],
                                           );
                                         },
                                         error: (message) => Center(

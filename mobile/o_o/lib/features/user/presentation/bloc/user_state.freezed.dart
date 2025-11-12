@@ -21,21 +21,27 @@ mixin _$UserState {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(UserEntity user) loaded,
+    required TResult Function(
+      UserEntity user,
+      List<WorkspaceCalendarItem>? keywords,
+    )
+    loaded,
     required TResult Function(String message) error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(UserEntity user)? loaded,
+    TResult? Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult? Function(String message)? error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(UserEntity user)? loaded,
+    TResult Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
@@ -128,7 +134,11 @@ class _$UserInitialImpl implements UserInitial {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(UserEntity user) loaded,
+    required TResult Function(
+      UserEntity user,
+      List<WorkspaceCalendarItem>? keywords,
+    )
+    loaded,
     required TResult Function(String message) error,
   }) {
     return initial();
@@ -139,7 +149,8 @@ class _$UserInitialImpl implements UserInitial {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(UserEntity user)? loaded,
+    TResult? Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult? Function(String message)? error,
   }) {
     return initial?.call();
@@ -150,7 +161,8 @@ class _$UserInitialImpl implements UserInitial {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(UserEntity user)? loaded,
+    TResult Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -247,7 +259,11 @@ class _$UserLoadingImpl implements UserLoading {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(UserEntity user) loaded,
+    required TResult Function(
+      UserEntity user,
+      List<WorkspaceCalendarItem>? keywords,
+    )
+    loaded,
     required TResult Function(String message) error,
   }) {
     return loading();
@@ -258,7 +274,8 @@ class _$UserLoadingImpl implements UserLoading {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(UserEntity user)? loaded,
+    TResult? Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult? Function(String message)? error,
   }) {
     return loading?.call();
@@ -269,7 +286,8 @@ class _$UserLoadingImpl implements UserLoading {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(UserEntity user)? loaded,
+    TResult Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -328,7 +346,7 @@ abstract class _$$UserLoadedImplCopyWith<$Res> {
     $Res Function(_$UserLoadedImpl) then,
   ) = __$$UserLoadedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({UserEntity user});
+  $Res call({UserEntity user, List<WorkspaceCalendarItem>? keywords});
 
   $UserEntityCopyWith<$Res> get user;
 }
@@ -346,7 +364,7 @@ class __$$UserLoadedImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? user = null}) {
+  $Res call({Object? user = null, Object? keywords = freezed}) {
     return _then(
       _$UserLoadedImpl(
         user:
@@ -354,6 +372,11 @@ class __$$UserLoadedImplCopyWithImpl<$Res>
                 ? _value.user
                 : user // ignore: cast_nullable_to_non_nullable
                     as UserEntity,
+        keywords:
+            freezed == keywords
+                ? _value._keywords
+                : keywords // ignore: cast_nullable_to_non_nullable
+                    as List<WorkspaceCalendarItem>?,
       ),
     );
   }
@@ -372,14 +395,26 @@ class __$$UserLoadedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$UserLoadedImpl implements UserLoaded {
-  const _$UserLoadedImpl({required this.user});
+  const _$UserLoadedImpl({
+    required this.user,
+    final List<WorkspaceCalendarItem>? keywords,
+  }) : _keywords = keywords;
 
   @override
   final UserEntity user;
+  final List<WorkspaceCalendarItem>? _keywords;
+  @override
+  List<WorkspaceCalendarItem>? get keywords {
+    final value = _keywords;
+    if (value == null) return null;
+    if (_keywords is EqualUnmodifiableListView) return _keywords;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
 
   @override
   String toString() {
-    return 'UserState.loaded(user: $user)';
+    return 'UserState.loaded(user: $user, keywords: $keywords)';
   }
 
   @override
@@ -387,11 +422,16 @@ class _$UserLoadedImpl implements UserLoaded {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$UserLoadedImpl &&
-            (identical(other.user, user) || other.user == user));
+            (identical(other.user, user) || other.user == user) &&
+            const DeepCollectionEquality().equals(other._keywords, _keywords));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, user);
+  int get hashCode => Object.hash(
+    runtimeType,
+    user,
+    const DeepCollectionEquality().hash(_keywords),
+  );
 
   /// Create a copy of UserState
   /// with the given fields replaced by the non-null parameter values.
@@ -406,10 +446,14 @@ class _$UserLoadedImpl implements UserLoaded {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(UserEntity user) loaded,
+    required TResult Function(
+      UserEntity user,
+      List<WorkspaceCalendarItem>? keywords,
+    )
+    loaded,
     required TResult Function(String message) error,
   }) {
-    return loaded(user);
+    return loaded(user, keywords);
   }
 
   @override
@@ -417,10 +461,11 @@ class _$UserLoadedImpl implements UserLoaded {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(UserEntity user)? loaded,
+    TResult? Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult? Function(String message)? error,
   }) {
-    return loaded?.call(user);
+    return loaded?.call(user, keywords);
   }
 
   @override
@@ -428,12 +473,13 @@ class _$UserLoadedImpl implements UserLoaded {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(UserEntity user)? loaded,
+    TResult Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(user);
+      return loaded(user, keywords);
     }
     return orElse();
   }
@@ -477,9 +523,13 @@ class _$UserLoadedImpl implements UserLoaded {
 }
 
 abstract class UserLoaded implements UserState {
-  const factory UserLoaded({required final UserEntity user}) = _$UserLoadedImpl;
+  const factory UserLoaded({
+    required final UserEntity user,
+    final List<WorkspaceCalendarItem>? keywords,
+  }) = _$UserLoadedImpl;
 
   UserEntity get user;
+  List<WorkspaceCalendarItem>? get keywords;
 
   /// Create a copy of UserState
   /// with the given fields replaced by the non-null parameter values.
@@ -561,7 +611,11 @@ class _$UserErrorImpl implements UserError {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(UserEntity user) loaded,
+    required TResult Function(
+      UserEntity user,
+      List<WorkspaceCalendarItem>? keywords,
+    )
+    loaded,
     required TResult Function(String message) error,
   }) {
     return error(message);
@@ -572,7 +626,8 @@ class _$UserErrorImpl implements UserError {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(UserEntity user)? loaded,
+    TResult? Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult? Function(String message)? error,
   }) {
     return error?.call(message);
@@ -583,7 +638,8 @@ class _$UserErrorImpl implements UserError {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(UserEntity user)? loaded,
+    TResult Function(UserEntity user, List<WorkspaceCalendarItem>? keywords)?
+    loaded,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {

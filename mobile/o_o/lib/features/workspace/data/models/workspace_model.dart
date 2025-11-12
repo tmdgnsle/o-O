@@ -15,6 +15,7 @@ class WorkspaceModel with _$WorkspaceModel {
     required String visibility,
     @JsonKey(name: 'createdAt') required DateTime createdAt,
     required String thumbnail,
+    String? startPrompt,
   }) = _WorkspaceModel;
 
   factory WorkspaceModel.fromJson(Map<String, dynamic> json) =>
@@ -28,6 +29,7 @@ class WorkspaceModel with _$WorkspaceModel {
       visibility: visibility,
       createdAt: createdAt,
       thumbnail: thumbnail,
+      startPrompt: startPrompt,
     );
   }
 
@@ -39,6 +41,7 @@ class WorkspaceModel with _$WorkspaceModel {
       visibility: entity.visibility,
       createdAt: entity.createdAt,
       thumbnail: entity.thumbnail,
+      startPrompt: entity.startPrompt,
     );
   }
 }
