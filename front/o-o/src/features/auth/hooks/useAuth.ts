@@ -3,7 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../api/authApi";
 import { useAppDispatch } from "@/store/hooks";
-import { clearCredentials } from "@/store/slices/authSlice";
+import { clearAuth } from "@/store/slices/authSlice";
+import { clearUser } from "@/store/slices/userSlice";
 
 export const useLogout = () => {
   const dispatch = useAppDispatch();
@@ -15,7 +16,8 @@ export const useLogout = () => {
 
     onSuccess: () => {
       // Redux 초기화
-      dispatch(clearCredentials());
+      dispatch(clearAuth());
+      dispatch(clearUser());
 
       // TanStack Query 캐시 전체 초기화
       queryClient.clear();
