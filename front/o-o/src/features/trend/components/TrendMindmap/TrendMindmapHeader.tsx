@@ -1,5 +1,5 @@
 import { Avatar } from "@/components/ui/avatar";
-import { ProfileEditModal } from "@/features/mypage/components/ProfileEditModal";
+import { ProfileEditModal } from "@/features/mypage/components/Profile/ProfileEditModal";
 import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 import { SearchButton } from "@/shared/components/Search/SearchButton";
 import { useHeader } from "@/shared/hooks/useHeader";

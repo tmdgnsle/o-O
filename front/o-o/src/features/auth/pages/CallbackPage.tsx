@@ -1,27 +1,30 @@
 // src/features/auth/pages/CallbackPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { setCredentials } from "@/store/slices/authSlice";
-import { fetchUserInfo } from "../api/authApi";
+import { setAccessToken } from "@/store/slices/authSlice"; // ✅ 수정
+import { fetchUserProfile } from "@/store/slices/userSlice";
 
 export function CallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(true);
+  const hasProcessed = useRef(false);
 
   useEffect(() => {
+    if (hasProcessed.current) {
+      console.log("⏭️ 이미 처리됨 - 스킵");
+      return;
+    }
+
     const handleCallback = async () => {
       try {
         // 1. URL에서 token과 userId 추출
         const token = searchParams.get("token");
         const userId = searchParams.get("userId");
 
-        console.log("📥 Callback 받음:", {
-          token,
-          userId,
-        });
+        console.log("📥 Callback 받음:", { token, userId });
 
         if (!token) {
           throw new Error("토큰이 없습니다.");
@@ -31,43 +34,37 @@ export function CallbackPage() {
           throw new Error("사용자 ID가 없습니다.");
         }
 
-        // 2. 먼저 accessToken만 Redux에 임시 저장
-        //    (axios 인터셉터가 이 토큰을 사용해서 /users 요청)
-        dispatch({
-          type: "auth/updateAccessToken",
-          payload: token,
-        });
+        hasProcessed.current = true;
 
-        console.log("✅ accessToken Redux에 임시 저장");
+        // 2. accessToken을 authSlice에 저장
+        dispatch(setAccessToken(token)); // ✅ 수정
+        console.log("✅ accessToken Redux에 저장");
+
+        // 3. 사용자 정보 조회 (userSlice에 자동 저장됨)
         console.log("📡 사용자 정보 조회 중...");
+        const resultAction = await dispatch(fetchUserProfile());
 
-        // 3. 사용자 정보 조회
-        //    axios 인터셉터가 자동으로 Authorization 헤더에 token 추가
-        const user = await fetchUserInfo();
+        if (fetchUserProfile.fulfilled.match(resultAction)) {
+          console.log("✅ 사용자 정보 조회 성공:", resultAction.payload);
+          console.log("✅ 로그인 완료!");
+          console.log("🍪 refreshToken은 쿠키에 자동 저장됨");
+        } else {
+          throw new Error("사용자 정보 조회 실패");
+        }
 
-        console.log("✅ 사용자 정보 조회 성공:", user);
-
-        // 4. 최종적으로 Redux에 완전히 저장
-        dispatch(
-          setCredentials({
-            accessToken: token,
-            user,
-          })
-        );
-
-        console.log("✅ 로그인 완료!");
-        console.log("🍪 refreshToken은 쿠키에 자동 저장됨");
-
-        // 5. 홈으로 이동
+        // 4. 홈으로 이동
         navigate("/", { replace: true });
       } catch (error: any) {
         console.error("❌ 로그인 실패:", error);
 
-        const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "로그인에 실패했습니다.";
-        alert(errorMessage);
+        if (error.response) {
+          console.error("📡 서버 응답 상태:", error.response.status);
+          console.error("📨 서버 응답 데이터:", error.response.data);
+        } else if (error.request) {
+          console.error("📭 요청은 갔지만 응답 없음:", error.request);
+        } else {
+          console.error("⚙️ 요청 설정 중 오류:", error.message);
+        }
 
         navigate("/login", { replace: true });
       } finally {

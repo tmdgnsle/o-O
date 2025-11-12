@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
 import popo1 from "@/shared/assets/images/popo1.png";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 interface MobileMenuProps {
   readonly isOpen: boolean;
@@ -51,7 +52,7 @@ export function MobileMenu({
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
                   <img
-                    src={userProfileImage || popo1}
+                    src={getProfileImageUrl(userProfileImage) || popo1}
                     alt="profile"
                     className="w-11 h-11 object-cover"
                   />

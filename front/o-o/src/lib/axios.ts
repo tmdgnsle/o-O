@@ -1,4 +1,6 @@
 import axios from "axios";
+import { clearAuth } from "@/store/slices/authSlice";
+import { clearUser } from "@/store/slices/userSlice";
 
 /* Redux store를 axios 설정 내부에서 직접 import 하지 않기 위해 사용되는 패턴 */
 
@@ -55,7 +57,7 @@ apiClient.interceptors.response.use(
         // Redux 업데이트
         if (store) {
           store.dispatch({
-            type: "auth/updateAccessToken",
+            type: "auth/setAccessToken",
             payload: data.accessToken,
           });
         }
@@ -65,8 +67,11 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         // refresh 실패 = 로그아웃
+        console.error("❌ Refresh Token 만료 - 로그아웃 처리");
+
         if (store) {
-          store.dispatch({ type: "auth/clearCredentials" });
+          store.dispatch(clearAuth());
+          store.dispatch(clearUser());
         }
         globalThis.location.href = "/";
         return Promise.reject(refreshError);
