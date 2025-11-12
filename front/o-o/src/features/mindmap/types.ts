@@ -7,7 +7,7 @@ export type NodeAddInputProps = Readonly<{
   open: boolean;
   onConfirm: (keyword: string, description: string) => void;
   onCancel: () => void;
-  buttonRef?: React.RefObject<HTMLButtonElement>;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }>;
 
 // ColorPalette.tsx
@@ -18,7 +18,7 @@ export type ColorPaletteProps = Readonly<{
   onClose?: () => void;
   value?: string;
   className?: string;
-  buttonRef?: React.RefObject<HTMLButtonElement>;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }>;
 
 export type MindmapMode = "edit" | "analyze";
@@ -36,12 +36,17 @@ export type CytoscapeCanvasProps = Readonly<{
   onDeleteNode: (payload: DeleteNodePayload) => void;
   onEditNode: (payload: EditNodePayload) => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
-  onBatchNodePositionChange?: (positions: Array<{ id: string; x: number; y: number }>) => void;
+  onBatchNodePositionChange?: (
+    positions: Array<{ id: string; x: number; y: number }>
+  ) => void;
   onCyReady?: (cy: any) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   onAnalyzeNodeToggle: (nodeId: string) => void;
   detachedSelectionMap?: Record<string, DetachedSelectionState>;
-  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onKeepChildrenDelete?: (payload: {
+    deletedNodeId: string;
+    parentId?: string | null;
+  }) => void;
   onConnectDetachedSelection?: (anchorNodeId: string) => void;
   onDismissDetachedSelection?: (anchorNodeId: string) => void;
 }>;
@@ -62,7 +67,10 @@ export type CytoscapeNodeOverlayProps = {
   onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
   detachedSelection?: DetachedSelectionState;
-  onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
+  onKeepChildrenDelete?: (payload: {
+    deletedNodeId: string;
+    parentId?: string | null;
+  }) => void;
   onConnectDetachedSelection?: (anchorNodeId: string) => void;
   onDismissDetachedSelection?: (anchorNodeId: string) => void;
 };
@@ -101,7 +109,6 @@ export type RecommendNodeOverlayProps = Readonly<{
   onClose: () => void;
   onSelectRecommendation: (text: string) => void;
 }>;
-
 
 // Textbox.tsx
 export type TextboxProps = Readonly<{
@@ -199,4 +206,3 @@ export interface VoiceChatProps {
   onOrganize?: () => void;
   onShare?: () => void;
 }
-

@@ -45,14 +45,22 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status == 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+      console.error("4️⃣ AccessToken 만료");
 
       try {
+        console.log(
+          "🔄 Reissue 요청 시작:",
+          `${import.meta.env.VITE_API_URL}/auth/reissue`
+        );
+
         // refreshToken(쿠키)으로 새 accessToken 받기
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_URL}/auth/reissue`,
           {},
           { withCredentials: true }
         );
+
+        console.log("✅ Reissue 성공:", data);
 
         // Redux 업데이트
         if (store) {
