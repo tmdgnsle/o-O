@@ -33,4 +33,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/mindmap/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi trendServiceApi() {
+        return GroupedOpenApi.builder()
+                .group("trend-service")
+                .pathsToMatch("/trend/**")
+                .build();
+    }
 }

@@ -6,7 +6,7 @@ public class CookieUtil {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
     private static final String COOKIE_PATH = "/";
-    private static final int DEFAULT_REFRESH_TOKEN_MAX_AGE = 604800000; // 7일 (초 단위)
+    private static final int DEFAULT_REFRESH_TOKEN_MAX_AGE = 604800; // 초 단위 (7일)
 
     public static ResponseCookie createRefreshTokenCookie(String value, int maxAge) {
         return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, value)
