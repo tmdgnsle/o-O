@@ -13,7 +13,7 @@ import OverlayLayer from "./OverlayLayer";
  * Cytoscape 캔버스 크기를 제한하는 상수
  */
 
-const PAN_LIMIT = 500;
+const PAN_LIMIT = 300;
 
 /**
  * CytoscapeCanvas
