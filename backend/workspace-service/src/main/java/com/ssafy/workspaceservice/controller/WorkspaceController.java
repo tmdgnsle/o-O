@@ -3,6 +3,7 @@ package com.ssafy.workspaceservice.controller;
 import com.ssafy.workspaceservice.dto.request.*;
 import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.enums.WorkspaceRole;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import com.ssafy.workspaceservice.service.WorkspaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,18 +16,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Workspace API", description = "워크스페이스 관리 및 멤버 협업 API")
 @RestController
 @RequestMapping("/workspace")
 @RequiredArgsConstructor
 @Validated
+@Slf4j
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
@@ -232,4 +236,48 @@ public class WorkspaceController {
         workspaceService.joinByToken(token, userId);
         return ResponseEntity.ok().build();
     }
+
+    @Operation(
+            summary = "[내부] Public 워크스페이스 ID 목록 조회",
+            description = """
+            현재 Public 상태인 모든 워크스페이스의 ID 목록을 반환합니다.
+
+            ### 호출 주체
+            - Mindmap-service (검색 시 필터링용)
+            - Trend-service (캐싱용)
+
+            ### 응답 예시
+            ```json
+            {
+              "workspaceIds": [1, 5, 10, 23, 45, ...]
+            }
+            ```
+            """
+    )
+    @GetMapping("/workspace-ids")
+    public ResponseEntity<Map<String, List<Long>>> getPublicWorkspaceIds() {
+        log.info("GET /api/internal/public/workspace-ids - Fetching public workspace IDs");
+
+        List<Long> publicIds = workspaceService.getPublicWorkspaceIds();
+
+        return ResponseEntity.ok(Map.of("workspaceIds", publicIds));
+    }
+
+    // 🔹 내부용 visibility 전용 API
+    @Operation(
+            summary = "[internal] 워크스페이스 공개 여부 조회",
+            description = "내부 서비스에서 워크스페이스의 visibility(TEXT)를 조회할 때 사용합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
+    })
+    @GetMapping("/{workspaceId}/visibility")
+    public ResponseEntity<Map<String, String>> getVisibilityInternal(
+            @PathVariable Long workspaceId
+    ) {
+        String visibility = workspaceService.getVisibilityOnly(workspaceId);
+        return ResponseEntity.ok(Map.of("visibility", visibility));
+    }
+
 }
