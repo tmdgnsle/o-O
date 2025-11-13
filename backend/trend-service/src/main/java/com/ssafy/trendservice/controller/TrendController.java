@@ -76,7 +76,7 @@ public class TrendController {
     public ResponseEntity<TrendResponse> searchTrend(
             @RequestParam String keyword,
 
-            @RequestParam(defaultValue = "7d")
+            @RequestParam(defaultValue = "30d")
             @Pattern(regexp = "^(7d|30d)$", message = "Period must be either '7d' or '30d'")
             String period,
 

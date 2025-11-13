@@ -2,6 +2,7 @@ package com.ssafy.workspaceservice.repository;
 
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.enums.WorkspaceType;
+import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -80,4 +81,9 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
     List<Workspace> findAllMyRecentWorkspaces(
             @Param("userId") Long userId
     );
+
+    @Query("SELECT w.id FROM Workspace w WHERE w.visibility = :visibility")
+    List<Long> findIdsByVisibility(@Param("visibility") WorkspaceVisibility visibility);
+
+    Optional<WorkspaceVisibilityView> findVisibilityById(Long id);
 }

@@ -28,6 +28,7 @@ public class NodeService {
     private final WorkspaceServiceClient workspaceServiceClient;
     private final AiAnalysisProducer aiAnalysisProducer;
     private final SequenceGeneratorService sequenceGeneratorService;
+    private final TrendEventPublisher trendEventPublisher;
 
     public List<MindmapNode> getNodesByWorkspace(Long workspaceId) {
         log.debug("Getting all nodes for workspace: {}", workspaceId);
@@ -87,9 +88,45 @@ public class NodeService {
             node.setAnalysisStatus(MindmapNode.AnalysisStatus.NONE);
         }
 
+        MindmapNode saved = nodeRepository.save(node);
+
         log.info("Created node with auto-generated nodeId: workspaceId={}, nodeId={}",
-                node.getWorkspaceId(), node.getNodeId());
-        return nodeRepository.save(node);
+                saved.getWorkspaceId(), saved.getNodeId());
+
+        // 🔥 트렌드 집계 이벤트 발행 (AI / 수동 상관없이 전부)
+        try {
+            Long workspaceId = saved.getWorkspaceId();
+            String childKeyword = saved.getKeyword();
+
+            // 부모 키워드 계산
+            String parentKeyword;
+
+            if (saved.getParentId() == null) {
+                // 루트 노드는 __root__ 기준으로 집계
+                parentKeyword = "__root__";
+            } else {
+                MindmapNode parent = nodeRepository
+                        .findByWorkspaceIdAndNodeId(workspaceId, saved.getParentId())
+                        .orElse(null);
+
+                if (parent != null) {
+                    parentKeyword = parent.getKeyword();
+                } else {
+                    // 부모를 못 찾으면 일단 __root__로 처리
+                    parentKeyword = "__root__";
+                }
+            }
+
+            trendEventPublisher.publishRelationAdd(workspaceId, parentKeyword, childKeyword);
+            log.debug("Published trend relation add event: ws={}, parent={}, child={}",
+                    workspaceId, parentKeyword, childKeyword);
+
+        } catch (Exception e) {
+            // 트렌드 집계 실패해도 노드 저장은 깨지지 않게
+            log.error("Failed to publish trend relation add event for nodeId={}", saved.getNodeId(), e);
+        }
+
+        return saved;
     }
 
     public MindmapNode updateNode(Long workspaceId, Long nodeId, MindmapNode updates) {
