@@ -100,7 +100,7 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
 
     // For now, we can't update other users' roles because we don't have their userId (number)
     // This would require a members API endpoint that returns numeric user IDs
-    // TODO: Implement when member list API is available
+    // TODO: Implement when member list API is available, API 연결 후 컴포넌트/훅 분리 작업 필요
     console.warn("Role update not yet implemented - requires member API with user IDs");
   };
 
@@ -115,7 +115,7 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
         name: currentUser.nickname,
         avatar: currentUser.profileImage,
         role: roleToDisplay(workspace.myRole),
-        permission: workspace.myRole !== "MAINTAINER" ? roleToPermission(workspace.myRole) : undefined,
+        permission: workspace.myRole === "MAINTAINER" ? undefined : roleToPermission(workspace.myRole),
         email: currentUser.email,
       });
     }
