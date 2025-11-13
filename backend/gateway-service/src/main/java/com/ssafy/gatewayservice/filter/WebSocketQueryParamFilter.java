@@ -95,7 +95,7 @@ public class WebSocketQueryParamFilter implements GlobalFilter, Ordered {
      * 웹소켓 경로인지 확인
      */
     private boolean isWebSocketPath(String path) {
-        return path.startsWith("/mindmap/ws/") || path.startsWith("/ws/");
+        return path.startsWith("/mindmap/ws") || path.startsWith("/ws");
     }
 
     @Override
