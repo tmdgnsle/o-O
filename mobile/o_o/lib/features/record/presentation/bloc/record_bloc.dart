@@ -66,7 +66,10 @@ class RecordBloc extends Bloc<RecordEvent, RecordState> {
       },
       (record) {
         logger.i('✅ RecordBloc: Successfully loaded record $id');
-        logger.d('  📝 Record details: title="${record.title}", startPrompt="${record.startPrompt.substring(0, record.startPrompt.length > 50 ? 50 : record.startPrompt.length)}..."');
+        final promptPreview = record.startPrompt != null
+            ? record.startPrompt!.substring(0, record.startPrompt!.length > 50 ? 50 : record.startPrompt!.length)
+            : 'null';
+        logger.d('  📝 Record details: title="${record.title}", startPrompt="$promptPreview..."');
         emit(RecordState.detailLoaded(record: record));
       },
     );

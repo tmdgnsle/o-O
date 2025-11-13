@@ -304,13 +304,18 @@ class _RecordListPageState extends State<RecordListPage> {
                       ],
                     ),
                 loaded: (records) {
+                  // startPrompt가 있는 레코드만 필터링
+                  final recordsWithPrompt = records
+                      .where((record) => record.startPrompt != null)
+                      .toList();
+
                   // 검색어로 필터링
                   final filteredRecords =
                       _searchQuery.isEmpty
-                          ? records
-                          : records.where((record) {
+                          ? recordsWithPrompt
+                          : recordsWithPrompt.where((record) {
                             final titleLower = record.title.toLowerCase();
-                            final promptLower = record.startPrompt.toLowerCase();
+                            final promptLower = record.startPrompt!.toLowerCase();
                             return titleLower.contains(_searchQuery) ||
                                 promptLower.contains(_searchQuery);
                           }).toList();

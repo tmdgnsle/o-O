@@ -9,7 +9,7 @@ class RecordEntity with _$RecordEntity {
   const factory RecordEntity({
     required int id,
     required String title,
-    required String startPrompt,
+    String? startPrompt,
     required DateTime createdAt,
     String? thumbnail,
     String? visibility,

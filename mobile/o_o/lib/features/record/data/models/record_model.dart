@@ -13,8 +13,8 @@ class RecordModel with _$RecordModel {
     required String title,
     required String visibility,
     required DateTime createdAt,
-    required String thumbnail,
-    required String startPrompt,
+    String? thumbnail,
+    String? startPrompt,
   }) = _RecordModel;
 
   factory RecordModel.fromJson(Map<String, dynamic> json) =>
@@ -42,7 +42,7 @@ class RecordModel with _$RecordModel {
       title: entity.title,
       startPrompt: entity.startPrompt,
       createdAt: entity.createdAt,
-      thumbnail: entity.thumbnail ?? '',
+      thumbnail: entity.thumbnail,
       visibility: entity.visibility ?? 'PUBLIC',
     );
   }

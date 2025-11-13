@@ -19,7 +19,7 @@ final _privateConstructorUsedError = UnsupportedError(
 mixin _$RecordEntity {
   int get id => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
-  String get startPrompt => throw _privateConstructorUsedError;
+  String? get startPrompt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   String? get thumbnail => throw _privateConstructorUsedError;
   String? get visibility => throw _privateConstructorUsedError;
@@ -42,7 +42,7 @@ abstract class $RecordEntityCopyWith<$Res> {
   $Res call({
     int id,
     String title,
-    String startPrompt,
+    String? startPrompt,
     DateTime createdAt,
     String? thumbnail,
     String? visibility,
@@ -67,7 +67,7 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? startPrompt = null,
+    Object? startPrompt = freezed,
     Object? createdAt = null,
     Object? thumbnail = freezed,
     Object? visibility = freezed,
@@ -86,10 +86,10 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
                     : title // ignore: cast_nullable_to_non_nullable
                         as String,
             startPrompt:
-                null == startPrompt
+                freezed == startPrompt
                     ? _value.startPrompt
                     : startPrompt // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as String?,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
@@ -128,7 +128,7 @@ abstract class _$$RecordEntityImplCopyWith<$Res>
   $Res call({
     int id,
     String title,
-    String startPrompt,
+    String? startPrompt,
     DateTime createdAt,
     String? thumbnail,
     String? visibility,
@@ -152,7 +152,7 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? startPrompt = null,
+    Object? startPrompt = freezed,
     Object? createdAt = null,
     Object? thumbnail = freezed,
     Object? visibility = freezed,
@@ -171,10 +171,10 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
                 : title // ignore: cast_nullable_to_non_nullable
                     as String,
         startPrompt:
-            null == startPrompt
+            freezed == startPrompt
                 ? _value.startPrompt
                 : startPrompt // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as String?,
         createdAt:
             null == createdAt
                 ? _value.createdAt
@@ -206,7 +206,7 @@ class _$RecordEntityImpl extends _RecordEntity {
   const _$RecordEntityImpl({
     required this.id,
     required this.title,
-    required this.startPrompt,
+    this.startPrompt,
     required this.createdAt,
     this.thumbnail,
     this.visibility,
@@ -218,7 +218,7 @@ class _$RecordEntityImpl extends _RecordEntity {
   @override
   final String title;
   @override
-  final String startPrompt;
+  final String? startPrompt;
   @override
   final DateTime createdAt;
   @override
@@ -277,7 +277,7 @@ abstract class _RecordEntity extends RecordEntity {
   const factory _RecordEntity({
     required final int id,
     required final String title,
-    required final String startPrompt,
+    final String? startPrompt,
     required final DateTime createdAt,
     final String? thumbnail,
     final String? visibility,
@@ -290,7 +290,7 @@ abstract class _RecordEntity extends RecordEntity {
   @override
   String get title;
   @override
-  String get startPrompt;
+  String? get startPrompt;
   @override
   DateTime get createdAt;
   @override

@@ -19,6 +19,12 @@ class ApiConstants {
   /// User Endpoints
   static const String getUsers = '/users';
 
+  /// Mindmap Endpoints
+  static const String mindmap = '/mindmap';
+
+  /// 워크스페이스 ID로 마인드맵 노드 조회
+  static String getMindmapNodes(int workspaceId) => '$mindmap/$workspaceId/nodes';
+
   /// 전체 URL 생성
   static String getUrl(String endpoint) => '$baseUrl$endpoint';
 }

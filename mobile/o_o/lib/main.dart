@@ -10,6 +10,7 @@ import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/record/presentation/bloc/record_bloc.dart';
 import 'features/recording/presentation/bloc/recording_bloc.dart';
 import 'features/user/presentation/bloc/user_bloc.dart';
+import 'features/mindmap/presentation/bloc/mindmap_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
@@ -58,6 +59,10 @@ class MyApp extends StatelessWidget {
         // RecordBloc Provider
         BlocProvider(
           create: (context) => di.sl<RecordBloc>(),
+        ),
+        // MindmapBloc Provider
+        BlocProvider(
+          create: (context) => di.sl<MindmapBloc>(),
         ),
       ],
       child: Builder(

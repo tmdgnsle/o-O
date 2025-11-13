@@ -31,6 +31,11 @@ import '../../features/workspace/domain/repositories/workspace_repository.dart';
 import '../../features/workspace/domain/usecases/get_workspace_calendar.dart';
 import '../../features/workspace/domain/usecases/get_workspaces.dart';
 import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
+import '../../features/mindmap/data/datasources/mindmap_api_data_source.dart';
+import '../../features/mindmap/data/repositories/mindmap_repository_impl.dart';
+import '../../features/mindmap/domain/repositories/mindmap_repository.dart';
+import '../../features/mindmap/domain/usecases/get_mindmap_nodes.dart';
+import '../../features/mindmap/presentation/bloc/mindmap_bloc.dart';
 import '../constants/api_constants.dart';
 import '../network/auth_interceptor.dart';
 
@@ -197,6 +202,29 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<WorkspaceApiDataSource>(
     () => WorkspaceApiDataSourceImpl(dio: sl()),
+  );
+
+  //! Features - Mindmap
+  // Bloc
+  sl.registerFactory(
+    () => MindmapBloc(
+      getMindmapNodes: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetMindmapNodes(sl()));
+
+  // Repository
+  sl.registerLazySingleton<MindmapRepository>(
+    () => MindmapRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<MindmapApiDataSource>(
+    () => MindmapApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Example

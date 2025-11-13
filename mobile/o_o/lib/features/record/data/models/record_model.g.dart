@@ -12,8 +12,8 @@ _$RecordModelImpl _$$RecordModelImplFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String,
       visibility: json['visibility'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
-      thumbnail: json['thumbnail'] as String,
-      startPrompt: json['startPrompt'] as String,
+      thumbnail: json['thumbnail'] as String?,
+      startPrompt: json['startPrompt'] as String?,
     );
 
 Map<String, dynamic> _$$RecordModelImplToJson(_$RecordModelImpl instance) =>

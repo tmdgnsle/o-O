@@ -37,7 +37,10 @@ class RecordApiDataSourceImpl implements RecordApiDataSource {
         // 각 레코드 상세 로깅
         for (var i = 0; i < records.length; i++) {
           final record = records[i];
-          logger.d('  [$i] id: ${record.id}, title: "${record.title}", startPrompt: "${record.startPrompt.substring(0, record.startPrompt.length > 30 ? 30 : record.startPrompt.length)}..."');
+          final promptPreview = record.startPrompt != null
+              ? record.startPrompt!.substring(0, record.startPrompt!.length > 30 ? 30 : record.startPrompt!.length)
+              : 'null';
+          logger.d('  [$i] id: ${record.id}, title: "${record.title}", startPrompt: "$promptPreview..."');
         }
 
         return records;

@@ -44,21 +44,18 @@ class MindmapCanvasWidget extends StatelessWidget {
     );
   }
 
-  /// 모든 노드를 포함하고 화면을 충분히 커버하는 캔버스 크기 계산
+  /// 캔버스 크기 계산
   Size _calculateCanvasSize(BuildContext context) {
     if (mindmap.nodes.isEmpty) {
-      return const Size(2000, 2000);
+      return const Size(10000, 10000);
     }
 
-    // 화면 크기 가져오기
-    final screenSize = MediaQuery.of(context).size;
-
+    // 모든 노드를 포함하는 bounding box 계산
     double minX = double.infinity;
     double minY = double.infinity;
     double maxX = double.negativeInfinity;
     double maxY = double.negativeInfinity;
 
-    // 모든 노드를 포함하는 영역 계산
     for (final node in mindmap.nodes) {
       final nodeLeft = node.position.dx - node.width / 2;
       final nodeTop = node.position.dy - node.height / 2;
@@ -72,18 +69,15 @@ class MindmapCanvasWidget extends StatelessWidget {
     }
 
     // 여유 공간 추가
-    final padding = 200.0;
-    final contentWidth = maxX - minX + padding * 2;
-    final contentHeight = maxY - minY + padding * 2;
+    final padding = 2000.0;
+    final width = maxX - minX + padding * 2;
+    final height = maxY - minY + padding * 2;
 
-    // 최소한 화면 크기의 2배는 되도록 설정
-    final width = contentWidth > screenSize.width * 2
-        ? contentWidth
-        : screenSize.width * 2;
-    final height = contentHeight > screenSize.height * 2
-        ? contentHeight
-        : screenSize.height * 2;
-
-    return Size(width, height);
+    // 최소 크기 보장
+    final minSize = 5000.0;
+    return Size(
+      width < minSize ? minSize : width,
+      height < minSize ? minSize : height,
+    );
   }
 }

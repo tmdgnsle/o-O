@@ -25,8 +25,8 @@ mixin _$RecordModel {
   String get title => throw _privateConstructorUsedError;
   String get visibility => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
-  String get thumbnail => throw _privateConstructorUsedError;
-  String get startPrompt => throw _privateConstructorUsedError;
+  String? get thumbnail => throw _privateConstructorUsedError;
+  String? get startPrompt => throw _privateConstructorUsedError;
 
   /// Serializes this RecordModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -50,8 +50,8 @@ abstract class $RecordModelCopyWith<$Res> {
     String title,
     String visibility,
     DateTime createdAt,
-    String thumbnail,
-    String startPrompt,
+    String? thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -74,8 +74,8 @@ class _$RecordModelCopyWithImpl<$Res, $Val extends RecordModel>
     Object? title = null,
     Object? visibility = null,
     Object? createdAt = null,
-    Object? thumbnail = null,
-    Object? startPrompt = null,
+    Object? thumbnail = freezed,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -100,15 +100,15 @@ class _$RecordModelCopyWithImpl<$Res, $Val extends RecordModel>
                     : createdAt // ignore: cast_nullable_to_non_nullable
                         as DateTime,
             thumbnail:
-                null == thumbnail
+                freezed == thumbnail
                     ? _value.thumbnail
                     : thumbnail // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as String?,
             startPrompt:
-                null == startPrompt
+                freezed == startPrompt
                     ? _value.startPrompt
                     : startPrompt // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as String?,
           )
           as $Val,
     );
@@ -129,8 +129,8 @@ abstract class _$$RecordModelImplCopyWith<$Res>
     String title,
     String visibility,
     DateTime createdAt,
-    String thumbnail,
-    String startPrompt,
+    String? thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -152,8 +152,8 @@ class __$$RecordModelImplCopyWithImpl<$Res>
     Object? title = null,
     Object? visibility = null,
     Object? createdAt = null,
-    Object? thumbnail = null,
-    Object? startPrompt = null,
+    Object? thumbnail = freezed,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _$RecordModelImpl(
@@ -178,15 +178,15 @@ class __$$RecordModelImplCopyWithImpl<$Res>
                 : createdAt // ignore: cast_nullable_to_non_nullable
                     as DateTime,
         thumbnail:
-            null == thumbnail
+            freezed == thumbnail
                 ? _value.thumbnail
                 : thumbnail // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as String?,
         startPrompt:
-            null == startPrompt
+            freezed == startPrompt
                 ? _value.startPrompt
                 : startPrompt // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as String?,
       ),
     );
   }
@@ -200,8 +200,8 @@ class _$RecordModelImpl extends _RecordModel {
     required this.title,
     required this.visibility,
     required this.createdAt,
-    required this.thumbnail,
-    required this.startPrompt,
+    this.thumbnail,
+    this.startPrompt,
   }) : super._();
 
   factory _$RecordModelImpl.fromJson(Map<String, dynamic> json) =>
@@ -216,9 +216,9 @@ class _$RecordModelImpl extends _RecordModel {
   @override
   final DateTime createdAt;
   @override
-  final String thumbnail;
+  final String? thumbnail;
   @override
-  final String startPrompt;
+  final String? startPrompt;
 
   @override
   String toString() {
@@ -274,8 +274,8 @@ abstract class _RecordModel extends RecordModel {
     required final String title,
     required final String visibility,
     required final DateTime createdAt,
-    required final String thumbnail,
-    required final String startPrompt,
+    final String? thumbnail,
+    final String? startPrompt,
   }) = _$RecordModelImpl;
   const _RecordModel._() : super._();
 
@@ -291,9 +291,9 @@ abstract class _RecordModel extends RecordModel {
   @override
   DateTime get createdAt;
   @override
-  String get thumbnail;
+  String? get thumbnail;
   @override
-  String get startPrompt;
+  String? get startPrompt;
 
   /// Create a copy of RecordModel
   /// with the given fields replaced by the non-null parameter values.
