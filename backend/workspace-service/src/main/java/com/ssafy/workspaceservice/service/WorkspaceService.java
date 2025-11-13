@@ -4,13 +4,12 @@ import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
 import com.ssafy.workspaceservice.enums.*;
-import com.ssafy.workspaceservice.exception.BadRequestException;
-import com.ssafy.workspaceservice.exception.ErrorCode;
-import com.ssafy.workspaceservice.exception.ForbiddenException;
-import com.ssafy.workspaceservice.exception.ResourceNotFoundException;
+import com.ssafy.workspaceservice.exception.*;
 import com.ssafy.workspaceservice.repository.WorkspaceMemberRepository;
 import com.ssafy.workspaceservice.repository.WorkspaceRepository;
+import com.ssafy.workspaceservice.repository.WorkspaceVisibilityView;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +27,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
@@ -261,5 +261,25 @@ public class WorkspaceService {
         return workspaces.stream()
                 .map(WorkspaceSimpleResponse::from)
                 .toList();
+    }
+
+    /**
+     * Public 워크스페이스 ID 목록 조회
+     */
+    public List<Long> getPublicWorkspaceIds() {
+        log.debug("[WorkspacePublicService] Fetching public workspace IDs");
+
+        List<Long> ids = workspaceRepository.findIdsByVisibility(WorkspaceVisibility.PUBLIC);
+
+        log.debug("[WorkspacePublicService] Found {} public workspaces", ids.size());
+
+        return ids;
+    }
+
+    @Transactional(readOnly = true)
+    public String getVisibilityOnly(Long workspaceId) {
+        return workspaceRepository.findVisibilityById(workspaceId)
+                .map(WorkspaceVisibilityView::getVisibility)
+                .orElseThrow(() -> new WorkspaceNotFoundException(workspaceId));
     }
 }
