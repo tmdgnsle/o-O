@@ -1,7 +1,6 @@
 package com.ssafy.userservice.service;
 
 import com.ssafy.userservice.domain.ProfileImage;
-import com.ssafy.userservice.domain.RefreshToken;
 import com.ssafy.userservice.domain.User;
 import com.ssafy.userservice.domain.Platform;
 import com.ssafy.userservice.domain.TokenCategory;
@@ -11,7 +10,6 @@ import com.ssafy.userservice.exception.TokenNotFoundException;
 import com.ssafy.userservice.security.JwtUtil;
 import com.ssafy.userservice.repository.UserRepository;
 import com.ssafy.userservice.util.GoogleTokenVerifier;
-import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,42 +38,43 @@ public class AuthService {
 
     @Transactional
     public Map<String, String> reissueTokens(String refreshToken) {
-        // Null 체크
         if (refreshToken == null || refreshToken.isBlank()) {
             throw new IllegalArgumentException("Refresh token is required");
         }
 
-        // Refresh Token 만료 확인
         if (jwtUtil.isExpired(refreshToken)) {
             throw new TokenExpiredException("Refresh token expired");
         }
 
-        // category 확인
-        String category = jwtUtil.getCategory(refreshToken);
-        if (!TokenCategory.REFRESH.getValue().equals(category)) {
+        // 카테고리 확인
+        if (!TokenCategory.REFRESH.getValue().equals(jwtUtil.getCategory(refreshToken))) {
             throw new InvalidTokenException("Invalid refresh token category");
         }
 
-        // userId, role, platform 추출
         Long userId = jwtUtil.getUserId(refreshToken);
         String role = jwtUtil.getRole(refreshToken);
         String platformStr = jwtUtil.getPlatform(refreshToken);
-        Platform platform = validateAndConvertPlatform(platformStr);
+        Platform platform = Platform.fromString(platformStr);
 
-        // Redis에 저장된 토큰과 비교
-        RefreshToken storedToken = refreshTokenService.findRefreshToken(userId, platformStr)
-                .orElseThrow(() -> new TokenNotFoundException("Refresh token not found in storage"));
-
-        if (!storedToken.getToken().equals(refreshToken)) {
+        log.info("Reissuing tokens for userId: {}, platform: {}", userId, platformStr);
+        // Redis 조회
+        String storedToken = refreshTokenService.findRefreshToken(userId, platformStr);
+        if (storedToken == null) {
+            throw new TokenNotFoundException("Refresh token not found in storage");
+        }
+        if (!storedToken.equals(refreshToken)) {
             throw new InvalidTokenException("Refresh token mismatch");
         }
 
-        // RTR: 새로운 Access Token과 Refresh Token 모두 발급
-        String newAccessToken = jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platform, accessTokenExpiration);
-        String newRefreshToken = jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platform, refreshTokenExpiration);
+        // 새로운 JWT 생성
+        String newAccessToken =
+                jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platform, accessTokenExpiration);
 
-        // 기존 Refresh Token 삭제 후 새 토큰 저장
-        Long ttlSeconds = refreshTokenExpiration / 1000;  // milliseconds to seconds
+        String newRefreshToken =
+                jwtUtil.generateToken(TokenCategory.REFRESH, userId, role, platform, refreshTokenExpiration);
+
+        Long ttlSeconds = refreshTokenExpiration / 1000;
+
         refreshTokenService.saveRefreshToken(userId, platformStr, newRefreshToken, ttlSeconds);
 
         return Map.of(
