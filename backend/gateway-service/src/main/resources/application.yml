@@ -61,16 +61,39 @@ spring:
               - Path=/mindmap/ws/**
             filters:
               - RewritePath=/mindmap/ws/(?<segment>.*), /$\{segment}
-          # Mindmap Service 정적 라우팅
+        # Mindmap Service 정적 라우팅
           - id: mindmap-service
             uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
             predicates:
               - Path=/mindmap/**
-          # Mindmap Service Swagger API Docs
+        # Mindmap Service Swagger API Docs
           - id: mindmap-service-swagger
             uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
             predicates:
               - Path=/mindmap-service/v3/api-docs/**
+            filters:
+              - StripPrefix=1          # Mindmap Service 정적 라우팅
+          - id: mindmap-service
+            uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
+            predicates:
+              - Path=/mindmap/**
+        # Mindmap Service Swagger API Docs
+          - id: mindmap-service-swagger
+            uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
+            predicates:
+              - Path=/mindmap-service/v3/api-docs/**
+            filters:
+              - StripPrefix=1
+        # Trend Service 정적 라우팅
+          - id: trend-service
+            uri: ${TREND_SERVICE_URL:http://localhost:8085}
+            predicates:
+              - Path=/mindmap/**
+        # Trend Service Swagger API Docs
+          - id: trend-service-swagger
+            uri: ${TREND_SERVICE_URL:http://localhost:8085}
+            predicates:
+              - Path=/trend-service/v3/api-docs/**
             filters:
               - StripPrefix=1
 
