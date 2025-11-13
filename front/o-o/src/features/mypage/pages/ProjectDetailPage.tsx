@@ -1,7 +1,7 @@
 import { Header } from "@/shared/ui/Header";
 import background from "@/shared/assets/images/mypage_bg.png";
 import { useLocation } from "react-router-dom";
-import { ProjectDetailCard } from "../components/ProjectDetailCard";
+import { ProjectDetailCard } from "../components/ProjectCard/ProjectDetailCard";
 
 export function ProjectDetailPage() {
   const location = useLocation();

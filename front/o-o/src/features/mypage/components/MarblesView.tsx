@@ -1,5 +1,5 @@
 import Marble from "@/shared/assets/images/marble.png";
-import { useMarbleLayout } from "../hooks/useMarbleLayout";
+import { useMarbleLayout } from "../hooks/custom/useMarbleLayout";
 import { useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getFontSize } from "@/shared/utils/fontSizeUtil";

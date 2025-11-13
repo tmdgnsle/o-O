@@ -1,4 +1,4 @@
-import { ProjectCard } from "@/features/mypage/components/ProjectCard";
+import { ProjectCard } from "@/features/mypage/components/ProjectCard/ProjectCard";
 import type { Project } from "@/features/trend/types";
 
 interface ClickableProjectCardProps {
