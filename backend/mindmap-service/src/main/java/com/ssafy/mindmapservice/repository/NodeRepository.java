@@ -18,7 +18,7 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
     List<MindmapNode> findByWorkspaceId(Long workspaceId);
 
 
-     // 워크스페이스 ID와 노드 ID로 단일 노드 조회
+    // 워크스페이스 ID와 노드 ID로 단일 노드 조회
     Optional<MindmapNode> findByWorkspaceIdAndNodeId(Long workspaceId, Long nodeId);
 
 

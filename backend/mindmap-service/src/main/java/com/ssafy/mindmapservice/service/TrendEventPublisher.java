@@ -39,9 +39,12 @@ public class TrendEventPublisher {
 
     private boolean isPublic(long workspaceId) {
         try {
-            // workspace-service API 결과가 "PUBLIC"/"PRIVATE"라면:
-            String vis = workspaceClient.getVisibility(workspaceId);
-            return "PUBLIC".equalsIgnoreCase(vis);
+            // TODO: workspace-service에 visibility 조회 API 추가 필요
+            // String vis = workspaceClient.getVisibility(workspaceId);
+            // return "PUBLIC".equalsIgnoreCase(vis);
+
+            // 임시: 항상 false 반환 (트렌드 발행 안 함)
+            return false;
         } catch (Exception e) {
             // 안전하게: 실패 시 발행하지 않음
             log.error(e.getMessage());
