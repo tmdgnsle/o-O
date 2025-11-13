@@ -9,8 +9,8 @@ abstract class RecordRepository {
   Future<Either<Failure, List<RecordEntity>>> getRecords();
 
   /// 특정 녹음 기록 조회
-  Future<Either<Failure, RecordEntity>> getRecord(String id);
+  Future<Either<Failure, RecordEntity>> getRecord(int id);
 
   /// 녹음 기록 삭제
-  Future<Either<Failure, void>> deleteRecord(String id);
+  Future<Either<Failure, void>> deleteRecord(int id);
 }

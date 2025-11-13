@@ -64,7 +64,7 @@ class _RecordListItemState extends State<RecordListItem> {
             // 내용
             AnimatedCrossFade(
               firstChild: Text(
-                widget.record.content,
+                widget.record.startPrompt,
                 style: AppTextStyles.medium14.copyWith(
                   color: AppColors.semiBlack,
                 ),
@@ -72,7 +72,7 @@ class _RecordListItemState extends State<RecordListItem> {
                 overflow: TextOverflow.ellipsis,
               ),
               secondChild: Text(
-                widget.record.content,
+                widget.record.startPrompt,
                 style: AppTextStyles.medium14.copyWith(
                   color: AppColors.semiBlack,
                 ),

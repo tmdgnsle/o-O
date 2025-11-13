@@ -8,7 +8,8 @@ import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/record/data/repositories/record_repository_mock.dart';
+import '../../features/record/data/datasources/record_api_data_source.dart';
+import '../../features/record/data/repositories/record_repository_impl.dart';
 import '../../features/record/domain/repositories/record_repository.dart';
 import '../../features/record/domain/usecases/get_records.dart';
 import '../../features/record/presentation/bloc/record_bloc.dart';
@@ -162,10 +163,16 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => GetRecords(sl()));
 
-  // Repository (Mock)
-  // TODO: 실제 API 구현 시 RecordRepositoryImpl로 교체
+  // Repository
   sl.registerLazySingleton<RecordRepository>(
-    () => RecordRepositoryMock(),
+    () => RecordRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<RecordApiDataSource>(
+    () => RecordApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Workspace

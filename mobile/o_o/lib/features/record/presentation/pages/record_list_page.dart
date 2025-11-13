@@ -310,9 +310,9 @@ class _RecordListPageState extends State<RecordListPage> {
                           ? records
                           : records.where((record) {
                             final titleLower = record.title.toLowerCase();
-                            final contentLower = record.content.toLowerCase();
+                            final promptLower = record.startPrompt.toLowerCase();
                             return titleLower.contains(_searchQuery) ||
-                                contentLower.contains(_searchQuery);
+                                promptLower.contains(_searchQuery);
                           }).toList();
 
                   if (filteredRecords.isEmpty) {
@@ -541,7 +541,7 @@ class _RecordListPageState extends State<RecordListPage> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, String recordId) {
+  void _showDeleteDialog(BuildContext context, int recordId) {
     showDialog(
       context: context,
       builder:

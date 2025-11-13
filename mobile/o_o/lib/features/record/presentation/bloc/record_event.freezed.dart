@@ -20,22 +20,22 @@ mixin _$RecordEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() getRecords,
-    required TResult Function(String id) getRecord,
-    required TResult Function(String id) deleteRecord,
+    required TResult Function(int id) getRecord,
+    required TResult Function(int id) deleteRecord,
     required TResult Function() refreshRecords,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? getRecords,
-    TResult? Function(String id)? getRecord,
-    TResult? Function(String id)? deleteRecord,
+    TResult? Function(int id)? getRecord,
+    TResult? Function(int id)? deleteRecord,
     TResult? Function()? refreshRecords,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? getRecords,
-    TResult Function(String id)? getRecord,
-    TResult Function(String id)? deleteRecord,
+    TResult Function(int id)? getRecord,
+    TResult Function(int id)? deleteRecord,
     TResult Function()? refreshRecords,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
@@ -129,8 +129,8 @@ class _$GetRecordsEventImpl implements GetRecordsEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() getRecords,
-    required TResult Function(String id) getRecord,
-    required TResult Function(String id) deleteRecord,
+    required TResult Function(int id) getRecord,
+    required TResult Function(int id) deleteRecord,
     required TResult Function() refreshRecords,
   }) {
     return getRecords();
@@ -140,8 +140,8 @@ class _$GetRecordsEventImpl implements GetRecordsEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? getRecords,
-    TResult? Function(String id)? getRecord,
-    TResult? Function(String id)? deleteRecord,
+    TResult? Function(int id)? getRecord,
+    TResult? Function(int id)? deleteRecord,
     TResult? Function()? refreshRecords,
   }) {
     return getRecords?.call();
@@ -151,8 +151,8 @@ class _$GetRecordsEventImpl implements GetRecordsEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? getRecords,
-    TResult Function(String id)? getRecord,
-    TResult Function(String id)? deleteRecord,
+    TResult Function(int id)? getRecord,
+    TResult Function(int id)? deleteRecord,
     TResult Function()? refreshRecords,
     required TResult orElse(),
   }) {
@@ -211,7 +211,7 @@ abstract class _$$GetRecordEventImplCopyWith<$Res> {
     $Res Function(_$GetRecordEventImpl) then,
   ) = __$$GetRecordEventImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String id});
+  $Res call({int id});
 }
 
 /// @nodoc
@@ -234,7 +234,7 @@ class __$$GetRecordEventImplCopyWithImpl<$Res>
             null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as int,
       ),
     );
   }
@@ -246,7 +246,7 @@ class _$GetRecordEventImpl implements GetRecordEvent {
   const _$GetRecordEventImpl({required this.id});
 
   @override
-  final String id;
+  final int id;
 
   @override
   String toString() {
@@ -279,8 +279,8 @@ class _$GetRecordEventImpl implements GetRecordEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() getRecords,
-    required TResult Function(String id) getRecord,
-    required TResult Function(String id) deleteRecord,
+    required TResult Function(int id) getRecord,
+    required TResult Function(int id) deleteRecord,
     required TResult Function() refreshRecords,
   }) {
     return getRecord(id);
@@ -290,8 +290,8 @@ class _$GetRecordEventImpl implements GetRecordEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? getRecords,
-    TResult? Function(String id)? getRecord,
-    TResult? Function(String id)? deleteRecord,
+    TResult? Function(int id)? getRecord,
+    TResult? Function(int id)? deleteRecord,
     TResult? Function()? refreshRecords,
   }) {
     return getRecord?.call(id);
@@ -301,8 +301,8 @@ class _$GetRecordEventImpl implements GetRecordEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? getRecords,
-    TResult Function(String id)? getRecord,
-    TResult Function(String id)? deleteRecord,
+    TResult Function(int id)? getRecord,
+    TResult Function(int id)? deleteRecord,
     TResult Function()? refreshRecords,
     required TResult orElse(),
   }) {
@@ -351,10 +351,9 @@ class _$GetRecordEventImpl implements GetRecordEvent {
 }
 
 abstract class GetRecordEvent implements RecordEvent {
-  const factory GetRecordEvent({required final String id}) =
-      _$GetRecordEventImpl;
+  const factory GetRecordEvent({required final int id}) = _$GetRecordEventImpl;
 
-  String get id;
+  int get id;
 
   /// Create a copy of RecordEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -370,7 +369,7 @@ abstract class _$$DeleteRecordEventImplCopyWith<$Res> {
     $Res Function(_$DeleteRecordEventImpl) then,
   ) = __$$DeleteRecordEventImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({String id});
+  $Res call({int id});
 }
 
 /// @nodoc
@@ -393,7 +392,7 @@ class __$$DeleteRecordEventImplCopyWithImpl<$Res>
             null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as int,
       ),
     );
   }
@@ -405,7 +404,7 @@ class _$DeleteRecordEventImpl implements DeleteRecordEvent {
   const _$DeleteRecordEventImpl({required this.id});
 
   @override
-  final String id;
+  final int id;
 
   @override
   String toString() {
@@ -438,8 +437,8 @@ class _$DeleteRecordEventImpl implements DeleteRecordEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() getRecords,
-    required TResult Function(String id) getRecord,
-    required TResult Function(String id) deleteRecord,
+    required TResult Function(int id) getRecord,
+    required TResult Function(int id) deleteRecord,
     required TResult Function() refreshRecords,
   }) {
     return deleteRecord(id);
@@ -449,8 +448,8 @@ class _$DeleteRecordEventImpl implements DeleteRecordEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? getRecords,
-    TResult? Function(String id)? getRecord,
-    TResult? Function(String id)? deleteRecord,
+    TResult? Function(int id)? getRecord,
+    TResult? Function(int id)? deleteRecord,
     TResult? Function()? refreshRecords,
   }) {
     return deleteRecord?.call(id);
@@ -460,8 +459,8 @@ class _$DeleteRecordEventImpl implements DeleteRecordEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? getRecords,
-    TResult Function(String id)? getRecord,
-    TResult Function(String id)? deleteRecord,
+    TResult Function(int id)? getRecord,
+    TResult Function(int id)? deleteRecord,
     TResult Function()? refreshRecords,
     required TResult orElse(),
   }) {
@@ -510,10 +509,10 @@ class _$DeleteRecordEventImpl implements DeleteRecordEvent {
 }
 
 abstract class DeleteRecordEvent implements RecordEvent {
-  const factory DeleteRecordEvent({required final String id}) =
+  const factory DeleteRecordEvent({required final int id}) =
       _$DeleteRecordEventImpl;
 
-  String get id;
+  int get id;
 
   /// Create a copy of RecordEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -567,8 +566,8 @@ class _$RefreshRecordsEventImpl implements RefreshRecordsEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() getRecords,
-    required TResult Function(String id) getRecord,
-    required TResult Function(String id) deleteRecord,
+    required TResult Function(int id) getRecord,
+    required TResult Function(int id) deleteRecord,
     required TResult Function() refreshRecords,
   }) {
     return refreshRecords();
@@ -578,8 +577,8 @@ class _$RefreshRecordsEventImpl implements RefreshRecordsEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? getRecords,
-    TResult? Function(String id)? getRecord,
-    TResult? Function(String id)? deleteRecord,
+    TResult? Function(int id)? getRecord,
+    TResult? Function(int id)? deleteRecord,
     TResult? Function()? refreshRecords,
   }) {
     return refreshRecords?.call();
@@ -589,8 +588,8 @@ class _$RefreshRecordsEventImpl implements RefreshRecordsEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? getRecords,
-    TResult Function(String id)? getRecord,
-    TResult Function(String id)? deleteRecord,
+    TResult Function(int id)? getRecord,
+    TResult Function(int id)? deleteRecord,
     TResult Function()? refreshRecords,
     required TResult orElse(),
   }) {

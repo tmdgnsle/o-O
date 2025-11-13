@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
-
 /// 앱 전체에서 사용하는 텍스트 스타일 정의
 ///
 /// Paperlogy 폰트 패밀리를 사용합니다.

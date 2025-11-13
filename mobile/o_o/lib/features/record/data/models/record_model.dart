@@ -9,11 +9,12 @@ part 'record_model.g.dart';
 @freezed
 class RecordModel with _$RecordModel {
   const factory RecordModel({
-    required String id,
+    required int id,
     required String title,
-    required String content,
-    @JsonKey(name: 'created_at') required DateTime createdAt,
-    @JsonKey(name: 'audio_url') String? audioUrl,
+    required String visibility,
+    required DateTime createdAt,
+    required String thumbnail,
+    required String startPrompt,
   }) = _RecordModel;
 
   factory RecordModel.fromJson(Map<String, dynamic> json) =>
@@ -26,9 +27,11 @@ class RecordModel with _$RecordModel {
     return RecordEntity(
       id: id,
       title: title,
-      content: content,
+      startPrompt: startPrompt,
       createdAt: createdAt,
-      audioUrl: audioUrl,
+      thumbnail: thumbnail,
+      visibility: visibility,
+      mindmapId: id, // workspace id를 mindmapId로 사용
     );
   }
 
@@ -37,9 +40,10 @@ class RecordModel with _$RecordModel {
     return RecordModel(
       id: entity.id,
       title: entity.title,
-      content: entity.content,
+      startPrompt: entity.startPrompt,
       createdAt: entity.createdAt,
-      audioUrl: entity.audioUrl,
+      thumbnail: entity.thumbnail ?? '',
+      visibility: entity.visibility ?? 'PUBLIC',
     );
   }
 }
