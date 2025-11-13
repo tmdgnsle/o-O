@@ -15,17 +15,6 @@ import java.util.Optional;
 public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
     Optional<Workspace> findByToken(String token);
 
-    @Query("SELECT DISTINCT w FROM Workspace w " +
-           "JOIN WorkspaceMember wm ON wm.workspace.id = w.id " +
-           "WHERE wm.userId = :userId " +
-           "AND w.createdAt >= :fromDateTime AND w.createdAt < :toDateTime " +
-           "ORDER BY w.createdAt DESC")
-    List<Workspace> findByUserIdAndDateRange(
-            @Param("userId") Long userId,
-            @Param("fromDateTime") LocalDateTime fromDateTime,
-            @Param("toDateTime") LocalDateTime toDateTime
-    );
-
     // 내가 속한 워크스페이스 전체 (cursor 없을 때)
     @Query("SELECT DISTINCT w FROM Workspace w " +
            "JOIN WorkspaceMember wm ON wm.workspace.id = w.id " +
@@ -86,4 +75,37 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
     List<Long> findIdsByVisibility(@Param("visibility") WorkspaceVisibility visibility);
 
     Optional<WorkspaceVisibilityView> findVisibilityById(Long id);
+
+    // 월별 활성 날짜 조회 (내가 멤버인 워크스페이스의 생성 날짜)
+    @Query(value = """
+            SELECT DISTINCT EXTRACT(DAY FROM w.created_at)::INTEGER AS day
+            FROM workspace w
+            JOIN workspace_member wm ON wm.workspace_id = w.workspace_id
+            WHERE wm.user_id = :userId
+              AND w.created_at >= make_date(:year, :month, 1)
+              AND w.created_at < make_date(:year, :month, 1) + interval '1 month'
+            ORDER BY day
+            """,
+            nativeQuery = true)
+    List<Integer> findActiveDaysByUserAndMonth(
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month
+    );
+
+    // 특정 날짜에 생성된 내 워크스페이스 ID 목록 조회
+    @Query(value = """
+            SELECT workspace_id FROM (
+                SELECT DISTINCT w.workspace_id, w.created_at
+                FROM workspace w
+                JOIN workspace_member wm ON wm.workspace_id = w.workspace_id
+                WHERE wm.user_id = :userId
+                  AND DATE(w.created_at) = DATE(:date)
+            ) sub
+            ORDER BY created_at DESC
+            """, nativeQuery = true)
+    List<Long> findWorkspaceIdsByUserAndDate(
+            @Param("userId") Long userId,
+            @Param("date") LocalDateTime date
+    );
 }
