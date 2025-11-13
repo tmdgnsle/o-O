@@ -1,19 +1,5 @@
+import type { Project } from "../../types/project";
 import { ProjectCard } from "./ProjectCard";
-
-interface User {
-  id: string;
-  name: string;
-  image?: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  date: string;
-  isPrivate: boolean;
-  collaborators: User[];
-}
-
 interface ProjectListPropos {
   readonly projects: Project[];
 }

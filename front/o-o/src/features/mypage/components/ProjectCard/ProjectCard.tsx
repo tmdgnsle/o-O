@@ -4,21 +4,11 @@ import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { AvatarImage } from "@radix-ui/react-avatar";
 import { useNavigate } from "react-router-dom";
-
-interface User {
-  id: string;
-  name: string;
-  image?: string;
-}
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
+import type { Project } from "@/features/mypage/types/project";
 
 interface ProjectCardProps {
-  readonly project: {
-    id: string;
-    title: string;
-    date: string;
-    isPrivate: boolean;
-    collaborators: User[];
-  };
+  readonly project: Project;
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
@@ -26,7 +16,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/project/${project.id}`, {
+    navigate(`/mindmap/${project.id}`, {
       state: { project },
     });
   };
@@ -47,12 +37,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
           )}
           {/* users */}
           <div className="flex -space-x-2">
-            {displayCollaborators.map((user) => (
+            {displayCollaborators.map((user, index) => (
               <Avatar
-                key={user.id}
+                key={`${user.name}-${index}`}
                 className="h-5 w-5 rounded-full bg-[#F6F6F6] border-2 border-[#E5E5E5]"
               >
-                <AvatarImage src={user.image} alt={user.name} />
+                <AvatarImage
+                  src={getProfileImageUrl(user.image)}
+                  alt={user.name}
+                />
               </Avatar>
             ))}
           </div>

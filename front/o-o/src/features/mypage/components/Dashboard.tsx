@@ -1,82 +1,81 @@
 import { DashboardTabNav } from "./DashboardTabNav";
 import { ProjectList } from "../components/ProjectCard/ProjectList";
-// TODO: 더미데이터
-import popo1 from "@/shared/assets/images/popo1.png";
-import popo2 from "@/shared/assets/images/popo2.png";
-import popo3 from "@/shared/assets/images/popo3.png";
+import type { Workspace } from "../types/mypage";
+import { useAppSelector } from "@/store/hooks";
+import type { Project } from "../types/project";
 
 interface DashboardProps {
-  readonly activeTab?: string;
+  readonly workspaces: Workspace[];
+  readonly isLoading: boolean;
+  readonly error: string | null;
 }
 
-const DUMMY_PROJECT = [
-  {
-    id: "1",
-    title: "법고창신 컨셉 기획",
-    date: "2025.10.24",
-    isPrivate: true,
-    collaborators: [
-      { id: "user1", name: "김철수", image: popo1 },
-      { id: "user2", name: "이영희", image: popo2 },
-      { id: "user3", name: "박민수", image: popo3 },
-    ],
-  },
-  {
-    id: "2",
-    title: "AI 서비스 기획",
-    date: "2025.10.23",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo2 }],
-  },
-  {
-    id: "3",
-    title: "알고리즘 싫어 프로젝트3",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-  {
-    id: "4",
-    title: "알고리즘 싫어 프로젝트4",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-  {
-    id: "5",
-    title: "알고리즘 싫어 프로젝트5",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-  {
-    id: "6",
-    title: "알고리즘 싫어 프로젝트6",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-  {
-    id: "7",
-    title: "알고리즘 싫어 프로젝트6",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-  {
-    id: "8",
-    title: "알고리즘 싫어 프로젝트6",
-    date: "2025.10.24",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo1 }],
-  },
-];
+export function Dashboard({ workspaces, isLoading, error }: DashboardProps) {
+  // 현재 유저 가져오기
+  const currentUser = useAppSelector((state) => state.user);
 
-export function Dashboard({ activeTab }: DashboardProps) {
+  if (isLoading) {
+    return (
+      <div className="mx-12 p-5 mt-5 bg-white/60 rounded-3xl">
+        <DashboardTabNav />
+        <div className="flex justify-center items-center py-20">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-600">로딩 중...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 발생 시
+  if (error) {
+    return (
+      <div className="mx-12 p-5 mt-5 bg-white/60 rounded-3xl">
+        <DashboardTabNav />
+        <div className="flex justify-center items-center py-20">
+          <div className="text-center">
+            <p className="text-red-500 mb-2">⚠️ 오류가 발생했습니다</p>
+            <p className="text-gray-600 text-sm">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 데이터 없을 때
+  if (workspaces.length === 0) {
+    return (
+      <div className="mx-12 p-5 mt-5 bg-white/60 rounded-3xl">
+        <DashboardTabNav />
+        <div className="flex justify-center items-center py-20">
+          <p>워크스페이스가 없습니다</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Workspace 데이터를 기존 프로젝트 형식으로 변환
+  const projects: Project[] = workspaces.map((workspace) => ({
+    id: workspace.id.toString(),
+    title: workspace.title,
+    date: new Date(workspace.createdAt).toLocaleDateString("ko-KR"),
+    isPrivate: workspace.visibility === "PRIVATE",
+    collaborators: currentUser.user?.nickname // 현재 유저를 협업자로 추가
+      ? [
+          {
+            name: currentUser.user.nickname,
+            image: currentUser.user.profileImage || "popo1",
+          },
+        ]
+      : [], // 유저 정보 없으면 빈 배열
+  }));
+
   return (
     <div className="mx-12 p-5 mt-5 bg-white/60 rounded-3xl">
       <DashboardTabNav />
-      <ProjectList projects={DUMMY_PROJECT} />
+
+      <ProjectList projects={projects} />
     </div>
   );
 }
