@@ -61,17 +61,18 @@ const MindmapPageContent: React.FC = () => {
     wsUrl,
     roomId,
     cyRef,
-    cursorColorRef.current
+    cursorColorRef.current,
+    {
+      enabled: true, // Mindmap 페이지에서는 항상 활성화
+      onAuthError: () => {
+        console.warn("[MindmapPage] auth error in collaboration, navigate to home");
+        navigate("/"); // 인증 실패 시 홈으로 리다이렉트
+      },
+    }
   );
+
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
-  // 5c. Handle connection error - redirect to home
-  useEffect(() => {
-    if (connectionError) {
-      console.error("❌ WebSocket connection failed, redirecting to home");
-      navigate("/");
-    }
-  }, [connectionError, navigate]);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();

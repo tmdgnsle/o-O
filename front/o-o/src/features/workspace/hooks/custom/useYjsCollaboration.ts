@@ -1,3 +1,4 @@
+// useYjsCollaboration.ts
 import { useEffect, useState, useRef, type RefObject } from "react";
 import * as Y from "yjs";
 import type { Core } from "cytoscape";
@@ -8,127 +9,246 @@ import type { NodeData } from "../../../mindmap/types";
 import { useAppSelector } from "@/store/hooks";
 import { fetchWebSocketToken } from "@/services/websocketTokenService";
 
+type UseYjsCollaborationOptions = {
+  /** 이 훅을 활성화할지 여부 (페이지에 따라 on/off 가능) */
+  enabled?: boolean;
+  /** 인증 실패 등 더 이상 재연결 시도하면 안 되는 상황에서 호출 */
+  onAuthError?: () => void;
+};
+
 /**
- * Yjs 협업 로직을 관리하는 커스텀 훅
+ * Yjs 기반 협업(마인드맵) 로직을 초기화하고 관리하는 커스텀 훅
  *
- * **주요 기능:**
- * - Yjs client 및 WebSocket provider 초기화
- * - Awareness 상태 설정 (사용자 정보 + 커서)
- * - Cytoscape 캔버스 상의 마우스 움직임을 실시간 브로드캐스트
- * - Y.Map CRUD 작업 래퍼 제공
- *
- * @param wsUrl - WebSocket 서버 URL
- * @param roomId - 협업 룸 ID (workspace 기반)
- * @param cyRef - Cytoscape 인스턴스 참조 (커서 좌표 추적용)
- * @param cursorColor - 사용자의 고유 커서 색상
- * @returns {object} collab (client + map), crud 작업, cursorColor, 에러 상태
+ * 기능:
+ * - Yjs client + WebSocket provider 초기화 및 정리
+ * - Awareness 상태 (사용자 정보 + 커서 + 채팅) 관리
+ * - Cytoscape 마우스 위치를 Awareness로 브로드캐스트
+ * - Y.Map CRUD 유틸 제공
  */
 export function useYjsCollaboration(
   wsUrl: string,
   roomId: string,
   cyRef: RefObject<Core | null>,
-  cursorColor: string
+  cursorColor: string,
+  options: UseYjsCollaborationOptions = {}
 ) {
+  const { enabled = true, onAuthError } = options;
+
   const [collab, setCollab] = useState<{ client: YClient; map: Y.Map<NodeData> } | null>(null);
   const [crud, setCrud] = useState<YMapCrud<NodeData> | null>(null);
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const currentUser = useAppSelector((state) => state.user.user);
 
-  // Store current client ref for cleanup
+  // refs
   const currentClientRef = useRef<YClient | null>(null);
   const mountedRef = useRef<boolean>(true);
+  const reconnectingRef = useRef<boolean>(false);
+  const statusCleanupRef = useRef<(() => void) | null>(null);
+  const connectionCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enabledRef = useRef<boolean>(enabled);
+  const onAuthErrorRef = useRef<(() => void) | undefined>(onAuthError);
 
-  // Initialize client with token
+  // enabled / onAuthError ref 동기화
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
+  useEffect(() => {
+    onAuthErrorRef.current = onAuthError;
+  }, [onAuthError]);
+
+  // WebSocket/Client 초기화 & 정리
   useEffect(() => {
     mountedRef.current = true;
-    let connectionCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const clearConnectionCheckTimeout = () => {
+      if (connectionCheckTimeoutRef.current) {
+        clearTimeout(connectionCheckTimeoutRef.current);
+        connectionCheckTimeoutRef.current = null;
+      }
+    };
+
+    const cleanupClient = () => {
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+        statusCleanupRef.current = null;
+      }
+      clearConnectionCheckTimeout();
+
+      if (currentClientRef.current) {
+        try {
+          console.log("[useYjsCollaboration] cleanup: destroying client");
+          currentClientRef.current.destroy();
+        } catch (e) {
+          console.error("[useYjsCollaboration] error destroying client:", e);
+        }
+        currentClientRef.current = null;
+      }
+
+      // 언마운트 이후 setState 호출 방지
+      if (mountedRef.current) {
+        setCollab(null);
+        setCrud(null);
+      }
+    };
+
+    const scheduleConnectionCheck = (client: YClient) => {
+      clearConnectionCheckTimeout();
+      connectionCheckTimeoutRef.current = setTimeout(() => {
+        if (!client.provider.wsconnected) {
+          console.error("[useYjsCollaboration] WebSocket connection failed after 3 seconds");
+          setConnectionError(true);
+        } else {
+          console.log("[useYjsCollaboration] WebSocket connection established");
+          setConnectionError(false);
+        }
+      }, 3000);
+    };
+
+    const refreshTokenAndReconnect = async () => {
+      if (
+        reconnectingRef.current ||
+        !mountedRef.current ||
+        !currentClientRef.current ||
+        !enabledRef.current
+      ) {
+        return;
+      }
+
+      reconnectingRef.current = true;
+      try {
+        console.log("[useYjsCollaboration] refreshing ws-token after disconnect");
+        const nextToken = await fetchWebSocketToken();
+        if (!mountedRef.current || !currentClientRef.current || !enabledRef.current) {
+          return;
+        }
+
+        currentClientRef.current.wsToken = nextToken;
+
+        const provider = currentClientRef.current.provider;
+        const cleanWorkspaceId =
+          currentClientRef.current.workspaceId.replace(/^mindmap:/, "");
+
+        provider.params = {
+          workspace: cleanWorkspaceId,
+          token: nextToken,
+        };
+
+        provider.shouldConnect = true;
+        provider.connect();
+      } catch (error: any) {
+        console.error("[useYjsCollaboration] failed to refresh ws-token:", error);
+        setConnectionError(true);
+
+        // 예: 401/403 등 인증 에러라면 더 이상 재시도하지 않도록 콜백 호출
+        if (onAuthErrorRef.current) {
+          onAuthErrorRef.current();
+        }
+      } finally {
+        reconnectingRef.current = false;
+      }
+    };
+
+    const attachStatusListener = (client: YClient) => {
+      if (statusCleanupRef.current) {
+        statusCleanupRef.current();
+        statusCleanupRef.current = null;
+      }
+
+      const handleStatus = (event: { status: "connected" | "disconnected" | "connecting" }) => {
+        console.log("[useYjsCollaboration] provider status:", event.status);
+        if (!enabledRef.current) return;
+
+        if (event.status === "disconnected") {
+          // 여기서 바로 새 ST 받아서 재연결 시도
+          refreshTokenAndReconnect();
+        } else if (event.status === "connected") {
+          setConnectionError(false);
+        }
+      };
+
+      client.provider.on("status", handleStatus);
+      statusCleanupRef.current = () => {
+        client.provider.off("status", handleStatus);
+      };
+    };
 
     const initializeClient = async () => {
-      try {
-        // Fetch initial token
-        console.log("🔑 Fetching ws-token");
-        const token = await fetchWebSocketToken();
-        if (!mountedRef.current || !token) return;
+      if (!enabled) {
+        console.log("[useYjsCollaboration] not enabled, skip initialize");
+        return;
+      }
 
-        // Create client
-        console.log("🚀 Initializing YClient with workspace:", roomId);
+      try {
+        console.log("[useYjsCollaboration] fetching initial ws-token");
+        const token = await fetchWebSocketToken();
+        if (!mountedRef.current || !token || !enabledRef.current) return;
+
+        console.log("[useYjsCollaboration] initializing YClient with workspace:", roomId);
         const client = createYClient(wsUrl, roomId, token);
         const map = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
 
-        if (!mountedRef.current) {
+        if (!mountedRef.current || !enabledRef.current) {
           client.destroy();
           return;
         }
 
-        // Store in ref for cleanup
         currentClientRef.current = client;
 
         setCollab({ client, map });
         const crudOps = createYMapCrud(client.doc, map);
         setCrud(crudOps);
+        setConnectionError(false);
 
-        // Check connection status after 3 seconds
-        connectionCheckTimeout = setTimeout(() => {
-          if (!client.provider.wsconnected) {
-            console.error("❌ WebSocket connection failed after 3 seconds");
-            setConnectionError(true);
-            // Immediately destroy provider to stop retry attempts
-            if (currentClientRef.current) {
-              console.log("🧹 Destroying failed connection");
-              currentClientRef.current.provider.destroy();
-              currentClientRef.current = null;
-            }
-          } else {
-            console.log("✅ WebSocket connection established");
-          }
-        }, 3000);
+        attachStatusListener(client);
 
-        console.log("✅ YClient initialized");
-      } catch (error) {
-        console.error("❌ Failed to initialize YClient:", error);
+
+        // ⭐⭐⭐ 여기 붙여!!! ⭐⭐⭐
+        client.provider.on("connection-close", (event: any) => {
+          console.log(
+            "🧯 [y-websocket] connection-close",
+            "code =", event?.evt?.code,
+            "reason =", event?.evt?.reason
+          );
+        });
+        // ————————————————————————————————
+
+        scheduleConnectionCheck(client);
+
+        console.log("[useYjsCollaboration] YClient initialized");
+      } catch (error: any) {
+        console.error("[useYjsCollaboration] failed to initialize YClient:", error);
         setConnectionError(true);
-        // Cleanup on error
-        if (currentClientRef.current) {
-          currentClientRef.current.provider.destroy();
-          currentClientRef.current = null;
+        cleanupClient();
+
+        // 초기 ST 발급 자체가 인증 에러라면 여기서도 onAuthError 호출
+        if (onAuthErrorRef.current) {
+          onAuthErrorRef.current();
         }
       }
     };
 
-    initializeClient();
+    // 🔑 enabled === false면 기존 연결을 정리하고 아무 것도 하지 않음
+    if (!enabled) {
+      cleanupClient();
+    } else {
+      initializeClient();
+    }
 
     // Cleanup
     return () => {
+      cleanupClient();
       mountedRef.current = false;
-
-      if (connectionCheckTimeout) {
-        clearTimeout(connectionCheckTimeout);
-      }
-
-      // Destroy client using ref
-      if (currentClientRef.current) {
-        try {
-          console.log("🧹 Cleanup: Destroying client");
-          currentClientRef.current.provider.destroy();
-          currentClientRef.current = null;
-        } catch (e) {
-          console.error("Error destroying client:", e);
-        }
-      }
-
-      setCollab(null);
-      setCrud(null);
     };
-  }, [roomId, wsUrl]);
+  }, [roomId, wsUrl, enabled]);
 
-  // Initialize awareness state (user info + cursor placeholder)
+  // Awareness 초기화 (사용자 정보 + 기본 커서/채팅 상태)
   useEffect(() => {
     if (!collab) return;
 
     const awareness = collab.client.provider.awareness;
     if (!awareness) return;
 
-    // Wait for connection before setting awareness
     const setAwarenessState = () => {
       const initialState = {
         user: {
@@ -137,18 +257,16 @@ export function useYjsCollaboration(
           profileImage: currentUser?.profileImage,
           color: cursorColor,
         },
-        cursor: null, // Will be updated by mousemove
-        chat: null, // Will be updated when user types
+        cursor: null, // mousemove에서 갱신
+        chat: null, // 채팅 입력 시 갱신
       };
-      console.log("🎨 [useYjsCollaboration] Setting initial awareness state:", initialState);
+      console.log("[useYjsCollaboration] set initial awareness state:", initialState);
       awareness.setLocalState(initialState);
     };
 
-    // Check if already connected
     if (collab.client.provider.wsconnected) {
       setAwarenessState();
     } else {
-      // Wait for connection
       const handleStatus = (event: { status: string }) => {
         if (event.status === "connected") {
           setAwarenessState();
@@ -157,20 +275,17 @@ export function useYjsCollaboration(
       };
       collab.client.provider.on("status", handleStatus);
 
-      // Cleanup listener if component unmounts before connection
       return () => {
         collab.client.provider.off("status", handleStatus);
       };
     }
 
     return () => {
-      if (awareness) {
-        awareness.setLocalState(null);
-      }
+      awareness.setLocalState(null);
     };
   }, [collab, cursorColor, currentUser]);
 
-  // Broadcast cursor position when Cytoscape is ready
+  // Cytoscape 마우스 위치 → awareness.cursor 브로드캐스트
   useEffect(() => {
     if (!collab) return;
     const cy = cyRef.current;
@@ -182,24 +297,21 @@ export function useYjsCollaboration(
     let raf = 0;
     let lastLog = 0;
 
-    // Use Cytoscape mousemove event to get model coordinates (not viewport-relative)
     const handleMouseMove = (event: cytoscape.EventObject) => {
-      if (raf) {
-        cancelAnimationFrame(raf);
-      }
+      if (raf) cancelAnimationFrame(raf);
+
       raf = requestAnimationFrame(() => {
         const position = event.position;
         if (!position) return;
 
         const cursorData = {
-          x: position.x, // Model coordinates (absolute, pan/zoom-independent)
+          x: position.x, // model 좌표 (pan/zoom 영향 없음)
           y: position.y,
           color: cursorColor,
         };
 
-        // Log throttled to avoid console spam
         if (Date.now() - lastLog > 5000) {
-          console.log("🖱️ [useYjsCollaboration] Setting cursor (model coords):", cursorData);
+          console.log("[useYjsCollaboration] set cursor (model coords):", cursorData);
           lastLog = Date.now();
         }
 
@@ -207,18 +319,16 @@ export function useYjsCollaboration(
       });
     };
 
-    console.log("🎮 [useYjsCollaboration] Attaching mousemove to Cytoscape");
+    console.log("[useYjsCollaboration] attach mousemove to Cytoscape");
     cy.on("mousemove", handleMouseMove);
 
     return () => {
       cy.off("mousemove", handleMouseMove);
-      if (raf) {
-        cancelAnimationFrame(raf);
-      }
+      if (raf) cancelAnimationFrame(raf);
     };
-  }, [collab, cyRef.current, cursorColor]);
+  }, [collab, cyRef, cursorColor]);
 
-  // Method to update chat awareness state
+  // 채팅 상태 업데이트 메서드
   const updateChatState = (
     chatData: { isTyping: boolean; currentText: string; timestamp: number } | null
   ) => {
