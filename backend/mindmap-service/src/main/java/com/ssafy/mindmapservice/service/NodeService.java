@@ -48,24 +48,24 @@ public class NodeService {
     }
 
     /**
-     * 여러 워크스페이스의 노드 간단 정보를 일괄 조회 (workspaceId별로 그룹핑)
-     * N+1 문제를 방지하기 위해 단일 쿼리로 조회
+     * 여러 워크스페이스의 모든 키워드를 일괄 조회 (평면 리스트)
+     * workspace-service의 캘린더 기능에서 사용
      */
-    public Map<Long, List<NodeSimpleDto>> getSimpleNodesByWorkspaces(List<Long> workspaceIds) {
-        log.debug("Getting simple nodes for {} workspaces", workspaceIds.size());
+    public List<String> getKeywordsByWorkspaces(List<Long> workspaceIds) {
+        log.debug("Getting keywords for {} workspaces", workspaceIds.size());
 
         if (workspaceIds == null || workspaceIds.isEmpty()) {
-            return Map.of();
+            return List.of();
         }
 
         List<MindmapNode> nodes = nodeRepository.findByWorkspaceIdIn(workspaceIds);
 
-        // workspaceId별로 그룹핑하고 DTO로 변환
+        // 키워드만 추출 (null이 아닌 것만)
         return nodes.stream()
-                .collect(Collectors.groupingBy(
-                        MindmapNode::getWorkspaceId,
-                        Collectors.mapping(NodeSimpleDto::from, Collectors.toList())
-                ));
+                .map(MindmapNode::getKeyword)
+                .filter(Objects::nonNull)
+                .filter(keyword -> !keyword.isBlank())
+                .toList();
     }
 
     public MindmapNode getNode(Long workspaceId, Long nodeId) {

@@ -25,6 +25,7 @@ server:
 mindmap:
   service:
     url: http://mindmap-svc:8082
+#    url: http://localhost:8082
 
 management:
   endpoints:

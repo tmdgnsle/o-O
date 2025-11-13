@@ -162,19 +162,27 @@ public class NodeController {
     }
 
     @Operation(
-            summary = "여러 워크스페이스 노드 일괄 조회",
-            description = "여러 워크스페이스의 노드 간단 정보(nodeId, keyword)를 한 번에 조회합니다. workspaceId별로 그룹핑된 Map 형태로 반환됩니다."
+            summary = "[Internal] 여러 워크스페이스의 키워드 일괄 조회",
+            description = """
+                    여러 워크스페이스의 모든 노드 키워드를 평면 리스트로 반환합니다.
+                    workspace-service의 캘린더 기능에서 사용됩니다.
+
+                    ### 응답 예시
+                    ```json
+                    ["AI 기능 개선", "Redis TTL 설계", "OAuth 리다이렉트", ...]
+                    ```
+                    """
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "노드 일괄 조회 성공")
+            @ApiResponse(responseCode = "200", description = "키워드 일괄 조회 성공")
     })
-    @PostMapping("/nodes/simple/batch")
-    public ResponseEntity<Map<Long, List<NodeSimpleDto>>> getSimpleNodesBatch(
+    @PostMapping("/nodes/keywords/batch")
+    public ResponseEntity<List<String>> getKeywordsBatch(
             @Parameter(description = "워크스페이스 ID 목록", required = true)
             @RequestBody List<Long> workspaceIds) {
-        log.info("POST /mindmap/nodes/simple/batch - {} workspaces", workspaceIds.size());
-        Map<Long, List<NodeSimpleDto>> result = nodeService.getSimpleNodesByWorkspaces(workspaceIds);
-        return ResponseEntity.ok(result);
+        log.info("POST /mindmap/nodes/keywords/batch - {} workspaces", workspaceIds.size());
+        List<String> keywords = nodeService.getKeywordsByWorkspaces(workspaceIds);
+        return ResponseEntity.ok(keywords);
     }
 
     @Operation(

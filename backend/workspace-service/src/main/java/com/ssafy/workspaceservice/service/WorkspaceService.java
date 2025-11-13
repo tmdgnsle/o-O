@@ -32,9 +32,6 @@ public class WorkspaceService {
 
     private static final int MAX_MEMBERS = 6;
     private static final int DEFAULT_PAGE_SIZE = 20;
-    private static final int MAX_TOTAL_NODES = 10;  // 캘린더에서 반환할 총 노드 수
-    private static final int MIN_NODES_PER_WORKSPACE = 1;
-    private static final int MAX_NODES_PER_WORKSPACE = 3;
 
     public WorkspaceResponse create(Long userId) {
         String INITIAL_TITLE = "제목 없음";
@@ -178,122 +175,6 @@ public class WorkspaceService {
         return WorkspaceCursorResponse.of(content, nextCursor, hasNext);
     }
 
-    // 날짜별 사용자 워크스페이스 조회
-    @Transactional(readOnly = true)
-    public List<WorkspaceCalendarItemResponse> calendar(Long userId, LocalDate from, LocalDate to) {
-        // LocalDate를 LocalDateTime으로 변환 (from 00:00:00 ~ to+1 00:00:00)
-        LocalDateTime fromDateTime = from.atStartOfDay();
-        LocalDateTime toDateTime = to.plusDays(1).atStartOfDay();
-
-        // 사용자의 워크스페이스 조회
-        List<Workspace> workspaces = workspaceRepository.findByUserIdAndDateRange(userId, fromDateTime, toDateTime);
-
-        // 랜덤으로 워크스페이스와 노드 선택
-        List<Workspace> randomWorkspaces = selectRandomWorkspaces(new ArrayList<>(workspaces));
-        Map<Long, List<MindmapNodeDto>> workspaceNodesMap = fetchAndDistributeRandomNodes(randomWorkspaces);
-
-        // 평면 구조로 DTO 변환 (노드가 있는 워크스페이스만 반환)
-        return randomWorkspaces.stream()
-                .map(workspace -> {
-                    List<MindmapNodeDto> nodes = workspaceNodesMap.getOrDefault(workspace.getId(), List.of());
-                    return WorkspaceCalendarItemResponse.of(workspace, nodes);
-                })
-                .toList();
-    }
-
-    /**
-     * 워크스페이스 목록에서 랜덤으로 선택 (총 노드 수가 10개를 초과하지 않도록)
-     */
-    private List<Workspace> selectRandomWorkspaces(List<Workspace> workspaces) {
-        if (workspaces.isEmpty()) {
-            return List.of();
-        }
-
-        Collections.shuffle(workspaces);
-        Random random = new Random();
-        List<Workspace> selected = new ArrayList<>();
-        int remainingNodes = MAX_TOTAL_NODES;
-
-        for (Workspace workspace : workspaces) {
-            if (remainingNodes <= 0) {
-                break;
-            }
-
-            // 이 워크스페이스에서 선택할 노드 수 (1~3개 랜덤, 남은 개수 고려)
-            int nodesToSelect = random.nextInt(
-                    Math.min(MAX_NODES_PER_WORKSPACE, remainingNodes) - MIN_NODES_PER_WORKSPACE + 1
-            ) + MIN_NODES_PER_WORKSPACE;
-
-            selected.add(workspace);
-            remainingNodes -= nodesToSelect;
-        }
-
-        return selected;
-    }
-
-    /**
-     * 선택된 워크스페이스들에 대해 랜덤 노드를 조회하고 분배 (단일 API 호출로 최적화)
-     */
-    private Map<Long, List<MindmapNodeDto>> fetchAndDistributeRandomNodes(List<Workspace> workspaces) {
-        if (workspaces.isEmpty()) {
-            return Map.of();
-        }
-
-        Map<Long, List<MindmapNodeDto>> result = new HashMap<>();
-        Random random = new Random();
-
-        try {
-            // 모든 워크스페이스 ID를 한 번에 조회 (N+1 문제 해결)
-            List<Long> workspaceIds = workspaces.stream()
-                    .map(Workspace::getId)
-                    .toList();
-
-            log.debug("Fetching nodes for {} workspaces in batch", workspaceIds.size());
-            Map<Long, List<MindmapNodeDto>> allNodesMap = mindmapClient.getNodesByWorkspaceIds(workspaceIds);
-
-            // 각 워크스페이스별로 랜덤 노드 선택
-            int remainingNodes = MAX_TOTAL_NODES;
-
-            for (Workspace workspace : workspaces) {
-                if (remainingNodes <= 0) {
-                    break;
-                }
-
-                Long workspaceId = workspace.getId();
-                List<MindmapNodeDto> allNodes = allNodesMap.getOrDefault(workspaceId, List.of());
-
-                if (allNodes.isEmpty()) {
-                    result.put(workspaceId, List.of());
-                    continue;
-                }
-
-                // 이 워크스페이스에 할당할 노드 수 결정 (1~3개 랜덤, 남은 개수와 실제 노드 수 고려)
-                int maxPossible = Math.min(Math.min(MAX_NODES_PER_WORKSPACE, remainingNodes), allNodes.size());
-                int nodesToSelect = maxPossible > MIN_NODES_PER_WORKSPACE
-                        ? random.nextInt(maxPossible - MIN_NODES_PER_WORKSPACE + 1) + MIN_NODES_PER_WORKSPACE
-                        : maxPossible;
-
-                // 랜덤으로 노드 선택
-                List<MindmapNodeDto> shuffled = new ArrayList<>(allNodes);
-                Collections.shuffle(shuffled);
-                List<MindmapNodeDto> selectedNodes = shuffled.stream()
-                        .limit(nodesToSelect)
-                        .toList();
-
-                result.put(workspaceId, selectedNodes);
-                remainingNodes -= selectedNodes.size();
-
-                log.debug("Workspace {}: selected {} nodes out of {}", workspaceId, selectedNodes.size(), allNodes.size());
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to fetch nodes in batch: {}", e.getMessage());
-            // 실패 시 빈 맵 반환
-            workspaces.forEach(w -> result.put(w.getId(), List.of()));
-        }
-
-        return result;
-    }
 
     // 워크스페이스 삭제
     public void delete(Long workspaceId, Long userId) {
@@ -373,5 +254,79 @@ public class WorkspaceService {
         return workspaceRepository.findVisibilityById(workspaceId)
                 .map(WorkspaceVisibilityView::getVisibility)
                 .orElseThrow(() -> new WorkspaceNotFoundException(workspaceId));
+    }
+
+    /**
+     * 월별 활성 날짜 조회 (웹 전용)
+     * 내가 멤버인 워크스페이스들이 생성된 날짜만 반환
+     */
+    @Transactional(readOnly = true)
+    public List<String> getActivityDays(Long userId, String month) {
+        // month 형식: "2025-11"
+        String[] parts = month.split("-");
+        if (parts.length != 2) {
+            throw new BadRequestException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        int year = Integer.parseInt(parts[0]);
+        int monthValue = Integer.parseInt(parts[1]);
+
+        if (monthValue < 1 || monthValue > 12) {
+            throw new BadRequestException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        log.debug("Fetching activity days for userId={}, year={}, month={}", userId, year, monthValue);
+        List<Integer> days = workspaceRepository.findActiveDaysByUserAndMonth(userId, year, monthValue);
+
+        // Integer 일자를 yyyy-MM-dd 형식으로 변환
+        return days.stream()
+                .map(day -> String.format("%04d-%02d-%02d", year, monthValue, day))
+                .toList();
+    }
+
+    /**
+     * 특정 날짜의 나의 키워드 Top 10 조회 (모바일/웹 공통)
+     * 해당 날짜에 생성된 워크스페이스들의 노드 키워드를 랜덤으로 최대 10개 반환
+     */
+    @Transactional(readOnly = true)
+    public List<String> getActivityKeywords(Long userId, LocalDate date) {
+        // LocalDate를 LocalDateTime으로 변환 (해당 날짜 00:00:00)
+        LocalDateTime dateTime = date.atStartOfDay();
+
+        log.debug("Fetching activity keywords for userId={}, date={}", userId, date);
+
+        // 1. 해당 날짜에 생성된 내 워크스페이스 ID 목록 조회
+        List<Long> workspaceIds = workspaceRepository.findWorkspaceIdsByUserAndDate(userId, dateTime);
+
+        if (workspaceIds.isEmpty()) {
+            log.debug("No workspaces found for userId={} on date={}", userId, date);
+            return List.of();
+        }
+
+        log.debug("Found {} workspaces for userId={} on date={}", workspaceIds.size(), userId, date);
+
+        try {
+            // 2. Mindmap Service에서 해당 워크스페이스들의 모든 키워드 조회
+            List<String> allKeywords = mindmapClient.getKeywordsByWorkspaceIds(workspaceIds);
+
+            if (allKeywords.isEmpty()) {
+                log.debug("No keywords found for workspaces: {}", workspaceIds);
+                return List.of();
+            }
+
+            // 3. 랜덤으로 섞은 후 최대 10개만 선택
+            List<String> shuffled = new ArrayList<>(allKeywords);
+            Collections.shuffle(shuffled);
+            List<String> result = shuffled.stream()
+                    .limit(10)
+                    .toList();
+
+            log.debug("Returning {} keywords out of {} total", result.size(), allKeywords.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("Failed to fetch keywords from mindmap-service: {}", e.getMessage());
+            return List.of();
+        }
     }
 }
