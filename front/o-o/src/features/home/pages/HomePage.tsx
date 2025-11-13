@@ -5,7 +5,7 @@ import { Header } from "@/shared/ui/Header";
 export function HomePage() {
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      className="w-screen h-screen bg-cover bg-center bg-no-repeat overflow-hidden"
       style={{ backgroundImage: `url(${background})` }}
     >
       <Header />
