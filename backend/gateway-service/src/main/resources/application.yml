@@ -56,11 +56,11 @@ spring:
               - StripPrefix=1
           # Mindmap WebSocket Service (실시간 협업)
           - id: mindmap-websocket-service
-            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:3000}
+            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:8084}
             predicates:
               - Path=/mindmap/ws/**
             filters:
-              - RewritePath=/mindmap/ws/(?<segment>.*), /$\{segment}
+              - PreserveHostHeader
         # Mindmap Service 정적 라우팅
           - id: mindmap-service
             uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
