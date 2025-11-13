@@ -1,34 +1,28 @@
 package com.ssafy.gatewayservice.filter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.gatewayservice.jwt.JwtException;
-import com.ssafy.gatewayservice.jwt.JwtTokenProvider;
+import com.ssafy.gatewayservice.jwt.JwtTokenValidator;
+import com.ssafy.gatewayservice.util.GatewayResponseUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtTokenValidator jwtTokenValidator;
     private final ObjectMapper objectMapper;
 
     // 인증이 필요 없는 경로
@@ -49,8 +43,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/webjars"
     );
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
-        this.jwtTokenProvider = jwtTokenProvider;
+    public JwtAuthenticationFilter(JwtTokenValidator jwtTokenValidator, ObjectMapper objectMapper) {
+        this.jwtTokenValidator = jwtTokenValidator;
         this.objectMapper = objectMapper;
     }
 
@@ -69,17 +63,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             String token = resolveToken(request);
 
             if (token == null) {
-                return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다.");
+                return GatewayResponseUtil.sendErrorResponse(
+                        exchange, HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다.", objectMapper
+                );
             }
 
             // JWT 토큰 검증 (만료시간 포함)
-            jwtTokenProvider.validateToken(token);
+            jwtTokenValidator.validateToken(token);
 
             // userId 추출
-            String userId = jwtTokenProvider.getUserId(token);
+            String userId = jwtTokenValidator.getUserId(token);
 
             if (userId == null) {
-                return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
+                return GatewayResponseUtil.sendErrorResponse(
+                        exchange, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.", objectMapper
+                );
             }
 
             // X-USER-ID 헤더에 userId 추가하여 프록시 요청 전달
@@ -91,11 +89,15 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         } catch (JwtException e) {
             log.error("[JWT Filter] JWT Exception - Path: {}, Error: {}", path, e.getMessage());
-            return sendErrorResponse(exchange, HttpStatus.UNAUTHORIZED, e.getMessage());
+            return GatewayResponseUtil.sendErrorResponse(
+                    exchange, HttpStatus.UNAUTHORIZED, e.getMessage(), objectMapper
+            );
         } catch (Exception e) {
             log.error("[JWT Filter] Unexpected Exception - Path: {}, Type: {}, Message: {}",
                     path, e.getClass().getName(), e.getMessage(), e);
-            return sendErrorResponse(exchange, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            return GatewayResponseUtil.sendErrorResponse(
+                    exchange, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), objectMapper
+            );
         }
     }
 
@@ -115,32 +117,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
      */
     private boolean isExcludedPath(String path) {
         return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
-    }
-
-    /**
-     * 에러 응답 전송
-     */
-    private Mono<Void> sendErrorResponse(ServerWebExchange exchange, HttpStatus status, String message) {
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(status);
-        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("success", false);
-        errorResponse.put("message", message);
-        errorResponse.put("data", null);
-
-        try {
-            byte[] bytes = objectMapper.writeValueAsBytes(errorResponse);
-            DataBuffer buffer = response.bufferFactory().wrap(bytes);
-            return response.writeWith(Mono.just(buffer));
-        } catch (JsonProcessingException e) {
-            byte[] bytes = String.format(
-                    "{\"success\":false,\"message\":\"%s\",\"data\":null}", message
-            ).getBytes(StandardCharsets.UTF_8);
-            DataBuffer buffer = response.bufferFactory().wrap(bytes);
-            return response.writeWith(Mono.just(buffer));
-        }
     }
 
     @Override
