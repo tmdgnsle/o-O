@@ -6,7 +6,14 @@ import type { CytoscapeCanvasProps } from "../types";
 import { cytoscapeStylesheet, cytoscapeLayout, cytoscapeConfig } from "../styles/mindmapStyles";
 import { useEdges, useGraphSync, useDragSync } from "../hooks/cytoscape/useGraphSync";
 import { useCytoscapeEvents, useCytoscapeInit } from "../hooks/cytoscape/useCytoscapeEvents";
+import { usePanLimit } from "../hooks/cytoscape/usePanLimit";
 import OverlayLayer from "./OverlayLayer";
+
+/**
+ * Cytoscape 캔버스 크기를 제한하는 상수
+ */
+
+const PAN_LIMIT = 300;
 
 /**
  * CytoscapeCanvas
@@ -63,6 +70,7 @@ export default function CytoscapeCanvas({
   useCytoscapeInit(cyRef.current, cytoscapeStylesheet, cytoscapeConfig, cyReady);
   useGraphSync(cyRef.current, nodes, edges, cyReady);
   useDragSync(cyRef.current, forceOverlayUpdate, cyReady);
+  usePanLimit(cyRef.current, PAN_LIMIT, cyReady);
   useCytoscapeEvents(cyRef.current, {
     onNodeSelect,
     onNodeUnselect,

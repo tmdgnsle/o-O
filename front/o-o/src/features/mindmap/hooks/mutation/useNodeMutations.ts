@@ -3,7 +3,7 @@ import type { NodeData } from '../../types';
 
 // 로컬 스토리지에 노드 저장
 const saveNodes = async (nodes: NodeData[]) => {
-  localStorage.setItem('mindmap-nodes', JSON.stringify(nodes));
+  localStorage.setItem('mindmap1-nodes', JSON.stringify(nodes));
   return nodes;
 };
 
