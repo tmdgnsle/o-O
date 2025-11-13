@@ -31,4 +31,7 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
 
     //워크스페이스의 노드 개수 조회
     long countByWorkspaceId(Long workspaceId);
+
+    // 여러 워크스페이스 ID로 모든 노드 조회 (일괄 조회)
+    List<MindmapNode> findByWorkspaceIdIn(List<Long> workspaceIds);
 }

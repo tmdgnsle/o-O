@@ -6,6 +6,7 @@ import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
 import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
 import com.ssafy.mindmapservice.dto.NodeColorUpdateRequest;
 import com.ssafy.mindmapservice.dto.NodePositionUpdateRequest;
+import com.ssafy.mindmapservice.dto.NodeSimpleDto;
 import com.ssafy.mindmapservice.dto.WorkspaceCloneRequest;
 import com.ssafy.mindmapservice.service.NodeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Mindmap Node API", description = "마인드맵 노드 관리 및 AI 분석 API")
 @Slf4j
@@ -140,6 +142,39 @@ public class NodeController {
         log.info("GET /mindmap/{}/nodes", workspaceId);
         List<MindmapNode> nodes = nodeService.getNodesByWorkspace(workspaceId);
         return ResponseEntity.ok(nodes);
+    }
+
+    @Operation(
+            summary = "워크스페이스 노드 간단 조회",
+            description = "특정 워크스페이스에 속한 노드의 간단한 정보(nodeId, keyword)만 조회합니다. 캘린더 등에서 경량화된 응답이 필요할 때 사용됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "노드 간단 정보 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음", content = @Content)
+    })
+    @GetMapping("/{workspaceId}/nodes/simple")
+    public ResponseEntity<List<NodeSimpleDto>> getSimpleNodes(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
+            @PathVariable Long workspaceId) {
+        log.info("GET /mindmap/{}/nodes/simple", workspaceId);
+        List<NodeSimpleDto> nodes = nodeService.getSimpleNodesByWorkspace(workspaceId);
+        return ResponseEntity.ok(nodes);
+    }
+
+    @Operation(
+            summary = "여러 워크스페이스 노드 일괄 조회",
+            description = "여러 워크스페이스의 노드 간단 정보(nodeId, keyword)를 한 번에 조회합니다. workspaceId별로 그룹핑된 Map 형태로 반환됩니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "노드 일괄 조회 성공")
+    })
+    @PostMapping("/nodes/simple/batch")
+    public ResponseEntity<Map<Long, List<NodeSimpleDto>>> getSimpleNodesBatch(
+            @Parameter(description = "워크스페이스 ID 목록", required = true)
+            @RequestBody List<Long> workspaceIds) {
+        log.info("POST /mindmap/nodes/simple/batch - {} workspaces", workspaceIds.size());
+        Map<Long, List<NodeSimpleDto>> result = nodeService.getSimpleNodesByWorkspaces(workspaceIds);
+        return ResponseEntity.ok(result);
     }
 
     @Operation(

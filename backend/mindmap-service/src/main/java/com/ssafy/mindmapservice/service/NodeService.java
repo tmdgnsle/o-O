@@ -7,6 +7,7 @@ import com.ssafy.mindmapservice.dto.AiNodeDto;
 import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
 import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
 import com.ssafy.mindmapservice.dto.NodeContextDto;
+import com.ssafy.mindmapservice.dto.NodeSimpleDto;
 import com.ssafy.mindmapservice.kafka.AiAnalysisProducer;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,6 +32,39 @@ public class NodeService {
     public List<MindmapNode> getNodesByWorkspace(Long workspaceId) {
         log.debug("Getting all nodes for workspace: {}", workspaceId);
         return nodeRepository.findByWorkspaceId(workspaceId);
+    }
+
+    /**
+     * 워크스페이스의 노드 간단 정보 조회 (nodeId, keyword만 포함)
+     * 캘린더 등에서 경량화된 응답이 필요할 때 사용
+     */
+    public List<NodeSimpleDto> getSimpleNodesByWorkspace(Long workspaceId) {
+        log.debug("Getting simple nodes for workspace: {}", workspaceId);
+        List<MindmapNode> nodes = nodeRepository.findByWorkspaceId(workspaceId);
+        return nodes.stream()
+                .map(NodeSimpleDto::from)
+                .toList();
+    }
+
+    /**
+     * 여러 워크스페이스의 노드 간단 정보를 일괄 조회 (workspaceId별로 그룹핑)
+     * N+1 문제를 방지하기 위해 단일 쿼리로 조회
+     */
+    public Map<Long, List<NodeSimpleDto>> getSimpleNodesByWorkspaces(List<Long> workspaceIds) {
+        log.debug("Getting simple nodes for {} workspaces", workspaceIds.size());
+
+        if (workspaceIds == null || workspaceIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<MindmapNode> nodes = nodeRepository.findByWorkspaceIdIn(workspaceIds);
+
+        // workspaceId별로 그룹핑하고 DTO로 변환
+        return nodes.stream()
+                .collect(Collectors.groupingBy(
+                        MindmapNode::getWorkspaceId,
+                        Collectors.mapping(NodeSimpleDto::from, Collectors.toList())
+                ));
     }
 
     public MindmapNode getNode(Long workspaceId, Long nodeId) {
