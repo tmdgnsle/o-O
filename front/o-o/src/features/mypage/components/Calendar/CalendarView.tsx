@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { CalendarDetail } from "./CalendarDetail";
-import { DashboardTabNav } from "./DashboardTabNav";
+import { DashboardTabNav } from "../DashboardTabNav";
 import popo from "@/shared/assets/images/popo_chu.png";
-import { MarblesView } from "./MarblesView";
+import { MarblesView } from "../MarblesView";
 
 export function CalendarView() {
   const [isFullscreen, setIsFullscreen] = useState(false);

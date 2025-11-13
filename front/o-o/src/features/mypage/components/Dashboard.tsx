@@ -1,5 +1,5 @@
 import { DashboardTabNav } from "./DashboardTabNav";
-import { ProjectList } from "./ProjectList";
+import { ProjectList } from "../components/ProjectCard/ProjectList";
 // TODO: 더미데이터
 import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";

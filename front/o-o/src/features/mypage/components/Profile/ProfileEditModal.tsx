@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ProfileImage } from "./ProfileImage";
 import { ProfileForm } from "./ProfileForm";
-import { ModalHeader } from "../ModalHeader";
+import { ModalHeader } from "./ModalHeader";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updateUserProfile } from "@/store/slices/userSlice";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";

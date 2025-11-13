@@ -3,7 +3,7 @@ import background from "@/shared/assets/images/mypage_bg.png";
 import { IdeaSearchSection } from "../components/IdeaSearchSection";
 import { Dashboard } from "../components/Dashboard";
 import { useSearchParams } from "react-router-dom";
-import { CalendarView } from "../components/CalendarView";
+import { CalendarView } from "../components/Calendar/CalendarView";
 
 export function MyPage() {
   const [searchParams] = useSearchParams();
