@@ -63,6 +63,7 @@ export function useNodeOperations(params: {
     }
 
     const { x, y } = findNonOverlappingPosition(nodes, baseX, baseY);
+    console.log("[Mindmap] New node base position", { x, y });
 
     const newNode: NodeData = {
       id: Date.now().toString(),
