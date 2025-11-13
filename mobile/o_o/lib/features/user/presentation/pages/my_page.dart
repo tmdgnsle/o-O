@@ -410,18 +410,6 @@ class _MyPageState extends State<_MyPageContent> {
                   // 프로필 이미지 (API에서 받은 profileImage 사용)
                   BlocBuilder<UserBloc, UserState>(
                     builder: (context, state) {
-                      // 프로필 이미지 경로 결정
-                      String profileImagePath = 'assets/images/popo4.png'; // 기본값
-
-                      if (state is UserLoaded) {
-                        // API에서 받은 profileImage 값 (예: "popo1")을 사용
-                        final profileImage = state.user.profileImage;
-                        if (profileImage.isNotEmpty) {
-                          profileImagePath = 'assets/images/$profileImage.png';
-                          logger.d('🖼️ [MyPage] 프로필 이미지: $profileImagePath');
-                        }
-                      }
-
                       return Container(
                         width: 200,
                         height: 200,
@@ -440,18 +428,19 @@ class _MyPageState extends State<_MyPageContent> {
                         child: ClipOval(
                           child: Padding(
                             padding: const EdgeInsets.all(20.0),
-                            child: Image.asset(
-                              profileImagePath,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                // 이미지 로드 실패 시 기본 이미지 표시
-                                logger.e('❌ [MyPage] 프로필 이미지 로드 실패: $profileImagePath');
-                                return Image.asset(
-                                  'assets/images/popo4.png',
-                                  fit: BoxFit.contain,
-                                );
-                              },
-                            ),
+                            child: state is UserLoaded && state.user.profileImage.isNotEmpty
+                                ? Image.asset(
+                                    'assets/images/${state.user.profileImage}.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // 이미지 로드 실패 시 빈 상태 표시
+                                      logger.e('❌ [MyPage] 프로필 이미지 로드 실패: ${state.user.profileImage}.png');
+                                      return const SizedBox.shrink();
+                                    },
+                                  )
+                                : state is UserLoading
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : const SizedBox.shrink(), // 로딩 전이나 에러 시 빈 상태
                           ),
                         ),
                       );
