@@ -48,6 +48,7 @@ public class WorkspaceController {
     public ResponseEntity<WorkspaceResponse> create(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId) {
+        log.info("POST /workspace - Creating workspace for userId: {}", userId);
         return ResponseEntity.ok(workspaceService.create(userId));
     }
 
@@ -68,6 +69,7 @@ public class WorkspaceController {
             @Parameter(hidden = true)
             @RequestHeader(value = "X-USER-ID", required = false) Long requesterUserId
     ) {
+        log.info("GET /workspace/{} - Fetching workspace detail for workspaceId: {}, requesterUserId: {}", workspaceId, workspaceId, requesterUserId);
         return ResponseEntity.ok(workspaceService.getDetail(workspaceId, requesterUserId));
     }
 
@@ -108,6 +110,8 @@ public class WorkspaceController {
             )
             @RequestBody @Valid MemberRoleChangeRequest request
     ) {
+        log.info("PATCH /workspace/{}/member/{} - Changing member role for workspaceId: {}, targetUserId: {}, requestUserId: {}, newRole: {}",
+                workspaceId, targetUserId, workspaceId, targetUserId, requestUserId, request.role());
         WorkspaceRole newRole = WorkspaceRole.valueOf(request.role().toUpperCase());
         workspaceService.changeMemberRole(workspaceId, requestUserId, targetUserId, newRole);
         return ResponseEntity.ok().build();
@@ -127,6 +131,7 @@ public class WorkspaceController {
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId
     ) {
+        log.info("PATCH /workspace/{}/visibility - Changing visibility for workspaceId: {}", workspaceId, workspaceId);
         workspaceService.changeVisibility(workspaceId);
         return ResponseEntity.ok().build();
     }
@@ -150,6 +155,7 @@ public class WorkspaceController {
             @Parameter(description = "커서 (페이징용, 이전 응답의 nextCursor 사용)", example = "105")
             @RequestParam(required = false) Long cursor
     ) {
+        log.info("GET /workspace/my - Fetching my workspaces for userId: {}, category: {}, cursor: {}", userId, category, cursor);
         return ResponseEntity.ok(workspaceService.getMyWorkspaces(userId, category, cursor));
     }
 
@@ -170,6 +176,7 @@ public class WorkspaceController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId
     ) {
+        log.info("GET /workspace/my/recent - Fetching all my workspaces for mobile for userId: {}", userId);
         return ResponseEntity.ok(workspaceService.getAllMyWorkspacesForMobile(userId));
     }
 
@@ -196,6 +203,7 @@ public class WorkspaceController {
             @Parameter(description = "조회 종료일 (yyyy-MM-dd)", required = true, example = "2025-01-31")
             @RequestParam LocalDate to
     ) {
+        log.info("GET /workspace/my/calendar - Fetching calendar for userId: {}, from: {}, to: {}", userId, from, to);
         return ResponseEntity.ok(workspaceService.calendar(userId, from, to));
     }
 
@@ -216,6 +224,7 @@ public class WorkspaceController {
             @Parameter(hidden = true)
             @RequestHeader(value = "X-USER-ID", required = false) Long userId
     ) {
+        log.info("DELETE /workspace/{} - Deleting workspace for workspaceId: {}, userId: {}", workspaceId, workspaceId, userId);
         workspaceService.delete(workspaceId, userId);
         return ResponseEntity.noContent().build();
     }
@@ -237,6 +246,7 @@ public class WorkspaceController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId
     ) {
+        log.info("POST /workspace/join - Joining workspace with token: {}, userId: {}", token, userId);
         workspaceService.joinByToken(token, userId);
         return ResponseEntity.ok().build();
     }
@@ -280,6 +290,7 @@ public class WorkspaceController {
     public ResponseEntity<Map<String, String>> getVisibilityInternal(
             @PathVariable Long workspaceId
     ) {
+        log.info("GET /workspace/{}/visibility - Fetching visibility for workspaceId: {}", workspaceId, workspaceId);
         String visibility = workspaceService.getVisibilityOnly(workspaceId);
         return ResponseEntity.ok(Map.of("visibility", visibility));
     }

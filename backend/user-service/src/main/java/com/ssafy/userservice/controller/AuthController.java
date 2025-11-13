@@ -62,6 +62,7 @@ public class AuthController {
             @Parameter(hidden = true)
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("Client-Type") String platform) {
+        log.info("POST /auth/logout - Logging out userId: {}, platform: {}", userId, platform);
         authService.logout(userId, platform);
 
         return ResponseEntity.ok()
@@ -79,6 +80,7 @@ public class AuthController {
     @PostMapping("/app/google-login")
     public ResponseEntity<Map<String, Object>> googleLogin(@Valid @RequestBody GoogleIdTokenRequest request)
             throws GeneralSecurityException, IOException {
+        log.info("POST /auth/app/google-login - Google login attempt for platform: {}", request.platform());
         Map<String, Object> result = authService.loginWithGoogleIdToken(
                 request.idToken(),
                 request.platform()
@@ -106,6 +108,7 @@ public class AuthController {
     @SecurityRequirement(name = "")
     @PostMapping("/issue-token")
     public ResponseEntity<Map<String, String>> issueToken(@RequestParam Long userId, @RequestParam(defaultValue = "web") String platform) {
+        log.info("POST /auth/issue-token - Issuing access token for userId: {}, platform: {}", userId, platform);
         String accessToken = authService.issueAccessToken(userId, platform);
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
@@ -121,8 +124,8 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> issueWebSocketToken(
             @Parameter(hidden = true)
             @RequestHeader("X-User-Id") Long userId) {
+        log.info("POST /auth/ws-token - Issuing WebSocket token for userId: {}", userId);
         String wsToken = authService.issueWebSocketToken(userId);
-        log.info("Issued WebSocket token for userId {}: {}", userId, wsToken);
         return ResponseEntity.ok(Map.of("wsToken", wsToken));
     }
 }

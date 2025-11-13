@@ -27,7 +27,7 @@ public class UserController {
     @Operation(summary = "사용자 정보 조회", description = "현재 로그인한 사용자의 정보를 조회합니다 (Gateway에서 X-USER-ID 헤더로 userId 전달)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(examples = @ExampleObject(value = "{\"email\":\"user@example.com\",\"nickname\":\"닉네임\",\"profileImage\":\"https://...\"}"))),
+                    content = @Content(examples = @ExampleObject(value = "{\"email\":\"user@example.com\",\"nickname\":\"닉네임\",\"profileImage\":\"popo1\"}"))),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content)
     })
     @GetMapping("")
@@ -42,16 +42,16 @@ public class UserController {
     @Operation(summary = "사용자 정보 수정", description = "현재 로그인한 사용자의 정보를 수정합니다 (닉네임, 프로필 이미지 등)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공",
-                    content = @Content(examples = @ExampleObject(value = "{\"email\":\"user@example.com\",\"nickname\":\"새닉네임\",\"profileImage\":\"https://...\"}"))),
+                    content = @Content(examples = @ExampleObject(value = "{\"email\":\"user@example.com\",\"nickname\":\"새닉네임\",\"profileImage\":\"popo1\"}"))),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content),
             @ApiResponse(responseCode = "400", description = "잘못된 요청", content = @Content)
     })
-    @PutMapping("")
+    @PatchMapping("")
     public ResponseEntity<UserResponse> updateUser(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId,
             @RequestBody UserUpdateRequest request) {
-        log.info("PUT /users - Updating user information for userId: {}", userId);
+        log.info("PATCH /users - Updating user information for userId: {}", userId);
         UserResponse response = userService.updateUser(userId, request);
         return ResponseEntity.ok(response);
     }
