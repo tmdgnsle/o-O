@@ -171,14 +171,18 @@ public class WorkspaceController {
 
     @Operation(
             summary = "워크스페이스 활동 캘린더 조회",
-            description = "지정된 기간 동안 사용자가 생성한 워크스페이스를 날짜별로 조회합니다. 날짜 형식은 yyyy-MM-dd입니다."
+            description = """
+                    지정된 기간 동안 사용자가 생성한 워크스페이스 중 랜덤으로 선택하여 조회합니다.
+                    각 워크스페이스마다 랜덤으로 1~3개의 노드를 포함하며, 총 최대 10개의 노드를 반환합니다.
+                    날짜 형식은 yyyy-MM-dd입니다.
+                    """
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "400", content = @Content, description = "잘못된 날짜 형식 또는 범위")
     })
     @GetMapping("my/calendar")
-    public ResponseEntity<List<WorkspaceCalendarDailyResponse>> calendar(
+    public ResponseEntity<List<WorkspaceCalendarItemResponse>> calendar(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId,
 

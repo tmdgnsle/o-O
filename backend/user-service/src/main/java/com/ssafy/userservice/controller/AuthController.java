@@ -122,6 +122,7 @@ public class AuthController {
             @Parameter(hidden = true)
             @RequestHeader("X-User-Id") Long userId) {
         String wsToken = authService.issueWebSocketToken(userId);
+        log.info("Issued WebSocket token for userId {}: {}", userId, wsToken);
         return ResponseEntity.ok(Map.of("wsToken", wsToken));
     }
 }
