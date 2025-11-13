@@ -8,5 +8,6 @@ export interface Project {
   title: string;
   date: string;
   isPrivate: boolean;
+  thumbnail: string;
   collaborators: Collaborator[];
 }

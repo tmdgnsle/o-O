@@ -61,6 +61,7 @@ export function Dashboard({ workspaces, isLoading, error }: DashboardProps) {
     title: workspace.title,
     date: new Date(workspace.createdAt).toLocaleDateString("ko-KR"),
     isPrivate: workspace.visibility === "PRIVATE",
+    thumbnail: workspace.thumbnail,
     collaborators: currentUser.user?.nickname // 현재 유저를 협업자로 추가
       ? [
           {

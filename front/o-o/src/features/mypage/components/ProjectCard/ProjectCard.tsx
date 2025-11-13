@@ -1,5 +1,5 @@
 import { Avatar } from "@/components/ui/avatar";
-import Mindmap from "@/shared/assets/images/mindmap.png";
+import Mindmap from "@/shared/assets/images/basic_bg.png";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { AvatarImage } from "@radix-ui/react-avatar";
@@ -55,7 +55,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       {/* 마인드맵 사진 */}
       <div className="relative h-[210px] bg-gray-50 rounded-t-2xl overflow-hidden">
         <img
-          src={Mindmap}
+          src={project.thumbnail || Mindmap}
           alt="mindmap"
           className="w-full h-full object-cover"
         ></img>
