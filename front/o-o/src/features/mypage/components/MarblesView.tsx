@@ -1,7 +1,6 @@
 import Marble from "@/shared/assets/images/marble.png";
 import { useMarbleLayout } from "../hooks/custom/useMarbleLayout";
 import { useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { getFontSize } from "@/shared/utils/fontSizeUtil";
 
 interface MarblesViewProps {
@@ -10,7 +9,6 @@ interface MarblesViewProps {
 
 export function MarblesView({ keywords }: MarblesViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   const keywordStrings = useMemo(
     () => keywords.map((k) => k.keyword),
@@ -22,7 +20,7 @@ export function MarblesView({ keywords }: MarblesViewProps) {
   if (keywords.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 px-4">
-        <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-center">
+        <p className="text-base text-[14px] sm:text-[19px] md:text-xl lg:text-2xl font-semibold text-center">
           아이디어를 기록한 날짜를 선택하면 키워드 구슬이 랜덤으로 표시됩니다.
         </p>
       </div>
@@ -33,19 +31,13 @@ export function MarblesView({ keywords }: MarblesViewProps) {
     <div ref={containerRef} className="relative w-full h-full">
       {marbles.map((m, index) => {
         const fontSize = getFontSize(m.radius, m.text.length);
-        const mindmapId = keywords[index]?.mindmapId;
 
         return (
           <button
             type="button"
             key={m.id}
-            onClick={() => {
-              if (mindmapId) {
-                navigate(`/project/${mindmapId}`);
-              }
-            }}
-            className="absolute transition-all duration-300 hover:scale-110 hover:z-10 cursor-pointer 
-                       sm:hover:scale-105 md:hover:scale-110"
+            className="absolute transition-all duration-300 hover:z-5 cursor-pointer 
+                       hover:scale-110 sm:hover:scale-105 md:hover:scale-110"
             style={{
               left: m.x,
               top: m.y,

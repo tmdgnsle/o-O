@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { CalendarView } from "../components/Calendar/CalendarView";
 import { useMypage } from "../hooks/useMypage";
 import { useEffect } from "react";
+import { useFullscreen } from "@/shared/hooks/useFullscreen";
 
 export function MyPage() {
   const [searchParams] = useSearchParams();
@@ -12,6 +13,7 @@ export function MyPage() {
   const tab = searchParams.get("tab") || "recently-viewed";
 
   const { workspaces, isLoading, error, fetchWorkspacesList } = useMypage();
+  const isFullscreen = useFullscreen();
 
   useEffect(() => {
     // tab 값에 따라 category 매핑
@@ -30,22 +32,25 @@ export function MyPage() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      className="w-screen h-screen flex flex-col bg-cover bg-center bg-no-repeat overflow-hidden"
       style={{ backgroundImage: `url(${background})` }}
     >
-      <div className="-mb-5 lg:-mb-8">
+      <div className="-mb-2 lg:-mb-5 ">
         <Header />
       </div>
 
-      {view === "dashboard" ? (
-        <Dashboard
-          workspaces={workspaces}
-          isLoading={isLoading}
-          error={error}
-        />
-      ) : (
-        <CalendarView />
-      )}
+      <div className="flex justify-center items-start flex-1">
+        {view === "dashboard" ? (
+          <Dashboard
+            workspaces={workspaces}
+            isLoading={isLoading}
+            error={error}
+            isFullscreen={isFullscreen}
+          />
+        ) : (
+          <CalendarView isFullscreen={isFullscreen} />
+        )}
+      </div>
     </div>
   );
 }

@@ -1,34 +1,21 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDetail } from "./CalendarDetail";
 import { DashboardTabNav } from "../DashboardTabNav";
 import popo from "@/shared/assets/images/popo_chu.png";
 import { MarblesView } from "../MarblesView";
 
-export function CalendarView() {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+interface CalenderViewProps {
+  readonly isFullscreen?: boolean;
+}
+
+export function CalendarView({ isFullscreen = false }: CalenderViewProps) {
   const [selectedDateKeywords, setSelectedDateKeywords] = useState<
     Array<{ keyword: string; mindmapId: string }>
   >([]);
-
-  useEffect(() => {
-    const checkFullscreen = () => {
-      // window.innerHeight와 screen.height가 거의 같으면 전체화면
-      // 오차범위 50px 정도 허용
-      const heightDiff = Math.abs(window.innerHeight - window.screen.height);
-      const widthDiff = Math.abs(window.innerWidth - window.screen.width);
-
-      setIsFullscreen(heightDiff < 50 && widthDiff < 50);
-    };
-
-    checkFullscreen();
-
-    // 윈도우 크기 변경 감지
-    window.addEventListener("resize", checkFullscreen);
-
-    return () => {
-      window.removeEventListener("resize", checkFullscreen);
-    };
-  }, []);
+  console.log("전체화면 감지: ", isFullscreen);
+  const containerStyle = isFullscreen
+    ? "w-[95vw] h-[82vh] pt-1 bg-white/60 rounded-3xl"
+    : "w-[93vw] h-[88vh] sm:h-[83vh] lg:h-[78vh] bg-white/60 rounded-3xl";
 
   const handleDateClick = (
     keywords: Array<{ keyword: string; mindmapId: string }>
@@ -38,26 +25,34 @@ export function CalendarView() {
 
   return (
     <div
-      className="mx-4 sm:mx-8 lg:mx-12 px-4 sm:px-5 lg:px-7 mt-5 bg-white/60 rounded-3xl relative 
-                    h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] lg:h-[calc(100vh-212px)]"
+      className={`${containerStyle} bg-white/60 rounded-3xl relative flex flex-col`}
     >
+      {" "}
       <div className="absolute z-10 right-3 top-3 sm:right-5 sm:top-5">
         <DashboardTabNav />
       </div>
-
-      <div className="flex flex-col lg:flex-row justify-between h-full lg:gap-4 gap-0 py-2 lg:py-0">
+      <div className="flex flex-col sm:flex-row justify-between h-full py-2 lg:py-0">
         {/* lg (1024px) 이상에서만 flex-row */}
 
         {/* 왼쪽: 캘린더 영역 */}
-        <div className="lg:flex-[0_0_auto] w-full lg:w-auto relative flex justify-center lg:justify-start flex-shrink-0">
-          <CalendarDetail onDateClick={handleDateClick} />
-          {isFullscreen && (
+        <div className="w-auto relative flex justify-start flex-shrink-0">
+          <CalendarDetail
+            onDateClick={handleDateClick}
+            isFullscreen={isFullscreen}
+          />
+          {isFullscreen ? (
             <img
               src={popo}
               alt="popo character"
-              className="absolute bottom-0 left-0 hidden lg:block"
+              className="absolute bottom-0 left-0 h-[360px] hidden sm:block"
+            />
+          ) : (
+            <img
+              src={popo}
+              alt="popo character"
+              className="absolute bottom-0 left-3 hidden sm:block"
               style={{
-                width: "clamp(220px, 30vw, 350px)",
+                width: "clamp(25px, 100vw, 250px)",
                 height: "auto",
               }}
             />
@@ -65,7 +60,7 @@ export function CalendarView() {
         </div>
 
         {/* 오른쪽: Marbles 영역 */}
-        <div className="flex-1 overflow-hidden min-h-[200px] lg:min-h-0">
+        <div className="flex-1 overflow-hidden">
           <MarblesView keywords={selectedDateKeywords} />
         </div>
       </div>

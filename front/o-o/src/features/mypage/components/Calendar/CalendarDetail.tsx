@@ -5,9 +5,13 @@ interface CalendarDetailProps {
   readonly onDateClick?: (
     keywords: Array<{ keyword: string; mindmapId: string }>
   ) => void;
+  readonly isFullscreen: boolean;
 }
 
-export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
+export function CalendarDetail({
+  onDateClick,
+  isFullscreen,
+}: CalendarDetailProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
   const today = new Date();
@@ -115,7 +119,16 @@ export function CalendarDetail({ onDateClick }: CalendarDetailProps) {
       month.getMonth() >= today.getMonth());
 
   return (
-    <div className="scale-[0.7] sm:scale-80 md:scale-90 xl:scale-100 origin-top -mb-14 lg:mb-0">
+    <div
+      className={`
+        ${
+          isFullscreen
+            ? "scale-110 pl-8 w-[40vh]"
+            : "scale-[0.7] md:scale-[0.8] xl:scale-[0.9] -mt-2 md:-mt-0 w-[30vh] sm:w-[35vh] md:w-[40vh] lg:w-[45vh] h-[40vh]"
+        } 
+            origin-top-left pl-3
+        `}
+    >
       <Calendar
         mode="single"
         selected={date}

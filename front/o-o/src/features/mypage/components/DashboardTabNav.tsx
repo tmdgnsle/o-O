@@ -34,16 +34,26 @@ export function DashboardTabNav() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2 sm:px-2">
+    <div
+      className="
+        flex items-center justify-between 
+        md:px-2
+      "
+    >
       {view === "dashboard" && (
         <div className="flex gap-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`pb-2 font-medium transition-colors relative text-black ${
-                activeTab === tab.id ? "font-semibold" : "hover:text-primary"
-              }`}
+              className={`
+                pb-2 transition-colors relative  
+                text-[10px] sm:text-sm md:text-[16px]
+                ${
+                  activeTab === tab.id
+                    ? "font-semibold text-black"
+                    : "hover:text-primary font-medium"
+                }`}
             >
               {tab.label}
             </button>
@@ -55,9 +65,17 @@ export function DashboardTabNav() {
 
       <button onClick={toggleView} className={"p-2 rounded-lg"}>
         {view === "calendar" ? (
-          <img src={Dashboard} alt="dashboard" className="w-8 h-8" />
+          <img
+            src={Dashboard}
+            alt="dashboard"
+            className="w-4 h-4 sm:w-8 sm:h-8"
+          />
         ) : (
-          <img src={Calendar} alt="calendar" className="h-8 w-8" />
+          <img
+            src={Calendar}
+            alt="calendar"
+            className="w-4 h-4 sm:w-8 sm:h-8 hover:z-100"
+          />
         )}
       </button>
     </div>
