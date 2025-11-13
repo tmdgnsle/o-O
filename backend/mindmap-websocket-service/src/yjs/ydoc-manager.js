@@ -34,9 +34,11 @@ class YDocManager {
    * @returns {Y.Doc} Y.js 문서 객체
    */
   getDoc(workspaceId) {
+    logger.debug(`[YDocManager] getDoc called for workspace ${workspaceId}`);
+
     // 이미 존재하는 문서가 없으면 새로 생성
     if (!this.docs.has(workspaceId)) {
-      logger.info(`Creating new Y.Doc for workspace ${workspaceId}`);
+      logger.info(`[YDocManager] Creating new Y.Doc for workspace ${workspaceId}`);
       const ydoc = new Y.Doc();  // 새 Y.js 문서 생성
 
       // 가비지 컬렉션 활성화 (선택사항)
@@ -44,6 +46,7 @@ class YDocManager {
       // gc=false: 모든 히스토리 보관 (undo/redo 가능하지만 메모리 많이 사용)
       if (process.env.YDOC_GC_ENABLED === 'true') {
         ydoc.gc = true;
+        logger.debug(`[YDocManager] GC enabled for workspace ${workspaceId}`);
       }
 
       // 문서 변경 감지 설정 (노드 추가/수정/삭제 감지)
@@ -52,6 +55,9 @@ class YDocManager {
       // Map에 저장
       this.docs.set(workspaceId, ydoc);
       this.pendingChanges.set(workspaceId, []);  // 빈 변경사항 배열 초기화
+      logger.info(`[YDocManager] Y.Doc created and stored for workspace ${workspaceId}`);
+    } else {
+      logger.debug(`[YDocManager] Returning existing Y.Doc for workspace ${workspaceId}`);
     }
 
     return this.docs.get(workspaceId);
@@ -62,6 +68,8 @@ class YDocManager {
    * 노드 추가/수정/삭제를 실시간으로 감지하여 Kafka로 전송할 준비
    */
   setupChangeObserver(workspaceId, ydoc) {
+    logger.debug(`[YDocManager] Setting up change observer for workspace ${workspaceId}`);
+
     // Y.Doc에서 'nodes'라는 이름의 Map 가져오기
     // Map 구조: { nodeId1: {data...}, nodeId2: {data...}, ... }
     const nodesMap = ydoc.getMap('nodes');
@@ -82,6 +90,7 @@ class YDocManager {
             ...nodeData,  // 노드의 모든 데이터 (keyword, memo, x, y, color 등)
             timestamp: new Date().toISOString(),  // 변경 시각
           });
+          logger.debug(`[YDocManager] ${change.action.toUpperCase()} detected: node ${key} in workspace ${workspaceId}`);
         }
         // 노드가 삭제된 경우
         else if (change.action === 'delete') {
@@ -91,15 +100,18 @@ class YDocManager {
             workspaceId: workspaceId,
             timestamp: new Date().toISOString(),
           });
+          logger.debug(`[YDocManager] DELETE detected: node ${key} in workspace ${workspaceId}`);
         }
       });
 
       // 변경사항이 있으면 pending 큐에 추가 (나중에 배치로 Kafka 전송)
       if (changes.length > 0) {
         this.addPendingChanges(workspaceId, changes);
-        logger.debug(`Detected ${changes.length} changes in workspace ${workspaceId}`);
+        logger.info(`[YDocManager] Detected ${changes.length} changes in workspace ${workspaceId}`);
       }
     });
+
+    logger.debug(`[YDocManager] Change observer setup complete for workspace ${workspaceId}`);
   }
 
   /**
@@ -107,20 +119,24 @@ class YDocManager {
    * 즉시 전송하지 않고 모아서 배치로 처리 (성능 최적화)
    */
   addPendingChanges(workspaceId, changes) {
+    logger.debug(`[YDocManager] Adding ${changes.length} pending changes for workspace ${workspaceId}`);
+
     // 해당 워크스페이스의 pending 배열이 없으면 생성
     if (!this.pendingChanges.has(workspaceId)) {
       this.pendingChanges.set(workspaceId, []);
+      logger.debug(`[YDocManager] Created new pending changes array for workspace ${workspaceId}`);
     }
 
     const pending = this.pendingChanges.get(workspaceId);
     pending.push(...changes);  // 배열에 변경사항들 추가
+    logger.info(`[YDocManager] Total pending changes for workspace ${workspaceId}: ${pending.length}`);
 
     // Threshold 체크: 10개 이상 쌓이면 즉시 전송
     // 동적 import로 순환 참조 방지
     import('../kafka/producer.js').then(({ kafkaProducer }) => {
       kafkaProducer.checkThreshold(workspaceId);
     }).catch(error => {
-      logger.error('Failed to check Kafka threshold', { error: error.message });
+      logger.error('[YDocManager] Failed to check Kafka threshold', { error: error.message });
     });
   }
 
@@ -130,7 +146,11 @@ class YDocManager {
    */
   flushPendingChanges(workspaceId) {
     const changes = this.pendingChanges.get(workspaceId) || [];
+    logger.debug(`[YDocManager] Flushing ${changes.length} pending changes for workspace ${workspaceId}`);
     this.pendingChanges.set(workspaceId, []);  // 비우기 (다음 배치를 위해)
+    if (changes.length > 0) {
+      logger.info(`[YDocManager] Flushed ${changes.length} changes for workspace ${workspaceId}`);
+    }
     return changes;
   }
 
@@ -145,6 +165,7 @@ class YDocManager {
         workspaces.push(workspaceId);
       }
     }
+    logger.debug(`[YDocManager] Found ${workspaces.length} workspaces with pending changes`);
     return workspaces;
   }
 
@@ -162,13 +183,16 @@ class YDocManager {
    * 다시 접속하면 클라이언트가 HTTP로 데이터 로드 후 재초기화
    */
   destroyDoc(workspaceId) {
+    logger.debug(`[YDocManager] Attempting to destroy Y.Doc for workspace ${workspaceId}`);
     if (this.docs.has(workspaceId)) {
       const ydoc = this.docs.get(workspaceId);
       ydoc.destroy();  // Y.Doc 메모리 해제
       this.docs.delete(workspaceId);
       this.pendingChanges.delete(workspaceId);
       this.changeListeners.delete(workspaceId);
-      logger.info(`Destroyed Y.Doc for workspace ${workspaceId}`);
+      logger.info(`[YDocManager] Destroyed Y.Doc for workspace ${workspaceId}`);
+    } else {
+      logger.debug(`[YDocManager] No Y.Doc found to destroy for workspace ${workspaceId}`);
     }
   }
 

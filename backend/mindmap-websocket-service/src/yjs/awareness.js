@@ -30,8 +30,10 @@ class AwarenessManager {
    * @returns {Awareness} Awareness 인스턴스
    */
   getAwareness(workspaceId, ydoc) {
+    logger.debug(`[AwarenessManager] getAwareness called for workspace ${workspaceId}`);
+
     if (!this.awarenessInstances.has(workspaceId)) {
-      logger.info(`Creating new Awareness for workspace ${workspaceId}`);
+      logger.info(`[AwarenessManager] Creating new Awareness for workspace ${workspaceId}`);
       const awareness = new Awareness(ydoc);  // Y.Doc과 연결된 Awareness 생성
 
       // Awareness 변경 감지 이벤트 리스너 등록
@@ -41,6 +43,9 @@ class AwarenessManager {
       });
 
       this.awarenessInstances.set(workspaceId, awareness);
+      logger.info(`[AwarenessManager] Awareness created for workspace ${workspaceId}`);
+    } else {
+      logger.debug(`[AwarenessManager] Returning existing Awareness for workspace ${workspaceId}`);
     }
 
     return this.awarenessInstances.get(workspaceId);
@@ -53,6 +58,8 @@ class AwarenessManager {
    * @param {Awareness} awareness - Awareness 인스턴스
    */
   handleAwarenessChange(workspaceId, { added, updated, removed }, awareness) {
+    logger.debug(`[AwarenessManager] Awareness change in workspace ${workspaceId}: +${added.length} ~${updated.length} -${removed.length}`);
+
     // 추가, 업데이트, 제거된 모든 클라이언트 ID를 하나의 배열로 합침
     const changes = [...added, ...updated, ...removed];
 
@@ -63,7 +70,7 @@ class AwarenessManager {
       if (clientState) {
         // 커서 위치가 변경된 경우 로그 출력
         if (clientState.cursor) {
-          logger.debug(`Workspace ${workspaceId} - Client ${clientId} cursor:`, {
+          logger.debug(`[AwarenessManager] Workspace ${workspaceId} - Client ${clientId} cursor:`, {
             x: clientState.cursor.x,  // 캔버스 X 좌표
             y: clientState.cursor.y,  // 캔버스 Y 좌표
           });
@@ -71,7 +78,7 @@ class AwarenessManager {
 
         // 임시 채팅 메시지가 있는 경우 로그 출력
         if (clientState.tempChat) {
-          logger.debug(`Workspace ${workspaceId} - Client ${clientId} chat:`, {
+          logger.info(`[AwarenessManager] Workspace ${workspaceId} - Client ${clientId} chat:`, {
             message: clientState.tempChat.message,      // 채팅 내용
             position: clientState.tempChat.position,    // 채팅이 표시될 위치
           });
@@ -79,7 +86,7 @@ class AwarenessManager {
 
         // 사용자 정보가 업데이트된 경우 로그 출력
         if (clientState.user) {
-          logger.debug(`Workspace ${workspaceId} - Client ${clientId} user:`, {
+          logger.info(`[AwarenessManager] Workspace ${workspaceId} - Client ${clientId} user:`, {
             name: clientState.user.name,    // 사용자 이름
             color: clientState.user.color,  // 커서/하이라이트 색상
           });
@@ -87,9 +94,14 @@ class AwarenessManager {
       }
     });
 
+    // 새로 추가된 클라이언트
+    if (added.length > 0) {
+      logger.info(`[AwarenessManager] Workspace ${workspaceId} - ${added.length} client(s) connected`);
+    }
+
     // 연결 해제된 클라이언트가 있으면 로그 출력
     if (removed.length > 0) {
-      logger.info(`Workspace ${workspaceId} - ${removed.length} client(s) disconnected`);
+      logger.info(`[AwarenessManager] Workspace ${workspaceId} - ${removed.length} client(s) disconnected`);
     }
   }
 
@@ -104,7 +116,9 @@ class AwarenessManager {
     if (awareness) {
       // Awareness의 'cursor' 필드 업데이트 -> 다른 클라이언트들에게 자동 전파됨
       awareness.setLocalStateField('cursor', cursor);
-      logger.debug(`Client ${clientId} cursor updated in workspace ${workspaceId}`, cursor);
+      logger.debug(`[AwarenessManager] Client ${clientId} cursor updated in workspace ${workspaceId}`, cursor);
+    } else {
+      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
     }
   }
 
@@ -119,7 +133,9 @@ class AwarenessManager {
     if (awareness) {
       // 'tempChat' 필드 설정 -> 다른 사용자들에게 말풍선으로 표시됨
       awareness.setLocalStateField('tempChat', tempChat);
-      logger.debug(`Client ${clientId} temp chat in workspace ${workspaceId}`, tempChat);
+      logger.info(`[AwarenessManager] Client ${clientId} temp chat in workspace ${workspaceId}`, tempChat);
+    } else {
+      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
     }
   }
 
@@ -129,10 +145,14 @@ class AwarenessManager {
    * @param {string|number} workspaceId - 워크스페이스 ID
    */
   clearTempChat(clientId, workspaceId) {
+    logger.debug(`[AwarenessManager] Clearing temp chat for client ${clientId} in workspace ${workspaceId}`);
     const awareness = this.awarenessInstances.get(workspaceId);
     if (awareness) {
       // tempChat을 null로 설정하여 제거
       awareness.setLocalStateField('tempChat', null);
+      logger.info(`[AwarenessManager] Temp chat cleared for client ${clientId} in workspace ${workspaceId}`);
+    } else {
+      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
     }
   }
 
@@ -147,10 +167,12 @@ class AwarenessManager {
     if (awareness) {
       // 'user' 필드 설정 -> 다른 사용자들에게 "누가 접속했는지" 표시됨
       awareness.setLocalStateField('user', user);
-      logger.info(`Client ${clientId} user info set in workspace ${workspaceId}`, {
+      logger.info(`[AwarenessManager] Client ${clientId} user info set in workspace ${workspaceId}`, {
         userId: user.id,
         name: user.name,
       });
+    } else {
+      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
     }
   }
 
@@ -182,10 +204,13 @@ class AwarenessManager {
    * @param {string|number} workspaceId
    */
   removeClient(clientId, workspaceId) {
+    logger.debug(`[AwarenessManager] Removing client ${clientId} from workspace ${workspaceId}`);
     const awareness = this.awarenessInstances.get(workspaceId);
     if (awareness) {
       awareness.setLocalState(null);
-      logger.info(`Client ${clientId} removed from workspace ${workspaceId}`);
+      logger.info(`[AwarenessManager] Client ${clientId} removed from workspace ${workspaceId}`);
+    } else {
+      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
     }
   }
 
@@ -194,11 +219,14 @@ class AwarenessManager {
    * @param {string|number} workspaceId
    */
   destroyAwareness(workspaceId) {
+    logger.debug(`[AwarenessManager] Attempting to destroy Awareness for workspace ${workspaceId}`);
     if (this.awarenessInstances.has(workspaceId)) {
       const awareness = this.awarenessInstances.get(workspaceId);
       awareness.destroy();
       this.awarenessInstances.delete(workspaceId);
-      logger.info(`Destroyed Awareness for workspace ${workspaceId}`);
+      logger.info(`[AwarenessManager] Destroyed Awareness for workspace ${workspaceId}`);
+    } else {
+      logger.debug(`[AwarenessManager] No Awareness found to destroy for workspace ${workspaceId}`);
     }
   }
 
