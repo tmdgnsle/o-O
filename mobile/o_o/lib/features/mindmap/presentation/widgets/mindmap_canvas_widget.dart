@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/mindmap.dart';
+import '../../domain/entities/mindmap_node.dart';
 import 'mindmap_edge_painter.dart';
 import 'mindmap_node_widget.dart';
 
 /// 마인드맵 캔버스 위젯
 ///
 /// 마인드맵의 노드와 엣지를 모두 렌더링합니다.
-class MindmapCanvasWidget extends StatelessWidget {
+class MindmapCanvasWidget extends StatefulWidget {
   final Mindmap mindmap;
 
   const MindmapCanvasWidget({
@@ -15,9 +16,28 @@ class MindmapCanvasWidget extends StatelessWidget {
   });
 
   @override
+  State<MindmapCanvasWidget> createState() => _MindmapCanvasWidgetState();
+}
+
+class _MindmapCanvasWidgetState extends State<MindmapCanvasWidget> {
+  /// 현재 확장된 노드 ID (확장된 노드를 최상위에 배치하기 위해)
+  String? _expandedNodeId;
+
+  @override
   Widget build(BuildContext context) {
     // 캔버스 크기를 계산
     final canvasSize = _calculateCanvasSize(context);
+
+    // 확장되지 않은 노드들
+    final normalNodes = widget.mindmap.nodes.where((node) => node.id != _expandedNodeId).toList();
+
+    // 확장된 노드 (있는 경우)
+    final expandedNode = _expandedNodeId != null
+        ? widget.mindmap.nodes.firstWhere(
+            (node) => node.id == _expandedNodeId,
+            orElse: () => widget.mindmap.nodes.first,
+          )
+        : null;
 
     return SizedBox(
       width: canvasSize.width,
@@ -27,18 +47,37 @@ class MindmapCanvasWidget extends StatelessWidget {
           // 엣지(연결선) 그리기
           CustomPaint(
             size: canvasSize,
-            painter: MindmapEdgePainter(mindmap: mindmap),
+            painter: MindmapEdgePainter(mindmap: widget.mindmap),
           ),
-          // 노드들 배치
-          ...mindmap.nodes.map(
+          // 일반 노드들 배치
+          ...normalNodes.map(
             (node) => MindmapNodeWidget(
+              key: ValueKey(node.id),
               node: node,
               onTap: () {
-                // TODO: 노드 클릭 이벤트 처리
                 debugPrint('Node tapped: ${node.text}');
+              },
+              onExpansionChanged: (isExpanded) {
+                setState(() {
+                  _expandedNodeId = isExpanded ? node.id : null;
+                });
               },
             ),
           ),
+          // 확장된 노드를 맨 위에 배치
+          if (expandedNode != null)
+            MindmapNodeWidget(
+              key: ValueKey(expandedNode.id),
+              node: expandedNode,
+              onTap: () {
+                debugPrint('Node tapped: ${expandedNode.text}');
+              },
+              onExpansionChanged: (isExpanded) {
+                setState(() {
+                  _expandedNodeId = isExpanded ? expandedNode.id : null;
+                });
+              },
+            ),
         ],
       ),
     );
@@ -46,7 +85,7 @@ class MindmapCanvasWidget extends StatelessWidget {
 
   /// 캔버스 크기 계산
   Size _calculateCanvasSize(BuildContext context) {
-    if (mindmap.nodes.isEmpty) {
+    if (widget.mindmap.nodes.isEmpty) {
       return const Size(10000, 10000);
     }
 
@@ -56,7 +95,7 @@ class MindmapCanvasWidget extends StatelessWidget {
     double maxX = double.negativeInfinity;
     double maxY = double.negativeInfinity;
 
-    for (final node in mindmap.nodes) {
+    for (final node in widget.mindmap.nodes) {
       final nodeLeft = node.position.dx - node.width / 2;
       final nodeTop = node.position.dy - node.height / 2;
       final nodeRight = node.position.dx + node.width / 2;

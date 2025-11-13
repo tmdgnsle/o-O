@@ -9,8 +9,14 @@ import '../../domain/entities/mindmap_node.dart';
 class MindmapNodeWidget extends StatefulWidget {
   final MindmapNode node;
   final VoidCallback? onTap;
+  final ValueChanged<bool>? onExpansionChanged;
 
-  const MindmapNodeWidget({super.key, required this.node, this.onTap});
+  const MindmapNodeWidget({
+    super.key,
+    required this.node,
+    this.onTap,
+    this.onExpansionChanged,
+  });
 
   @override
   State<MindmapNodeWidget> createState() => _MindmapNodeWidgetState();
@@ -57,6 +63,8 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     setState(() {
       _isExpanded = !_isExpanded;
     });
+    // 부모 위젯에 확장 상태 변경 알림
+    widget.onExpansionChanged?.call(_isExpanded);
   }
 
   @override
