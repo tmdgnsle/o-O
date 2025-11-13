@@ -16,7 +16,9 @@
  * - Kafka: 변경사항 메시지 큐 (다른 서비스로 전달)
  *
  * 연결 방법:
- * ws://localhost:3000/ws?workspace=123
+ * - 직접 연결: ws://localhost:3000/mindmap/ws?workspace=123
+ * - Gateway 경유: ws://gateway:8080/mindmap/ws?workspace=123&token=xxx
+ *   (Gateway가 JWT 검증 후 X-Workspace-ID, X-USER-ID 헤더로 전달)
  */
 
 import 'dotenv/config';  // .env 파일에서 환경변수 로드
@@ -32,7 +34,7 @@ import { kafkaProducer } from './kafka/producer.js';
 import { kafkaConsumer } from './kafka/consumer.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;  // 기본 포트 3000
+const PORT = process.env.PORT || 8084;  // 기본 포트 8084
 
 // ===== HTTP 엔드포인트 =====
 
@@ -81,10 +83,10 @@ const server = http.createServer(app);
 // WebSocket 서버 생성 (HTTP 서버에 연결)
 const wss = new WebSocketServer({
   server,       // HTTP 서버에 WebSocket 서버 연결
-  path: '/ws',  // WebSocket 엔드포인트 경로
+  path: '/mindmap/ws',  // WebSocket 엔드포인트 경로
 });
 
-logger.info('WebSocket server created on path /ws');
+logger.info('WebSocket server created on path mindmap/ws');
 
 /**
  * ============================================
@@ -92,18 +94,27 @@ logger.info('WebSocket server created on path /ws');
  * ============================================
  *
  * 클라이언트가 WebSocket으로 접속할 때마다 실행됨
- * URL 형식: ws://localhost:3000/ws?workspace=123
+ * URL 형식:
+ * - 직접: ws://localhost:3000/mindmap/ws?workspace=123
+ * - Gateway: ws://gateway:8080/mindmap/ws?workspace=123&token=xxx
  *
  * 처리 흐름:
- * 1. workspace ID 추출 및 검증
- * 2. Y.Doc, Awareness 인스턴스 가져오기 (없으면 생성)
- * 3. Y.js WebSocket 연결 설정
- * 4. 이벤트 리스너 등록 (close, error, message)
+ * 1. workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback) 및 검증
+ * 2. user ID 추출 (Gateway에서 JWT 검증 후 헤더로 전달)
+ * 3. Y.Doc, Awareness 인스턴스 가져오기 (없으면 생성)
+ * 4. Y.js WebSocket 연결 설정
+ * 5. 이벤트 리스너 등록 (close, error, message)
  */
 wss.on('connection', (conn, req) => {
   // URL에서 쿼리 파라미터 파싱
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const workspaceId = url.searchParams.get('workspace');  // workspace ID 추출
+
+  // workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback)
+  // Gateway를 통해 들어오면 X-Workspace-ID 헤더로 전달됨
+  const workspaceId = req.headers['x-workspace-id'] || url.searchParams.get('workspace');
+
+  // user ID 추출 (Gateway의 JWT 검증 결과)
+  const userId = req.headers['x-user-id'];
 
   // workspace ID가 없으면 연결 거부
   if (!workspaceId) {
@@ -112,7 +123,10 @@ wss.on('connection', (conn, req) => {
     return;
   }
 
-  logger.info(`New connection to workspace ${workspaceId}`);
+  logger.info(`New connection to workspace ${workspaceId}`, {
+    userId: userId || 'anonymous',
+    source: req.headers['x-workspace-id'] ? 'gateway-header' : 'query-param'
+  });
 
   // 해당 워크스페이스의 Y.Doc 가져오기 또는 생성
   // Y.Doc: 실제 마인드맵 데이터를 저장하는 CRDT 문서
@@ -188,6 +202,7 @@ wss.on('connection', (conn, req) => {
     type: 'connection',
     status: 'connected',
     workspaceId,
+    userId: userId || null,
     connectionId,
     timestamp: new Date().toISOString(),
   }));
@@ -277,7 +292,7 @@ async function startServer() {
     // 4. HTTP/WebSocket 서버 시작
     server.listen(PORT, () => {
       logger.info(`🚀 Mindmap WebSocket Server running on port ${PORT}`);
-      logger.info(`WebSocket endpoint: ws://localhost:${PORT}/ws?workspace=<workspace_id>`);
+      logger.info(`WebSocket endpoint: ws://localhost:${PORT}/mindmap/ws?workspace=<workspace_id>`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
       logger.info(`Stats: http://localhost:${PORT}/stats`);
       logger.info('');
