@@ -66,8 +66,8 @@ public class TrendDbRepository {
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (d, parent_kw, child_kw)
             DO UPDATE SET
-                add_cnt = trend_edge_daily.add_cnt + EXCLUDED.add_cnt,
-                view_cnt = trend_edge_daily.view_cnt + EXCLUDED.view_cnt,
+                add_cnt = EXCLUDED.add_cnt,
+                view_cnt = EXCLUDED.view_cnt,
                 updated_at = CURRENT_TIMESTAMP
         """;
 

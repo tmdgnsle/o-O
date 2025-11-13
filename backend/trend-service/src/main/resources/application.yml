@@ -91,3 +91,7 @@ logging:
 server:
   port: 8085
   shutdown: graceful
+
+mindmap:
+  service:
+    url: http://mindmap-svc:8082
