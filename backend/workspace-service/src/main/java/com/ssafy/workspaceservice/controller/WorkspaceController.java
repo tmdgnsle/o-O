@@ -318,6 +318,6 @@ public class WorkspaceController {
     ) {
         log.info("GET /workspace/my/activity - Fetching activity keywords for userId: {}, date: {}", userId, date);
         List<String> keywords = workspaceService.getActivityKeywords(userId, date);
-        return ResponseEntity.ok(WorkspaceActivityKeywordsResponse.of(date.toString(), keywords));
+        return ResponseEntity.ok(WorkspaceActivityKeywordsResponse.of(keywords));
     }
 }
