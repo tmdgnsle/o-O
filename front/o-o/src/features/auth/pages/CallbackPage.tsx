@@ -66,7 +66,7 @@ export function CallbackPage() {
           console.error("⚙️ 요청 설정 중 오류:", error.message);
         }
 
-        // navigate("/", { replace: true });
+        navigate("/", { replace: true });
       } finally {
         setIsLoading(false);
       }

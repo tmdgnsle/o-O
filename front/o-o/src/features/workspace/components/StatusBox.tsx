@@ -22,6 +22,7 @@ import popo4 from "@/shared/assets/images/popo4.png";
 import { useShareLink } from "../hooks/custom/useShareLink";
 import { useCollaborators, type Collaborator, type Permission } from "../hooks/custom/useCollaborators";
 import { useAccessType } from "../hooks/custom/useAccessType";
+import { useWindowWidth } from "@/shared/hooks/useWindowWidth";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
@@ -47,24 +48,41 @@ export default function StatusBox({ onStartVoiceChat, shareLink }: Readonly <Sta
   // 현재 접속 중인 사용자들
   const activeUsers = collaborators;
 
+  const windowWidth = useWindowWidth();
+
+  // 반응형 아바타 개수 제한
+  const getVisibleUsers = () => {
+    if (windowWidth < 640) return activeUsers.slice(0, 2); // mobile: 2개
+    if (windowWidth < 1024) return activeUsers.slice(0, 3); // tablet: 3개
+    return activeUsers; // desktop: 전체
+  };
+
+  const visibleUsers = getVisibleUsers();
+  const remainingCount = activeUsers.length - visibleUsers.length;
+
   return (
     <div>
       <Popover>
         {/* 기본 상태: 프로필 이미지들 + 공유하기 버튼 */}
-        <div className="flex items-center gap-2 bg-white rounded-lg shadow-lg px-4 py-2">
+        <div className="flex items-center gap-1 md:gap-2 bg-white rounded-lg shadow-lg px-1.5 py-1 md:px-4 md:py-2">
           {/* 접속 중인 사용자 아바타 */}
           <div className="flex -space-x-2">
-            {activeUsers.map((user) => (
-              <Avatar key={user.id} className="w-10 h-10 border-2 border-white">
+            {visibleUsers.map((user) => (
+              <Avatar key={user.id} className="w-7 h-7 md:w-10 md:h-10 border-2 border-white">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback>{user.name[0]}</AvatarFallback>
               </Avatar>
             ))}
+            {remainingCount > 0 && (
+              <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center">
+                <span className="text-[10px] md:text-xs font-semibold text-gray-600">+{remainingCount}</span>
+              </div>
+            )}
           </div>
 
           {/* 공유하기 버튼 */}
           <PopoverTrigger asChild>
-            <Button>
+            <Button className="text-xs md:text-sm px-2 py-1.5 md:px-4 md:py-2">
               공유하기
             </Button>
           </PopoverTrigger>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import * as Y from "yjs";
 import { fetchMindmapNodes } from "@/services/mindmapService";
 import { useYMapState } from "./useYMapState";
-import type { NodeData } from "../types";
+import type { NodeData } from "../../../mindmap/types";
 import type { YClient } from "./yjsClient";
 
 /**

@@ -9,7 +9,7 @@ const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => setupWSConnection(ws, req));
 
-const PORT = 1234;
+const PORT = 8080;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ y-websocket dev server running on ws://localhost:${PORT}`);
 });

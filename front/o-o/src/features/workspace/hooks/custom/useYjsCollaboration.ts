@@ -4,7 +4,7 @@ import type { Core } from "cytoscape";
 import { createYClient, type YClient } from "./yjsClient";
 import { createYMapCrud, type YMapCrud } from "./yMapCrud";
 import { NODES_YMAP_KEY } from "@/constants/mindmapCollaboration";
-import type { NodeData } from "../types";
+import type { NodeData } from "../../../mindmap/types";
 
 /**
  * Yjs 협업 로직을 관리하는 커스텀 훅
