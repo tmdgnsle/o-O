@@ -41,7 +41,6 @@ export function MyPage() {
 
       {view === "dashboard" ? (
         <Dashboard
-          activeTab={tab}
           workspaces={workspaces}
           isLoading={isLoading}
           error={error}
