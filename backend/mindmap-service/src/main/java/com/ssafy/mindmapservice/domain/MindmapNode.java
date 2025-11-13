@@ -50,7 +50,7 @@ public class MindmapNode {
 
     /**
      * 노드 타입
-     * 예: "text", "image", "video", "root", "branch", "leaf"
+     * 예: "text", "image", "video"
      */
     private String type;
 

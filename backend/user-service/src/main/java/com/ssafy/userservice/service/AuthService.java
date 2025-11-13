@@ -7,6 +7,7 @@ import com.ssafy.userservice.domain.TokenCategory;
 import com.ssafy.userservice.exception.InvalidTokenException;
 import com.ssafy.userservice.exception.TokenExpiredException;
 import com.ssafy.userservice.exception.TokenNotFoundException;
+import com.ssafy.userservice.exception.UserNotFoundException;
 import com.ssafy.userservice.security.JwtUtil;
 import com.ssafy.userservice.repository.UserRepository;
 import com.ssafy.userservice.util.GoogleTokenVerifier;
@@ -181,5 +182,20 @@ public class AuthService {
 
         // Access Token만 생성
         return jwtUtil.generateToken(TokenCategory.ACCESS, userId, role, platformEnum, accessTokenExpiration);
+    }
+
+    @Transactional(readOnly = true)
+    public String issueWebSocketToken(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID is required");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        String role = user.getRole().name();
+
+        Long wsTokenExpiration = 60000L; // 1분 = 60,000ms
+        return jwtUtil.generateToken(TokenCategory.WEBSOCKET, userId, role, Platform.WEB, wsTokenExpiration);
     }
 }

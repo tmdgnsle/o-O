@@ -109,4 +109,19 @@ public class AuthController {
         String accessToken = authService.issueAccessToken(userId, platform);
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
+
+    @Operation(summary = "웹소켓 토큰 발급", description = "웹소켓 연결용 단기 토큰을 발급합니다 (유효시간 1분)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "웹소켓 토큰 발급 성공",
+                    content = @Content(examples = @ExampleObject(value = "{\"wsToken\": \"eyJhbGci...\"}"))),
+            @ApiResponse(responseCode = "401", description = "인증 실패", content = @Content),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음", content = @Content)
+    })
+    @PostMapping("/ws-token")
+    public ResponseEntity<Map<String, String>> issueWebSocketToken(
+            @Parameter(hidden = true)
+            @RequestHeader("X-User-Id") Long userId) {
+        String wsToken = authService.issueWebSocketToken(userId);
+        return ResponseEntity.ok(Map.of("wsToken", wsToken));
+    }
 }
