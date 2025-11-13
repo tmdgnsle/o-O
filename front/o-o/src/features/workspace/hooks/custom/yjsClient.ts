@@ -5,6 +5,7 @@ export type YClient = {
   doc: Y.Doc;
   provider: WebsocketProvider;
   workspaceId: string;
+  wsToken: string;
   connect: () => void;
   disconnect: () => void;
   destroy: () => void;
@@ -14,22 +15,45 @@ export type YClient = {
  * Creates a Yjs document + y-websocket provider pair that automatically
  * establishes a connection (unless disabled) and exposes helpers for lifecycle
  * control.
+ *
+ * @param wsUrl - WebSocket server URL (e.g., "wss://api.o-o.io.kr/mindmap/ws")
+ * @param workspaceId - Workspace identifier
+ * @param wsToken - WebSocket authentication token (1-minute validity)
+ * @param options - Optional connection settings
+ * @returns YClient instance with provider and lifecycle methods
  */
 export const createYClient = (
   wsUrl: string,
   workspaceId: string,
+  wsToken: string,
   options?: { connect?: boolean }
 ): YClient => {
   if (!wsUrl) throw new Error("wsUrl missing");
   if (!workspaceId) throw new Error("workspaceId missing");
+  if (!wsToken) throw new Error("wsToken missing");
   const doc = new Y.Doc();
 
-  // Build WebSocket URL with workspace query parameter
-  const wsUrlWithParams = `${wsUrl}?workspace=${encodeURIComponent(workspaceId)}`;
+  // Extract numeric ID if workspaceId has "mindmap:" prefix
+  // Example: "mindmap:3" -> "3"
+  const cleanWorkspaceId = workspaceId.replace(/^mindmap:/, "");
 
-  // Use empty string as room name since workspace is in query params
-  const provider = new WebsocketProvider(wsUrlWithParams, "", doc, {
+  // Debug logging
+  console.log("🔧 [createYClient] Debug info:", {
+    originalWorkspaceId: workspaceId,
+    cleanWorkspaceId,
+    wsUrl,
+    tokenLength: wsToken.length,
+    tokenPrefix: wsToken.substring(0, 20) + "...",
+  });
+
+  // Use empty string as room name and pass workspace/token via params option
+  // This prevents WebsocketProvider from corrupting the URL by appending "/" after query params
+  const provider = new WebsocketProvider(wsUrl, "", doc, {
     connect: options?.connect ?? true,
+    params: {
+      workspace: cleanWorkspaceId,
+      token: wsToken,
+    },
   });
 
   provider.on("status", (event: { status: "connected" | "disconnected" | "connecting" }) => {
@@ -57,6 +81,7 @@ export const createYClient = (
     doc,
     provider,
     workspaceId,
+    wsToken,
     connect,
     disconnect,
     destroy,

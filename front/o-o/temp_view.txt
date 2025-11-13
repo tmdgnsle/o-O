@@ -68,7 +68,7 @@ const MindmapPageContent: React.FC = () => {
   // 5c. Handle connection error - redirect to home
   useEffect(() => {
     if (connectionError) {
-      console.error("❌ WebSocket connection failed, redirecting to home");
+      console.error("??WebSocket connection failed, redirecting to home");
       navigate("/");
     }
   }, [connectionError, navigate]);
@@ -104,9 +104,9 @@ const MindmapPageContent: React.FC = () => {
 
   // 10. Voice chat users (mock data)
   const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "사용자 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "사용자 B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
+    { id: "1", name: "?�용??A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
+    { id: "2", name: "?�용??B", avatar: popo2, colorIndex: 1 },
+    { id: "3", name: "?�용??C", avatar: popo3, colorIndex: 2 },
   ], []);
 
   // 10b. Track cursor position for chat input (model coordinates only)
@@ -132,7 +132,7 @@ const MindmapPageContent: React.FC = () => {
   if (!collab || !crud || isBootstrapping) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        워크스페이스를 로딩 중입니다...
+        ?�크?�페?�스�?로딩 중입?�다...
       </div>
     );
   }
@@ -243,7 +243,7 @@ const MindmapPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        워크스페이스 접근 권한을 확인하는 중...
+        ?�크?�페?�스 ?�근 권한???�인?�는 �?..
       </div>
     );
   }
