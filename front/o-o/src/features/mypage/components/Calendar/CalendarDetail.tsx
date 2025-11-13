@@ -1,58 +1,29 @@
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
+import type { NodeListResponseArray } from "../../types/mypage";
 
 interface CalendarDetailProps {
   readonly onDateClick?: (
     keywords: Array<{ keyword: string; mindmapId: string }>
   ) => void;
   readonly isFullscreen: boolean;
+  readonly calendarNodes: NodeListResponseArray;
 }
 
 export function CalendarDetail({
   onDateClick,
   isFullscreen,
+  calendarNodes,
 }: CalendarDetailProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
   const today = new Date();
 
-  // 날짜별 키워드 데이터 (실제로는 API에서 가져올 데이터)
+  // calendarNodes에서 날짜별 키워드 객체 생성
   const dateKeywords: Record<
     string,
     Array<{ keyword: string; mindmapId: string }>
-  > = {
-    "2025-11-05": [
-      { keyword: "운동", mindmapId: "1" },
-      { keyword: "독서", mindmapId: "2" },
-      { keyword: "공부", mindmapId: "3" },
-      { keyword: "밥", mindmapId: "4" },
-      { keyword: "삶", mindmapId: "5" },
-      { keyword: "코끼리", mindmapId: "6" },
-      { keyword: "침팬지", mindmapId: "7" },
-      { keyword: "알고리즘", mindmapId: "8" },
-      { keyword: "박소영", mindmapId: "1" },
-      { keyword: "시니어", mindmapId: "2" },
-      { keyword: "개발자", mindmapId: "3" },
-      { keyword: "디자이너", mindmapId: "4" },
-      { keyword: "엄마", mindmapId: "5" },
-      { keyword: "할머니", mindmapId: "6" },
-      { keyword: "농사", mindmapId: "7" },
-      { keyword: "아.", mindmapId: "8" },
-    ],
-    "2025-10-10": [
-      { keyword: "회의", mindmapId: "1" },
-      { keyword: "프로젝트", mindmapId: "2" },
-      { keyword: "발표", mindmapId: "3" },
-    ],
-    "2025-10-15": [
-      { keyword: "휴식", mindmapId: "4" },
-      { keyword: "영화감상", mindmapId: "5" },
-    ],
-    "2025-10-20": [
-      { keyword: "코딩", mindmapId: "6" },
-      { keyword: "리뷰", mindmapId: "7" },
-    ],
-  };
+  > = {};
 
   // 컴포넌트 마운트 시 오늘 날짜의 키워드 자동 로드
   useEffect(() => {

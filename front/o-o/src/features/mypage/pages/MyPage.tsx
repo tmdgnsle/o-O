@@ -12,7 +12,15 @@ export function MyPage() {
   const view = searchParams.get("view") || "dashboard";
   const tab = searchParams.get("tab") || "recently-viewed";
 
-  const { workspaces, isLoading, error, fetchWorkspacesList } = useMypage();
+  const {
+    workspaces,
+    isLoading,
+    error,
+    fetchWorkspacesList,
+    fetchCalendarNodesList,
+    calendarNodes,
+    calendarIsLoading,
+  } = useMypage();
   const isFullscreen = useFullscreen();
 
   useEffect(() => {
@@ -29,6 +37,13 @@ export function MyPage() {
 
     fetchWorkspacesList({ category });
   }, [tab, fetchWorkspacesList]); // tab이 바뀔 때마다 다시 호출
+
+  // 캘린더 데이터 조회
+  useEffect(() => {
+    if (view === "calendar") {
+      fetchCalendarNodesList();
+    }
+  }, [view, fetchCalendarNodesList]);
 
   return (
     <div
@@ -48,7 +63,11 @@ export function MyPage() {
             isFullscreen={isFullscreen}
           />
         ) : (
-          <CalendarView isFullscreen={isFullscreen} />
+          <CalendarView
+            calendarNodes={calendarNodes}
+            isLoading={calendarIsLoading}
+            isFullscreen={isFullscreen}
+          />
         )}
       </div>
     </div>

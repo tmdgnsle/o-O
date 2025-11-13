@@ -12,10 +12,19 @@ export const injectStore = (_store: any) => {
   store = _store;
 };
 
-// axios 인스턴스 생성
+// axios 인스턴스 생성 (인터셉터 없음 - reissue 요청용)
+const axiosPlain = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// axios 인스턴스 생성 (인터셉터 있음)
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true, // 쿠키(refreshToken) 자동 전송 (브라우저가 쿠키를 자동으로 붙여서 서버로 전달)
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -28,7 +37,7 @@ apiClient.interceptors.request.use(
       const token = store.getState().auth.accessToken;
 
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`; // API 호출할 때 자동으로 헤더에 token 넣어놓도록 처리
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
 
@@ -54,11 +63,12 @@ apiClient.interceptors.response.use(
         );
 
         // refreshToken(쿠키)으로 새 accessToken 받기
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/reissue`,
-          {},
-          { withCredentials: true }
-        );
+        const { data } = await axiosPlain.post("/auth/reissue", {});
+
+        // accessToken이 없으면 에러 throw
+        if (!data?.accessToken) {
+          throw new Error("reissue 응답으로 data (AccessToken)이 안 왔음!!");
+        }
 
         console.log("✅ Reissue 성공:", data);
 
@@ -81,7 +91,8 @@ apiClient.interceptors.response.use(
           store.dispatch(clearAuth());
           store.dispatch(clearUser());
         }
-        // globalThis.location.href = "/";
+
+        globalThis.location.href = "/";
         return Promise.reject(refreshError);
       }
     }

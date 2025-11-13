@@ -3,15 +3,23 @@ import { CalendarDetail } from "./CalendarDetail";
 import { DashboardTabNav } from "../DashboardTabNav";
 import popo from "@/shared/assets/images/popo_chu.png";
 import { MarblesView } from "../MarblesView";
+import type { NodeListResponseArray } from "../../types/mypage";
 
 interface CalenderViewProps {
   readonly isFullscreen?: boolean;
+  readonly calendarNodes: NodeListResponseArray;
+  readonly isLoading: boolean;
 }
 
-export function CalendarView({ isFullscreen = false }: CalenderViewProps) {
+export function CalendarView({
+  isFullscreen = false,
+  calendarNodes,
+  isLoading,
+}: CalenderViewProps) {
   const [selectedDateKeywords, setSelectedDateKeywords] = useState<
     Array<{ keyword: string; mindmapId: string }>
   >([]);
+
   console.log("전체화면 감지: ", isFullscreen);
   const containerStyle = isFullscreen
     ? "w-[95vw] h-[82vh] pt-1 bg-white/60 rounded-3xl"
@@ -22,6 +30,17 @@ export function CalendarView({ isFullscreen = false }: CalenderViewProps) {
   ) => {
     setSelectedDateKeywords(keywords);
   };
+
+  // 로딩 중일 때 UI 처리
+  if (isLoading) {
+    return (
+      <div className={`${containerStyle} flex items-center justify-center`}>
+        <div className="text-center">
+          <p className="text-gray-500">캘린더 데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -37,9 +56,11 @@ export function CalendarView({ isFullscreen = false }: CalenderViewProps) {
         {/* 왼쪽: 캘린더 영역 */}
         <div className="w-auto relative flex justify-start flex-shrink-0">
           <CalendarDetail
+            calendarNodes={calendarNodes}
             onDateClick={handleDateClick}
             isFullscreen={isFullscreen}
           />
+
           {isFullscreen ? (
             <img
               src={popo}

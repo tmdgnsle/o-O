@@ -4,8 +4,15 @@ import {
   fetchWorkspaces,
   loadMoreWorkspaces,
 } from "@/store/slices/mypageSlice";
-import type { WorkspaceQueryParams } from "@/features/mypage/types/mypage";
-import { DEFAULT_WORKSPACE_PARAMS } from "@/features/mypage/types/mypage";
+import type {
+  NodeQueryParams,
+  WorkspaceQueryParams,
+} from "@/features/mypage/types/mypage";
+import {
+  DEFAULT_NODE_PARAMS,
+  DEFAULT_WORKSPACE_PARAMS,
+} from "@/features/mypage/types/mypage";
+import { fetchCalendarNodes } from "@/store/slices/calendarSlice";
 
 interface UseMypageReturn {
   workspaces: any[];
@@ -15,6 +22,10 @@ interface UseMypageReturn {
   error: string | null;
   fetchWorkspacesList: (params?: WorkspaceQueryParams) => void;
   loadMore: () => void;
+  calendarNodes: any[];
+  calendarIsLoading: boolean;
+  calendarError: string | null;
+  fetchCalendarNodesList: (params?: NodeQueryParams) => void;
 }
 
 export const useMypage = (): UseMypageReturn => {
@@ -24,6 +35,12 @@ export const useMypage = (): UseMypageReturn => {
   const { workspaces, hasNext, nextCursor, isLoading, error } = useAppSelector(
     (state) => state.mypage
   );
+
+  const {
+    calendarNodes,
+    isLoading: calendarIsLoading,
+    error: calendarError,
+  } = useAppSelector((state) => state.calendar);
 
   // 워크스페이스 목록 조회
   const fetchWorkspacesList = useCallback(
@@ -45,6 +62,14 @@ export const useMypage = (): UseMypageReturn => {
     dispatch(loadMoreWorkspaces(nextParams));
   }, [dispatch, hasNext, isLoading, nextCursor]);
 
+  // 달력 키워드 조회
+  const fetchCalendarNodesList = useCallback(
+    (params: NodeQueryParams = DEFAULT_NODE_PARAMS) => {
+      dispatch(fetchCalendarNodes(params));
+    },
+    [dispatch]
+  );
+
   return {
     workspaces,
     hasNext,
@@ -53,5 +78,9 @@ export const useMypage = (): UseMypageReturn => {
     error,
     fetchWorkspacesList,
     loadMore,
+    calendarNodes,
+    calendarIsLoading,
+    calendarError,
+    fetchCalendarNodesList,
   };
 };
