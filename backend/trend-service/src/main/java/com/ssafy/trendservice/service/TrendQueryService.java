@@ -171,6 +171,40 @@ public class TrendQueryService {
             merged.putIfAbsent(k, 0.0);
         }
 
+        if (!merged.isEmpty()) {
+            // 들어온 keyword와 "정확히 같은" 키워드가 merged 안에 있는지 확인
+            // 대소문자 무시하고 싶으면 equalsIgnoreCase 사용
+            var exactOpt = merged.entrySet().stream()
+                    .filter(e -> e.getKey().equalsIgnoreCase(keyword))
+                    .findFirst();
+
+            if (exactOpt.isPresent()) {
+                var entry = exactOpt.get();
+                String exactKey = entry.getKey();
+                double scoreDouble = entry.getValue() != null ? entry.getValue() : 0.0;
+                long score = (long) scoreDouble;
+
+                // 뷰 카운트는 이 키워드 하나만 +1
+                LocalDateTime now = LocalDateTime.now();
+                long ttl = 86400L * 7;
+                redisRepository.incrementViewCount(
+                        "__view__",
+                        exactKey,
+                        now,
+                        ttl
+                );
+
+                // 이 키워드 하나만 결과로 반환
+                TrendItem item = TrendItem.builder()
+                        .keyword(exactKey)
+                        .score(score)
+                        .rank(1)
+                        .build();
+
+                return buildResponse(period, null, List.of(item));
+            }
+        }
+
         // 4) VIEW 포인트 증가
         //  - 네가 말한대로:
         //    - LIKE 결과 있으면: 그 결과들만 +1
