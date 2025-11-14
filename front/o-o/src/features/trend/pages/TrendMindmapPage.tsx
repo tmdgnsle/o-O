@@ -1,5 +1,5 @@
 // pages/TrendMindmapPage.tsx
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTrend } from "../hooks/useTrend";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
@@ -10,6 +10,9 @@ import type { TrendKeywordItem } from "../types/trend";
 
 export function TrendMindmapPage() {
   const { trendId } = useParams<{ trendId: string }>();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const { childKeywords, keywordsLoading, keywordsError, fetchChildTrendList } =
     useTrend();
   const [showExpandKeywords, setShowExpandKeywords] = useState(false);
@@ -17,12 +20,25 @@ export function TrendMindmapPage() {
     []
   );
 
+  // 방문 경로 저장 (예: ["알고리즘", "파이썬", "머신러닝"])
+  const [visitPath, setVisitPath] = useState<string[]>([]);
+
   useEffect(() => {
     if (trendId) {
       const decodedKeyword = decodeURIComponent(trendId);
       fetchChildTrendList(decodedKeyword);
+
+      // 새로운 키워드를 클릭한 경우 또는 처음 페이지 진입 시
+      // location.state에서 경로 정보를 가져오거나 새로 시작
+      if (location.state?.parentPath) {
+        // 이전 경로에 현재 키워드 추가
+        setVisitPath([...location.state.parentPath, decodedKeyword]);
+      } else {
+        // 새로운 경로 시작
+        setVisitPath([decodedKeyword]);
+      }
     }
-  }, [trendId, fetchChildTrendList]);
+  }, [trendId, fetchChildTrendList, location.state]);
 
   const parentKeyword = trendId ? decodeURIComponent(trendId) : "";
 
@@ -31,11 +47,26 @@ export function TrendMindmapPage() {
     setShowExpandKeywords((prev) => !prev);
   };
 
+  // 자식 노드 클릭 핸들러
+  const handleNodeClick = (keyword: string) => {
+    // 새로운 경로 정보와 함께 네비게이트
+    navigate(`/trend/${encodeURIComponent(keyword)}`, {
+      state: {
+        parentPath: visitPath, // 현재까지의 방문 경로 전달
+      },
+    });
+  };
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-gray-50">
       {/* 플로팅 헤더 */}
       <div className="fixed top-10 left-10 right-10 z-50">
         <TrendMindmapHeader />
+      </div>
+
+      {/* 경로 표시 (디버깅용, 필요시 제거) */}
+      <div className="fixed top-24 left-10 z-40 bg-white p-2 rounded shadow text-sm">
+        <p className="text-gray-600">경로: {visitPath.join(" > ")}</p>
       </div>
 
       {/* 마인드맵 - 전체 화면 */}
@@ -61,6 +92,7 @@ export function TrendMindmapPage() {
             parentKeyword={parentKeyword}
             childKeywords={childKeywords}
             onMoreClick={handleMoreClick}
+            onNodeClick={handleNodeClick}
           />
         )}
       </div>

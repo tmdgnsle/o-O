@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import * as d3 from "d3";
 import type { TrendKeywordItem } from "../../types/trend";
 import {
@@ -12,6 +11,7 @@ interface D3MindmapProps {
   readonly parentKeyword: string;
   readonly childKeywords: TrendKeywordItem[];
   readonly onMoreClick: (remainingKeywords: TrendKeywordItem[]) => void;
+  readonly onNodeClick: (keyword: string) => void;
 }
 
 interface Node extends d3.SimulationNodeDatum {
@@ -31,11 +31,12 @@ export function D3Mindmap({
   parentKeyword,
   childKeywords,
   onMoreClick,
+  onNodeClick,
 }: D3MindmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const navigate = useNavigate();
   const onMoreClickRef = useRef(onMoreClick);
+  const onNodeClickRef = useRef(onNodeClick);
 
   // 전체화면 감지
   const isFullscreen = useFullscreen();
@@ -50,6 +51,11 @@ export function D3Mindmap({
   useEffect(() => {
     onMoreClickRef.current = onMoreClick;
   }, [onMoreClick]);
+
+  // onNodeClick이 변경되면 ref 업데이트
+  useEffect(() => {
+    onNodeClickRef.current = onNodeClick;
+  }, [onNodeClick]);
 
   // 상위 7개만 마인드맵에 표시
   const displayKeywords = useMemo(() => {
@@ -73,6 +79,18 @@ export function D3Mindmap({
       resizeObserver.disconnect();
     };
   }, []);
+
+  // 더보기 버튼 stroke만 업데이트 (D3 재렌더링 없이)
+  useEffect(() => {
+    if (!svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    svg
+      .selectAll("g > circle:last-of-type")
+      .filter((d: any) => d.isMoreButton)
+      .attr("stroke", isMoreButtonClicked ? "#6B7280" : "none")
+      .attr("stroke-width", isMoreButtonClicked ? 3 : 0);
+  }, [isMoreButtonClicked]);
 
   // D3 렌더링 (containerSize와 isFullscreen을 의존성에 추가)
   useEffect(() => {
@@ -185,14 +203,14 @@ export function D3Mindmap({
       defs,
       "gradient-parent",
       getNodeColorByRank(undefined, true),
-      { inner: 0.9, middle: 0.7, outer: 0.4 }
+      { inner: 0.9, middle: 0.4, outer: 0 }
     );
 
     // 더보기 버튼 그라데이션
     createSVGRadialGradient(defs, "gradient-more", "#E5E5E5", {
       inner: 0.9,
-      middle: 0.7,
-      outer: 0.4,
+      middle: 0.4,
+      outer: 0,
     });
 
     // 자식 노드 그라데이션들
@@ -200,7 +218,8 @@ export function D3Mindmap({
       createSVGRadialGradient(
         defs,
         `gradient-${index}`,
-        getNodeColorByRank(child.rank)
+        getNodeColorByRank(child.rank),
+        { inner: 0.9, middle: 0.4, outer: 0 }
       );
     });
 
@@ -267,7 +286,7 @@ export function D3Mindmap({
       .style("filter", "blur(12px)");
 
     // 메인 원
-    node
+    const mainCircles = node
       .append("circle")
       .attr("r", (d) => getNodeSize(d) / 2)
       .attr("fill", (d, i) =>
@@ -277,13 +296,8 @@ export function D3Mindmap({
             ? "url(#gradient-more)"
             : `url(#gradient-${i - 2})`
       )
-      .attr("stroke", (d) =>
-        d.isMoreButton && isMoreButtonClicked ? "#6B7280" : "none"
-      )
-      .attr("stroke-width", (d) =>
-        d.isMoreButton && isMoreButtonClicked ? 3 : 0
-      )
-
+      .attr("stroke", "none")
+      .attr("stroke-width", 0)
       .style("filter", (d, i) =>
         d.isParent
           ? "url(#shadow-parent)"
@@ -320,9 +334,12 @@ export function D3Mindmap({
           return;
         }
 
-        const keyword = d.label;
-        console.log("Clicked keyword:", keyword);
-        navigate(`/trend/${encodeURIComponent(keyword)}`);
+        // 일반 노드 클릭 - 부모 노드는 클릭 안 함
+        if (!d.isParent) {
+          const keyword = d.label;
+          console.log("Clicked keyword:", keyword);
+          onNodeClickRef.current(keyword);
+        }
       });
 
     // 텍스트 추가
@@ -389,14 +406,7 @@ export function D3Mindmap({
     return () => {
       simulation.stop();
     };
-  }, [
-    parentKeyword,
-    displayKeywords,
-    navigate,
-    containerSize,
-    isFullscreen,
-    isMoreButtonClicked,
-  ]);
+  }, [parentKeyword, displayKeywords, containerSize, isFullscreen]);
 
   return (
     <div ref={containerRef} className="w-full h-full">
