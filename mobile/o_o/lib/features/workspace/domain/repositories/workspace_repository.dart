@@ -9,9 +9,8 @@ abstract class WorkspaceRepository {
   /// Get workspaces with pagination
   Future<Either<Failure, WorkspaceResponse>> getWorkspaces({int? cursor});
 
-  /// Get workspace calendar (날짜별 워크스페이스 활동)
-  Future<Either<Failure, List<WorkspaceCalendarEntity>>> getCalendar({
-    required String from,
-    required String to,
+  /// Get daily activity keywords (일일 활동 키워드)
+  Future<Either<Failure, WorkspaceCalendarEntity>> getDailyActivity({
+    required String date,
   });
 }

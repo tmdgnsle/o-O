@@ -15,199 +15,6 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-WorkspaceCalendarItemModel _$WorkspaceCalendarItemModelFromJson(
-  Map<String, dynamic> json,
-) {
-  return _WorkspaceCalendarItemModel.fromJson(json);
-}
-
-/// @nodoc
-mixin _$WorkspaceCalendarItemModel {
-  int get workspaceId => throw _privateConstructorUsedError;
-  String get title => throw _privateConstructorUsedError;
-
-  /// Serializes this WorkspaceCalendarItemModel to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of WorkspaceCalendarItemModel
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $WorkspaceCalendarItemModelCopyWith<WorkspaceCalendarItemModel>
-  get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $WorkspaceCalendarItemModelCopyWith<$Res> {
-  factory $WorkspaceCalendarItemModelCopyWith(
-    WorkspaceCalendarItemModel value,
-    $Res Function(WorkspaceCalendarItemModel) then,
-  ) =
-      _$WorkspaceCalendarItemModelCopyWithImpl<
-        $Res,
-        WorkspaceCalendarItemModel
-      >;
-  @useResult
-  $Res call({int workspaceId, String title});
-}
-
-/// @nodoc
-class _$WorkspaceCalendarItemModelCopyWithImpl<
-  $Res,
-  $Val extends WorkspaceCalendarItemModel
->
-    implements $WorkspaceCalendarItemModelCopyWith<$Res> {
-  _$WorkspaceCalendarItemModelCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of WorkspaceCalendarItemModel
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? workspaceId = null, Object? title = null}) {
-    return _then(
-      _value.copyWith(
-            workspaceId:
-                null == workspaceId
-                    ? _value.workspaceId
-                    : workspaceId // ignore: cast_nullable_to_non_nullable
-                        as int,
-            title:
-                null == title
-                    ? _value.title
-                    : title // ignore: cast_nullable_to_non_nullable
-                        as String,
-          )
-          as $Val,
-    );
-  }
-}
-
-/// @nodoc
-abstract class _$$WorkspaceCalendarItemModelImplCopyWith<$Res>
-    implements $WorkspaceCalendarItemModelCopyWith<$Res> {
-  factory _$$WorkspaceCalendarItemModelImplCopyWith(
-    _$WorkspaceCalendarItemModelImpl value,
-    $Res Function(_$WorkspaceCalendarItemModelImpl) then,
-  ) = __$$WorkspaceCalendarItemModelImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int workspaceId, String title});
-}
-
-/// @nodoc
-class __$$WorkspaceCalendarItemModelImplCopyWithImpl<$Res>
-    extends
-        _$WorkspaceCalendarItemModelCopyWithImpl<
-          $Res,
-          _$WorkspaceCalendarItemModelImpl
-        >
-    implements _$$WorkspaceCalendarItemModelImplCopyWith<$Res> {
-  __$$WorkspaceCalendarItemModelImplCopyWithImpl(
-    _$WorkspaceCalendarItemModelImpl _value,
-    $Res Function(_$WorkspaceCalendarItemModelImpl) _then,
-  ) : super(_value, _then);
-
-  /// Create a copy of WorkspaceCalendarItemModel
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? workspaceId = null, Object? title = null}) {
-    return _then(
-      _$WorkspaceCalendarItemModelImpl(
-        workspaceId:
-            null == workspaceId
-                ? _value.workspaceId
-                : workspaceId // ignore: cast_nullable_to_non_nullable
-                    as int,
-        title:
-            null == title
-                ? _value.title
-                : title // ignore: cast_nullable_to_non_nullable
-                    as String,
-      ),
-    );
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$WorkspaceCalendarItemModelImpl extends _WorkspaceCalendarItemModel {
-  const _$WorkspaceCalendarItemModelImpl({
-    required this.workspaceId,
-    required this.title,
-  }) : super._();
-
-  factory _$WorkspaceCalendarItemModelImpl.fromJson(
-    Map<String, dynamic> json,
-  ) => _$$WorkspaceCalendarItemModelImplFromJson(json);
-
-  @override
-  final int workspaceId;
-  @override
-  final String title;
-
-  @override
-  String toString() {
-    return 'WorkspaceCalendarItemModel(workspaceId: $workspaceId, title: $title)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WorkspaceCalendarItemModelImpl &&
-            (identical(other.workspaceId, workspaceId) ||
-                other.workspaceId == workspaceId) &&
-            (identical(other.title, title) || other.title == title));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, workspaceId, title);
-
-  /// Create a copy of WorkspaceCalendarItemModel
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$WorkspaceCalendarItemModelImplCopyWith<_$WorkspaceCalendarItemModelImpl>
-  get copyWith => __$$WorkspaceCalendarItemModelImplCopyWithImpl<
-    _$WorkspaceCalendarItemModelImpl
-  >(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$WorkspaceCalendarItemModelImplToJson(this);
-  }
-}
-
-abstract class _WorkspaceCalendarItemModel extends WorkspaceCalendarItemModel {
-  const factory _WorkspaceCalendarItemModel({
-    required final int workspaceId,
-    required final String title,
-  }) = _$WorkspaceCalendarItemModelImpl;
-  const _WorkspaceCalendarItemModel._() : super._();
-
-  factory _WorkspaceCalendarItemModel.fromJson(Map<String, dynamic> json) =
-      _$WorkspaceCalendarItemModelImpl.fromJson;
-
-  @override
-  int get workspaceId;
-  @override
-  String get title;
-
-  /// Create a copy of WorkspaceCalendarItemModel
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WorkspaceCalendarItemModelImplCopyWith<_$WorkspaceCalendarItemModelImpl>
-  get copyWith => throw _privateConstructorUsedError;
-}
-
 WorkspaceCalendarModel _$WorkspaceCalendarModelFromJson(
   Map<String, dynamic> json,
 ) {
@@ -216,9 +23,7 @@ WorkspaceCalendarModel _$WorkspaceCalendarModelFromJson(
 
 /// @nodoc
 mixin _$WorkspaceCalendarModel {
-  String get date => throw _privateConstructorUsedError;
-  List<WorkspaceCalendarItemModel> get workspaces =>
-      throw _privateConstructorUsedError;
+  List<String> get keywords => throw _privateConstructorUsedError;
 
   /// Serializes this WorkspaceCalendarModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -237,7 +42,7 @@ abstract class $WorkspaceCalendarModelCopyWith<$Res> {
     $Res Function(WorkspaceCalendarModel) then,
   ) = _$WorkspaceCalendarModelCopyWithImpl<$Res, WorkspaceCalendarModel>;
   @useResult
-  $Res call({String date, List<WorkspaceCalendarItemModel> workspaces});
+  $Res call({List<String> keywords});
 }
 
 /// @nodoc
@@ -257,19 +62,14 @@ class _$WorkspaceCalendarModelCopyWithImpl<
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? date = null, Object? workspaces = null}) {
+  $Res call({Object? keywords = null}) {
     return _then(
       _value.copyWith(
-            date:
-                null == date
-                    ? _value.date
-                    : date // ignore: cast_nullable_to_non_nullable
-                        as String,
-            workspaces:
-                null == workspaces
-                    ? _value.workspaces
-                    : workspaces // ignore: cast_nullable_to_non_nullable
-                        as List<WorkspaceCalendarItemModel>,
+            keywords:
+                null == keywords
+                    ? _value.keywords
+                    : keywords // ignore: cast_nullable_to_non_nullable
+                        as List<String>,
           )
           as $Val,
     );
@@ -285,7 +85,7 @@ abstract class _$$WorkspaceCalendarModelImplCopyWith<$Res>
   ) = __$$WorkspaceCalendarModelImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String date, List<WorkspaceCalendarItemModel> workspaces});
+  $Res call({List<String> keywords});
 }
 
 /// @nodoc
@@ -302,19 +102,14 @@ class __$$WorkspaceCalendarModelImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? date = null, Object? workspaces = null}) {
+  $Res call({Object? keywords = null}) {
     return _then(
       _$WorkspaceCalendarModelImpl(
-        date:
-            null == date
-                ? _value.date
-                : date // ignore: cast_nullable_to_non_nullable
-                    as String,
-        workspaces:
-            null == workspaces
-                ? _value._workspaces
-                : workspaces // ignore: cast_nullable_to_non_nullable
-                    as List<WorkspaceCalendarItemModel>,
+        keywords:
+            null == keywords
+                ? _value._keywords
+                : keywords // ignore: cast_nullable_to_non_nullable
+                    as List<String>,
       ),
     );
   }
@@ -323,28 +118,24 @@ class __$$WorkspaceCalendarModelImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$WorkspaceCalendarModelImpl extends _WorkspaceCalendarModel {
-  const _$WorkspaceCalendarModelImpl({
-    required this.date,
-    required final List<WorkspaceCalendarItemModel> workspaces,
-  }) : _workspaces = workspaces,
-       super._();
+  const _$WorkspaceCalendarModelImpl({required final List<String> keywords})
+    : _keywords = keywords,
+      super._();
 
   factory _$WorkspaceCalendarModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$WorkspaceCalendarModelImplFromJson(json);
 
+  final List<String> _keywords;
   @override
-  final String date;
-  final List<WorkspaceCalendarItemModel> _workspaces;
-  @override
-  List<WorkspaceCalendarItemModel> get workspaces {
-    if (_workspaces is EqualUnmodifiableListView) return _workspaces;
+  List<String> get keywords {
+    if (_keywords is EqualUnmodifiableListView) return _keywords;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_workspaces);
+    return EqualUnmodifiableListView(_keywords);
   }
 
   @override
   String toString() {
-    return 'WorkspaceCalendarModel(date: $date, workspaces: $workspaces)';
+    return 'WorkspaceCalendarModel(keywords: $keywords)';
   }
 
   @override
@@ -352,20 +143,13 @@ class _$WorkspaceCalendarModelImpl extends _WorkspaceCalendarModel {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WorkspaceCalendarModelImpl &&
-            (identical(other.date, date) || other.date == date) &&
-            const DeepCollectionEquality().equals(
-              other._workspaces,
-              _workspaces,
-            ));
+            const DeepCollectionEquality().equals(other._keywords, _keywords));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    date,
-    const DeepCollectionEquality().hash(_workspaces),
-  );
+  int get hashCode =>
+      Object.hash(runtimeType, const DeepCollectionEquality().hash(_keywords));
 
   /// Create a copy of WorkspaceCalendarModel
   /// with the given fields replaced by the non-null parameter values.
@@ -387,8 +171,7 @@ class _$WorkspaceCalendarModelImpl extends _WorkspaceCalendarModel {
 
 abstract class _WorkspaceCalendarModel extends WorkspaceCalendarModel {
   const factory _WorkspaceCalendarModel({
-    required final String date,
-    required final List<WorkspaceCalendarItemModel> workspaces,
+    required final List<String> keywords,
   }) = _$WorkspaceCalendarModelImpl;
   const _WorkspaceCalendarModel._() : super._();
 
@@ -396,9 +179,7 @@ abstract class _WorkspaceCalendarModel extends WorkspaceCalendarModel {
       _$WorkspaceCalendarModelImpl.fromJson;
 
   @override
-  String get date;
-  @override
-  List<WorkspaceCalendarItemModel> get workspaces;
+  List<String> get keywords;
 
   /// Create a copy of WorkspaceCalendarModel
   /// with the given fields replaced by the non-null parameter values.

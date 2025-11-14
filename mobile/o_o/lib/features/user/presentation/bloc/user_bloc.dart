@@ -68,15 +68,15 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     logger.i('📆 [UserBloc] 오늘 날짜: $today');
 
-    // 캘린더 API 호출 (from, to 모두 오늘 날짜)
-    logger.i('🌐 [UserBloc] 캘린더 API 호출 시작 (from: $today, to: $today)');
+    // 일일 활동 API 호출 (date: 오늘 날짜)
+    logger.i('🌐 [UserBloc] 일일 활동 API 호출 시작 (date: $today)');
     final result = await getWorkspaceCalendar(
-      CalendarParams(from: today, to: today),
+      DailyActivityParams(date: today),
     );
 
     result.fold(
       (failure) {
-        logger.e('❌ [UserBloc] 캘린더 API 실패: ${failure.toString()}');
+        logger.e('❌ [UserBloc] 일일 활동 API 실패: ${failure.toString()}');
         // 에러 발생 시 현재 상태 유지 (키워드는 빈 리스트)
         emit(UserState.loaded(
           user: currentState.user,
@@ -84,22 +84,17 @@ class UserBloc extends Bloc<UserEvent, UserState> {
         ));
         logger.i('📤 [UserBloc] 빈 키워드 리스트로 상태 업데이트');
       },
-      (calendarList) {
-        logger.i('✅ [UserBloc] 캘린더 API 성공 - ${calendarList.length}개의 날짜 데이터');
+      (activity) {
+        logger.i('✅ [UserBloc] 일일 활동 API 성공 - ${activity.keywords.length}개의 키워드');
 
-        // 모든 날짜의 workspace title들을 추출
-        final keywords = calendarList
-            .expand((calendar) => calendar.workspaces)
-            .toList();
-
-        logger.i('🔑 [UserBloc] 추출된 키워드: ${keywords.length}개');
-        for (var keyword in keywords) {
-          logger.d('  - workspaceId: ${keyword.workspaceId}, title: "${keyword.title}"');
+        logger.i('🔑 [UserBloc] 추출된 키워드: ${activity.keywords.length}개');
+        for (var i = 0; i < activity.keywords.length; i++) {
+          logger.d('  [$i] keyword: "${activity.keywords[i]}"');
         }
 
         emit(UserState.loaded(
           user: currentState.user,
-          keywords: keywords,
+          keywords: activity.keywords,
         ));
         logger.i('📤 [UserBloc] 키워드와 함께 상태 업데이트 완료');
       },

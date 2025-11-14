@@ -1,29 +1,25 @@
 import 'package:equatable/equatable.dart';
 
-/// Workspace Calendar Item Entity
+/// Workspace Calendar Item Entity (구슬에 표시될 키워드)
 class WorkspaceCalendarItem extends Equatable {
-  final int workspaceId;
-  final String title;
+  final String keyword;
 
   const WorkspaceCalendarItem({
-    required this.workspaceId,
-    required this.title,
+    required this.keyword,
   });
 
   @override
-  List<Object?> get props => [workspaceId, title];
+  List<Object?> get props => [keyword];
 }
 
-/// Workspace Calendar Entity (날짜별 워크스페이스 목록)
+/// Workspace Calendar Entity (일일 활동 키워드 목록)
 class WorkspaceCalendarEntity extends Equatable {
-  final String date;
-  final List<WorkspaceCalendarItem> workspaces;
+  final List<String> keywords;
 
   const WorkspaceCalendarEntity({
-    required this.date,
-    required this.workspaces,
+    required this.keywords,
   });
 
   @override
-  List<Object?> get props => [date, workspaces];
+  List<Object?> get props => [keywords];
 }

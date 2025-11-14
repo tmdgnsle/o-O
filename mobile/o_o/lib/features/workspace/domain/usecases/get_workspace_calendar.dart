@@ -6,31 +6,28 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/workspace_calendar_entity.dart';
 import '../repositories/workspace_repository.dart';
 
-/// Calendar Params
-class CalendarParams extends Equatable {
-  final String from;
-  final String to;
+/// Daily Activity Params
+class DailyActivityParams extends Equatable {
+  final String date;
 
-  const CalendarParams({
-    required this.from,
-    required this.to,
+  const DailyActivityParams({
+    required this.date,
   });
 
   @override
-  List<Object?> get props => [from, to];
+  List<Object?> get props => [date];
 }
 
-/// Get Workspace Calendar UseCase
-class GetWorkspaceCalendar implements UseCase<List<WorkspaceCalendarEntity>, CalendarParams> {
+/// Get Workspace Calendar UseCase (일일 활동 키워드)
+class GetWorkspaceCalendar implements UseCase<WorkspaceCalendarEntity, DailyActivityParams> {
   final WorkspaceRepository repository;
 
   GetWorkspaceCalendar(this.repository);
 
   @override
-  Future<Either<Failure, List<WorkspaceCalendarEntity>>> call(CalendarParams params) async {
-    return await repository.getCalendar(
-      from: params.from,
-      to: params.to,
+  Future<Either<Failure, WorkspaceCalendarEntity>> call(DailyActivityParams params) async {
+    return await repository.getDailyActivity(
+      date: params.date,
     );
   }
 }

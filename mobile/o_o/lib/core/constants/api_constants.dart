@@ -15,6 +15,7 @@ class ApiConstants {
   static const String getWorkspaces = '/workspace/my';
   static const String getWorkspaceCalendar = '/workspace/my/calendar';
   static const String getRecentWorkspaces = '/workspace/my/recent';
+  static const String getDailyActivity = '/workspace/my/activity/daily';
 
   /// User Endpoints
   static const String getUsers = '/users';

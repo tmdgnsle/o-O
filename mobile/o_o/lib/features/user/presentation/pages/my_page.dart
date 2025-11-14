@@ -21,24 +21,20 @@ import '../bloc/user_state.dart';
 class KeywordMarble {
   final String keyword;
   final int weight;
-  final String? mindmapId;
 
   KeywordMarble({
     required this.keyword,
     required this.weight,
-    this.mindmapId,
   });
 }
 
 /// 구슬 물리 컴포넌트
-class MarbleComponent extends BodyComponent with TapCallbacks {
+class MarbleComponent extends BodyComponent {
   final String keyword;
   final double radius;
   final Color color;
   final Vector2 initialPosition;
   final ui.Image marbleImage;
-  final String? mindmapId;
-  final Function(String?)? onTap;
 
   MarbleComponent({
     required this.keyword,
@@ -46,8 +42,6 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
     required this.initialPosition,
     required this.marbleImage,
     this.color = Colors.white,
-    this.mindmapId,
-    this.onTap,
   }) : super(
           priority: 1,
         );
@@ -120,33 +114,16 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
-
-  @override
-  bool containsLocalPoint(Vector2 point) {
-    // 구슬의 원형 영역 내에 있는지 확인
-    return point.length <= radius;
-  }
-
-  @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    // 탭 시 콜백 호출
-    if (onTap != null) {
-      onTap!(mindmapId);
-    }
-  }
 }
 
 /// 구슬 물리 게임
 class MarblePhysicsGame extends Forge2DGame {
   final List<KeywordMarble> marbles;
   final Size screenSize;
-  final Function(String?)? onMarbleTap;
 
   MarblePhysicsGame({
     required this.marbles,
     required this.screenSize,
-    this.onMarbleTap,
   }) : super(
           gravity: Vector2(0, 1000), // 중력 증가 (더 빠르게 떨어지도록)
         );
@@ -196,8 +173,6 @@ class MarblePhysicsGame extends Forge2DGame {
         initialPosition: Vector2(x, y),
         marbleImage: marbleImage,
         color: colors[i % colors.length],
-        mindmapId: marble.mindmapId,
-        onTap: onMarbleTap,
       );
 
       await add(marbleComponent);
@@ -273,7 +248,7 @@ class _MyPageState extends State<_MyPageContent> {
   }
 
   /// API 데이터로 구슬 생성
-  List<KeywordMarble> _generateMarblesFromKeywords(List<WorkspaceCalendarItem> keywords) {
+  List<KeywordMarble> _generateMarblesFromKeywords(List<String> keywords) {
     logger.i('🎨 [MyPage] 구슬 생성 시작 - 키워드 개수: ${keywords.length}');
 
     if (keywords.isEmpty) {
@@ -281,14 +256,13 @@ class _MyPageState extends State<_MyPageContent> {
       return [];
     }
 
-    final marbles = keywords.map((item) {
-      // 가중치는 1-10 사이 랜덤 (또는 향후 API에서 제공할 수 있음)
+    final marbles = keywords.map((keyword) {
+      // 가중치는 1-10 사이 랜덤
       final weight = random.nextInt(10) + 1;
-      logger.d('  - 구슬: "${item.title}" (workspaceId: ${item.workspaceId}, weight: $weight)');
+      logger.d('  - 구슬: "$keyword" (weight: $weight)');
       return KeywordMarble(
-        keyword: item.title,
+        keyword: keyword,
         weight: weight,
-        mindmapId: item.workspaceId.toString(),
       );
     }).toList();
 
@@ -326,20 +300,6 @@ class _MyPageState extends State<_MyPageContent> {
               game = MarblePhysicsGame(
                 marbles: marbles,
                 screenSize: screenSize,
-                onMarbleTap: (mindmapId) {
-                  if (mindmapId != null) {
-                    logger.i('🎯 [MyPage] 구슬 탭 - mindmapId: $mindmapId');
-                    // 마인드맵 페이지로 이동
-                    context.push(
-                      '/mindmap',
-                      extra: {
-                        'title': '마인드맵',
-                        'imagePath': '',
-                        'mindmapId': mindmapId,
-                      },
-                    );
-                  }
-                },
               );
             });
             logger.i('🎮 [MyPage] 게임 재생성 완료');
@@ -357,18 +317,6 @@ class _MyPageState extends State<_MyPageContent> {
     game ??= MarblePhysicsGame(
       marbles: marbles,
       screenSize: screenSize,
-      onMarbleTap: (mindmapId) {
-        if (mindmapId != null) {
-          context.push(
-            '/mindmap',
-            extra: {
-              'title': '마인드맵',
-              'imagePath': '',
-              'mindmapId': mindmapId,
-            },
-          );
-        }
-      },
     );
 
     return Scaffold(

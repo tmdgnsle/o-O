@@ -11,10 +11,9 @@ abstract class WorkspaceApiDataSource {
   /// Get workspaces with pagination
   Future<WorkspaceResponseModel> getWorkspaces({int? cursor});
 
-  /// Get workspace calendar
-  Future<List<WorkspaceCalendarModel>> getCalendar({
-    required String from,
-    required String to,
+  /// Get daily activity keywords
+  Future<WorkspaceCalendarModel> getDailyActivity({
+    required String date,
   });
 }
 
@@ -66,39 +65,41 @@ class WorkspaceApiDataSourceImpl implements WorkspaceApiDataSource {
   }
 
   @override
-  Future<List<WorkspaceCalendarModel>> getCalendar({
-    required String from,
-    required String to,
+  Future<WorkspaceCalendarModel> getDailyActivity({
+    required String date,
   }) async {
     try {
-      logger.i('📡 Fetching calendar from ${ApiConstants.getWorkspaceCalendar} (from: $from, to: $to)');
+      logger.i('📡 Fetching daily activity from ${ApiConstants.getDailyActivity} (date: $date)');
 
       final response = await dio.get(
-        ApiConstants.getWorkspaceCalendar,
+        ApiConstants.getDailyActivity,
         queryParameters: {
-          'from': from,
-          'to': to,
+          'date': date,
         },
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data as List<dynamic>;
-        final calendar = data
-            .map((json) => WorkspaceCalendarModel.fromJson(json as Map<String, dynamic>))
-            .toList();
+        final data = response.data as Map<String, dynamic>;
+        logger.d('📦 Raw API response: $data');
 
-        logger.i('✅ Fetched ${calendar.length} calendar entries');
-        return calendar;
+        final activity = WorkspaceCalendarModel.fromJson(data);
+
+        logger.i('✅ Fetched ${activity.keywords.length} keywords');
+        for (var i = 0; i < activity.keywords.length; i++) {
+          logger.d('  [$i] keyword: "${activity.keywords[i]}"');
+        }
+
+        return activity;
       } else {
-        logger.e('❌ Failed to fetch calendar: ${response.statusCode}');
-        throw ServerException('Failed to fetch calendar: ${response.statusCode}');
+        logger.e('❌ Failed to fetch daily activity: ${response.statusCode}');
+        throw ServerException('Failed to fetch daily activity: ${response.statusCode}');
       }
     } on DioException catch (e) {
       logger.e('❌ DioException: ${e.message}');
-      throw ServerException('Failed to fetch calendar: ${e.message}');
+      throw ServerException('Failed to fetch daily activity: ${e.message}');
     } catch (e) {
       logger.e('❌ Unexpected error: $e');
-      throw ServerException('Failed to fetch calendar: $e');
+      throw ServerException('Failed to fetch daily activity: $e');
     }
   }
 }

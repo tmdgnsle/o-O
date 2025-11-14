@@ -30,14 +30,13 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
   }
 
   @override
-  Future<Either<Failure, List<WorkspaceCalendarEntity>>> getCalendar({
-    required String from,
-    required String to,
+  Future<Either<Failure, WorkspaceCalendarEntity>> getDailyActivity({
+    required String date,
   }) async {
     try {
-      final models = await apiDataSource.getCalendar(from: from, to: to);
-      final entities = models.map((model) => model.toEntity()).toList();
-      return Right(entities);
+      final model = await apiDataSource.getDailyActivity(date: date);
+      final entity = model.toEntity();
+      return Right(entity);
     } on ServerException catch (e) {
       logger.e('❌ ServerException in repository: ${e.message}');
       return Left(ServerFailure(e.message));
