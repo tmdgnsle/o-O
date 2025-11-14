@@ -129,11 +129,12 @@ export type TextboxProps = Readonly<{
 
 export type MindmapNodeType = "text" | "image" | "link";
 
-export type NodeAnalysisStatus = "NONE" | "PENDING" | "DONE";
+export type NodeAnalysisStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
 
 // Mindmap nodes can carry optional metadata from REST → Yjs → UI
 export type NodeData = {
   id: string;
+  nodeId?: number; // Backend DB ID (for update/delete operations)
   text: string;
   x: number;
   y: number;
