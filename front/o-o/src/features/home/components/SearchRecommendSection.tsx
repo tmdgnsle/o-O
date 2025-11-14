@@ -21,8 +21,8 @@ export function SearchRecommendSection({
     <section>
       <div
         className="
-          flex text-[14px] sm:text-[16px] md:text-[18px] lg:text-[20px]
-          gap-2 sm:gap-8 md:gap-16 lg:gap-28
+          flex text-[10px] sm:text-[16px] md:text-[18px] lg:text-[20px]
+          gap-0 sm:gap-8 md:gap-16 lg:gap-28
         "
       >
         {keywords.map((keyword) => (

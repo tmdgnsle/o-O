@@ -71,7 +71,7 @@ export function SearchSection() {
       <img
         src={popo}
         alt="popo character"
-        className="absolute bottom-0 left-8"
+        className="absolute bottom-0 left-4 sm:left-6 md:left-8"
         style={{
           width: "clamp(220px, 30vw, 400px)",
           height: "auto",
