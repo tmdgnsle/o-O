@@ -32,6 +32,7 @@ import { ydocManager } from './yjs/ydoc-manager.js';
 import { awarenessManager } from './yjs/awareness.js';
 import { kafkaProducer } from './kafka/producer.js';
 import { kafkaConsumer } from './kafka/consumer.js';
+import { signalingManager } from './webrtc/signaling-manager.js';
 
 const app = express();
 const PORT = process.env.PORT || 8084;  // 기본 포트 8084
@@ -68,6 +69,7 @@ app.get('/stats', (req, res) => {
   res.json({
     ydoc: ydocManager.getStats(),
     awareness: awarenessManager.getStats(),
+    voiceChat: signalingManager.getStats(),
     kafka: {
       producer: kafkaProducer.getStatus(),
       consumer: kafkaConsumer.getStatus(),
@@ -89,7 +91,7 @@ const wss = new WebSocketServer({
   // y-websocket이 만드는 /mindmap/ws/{roomId} 형태도 처리 가능
 });
 
-logger.info('WebSocket server created (accepts /mindmap/ws and /mindmap/ws/{roomId})');
+logger.info('WebSocket server created (accepts /mindmap/ws for Y.js sync and /mindmap/voice for voice chat)');
 
 /**
  * ============================================
@@ -98,20 +100,120 @@ logger.info('WebSocket server created (accepts /mindmap/ws and /mindmap/ws/{room
  *
  * 클라이언트가 WebSocket으로 접속할 때마다 실행됨
  * URL 형식:
- * - 직접: ws://localhost:3000/mindmap/ws?workspace=123
- * - Gateway: ws://gateway:8080/mindmap/ws?workspace=123&token=xxx
+ * - Y.js 동기화: ws://localhost:8084/mindmap/ws?workspace=123
+ * - 음성 채팅: ws://localhost:8084/mindmap/voice?workspace=123
+ * - Gateway: ws://gateway:8080/mindmap/{ws|voice}?workspace=123&token=xxx
  *
  * 처리 흐름:
- * 1. workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback) 및 검증
- * 2. user ID 추출 (Gateway에서 JWT 검증 후 헤더로 전달)
- * 3. Y.Doc, Awareness 인스턴스 가져오기 (없으면 생성)
- * 4. Y.js WebSocket 연결 설정
+ * 1. URL 경로에 따라 라우팅 (Y.js vs 음성 채팅)
+ * 2. workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback) 및 검증
+ * 3. user ID 추출 (Gateway에서 JWT 검증 후 헤더로 전달)
+ * 4-1. /mindmap/ws: Y.Doc, Awareness 인스턴스 가져오기 (없으면 생성)
+ * 4-2. /mindmap/voice: SignalingManager로 음성 채팅 처리
  * 5. 이벤트 리스너 등록 (close, error, message)
  */
 wss.on('connection', (conn, req) => {
   // URL에서 쿼리 파라미터 파싱
   const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
 
+  // 경로에 따라 라우팅: /mindmap/voice → 음성 채팅, /mindmap/ws → Y.js 동기화
+  if (pathname.startsWith('/mindmap/voice')) {
+    handleVoiceConnection(conn, req, url);
+    return;
+  }
+
+  // 기본: Y.js 연결 처리
+  handleYjsConnection(conn, req, url);
+});
+
+/**
+ * ============================================
+ * 음성 채팅 WebSocket 연결 핸들러
+ * ============================================
+ */
+function handleVoiceConnection(conn, req, url) {
+  // workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback)
+  const workspaceId = req.headers['x-workspace-id'] || url.searchParams.get('workspace');
+
+  // user ID 추출 (Gateway의 JWT 검증 결과)
+  const userId = req.headers['x-user-id'] || url.searchParams.get('userId');
+
+  // workspace ID가 없으면 연결 거부
+  if (!workspaceId) {
+    logger.warn('[VoiceChat] Connection rejected: missing workspace parameter');
+    conn.close(1008, 'Missing workspace parameter');
+    return;
+  }
+
+  // user ID가 없으면 연결 거부
+  if (!userId) {
+    logger.warn('[VoiceChat] Connection rejected: missing user ID');
+    conn.close(1008, 'Missing user ID');
+    return;
+  }
+
+  logger.info(`[VoiceChat] New connection to workspace ${workspaceId}`, {
+    userId,
+    source: req.headers['x-workspace-id'] ? 'gateway-header' : 'query-param'
+  });
+
+  // 음성 채팅 방에 참가
+  const joined = signalingManager.joinVoice(workspaceId, userId, conn);
+  if (!joined) {
+    logger.warn(`[VoiceChat] Failed to join workspace ${workspaceId} for user ${userId}`);
+    return;
+  }
+
+  // 메시지 핸들러 등록
+  conn.on('message', (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      logger.debug(`[VoiceChat] Message received from user ${userId}:`, message.type);
+
+      switch (message.type) {
+        case 'offer':
+          signalingManager.handleOffer(workspaceId, userId, message.toUserId, message.offer);
+          break;
+
+        case 'answer':
+          signalingManager.handleAnswer(workspaceId, userId, message.toUserId, message.answer);
+          break;
+
+        case 'ice':
+          signalingManager.handleIceCandidate(workspaceId, userId, message.toUserId, message.candidate);
+          break;
+
+        case 'voice-state':
+          signalingManager.handleVoiceState(workspaceId, userId, message.voiceState);
+          break;
+
+        default:
+          logger.warn(`[VoiceChat] Unknown message type: ${message.type}`);
+      }
+    } catch (error) {
+      logger.error(`[VoiceChat] Error handling message from user ${userId}:`, error.message);
+    }
+  });
+
+  // 연결 종료 핸들러
+  conn.on('close', () => {
+    logger.info(`[VoiceChat] Connection closed for workspace ${workspaceId}, user ${userId}`);
+    signalingManager.leaveVoice(workspaceId, userId);
+  });
+
+  // 에러 핸들러
+  conn.on('error', (error) => {
+    logger.error(`[VoiceChat] WebSocket error for user ${userId}:`, error.message);
+  });
+}
+
+/**
+ * ============================================
+ * Y.js 동기화 WebSocket 연결 핸들러
+ * ============================================
+ */
+function handleYjsConnection(conn, req, url) {
   // workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback)
   // Gateway를 통해 들어오면 X-Workspace-ID 헤더로 전달됨
   const workspaceId = req.headers['x-workspace-id'] || url.searchParams.get('workspace');
@@ -200,7 +302,7 @@ wss.on('connection', (conn, req) => {
   // Yjs의 setupWSConnection이 awareness를 주입받아서 자동으로 처리하므로
   // 클라이언트의 awareness.setLocalStateField() 호출이 자동으로 동기화됨
   // 서버에서는 awareness.on('change') 이벤트로 변경사항을 감지할 수 있음 (awareness.js 참고)
-});
+}
 
 /**
  * ============================================
@@ -230,7 +332,8 @@ async function startServer() {
     // 4. HTTP/WebSocket 서버 시작
     server.listen(PORT, () => {
       logger.info(`🚀 Mindmap WebSocket Server running on port ${PORT}`);
-      logger.info(`WebSocket endpoint: ws://localhost:${PORT}/mindmap/ws?workspace=<workspace_id>`);
+      logger.info(`Y.js sync endpoint: ws://localhost:${PORT}/mindmap/ws?workspace=<workspace_id>`);
+      logger.info(`Voice chat endpoint: ws://localhost:${PORT}/mindmap/voice?workspace=<workspace_id>&userId=<user_id>`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
       logger.info(`Stats: http://localhost:${PORT}/stats`);
       logger.info('');
@@ -265,13 +368,16 @@ async function startServer() {
         await kafkaProducer.sendImmediately(workspaceId);
       }
 
-      // 2. Kafka consumer 연결 종료
+      // 2. 음성 채팅 방 정리
+      signalingManager.cleanup();
+
+      // 3. Kafka consumer 연결 종료
       await kafkaConsumer.disconnect();
 
-      // 3. Kafka producer 연결 종료
+      // 4. Kafka producer 연결 종료
       await kafkaProducer.disconnect();
 
-      // 4. HTTP/WebSocket 서버 종료
+      // 5. HTTP/WebSocket 서버 종료
       server.close(() => {
         logger.info('Server closed');
         process.exit(0);  // 정상 종료
