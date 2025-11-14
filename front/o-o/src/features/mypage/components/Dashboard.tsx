@@ -9,6 +9,8 @@ interface DashboardProps {
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly isFullscreen?: boolean;
+  readonly hasNext?: boolean;
+  readonly onLoadMore?: () => void;
 }
 
 export function Dashboard({
@@ -16,6 +18,8 @@ export function Dashboard({
   isLoading,
   error,
   isFullscreen = false,
+  hasNext = false,
+  onLoadMore,
 }: DashboardProps) {
   // 현재 유저 가져오기
   const currentUser = useAppSelector((state) => state.user);
@@ -25,7 +29,7 @@ export function Dashboard({
     ? "w-[95vw] h-[82vh] px-5 pt-4 bg-white/60 rounded-3xl"
     : "w-[93vw] h-[88vh] sm:h-[83vh] lg:h-[78vh] px-5 pt-4 bg-white/60 rounded-3xl";
 
-  if (isLoading) {
+  if (isLoading && workspaces.length === 0) {
     return (
       <div className={`${containerStyle} flex flex-col`}>
         {/* 고정 헤더 */}
@@ -102,7 +106,12 @@ export function Dashboard({
 
       {/* 스크롤 가능한 콘텐츠 */}
       <div className="flex-1 overflow-y-auto">
-        <ProjectList projects={projects} />
+        <ProjectList
+          projects={projects}
+          onLoadMore={onLoadMore}
+          hasNext={hasNext}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );

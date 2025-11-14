@@ -16,6 +16,8 @@ export function MyPage() {
     workspaces,
     isLoading,
     error,
+    loadMore,
+    hasNext,
     fetchWorkspacesList,
     fetchCalendarNodesList,
     calendarNodes,
@@ -61,6 +63,8 @@ export function MyPage() {
             isLoading={isLoading}
             error={error}
             isFullscreen={isFullscreen}
+            hasNext={hasNext}
+            onLoadMore={loadMore}
           />
         ) : (
           <CalendarView
