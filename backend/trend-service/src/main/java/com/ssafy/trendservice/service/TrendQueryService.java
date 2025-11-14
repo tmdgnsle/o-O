@@ -76,6 +76,9 @@ public class TrendQueryService {
      * - 3) 점수 없으면 0점으로 채우고, 내림차순 정렬해서 반환
      */
     public TrendResponse getParentTrend(String parentKeyword, String period, Integer limit) {
+        if(limit == null || limit <= 0) {
+            limit = 99;
+        }
         int actualLimit = validateLimit(limit);
 
         String normalizedParent = sanitizeKeyword(parentKeyword);
