@@ -106,6 +106,7 @@ public class PublicWorkspaceSearchService {
      */
     public KeywordNodeSearchResponse searchChildrenByParent(String parentKeyword, Integer limit) {
 
+        // 1. Public workspace 조회
         List<Long> publicWorkspaceIds = workspaceServiceClient.getPublicWorkspaceIds();
 
         if (publicWorkspaceIds.isEmpty()) {
@@ -115,35 +116,61 @@ public class PublicWorkspaceSearchService {
                     .build();
         }
 
+        // 2. 각 workspace 안에서 parentKeyword 가진 부모 노드들 찾기
         List<MindmapNode> parentNodes =
                 nodeRepository.findByWorkspaceIdInAndKeywordContaining(publicWorkspaceIds, parentKeyword);
 
-        List<KeywordNodeSearchResponse.NodeItem> result = new ArrayList<>();
+        log.info("[ChildrenSearch] parentKeyword='{}', parents={}", parentKeyword, parentNodes.size());
 
-        for (MindmapNode parent : parentNodes) {
-            List<MindmapNode> children =
-                    nodeRepository.findChildrenByWorkspaceIdAndParentId(parent.getWorkspaceId(), parent.getNodeId());
-
-            for (MindmapNode child : children) {
-                result.add(KeywordNodeSearchResponse.NodeItem.builder()
-                        .nodeId(child.getNodeId())
-                        .parentId(child.getParentId())
-                        .workspaceId(child.getWorkspaceId())
-                        .keyword(child.getKeyword())
-                        .parentKeyword(parent.getKeyword())
-                        .build());
-            }
+        if (parentNodes.isEmpty()) {
+            return KeywordNodeSearchResponse.builder()
+                    .nodes(List.of())
+                    .totalCount(0)
+                    .build();
         }
 
-        // limit 적용
-        List<KeywordNodeSearchResponse.NodeItem> limited =
-                result.stream().limit(limit != null ? limit : 100).collect(Collectors.toList());
+        // 부모 (workspaceId, nodeId) -> parentNode 맵
+        Map<String, MindmapNode> parentMap = parentNodes.stream()
+                .collect(Collectors.toMap(
+                        p -> p.getWorkspaceId() + ":" + p.getNodeId(),
+                        p -> p
+                ));
+
+        List<Long> parentIds = parentNodes.stream()
+                .map(MindmapNode::getNodeId)
+                .toList();
+
+        // 3. 모든 부모들의 자식 노드들을 한 번에 조회
+        List<MindmapNode> children =
+                nodeRepository.findByWorkspaceIdInAndParentIdIn(publicWorkspaceIds, parentIds);
+
+        log.info("[ChildrenSearch] children size={}", children.size());
+
+        int max = (limit != null ? limit : 100);
+
+        // 4. 응답으로 변환
+        List<KeywordNodeSearchResponse.NodeItem> result = children.stream()
+                .map(child -> {
+                    String key = child.getWorkspaceId() + ":" + child.getParentId();
+                    MindmapNode parent = parentMap.get(key);
+
+                    return KeywordNodeSearchResponse.NodeItem.builder()
+                            .nodeId(child.getNodeId())
+                            .parentId(child.getParentId())
+                            .workspaceId(child.getWorkspaceId())
+                            .keyword(child.getKeyword())              // 파이썬 / 자바
+                            .parentKeyword(parent != null ? parent.getKeyword() : null) // 알고리즘
+                            .build();
+                })
+                .limit(max)
+                .toList();
 
         return KeywordNodeSearchResponse.builder()
-                .nodes(limited)
-                .totalCount(limited.size())
+                .nodes(result)
+                .totalCount(result.size())
                 .build();
     }
+
 
     /**
      * 부모 노드 조회용 캐시 (Mongo 요청 최적화)

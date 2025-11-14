@@ -56,4 +56,10 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
      * @param workspaceIds Public 워크스페이스 ID 목록
      */
     List<MindmapNode> findByWorkspaceIdIn(List<Long> workspaceIds);
+
+    // NodeRepository.java
+    @Query("{ 'workspaceId': { $in: ?0 }, 'parentId': { $in: ?1 } }")
+    List<MindmapNode> findByWorkspaceIdInAndParentIdIn(List<Long> workspaceIds,
+                                                       List<Long> parentIds);
+
 }
