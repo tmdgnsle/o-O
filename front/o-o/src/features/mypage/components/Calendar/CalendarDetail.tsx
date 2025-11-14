@@ -1,43 +1,28 @@
 import { Calendar } from "@/components/ui/calendar";
 import { useEffect, useState } from "react";
-import type { NodeListResponseArray } from "../../types/mypage";
 
 interface CalendarDetailProps {
-  readonly onDateClick?: (
-    keywords: Array<{ keyword: string; mindmapId: string }>
-  ) => void;
+  readonly activeDates?: string[];
+  readonly selectedDate: string | null;
+  readonly currentMonth: Date;
+  readonly onDateClick: (date: string) => void;
+  readonly onMonthChange: (year: number, month: number) => void;
   readonly isFullscreen: boolean;
-  readonly calendarNodes: NodeListResponseArray;
 }
 
 export function CalendarDetail({
+  activeDates = [],
+  selectedDate,
+  currentMonth,
   onDateClick,
+  onMonthChange,
   isFullscreen,
-  calendarNodes,
 }: CalendarDetailProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [month, setMonth] = useState<Date>(new Date());
   const today = new Date();
 
-  // calendarNodes에서 날짜별 키워드 객체 생성
-  const dateKeywords: Record<
-    string,
-    Array<{ keyword: string; mindmapId: string }>
-  > = {};
-
-  // 컴포넌트 마운트 시 오늘 날짜의 키워드 자동 로드
-  useEffect(() => {
-    if (onDateClick) {
-      const todayStr = formatDate(today);
-      const keywords = dateKeywords[todayStr] || [];
-      if (keywords.length > 0) {
-        onDateClick(keywords);
-      }
-    }
-  }, []);
-
-  // 키워드가 있는 날짜들 추출
-  const datesWithIdeas = Object.keys(dateKeywords).map((dateStr) => {
+  // activeDates를 Date 객체로 변환
+  const datesWithIdeas = activeDates.map((dateStr) => {
     const [year, month, day] = dateStr.split("-").map(Number);
     return new Date(year, month - 1, day);
   });
@@ -50,6 +35,16 @@ export function CalendarDetail({
     return `${year}-${month}-${day}`;
   };
 
+  // 컴포넌트 마운트 시 오늘 날짜의 키워드 자동 로드
+  useEffect(() => {
+    if (activeDates.length === 0) return;
+
+    const todayStr = formatDate(today);
+    if (activeDates.includes(todayStr)) {
+      onDateClick(todayStr);
+    }
+  }, []);
+
   // 날짜 선택 핸들러
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (!selectedDate) {
@@ -57,15 +52,13 @@ export function CalendarDetail({
     }
 
     setDate(selectedDate);
+    const dateStr = formatDate(selectedDate);
 
-    if (selectedDate && onDateClick) {
-      const dateStr = formatDate(selectedDate);
-      const keywords = dateKeywords[dateStr] || [];
-      onDateClick(keywords);
-    }
+    // 🔥 키워드 유무와 관계없이 항상 조회
+    onDateClick(dateStr);
   };
 
-  // 다음 달로 넘어가는 것 막기
+  // 월 변경 핸들러
   const handleMonthChange = (newMonth: Date) => {
     const todayMonth = today.getMonth();
     const todayYear = today.getFullYear();
@@ -80,14 +73,14 @@ export function CalendarDetail({
       return;
     }
 
-    setMonth(newMonth);
+    onMonthChange(newYear, newMonthValue + 1);
   };
 
   // 다음 달 버튼이 비활성화되어야 하는지 확인
   const isNextDisabled =
-    month.getFullYear() > today.getFullYear() ||
-    (month.getFullYear() === today.getFullYear() &&
-      month.getMonth() >= today.getMonth());
+    currentMonth.getFullYear() > today.getFullYear() ||
+    (currentMonth.getFullYear() === today.getFullYear() &&
+      currentMonth.getMonth() >= today.getMonth());
 
   return (
     <div
@@ -104,12 +97,12 @@ export function CalendarDetail({
         mode="single"
         selected={date}
         onSelect={handleDateSelect}
-        month={month}
+        month={currentMonth}
         onMonthChange={handleMonthChange}
         modifiers={{
-          withIdeas: datesWithIdeas, // 아이디어가 있는 날짜
+          withIdeas: datesWithIdeas,
         }}
-        showOutsideDays={true} // 외부 날짜 안 보이게
+        showOutsideDays={true}
         disabled={(date) => date > today}
         classNames={{
           button_next: isNextDisabled

@@ -1,27 +1,66 @@
 import Marble from "@/shared/assets/images/marble.png";
 import { useMarbleLayout } from "../hooks/custom/useMarbleLayout";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { getFontSize } from "@/shared/utils/fontSizeUtil";
 
 interface MarblesViewProps {
-  readonly keywords: Array<{ keyword: string; mindmapId: string }>;
+  readonly keywords: string[];
+  readonly isLoading: boolean;
+  readonly error: string | null;
+  readonly selectedDate: string | null;
 }
 
-export function MarblesView({ keywords }: MarblesViewProps) {
+export function MarblesView({
+  keywords,
+  isLoading,
+  error,
+  selectedDate,
+}: MarblesViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const keywordStrings = useMemo(
-    () => keywords.map((k) => k.keyword),
-    [keywords.map((k) => k.keyword).join(",")] // 키워드 문자열로 비교
-  );
+  const marbles = useMarbleLayout(keywords, containerRef);
 
-  const marbles = useMarbleLayout(keywordStrings, containerRef);
+  // 로딩 중
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-500">키워드를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (keywords.length === 0) {
+  // 에러 발생
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 px-4">
+        <div className="text-center">
+          <p className="text-lg font-semibold mb-2">⚠️ 오류 발생</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 날짜를 선택하지 않은 경우
+  if (!selectedDate) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 px-4">
         <p className="text-base text-[14px] sm:text-[19px] md:text-xl lg:text-2xl font-semibold text-center">
           아이디어를 기록한 날짜를 선택하면 키워드 구슬이 랜덤으로 표시됩니다.
+        </p>
+      </div>
+    );
+  }
+
+  // 선택한 날짜에 키워드가 없는 경우
+  if (keywords.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-400 px-4">
+        <p className="text-base text-[14px] sm:text-[19px] md:text-xl lg:text-2xl font-semibold text-center">
+          선택한 날짜에 키워드가 없습니다.
         </p>
       </div>
     );

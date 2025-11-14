@@ -19,10 +19,21 @@ export function MyPage() {
     loadMore,
     hasNext,
     fetchWorkspacesList,
-    fetchCalendarNodesList,
-    calendarNodes,
-    calendarIsLoading,
+    activeDates,
+    activeDaysLoading,
+    activeDaysError,
+    fetchActiveDaysList,
+    keywords,
+    keywordsLoading,
+    keywordsError,
+    fetchKeywordsList,
   } = useMypage();
+
+  console.log("MyPage - view:", view);
+  console.log("MyPage - activeDates:", activeDates);
+  console.log("MyPage - activeDaysLoading:", activeDaysLoading);
+  console.log("MyPage - activeDaysError:", activeDaysError);
+
   const isFullscreen = useFullscreen();
 
   useEffect(() => {
@@ -43,9 +54,11 @@ export function MyPage() {
   // 캘린더 데이터 조회
   useEffect(() => {
     if (view === "calendar") {
-      fetchCalendarNodesList();
+      console.log("🔥 캘린더 뷰 - fetchActiveDaysList 호출");
+      // 이번 달의 활성 날짜 조회 (기본값 사용)
+      fetchActiveDaysList();
     }
-  }, [view, fetchCalendarNodesList]);
+  }, [view, fetchActiveDaysList]);
 
   return (
     <div
@@ -68,8 +81,14 @@ export function MyPage() {
           />
         ) : (
           <CalendarView
-            calendarNodes={calendarNodes}
-            isLoading={calendarIsLoading}
+            activeDates={activeDates}
+            activeDaysLoading={activeDaysLoading}
+            activeDaysError={activeDaysError}
+            keywords={keywords}
+            keywordsLoading={keywordsLoading}
+            keywordsError={keywordsError}
+            onDateSelect={fetchKeywordsList}
+            onMonthChange={fetchActiveDaysList}
             isFullscreen={isFullscreen}
           />
         )}

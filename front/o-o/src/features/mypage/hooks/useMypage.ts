@@ -5,16 +5,19 @@ import {
   loadMoreWorkspaces,
 } from "@/store/slices/mypageSlice";
 import type {
-  NodeQueryParams,
+  ActiveDaysQueryParams,
+  KeywordQueryParams,
   WorkspaceQueryParams,
 } from "@/features/mypage/types/mypage";
 import {
-  DEFAULT_NODE_PARAMS,
+  DEFAULT_DATE_PARAMS,
+  DEFAULT_MONTH_PARAMS,
   DEFAULT_WORKSPACE_PARAMS,
 } from "@/features/mypage/types/mypage";
-import { fetchCalendarNodes } from "@/store/slices/calendarSlice";
+import { fetchActiveDays, fetchKeywords } from "@/store/slices/calendarSlice";
 
 interface UseMypageReturn {
+  // 워크스페이스 관련
   workspaces: any[];
   hasNext: boolean;
   nextCursor: number;
@@ -22,10 +25,18 @@ interface UseMypageReturn {
   error: string | null;
   fetchWorkspacesList: (params?: WorkspaceQueryParams) => void;
   loadMore: () => void;
-  calendarNodes: any[];
-  calendarIsLoading: boolean;
-  calendarError: string | null;
-  fetchCalendarNodesList: (params?: NodeQueryParams) => void;
+
+  // 달력 활성 날짜 관련
+  activeDates: string[];
+  activeDaysLoading: boolean;
+  activeDaysError: string | null;
+  fetchActiveDaysList: (params?: ActiveDaysQueryParams) => void;
+
+  // 달력 키워드 관련
+  keywords: string[];
+  keywordsLoading: boolean;
+  keywordsError: string | null;
+  fetchKeywordsList: (params?: KeywordQueryParams) => void;
 }
 
 export const useMypage = (): UseMypageReturn => {
@@ -36,11 +47,8 @@ export const useMypage = (): UseMypageReturn => {
     (state) => state.mypage
   );
 
-  const {
-    calendarNodes,
-    isLoading: calendarIsLoading,
-    error: calendarError,
-  } = useAppSelector((state) => state.calendar);
+  // 달력 상태
+  const { activeDays, keywords } = useAppSelector((state) => state.calendar);
 
   // 워크스페이스 목록 조회
   const fetchWorkspacesList = useCallback(
@@ -62,15 +70,30 @@ export const useMypage = (): UseMypageReturn => {
     dispatch(loadMoreWorkspaces(nextParams));
   }, [dispatch, hasNext, isLoading, nextCursor]);
 
-  // 달력 키워드 조회
-  const fetchCalendarNodesList = useCallback(
-    (params: NodeQueryParams = DEFAULT_NODE_PARAMS) => {
-      dispatch(fetchCalendarNodes(params));
+  // 월별 활성 날짜 조회
+  const fetchActiveDaysList = useCallback(
+    (params: ActiveDaysQueryParams = DEFAULT_MONTH_PARAMS) => {
+      console.log("🔥 fetchActiveDaysList 호출됨, params:", params);
+      console.log("🔥 DEFAULT_MONTH_PARAMS:", DEFAULT_MONTH_PARAMS);
+
+      const action = dispatch(fetchActiveDays(params));
+      console.log("🔥 dispatch 완료, action:", action);
+
+      return action;
+    },
+    [dispatch]
+  );
+
+  // 특정 날짜의 키워드 조회
+  const fetchKeywordsList = useCallback(
+    (params: KeywordQueryParams = DEFAULT_DATE_PARAMS) => {
+      dispatch(fetchKeywords(params));
     },
     [dispatch]
   );
 
   return {
+    // 워크스페이스
     workspaces,
     hasNext,
     nextCursor,
@@ -78,9 +101,17 @@ export const useMypage = (): UseMypageReturn => {
     error,
     fetchWorkspacesList,
     loadMore,
-    calendarNodes,
-    calendarIsLoading,
-    calendarError,
-    fetchCalendarNodesList,
+
+    // 활성 날짜
+    activeDates: activeDays?.dates || [],
+    activeDaysLoading: activeDays.isLoading,
+    activeDaysError: activeDays.error,
+    fetchActiveDaysList,
+
+    // 키워드
+    keywords: keywords?.list || [],
+    keywordsLoading: keywords.isLoading,
+    keywordsError: keywords.error,
+    fetchKeywordsList,
   };
 };
