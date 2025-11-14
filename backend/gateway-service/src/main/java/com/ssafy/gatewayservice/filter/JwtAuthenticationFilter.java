@@ -41,7 +41,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/mindmap-service/v3/api-docs",
             "/trend-service/v3/api-docs",
             "/webjars",
-            "/mindmap/ws"  // WebSocket 경로 (WebSocketQueryParamFilter에서 처리)
+            "/mindmap/ws",  // WebSocket 경로 (WebSocketQueryParamFilter에서 처리)
+            "/trend/top",
+            "/trend/search",
+            "/trend/"
+
     );
 
     public JwtAuthenticationFilter(JwtTokenValidator jwtTokenValidator, ObjectMapper objectMapper) {

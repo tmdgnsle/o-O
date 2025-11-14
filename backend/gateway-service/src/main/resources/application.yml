@@ -88,7 +88,7 @@ spring:
           - id: trend-service
             uri: ${TREND_SERVICE_URL:http://localhost:8085}
             predicates:
-              - Path=/mindmap/**
+              - Path=/trend/**
         # Trend Service Swagger API Docs
           - id: trend-service-swagger
             uri: ${TREND_SERVICE_URL:http://localhost:8085}
@@ -125,6 +125,8 @@ springdoc:
         url: /workspace-service/v3/api-docs
       - name: mindmap-service
         url: /mindmap-service/v3/api-docs
+      - name: trend-service
+        url: /trend-service/v3/api-docs
     urls-primary-name: user-service
 
 management:
