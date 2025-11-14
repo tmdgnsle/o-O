@@ -1,8 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { addToPath } from "@/store/slices/trendPathSlice";
-import type { RootState } from "@/store/store";
 import { useTrend } from "../hooks/useTrend";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
 import { D3Mindmap } from "../components/TrendMindmap/D3/D3Mindmap";
@@ -14,9 +13,6 @@ export function TrendMindmapPage() {
   const { trendId } = useParams<{ trendId: string }>();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const visitPath = useSelector(
-    (state: RootState) => state.trendPath.visitPath
-  );
 
   const { childKeywords, keywordsLoading, keywordsError, fetchChildTrendList } =
     useTrend();

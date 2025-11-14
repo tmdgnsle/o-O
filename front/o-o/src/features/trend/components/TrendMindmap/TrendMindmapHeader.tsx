@@ -19,7 +19,7 @@ export function TrendMindmapHeader() {
       <div className="flex justify-between items-start">
         <MiniNav />
         <div className="flex gap-4 items-center">
-          <SearchButton />
+          {/* <SearchButton /> */}
           {isLoggedIn && user ? (
             <button
               onClick={openProfileModal}
