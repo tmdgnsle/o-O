@@ -77,10 +77,12 @@ class AwarenessManager {
         }
 
         // 임시 채팅 메시지가 있는 경우 로그 출력
-        if (clientState.tempChat) {
+        // 클라이언트는 'chat' 필드를 사용 (tempChat이 아님)
+        if (clientState.chat) {
           logger.info(`[AwarenessManager] Workspace ${workspaceId} - Client ${clientId} chat:`, {
-            message: clientState.tempChat.message,      // 채팅 내용
-            position: clientState.tempChat.position,    // 채팅이 표시될 위치
+            isTyping: clientState.chat.isTyping,         // 입력 중 여부
+            currentText: clientState.chat.currentText,   // 현재 입력 텍스트
+            timestamp: clientState.chat.timestamp,       // 타임스탬프
           });
         }
 
@@ -105,76 +107,10 @@ class AwarenessManager {
     }
   }
 
-  /**
-   * 클라이언트의 커서 위치 설정
-   * @param {number} clientId - 클라이언트 ID
-   * @param {string|number} workspaceId - 워크스페이스 ID
-   * @param {object} cursor - 커서 좌표 { x, y }
-   */
-  setCursor(clientId, workspaceId, cursor) {
-    const awareness = this.awarenessInstances.get(workspaceId);
-    if (awareness) {
-      // Awareness의 'cursor' 필드 업데이트 -> 다른 클라이언트들에게 자동 전파됨
-      awareness.setLocalStateField('cursor', cursor);
-      logger.debug(`[AwarenessManager] Client ${clientId} cursor updated in workspace ${workspaceId}`, cursor);
-    } else {
-      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
-    }
-  }
-
-  /**
-   * 임시 채팅 메시지 설정 (Figma처럼 "/" 키를 누르면 활성화)
-   * @param {number} clientId - 클라이언트 ID
-   * @param {string|number} workspaceId - 워크스페이스 ID
-   * @param {object} tempChat - 채팅 데이터 { message, position: {x, y}, timestamp }
-   */
-  setTempChat(clientId, workspaceId, tempChat) {
-    const awareness = this.awarenessInstances.get(workspaceId);
-    if (awareness) {
-      // 'tempChat' 필드 설정 -> 다른 사용자들에게 말풍선으로 표시됨
-      awareness.setLocalStateField('tempChat', tempChat);
-      logger.info(`[AwarenessManager] Client ${clientId} temp chat in workspace ${workspaceId}`, tempChat);
-    } else {
-      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
-    }
-  }
-
-  /**
-   * 임시 채팅 메시지 제거 (ESC 키나 전송 후)
-   * @param {number} clientId - 클라이언트 ID
-   * @param {string|number} workspaceId - 워크스페이스 ID
-   */
-  clearTempChat(clientId, workspaceId) {
-    logger.debug(`[AwarenessManager] Clearing temp chat for client ${clientId} in workspace ${workspaceId}`);
-    const awareness = this.awarenessInstances.get(workspaceId);
-    if (awareness) {
-      // tempChat을 null로 설정하여 제거
-      awareness.setLocalStateField('tempChat', null);
-      logger.info(`[AwarenessManager] Temp chat cleared for client ${clientId} in workspace ${workspaceId}`);
-    } else {
-      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
-    }
-  }
-
-  /**
-   * 사용자 정보 설정 (접속 시 프로필 전송)
-   * @param {number} clientId - 클라이언트 ID
-   * @param {string|number} workspaceId - 워크스페이스 ID
-   * @param {object} user - 사용자 정보 { id, name, email, color }
-   */
-  setUser(clientId, workspaceId, user) {
-    const awareness = this.awarenessInstances.get(workspaceId);
-    if (awareness) {
-      // 'user' 필드 설정 -> 다른 사용자들에게 "누가 접속했는지" 표시됨
-      awareness.setLocalStateField('user', user);
-      logger.info(`[AwarenessManager] Client ${clientId} user info set in workspace ${workspaceId}`, {
-        userId: user.id,
-        name: user.name,
-      });
-    } else {
-      logger.warn(`[AwarenessManager] Awareness not found for workspace ${workspaceId}`);
-    }
-  }
+  // NOTE: setCursor, setTempChat, clearTempChat, setUser 메서드 제거됨
+  // 클라이언트가 직접 awareness.setLocalStateField()를 호출하면
+  // Yjs 프로토콜을 통해 자동으로 동기화되므로 서버에서 별도 설정 불필요
+  // handleAwarenessChange()에서 변경사항을 감지하여 로깅만 수행
 
   /**
    * Get all connected clients in a workspace
@@ -191,7 +127,7 @@ class AwarenessManager {
         clientId,
         user: state.user,
         cursor: state.cursor,
-        tempChat: state.tempChat,
+        chat: state.chat,  // 'tempChat'이 아닌 'chat' 사용
       });
     });
 
