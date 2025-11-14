@@ -49,18 +49,22 @@ class MindmapCard extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: isNetworkImage
+                child: isNetworkImage && imagePath.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: imagePath,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
                           child: CircularProgressIndicator(),
                         ),
-                        errorWidget: (context, url, error) => const Center(
-                          child: Icon(Icons.error, color: Colors.grey),
+                        errorWidget: (context, url, error) => Image.asset(
+                          'assets/images/basic_bg.png',
+                          fit: BoxFit.cover,
                         ),
                       )
-                    : Image.asset(imagePath, fit: BoxFit.cover),
+                    : Image.asset(
+                        imagePath.isEmpty ? 'assets/images/basic_bg.png' : imagePath,
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
 

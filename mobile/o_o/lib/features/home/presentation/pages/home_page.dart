@@ -16,8 +16,43 @@ import '../widgets/circular_button.dart';
 import '../widgets/mindmap_card.dart';
 
 /// 홈 페이지
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late WorkspaceBloc _workspaceBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _workspaceBloc = sl<WorkspaceBloc>();
+    // 초기 로드
+    _workspaceBloc.add(const WorkspaceEvent.load());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 화면에 돌아올 때마다 API 재호출
+    // (초기 로드 제외하고 매번 재로드)
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _workspaceBloc.add(const WorkspaceEvent.load());
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _workspaceBloc.close();
+    super.dispose();
+  }
 
   /// 녹음 중단 확인 다이얼로그
   void _showStopRecordingDialog(BuildContext context) {
@@ -137,8 +172,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<WorkspaceBloc>()..add(const WorkspaceEvent.load()),
+    return BlocProvider.value(
+      value: _workspaceBloc,
       child: Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -396,7 +431,13 @@ class HomePage extends StatelessWidget {
                                           return NotificationListener<ScrollNotification>(
                                             onNotification: (scrollInfo) {
                                               // 스크롤이 끝에 도달하고 더 불러올 데이터가 있을 때
-                                              if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 && hasNext) {
+                                              // loadingMore 상태가 아닐 때만 추가 로드
+                                              final currentState = context.read<WorkspaceBloc>().state;
+                                              final isLoadingMore = currentState is WorkspaceLoadingMore;
+
+                                              if (!isLoadingMore &&
+                                                  scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 &&
+                                                  hasNext) {
                                                 context.read<WorkspaceBloc>().add(
                                                   const WorkspaceEvent.loadMore(),
                                                 );
@@ -422,11 +463,8 @@ class HomePage extends StatelessWidget {
                                                     },
                                                   );
                                                 }).toList(),
-                                                if (hasNext)
-                                                  const Padding(
-                                                    padding: EdgeInsets.all(16.0),
-                                                    child: CircularProgressIndicator(),
-                                                  ),
+                                                // hasNext가 true여도 loaded 상태에서는 로딩 인디케이터 표시 안 함
+                                                // loadingMore 상태에서만 표시
                                               ],
                                             ),
                                           );
