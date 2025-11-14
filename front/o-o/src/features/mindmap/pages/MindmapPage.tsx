@@ -51,10 +51,12 @@ const MindmapPageContent: React.FC = () => {
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
 
-  // 4. Stable cursor color (once per session)
+  // 4. Stable cursor color (once per session) - separate from node theme colors
   const cursorColorRef = useRef<string | null>(null);
   if (!cursorColorRef.current) {
-    cursorColorRef.current = getRandomThemeColor();
+    // Use cursor-specific color palette for collaboration
+    const CURSOR_COLORS = ["#F24822", "#57E257", "#FF824D", "#29DFFF", "#FF50F0", "#FFC60B"];
+    cursorColorRef.current = CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
   }
 
   // 5. Collaboration hooks

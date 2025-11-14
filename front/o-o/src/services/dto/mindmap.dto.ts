@@ -4,10 +4,7 @@ import type {
   NodeData,
 } from "@/features/mindmap/types";
 
-
-export type AnalysisStatus = 'NONE' | 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
-
-// Backend API Response
+// API Response
 export interface MindmapNode {
   id: string;
   nodeId: number;
@@ -16,7 +13,7 @@ export interface MindmapNode {
   type: string;
   keyword: string;
   memo: string;
-  analysisStatus: AnalysisStatus;
+  analysisStatus: NodeAnalysisStatus;
   x: number;
   y: number;
   color: string;
@@ -24,7 +21,7 @@ export interface MindmapNode {
   updatedAt: string;
 }
 
-// Backend API Request
+// API Request
 export interface CreateMindmapNodeRequest {
   parentId?: number | null;
   type: string;
@@ -43,7 +40,7 @@ export interface UpdateMindmapNodeRequest {
   color?: string | null;
   parentId?: number | null;
   type?: string | null;
-  analysisStatus?: AnalysisStatus | null;
+  analysisStatus?: NodeAnalysisStatus | null;
 }
 
 // Normalizes REST DTOs into the NodeData shape consumed by Yjs/React state
