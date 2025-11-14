@@ -177,31 +177,6 @@ public class NodeService {
         return nodeRepository.countByWorkspaceId(workspaceId);
     }
 
-    public MindmapNode updateNodePosition(Long workspaceId, Long nodeId, Double x, Double y) {
-        log.debug("Updating node position: workspaceId={}, nodeId={}, x={}, y={}", workspaceId, nodeId, x, y);
-
-        MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
-                .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
-
-        node.setX(x);
-        node.setY(y);
-        node.setUpdatedAt(LocalDateTime.now());
-
-        return nodeRepository.save(node);
-    }
-
-    public MindmapNode updateNodeColor(Long workspaceId, Long nodeId, String color) {
-        log.debug("Updating node color: workspaceId={}, nodeId={}, color={}", workspaceId, nodeId, color);
-
-        MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
-                .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
-
-        node.setColor(color);
-        node.setUpdatedAt(LocalDateTime.now());
-
-        return nodeRepository.save(node);
-    }
-
     @Transactional
     public List<MindmapNode> cloneWorkspace(Long sourceWorkspaceId, String newWorkspaceName, String newWorkspaceDescription) {
         log.info("Cloning workspace: source={}, newName={}", sourceWorkspaceId, newWorkspaceName);
