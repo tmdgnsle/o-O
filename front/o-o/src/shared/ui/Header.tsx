@@ -38,7 +38,7 @@ export function Header() {
         className="
           flex items-center justify-between font-paperlogy 
           px-4 sm:px-8 lg:px-10
-          py-3 sm:py-6 lg:py-10"
+          py-3 sm:py-6 lg:pb-10 lg:pt-6"
       >
         <div className="flex items-center gap-4 sm:gap-8">
           <Link to="/">
