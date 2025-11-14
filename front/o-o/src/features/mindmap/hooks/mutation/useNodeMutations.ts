@@ -144,7 +144,7 @@ export const useUpdateNodePosition = () => {
 };
 
 /**
- * 여러 노드의 위치를 한 번에 업데이트 (Cola 레이아웃 완료 후 사용)
+ * 여러 노드의 위치를 한 번에 업데이트
  * - 개별 mutation 대신 batch 업데이트로 성능 개선
  * - 200개 노드 = 200번 localStorage write → 1번 write
  */

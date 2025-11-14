@@ -18,6 +18,16 @@ export interface CreateWorkspaceRequestDTO {
   readonly visibility?: WorkspaceVisibility;
 }
 
+// PATCH /workspace/{workspaceId}/member/{targetUserId} 요청 바디
+export interface UpdateMemberRoleRequestDTO {
+  readonly role: WorkspaceRole;
+}
+
+// PATCH /workspace/{workspaceId}/visibility 요청 바디
+export interface UpdateWorkspaceVisibilityRequestDTO {
+  readonly visibility: WorkspaceVisibility;
+}
+
 
 // --------------------------------------
 // RESPONSE

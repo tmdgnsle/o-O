@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from "react";
+import React, { useRef, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Core } from "cytoscape";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
@@ -28,6 +28,7 @@ import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
 import {
   DEFAULT_WORKSPACE_ID,
+  buildMindmapRoomId,
   buildMindmapShareLink,
   resolveMindmapWsUrl,
 } from "@/constants/mindmapCollaboration";
@@ -37,14 +38,13 @@ const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const navigate = useNavigate();
+  const roomId = useMemo(() => buildMindmapRoomId(workspaceId), [workspaceId]);
   const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
   const wsUrl = resolveMindmapWsUrl();
 
   // 2. Refs for Cytoscape
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
-  const [cyReady, setCyReady] = useState(false);
-
 
   // 3. Helper hooks
   const { getRandomThemeColor } = useColorTheme();
@@ -57,22 +57,21 @@ const MindmapPageContent: React.FC = () => {
   }
 
   // 5. Collaboration hooks
-  const { collab, crud, updateChatState } = useYjsCollaboration(
+  const { collab, crud, updateChatState, connectionError } = useYjsCollaboration(
     wsUrl,
-    workspaceId,
+    roomId,
     cyRef,
-    cursorColorRef.current,
-    {
-      enabled: true, // Mindmap 페이지에서는 항상 활성화
-      onAuthError: () => {
-        console.warn("[MindmapPage] auth error in collaboration, navigate to home");
-        navigate("/"); // 인증 실패 시 홈으로 리다이렉트
-      },
-    }
+    cursorColorRef.current
   );
-
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
+  // 5c. Handle connection error - redirect to home
+  useEffect(() => {
+    if (connectionError) {
+      console.error("??WebSocket connection failed, redirecting to home");
+      navigate("/");
+    }
+  }, [connectionError, navigate]);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();
@@ -105,71 +104,35 @@ const MindmapPageContent: React.FC = () => {
 
   // 10. Voice chat users (mock data)
   const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "사용자 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "사용자 B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
+    { id: "1", name: "?�용??A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
+    { id: "2", name: "?�용??B", avatar: popo2, colorIndex: 1 },
+    { id: "3", name: "?�용??C", avatar: popo3, colorIndex: 2 },
   ], []);
 
-  // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
+  // 10b. Track cursor position for chat input (model coordinates only)
   useEffect(() => {
-    if (!collab) return;
-    if (!cyReady) return;
-
     const cy = cyRef.current;
-    if (!cy) {
-      console.log("[MindmapPage] cyRef.current is null, skip cursor binding");
-      return;
-    }
-
-    const awareness = collab.client.provider.awareness;
-    if (!awareness) {
-      console.log("[MindmapPage] provider.awareness is null");
-      return;
-    }
-
-    let raf = 0;
-    let lastLog = 0;
+    if (!cy) return;
 
     const handleMouseMove = (event: cytoscape.EventObject) => {
-      if (raf) cancelAnimationFrame(raf);
+      const position = event.position;
+      if (!position) return;
 
-      raf = requestAnimationFrame(() => {
-        const position = event.position;
-        if (!position) return;
-
-        // 1) ChatInput 위치 업데이트 (모델 좌표)
-        chatInput.updateCursorPosition({ x: position.x, y: position.y });
-
-        // 2) Awareness cursor 브로드캐스트
-        const cursorData = {
-          x: position.x,
-          y: position.y,
-          color: cursorColorRef.current,
-        };
-
-        if (Date.now() - lastLog > 3000) {
-          console.log("[MindmapPage] set cursor (model coords):", cursorData);
-          lastLog = Date.now();
-        }
-
-        awareness.setLocalStateField("cursor", cursorData);
-      });
+      // Store model coordinates directly (no screen coordinate conversion)
+      chatInput.updateCursorPosition({ x: position.x, y: position.y });
     };
 
-    console.log("[MindmapPage] attach mousemove for awareness cursor + chatInput");
     cy.on("mousemove", handleMouseMove);
-
     return () => {
       cy.off("mousemove", handleMouseMove);
-      if (raf) cancelAnimationFrame(raf);
     };
-  }, [collab, cyReady, chatInput]);
+  }, [cyRef.current, chatInput]);
 
   // 11. Loading state
   if (!collab || !crud || isBootstrapping) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        워크스페이스를 로딩 중입니다...
+        ?�크?�페?�스�?로딩 중입?�다...
       </div>
     );
   }
@@ -242,10 +205,7 @@ const MindmapPageContent: React.FC = () => {
             onEditNode={nodeOperations.handleEditNode}
             onNodePositionChange={nodeOperations.handleNodePositionChange}
             onBatchNodePositionChange={nodeOperations.handleBatchNodePositionChange}
-            onCyReady={(cy) => {
-              cyRef.current = cy;
-              setCyReady(true);
-            }}            
+            onCyReady={(cy) => { cyRef.current = cy; }}
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
             detachedSelectionMap={detachedSelection.detachedSelectionMap}
@@ -283,7 +243,7 @@ const MindmapPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
-        워크스페이스 접근 권한을 확인하는 중...
+        ?�크?�페?�스 ?�근 권한???�인?�는 �?..
       </div>
     );
   }
