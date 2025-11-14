@@ -95,12 +95,12 @@ export function useYjsCollaboration(
     const scheduleConnectionCheck = (client: YClient) => {
       clearConnectionCheckTimeout();
       connectionCheckTimeoutRef.current = setTimeout(() => {
-        if (!client.provider.wsconnected) {
-          console.error("[useYjsCollaboration] WebSocket connection failed after 3 seconds");
-          setConnectionError(true);
-        } else {
+        if (client.provider.wsconnected) {
           console.log("[useYjsCollaboration] WebSocket connection established");
           setConnectionError(false);
+        } else {
+          console.error("[useYjsCollaboration] WebSocket connection failed after 3 seconds");
+          setConnectionError(true);
         }
       }, 3000);
     };
@@ -126,11 +126,8 @@ export function useYjsCollaboration(
         currentClientRef.current.wsToken = nextToken;
 
         const provider = currentClientRef.current.provider;
-        const cleanWorkspaceId =
-          currentClientRef.current.workspaceId.replace(/^mindmap:/, "");
-
+        
         provider.params = {
-          workspace: cleanWorkspaceId,
           token: nextToken,
         };
 
@@ -229,10 +226,10 @@ export function useYjsCollaboration(
     };
 
     // 🔑 enabled === false면 기존 연결을 정리하고 아무 것도 하지 않음
-    if (!enabled) {
-      cleanupClient();
-    } else {
+    if (enabled) {
       initializeClient();
+    } else {
+      cleanupClient();
     }
 
     // Cleanup

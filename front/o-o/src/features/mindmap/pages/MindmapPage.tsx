@@ -28,7 +28,6 @@ import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
 import {
   DEFAULT_WORKSPACE_ID,
-  buildMindmapRoomId,
   buildMindmapShareLink,
   resolveMindmapWsUrl,
 } from "@/constants/mindmapCollaboration";
@@ -38,7 +37,6 @@ const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const navigate = useNavigate();
-  const roomId = useMemo(() => buildMindmapRoomId(workspaceId), [workspaceId]);
   const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
   const wsUrl = resolveMindmapWsUrl();
 
@@ -57,9 +55,9 @@ const MindmapPageContent: React.FC = () => {
   }
 
   // 5. Collaboration hooks
-  const { collab, crud, updateChatState, connectionError } = useYjsCollaboration(
+  const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
-    roomId,
+    workspaceId,
     cyRef,
     cursorColorRef.current,
     {
