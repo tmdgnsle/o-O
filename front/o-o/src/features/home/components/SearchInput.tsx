@@ -60,9 +60,9 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
         onPaste={handlePaste}
         className="
           w-full
-          h-[clamp(60px,2vw,100px)] 
+          h-[50px] md:h-[60px]
           px-6 text-center font-semibold 
-          text-[clamp(16px,1.5vw,36px)] 
+          text-[13px] sm:text-[14px] lg:text-[18px]
           text-semi-deep-grey rounded-full
           bg-transparent 
           focus:placeholder-transparent"
