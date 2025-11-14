@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import type { RootState } from "@/store/store";
+import { resetPathExceptParent } from "@/store/slices/trendPathSlice";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import CustomScrollbar from "@/shared/ui/CustomScrollbar";
 import { useDrawerDimensions } from "../../../hooks/custom/useDrawerDimensions";
@@ -16,25 +20,6 @@ export interface Keyword {
   readonly id: number;
   readonly keyword: string;
 }
-
-export const EXPAND_KEYWORDS: Keyword[] = [
-  { id: 1, keyword: "소영언니" },
-  { id: 2, keyword: "짱짱걸" },
-  { id: 3, keyword: "키워드3" },
-  { id: 4, keyword: "키워드4" },
-  { id: 5, keyword: "키워드5" },
-  { id: 6, keyword: "키워드6" },
-  { id: 7, keyword: "키워드7" },
-  { id: 8, keyword: "키워드8" },
-  { id: 9, keyword: "소영언니2" },
-  { id: 10, keyword: "짱짱걸2" },
-  { id: 11, keyword: "키워드11" },
-  { id: 12, keyword: "키워드12" },
-  { id: 13, keyword: "키워드13" },
-  { id: 14, keyword: "키워드14" },
-  { id: 15, keyword: "키워드15" },
-  { id: 16, keyword: "키워드16" },
-];
 
 const DUMMY_MINDMAP_PROJECTS: Project[] = [
   {
@@ -76,13 +61,6 @@ const DUMMY_MINDMAP_PROJECTS: Project[] = [
     collaborators: [{ id: "user2", name: "이영희", image: popo2 }],
   },
   {
-    id: "5",
-    title: "알고리즘 관련 기록",
-    date: "2025.10.26",
-    isPrivate: false,
-    collaborators: [{ id: "user2", name: "이영희", image: popo2 }],
-  },
-  {
     id: "6",
     title: "알고리즘 관련 기록",
     date: "2025.10.26",
@@ -106,9 +84,17 @@ const DUMMY_MINDMAP_PROJECTS: Project[] = [
 ];
 
 export function DrawerButton() {
+  const { trendId } = useParams<{ trendId: string }>();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { drawerHeight, buttonBottom } = useDrawerDimensions(isOpen);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Redux에서 경로 가져오기
+  const visitPath = useSelector(
+    (state: RootState) => state.trendPath.visitPath
+  );
 
   const handleImportToMindmap = () => {
     setIsModalOpen(true);
@@ -120,14 +106,33 @@ export function DrawerButton() {
 
   const handleCreateNewMindmap = () => {
     console.log("새 마인드맵 생성");
+    console.log("생성할 마인드맵 경로:", visitPath.join(" > "));
     // TODO: 새 마인드맵 생성 로직
     setIsModalOpen(false);
   };
 
   const handleSelectMindmap = (mindmapId: string) => {
     console.log("마인드맵 선택:", mindmapId);
-    // TODO: 선택한 마인드맵에 키워드 추가 로직
+    console.log("선택한 경로:", visitPath.join(" > "));
+    // TODO: 선택한 마인드맵에 키워드 추가 로직 (visitPath 포함)
     setIsModalOpen(false);
+  };
+
+  // 경로에 있는 키워드 클릭 핸들러
+  const handlePathKeywordClick = (keyword: string) => {
+    // 해당 키워드로 네비게이트
+    navigate(`/trend/${encodeURIComponent(keyword)}`);
+
+    // 드로어 닫기
+    setIsOpen(false);
+  };
+
+  // 경로 리셋 핸들러 - 현재 부모만 남기기
+  const handleResetPath = () => {
+    if (trendId) {
+      const parentKeyword = decodeURIComponent(trendId);
+      dispatch(resetPathExceptParent(parentKeyword));
+    }
   };
 
   return (
@@ -145,23 +150,40 @@ export function DrawerButton() {
 
               {/* 컨텐츠 영역: 스크롤 + 버튼 */}
               <div className="flex-1 flex gap-3 overflow-hidden">
-                {/* 가로 스크롤 영역 */}
+                {/* 가로 스크롤 영역 - visitPath 표시 */}
                 <div className="flex-1 overflow-hidden">
                   <CustomScrollbar maxWidth="100%" direction="horizontal">
                     <div className="flex gap-3 sm:gap-4 md:gap-5 pb-3 pr-2 items-center">
-                      {EXPAND_KEYWORDS.map((item, index) => (
-                        <KeywordButton
-                          key={item.id}
-                          keyword={item.keyword}
-                          index={index}
-                        />
-                      ))}
+                      {visitPath.length > 0 ? (
+                        visitPath.map((keyword: string, index: number) => (
+                          <div
+                            key={`${keyword}-${index}`}
+                            onClick={() => handlePathKeywordClick(keyword)}
+                            className="cursor-pointer"
+                          >
+                            <KeywordButton keyword={keyword} index={index} />
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-400 text-sm whitespace-nowrap">
+                          노드를 선택하면 경로가 표시됩니다
+                        </p>
+                      )}
                     </div>
                   </CustomScrollbar>
                 </div>
 
-                {/* 마인드맵 가져오기 버튼 (스크롤 밖) */}
-                <div className="flex items-center pb-3">
+                {/* 리셋 버튼 + 마인드맵 가져오기 버튼 */}
+                <div className="flex items-center gap-2 pb-3">
+                  {visitPath.length > 1 && (
+                    <button
+                      onClick={handleResetPath}
+                      className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors whitespace-nowrap"
+                      title="경로를 현재 노드만 남기고 초기화"
+                    >
+                      리셋
+                    </button>
+                  )}
                   <ImportToMindmapButton onClick={handleImportToMindmap} />
                 </div>
               </div>

@@ -3,10 +3,18 @@ import { TrendHeader } from "../components/TrendMain/TrendHeader";
 import { TrendKeyword } from "../components/TrendMain/TrendKeyword";
 import { useEffect } from "react";
 import { useTrend } from "../hooks/useTrend";
+import { useDispatch } from "react-redux";
+import { resetPath } from "@/store/slices/trendPathSlice";
 
 export function TrendPage() {
   const { keywords, keywordsError, keywordsLoading, fetchTopTrendList } =
     useTrend();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    console.log("📍 /trend 페이지 진입 - 경로 초기화");
+    dispatch(resetPath());
+  }, [dispatch]);
 
   // 페이지 진입 시 상위 키워드 조회
   useEffect(() => {
