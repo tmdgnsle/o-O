@@ -333,22 +333,6 @@ public class NodeController {
     }
 
     @Operation(
-            summary = "워크스페이스의 노드 개수 조회",
-            description = "특정 워크스페이스에 속한 노드의 총 개수를 조회합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "노드 개수 조회 성공")
-    })
-    @GetMapping("/{workspaceId}/nodes/count")
-    public ResponseEntity<Long> countNodes(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId) {
-        log.info("GET /mindmap/{}/nodes/count", workspaceId);
-        long count = nodeService.countNodes(workspaceId);
-        return ResponseEntity.ok(count);
-    }
-
-    @Operation(
             summary = "워크스페이스 복제",
             description = "기존 워크스페이스의 모든 노드를 새 워크스페이스로 복제합니다."
     )

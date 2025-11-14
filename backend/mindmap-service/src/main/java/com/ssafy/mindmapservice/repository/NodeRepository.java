@@ -30,9 +30,6 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
     // 워크스페이스 삭제 시 사용
     void deleteByWorkspaceId(Long workspaceId);
 
-    //워크스페이스의 노드 개수 조회
-    long countByWorkspaceId(Long workspaceId);
-
     /**
      * 키워드로 노드 검색 (대소문자 무시, 부분 일치)
      * Public 워크스페이스만 검색하려면 Service 레이어에서 필터링

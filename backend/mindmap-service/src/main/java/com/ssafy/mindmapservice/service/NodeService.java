@@ -173,10 +173,6 @@ public class NodeService {
         nodeRepository.deleteByWorkspaceId(workspaceId);
     }
 
-    public long countNodes(Long workspaceId) {
-        return nodeRepository.countByWorkspaceId(workspaceId);
-    }
-
     @Transactional
     public List<MindmapNode> cloneWorkspace(Long sourceWorkspaceId, String newWorkspaceName, String newWorkspaceDescription) {
         log.info("Cloning workspace: source={}, newName={}", sourceWorkspaceId, newWorkspaceName);
