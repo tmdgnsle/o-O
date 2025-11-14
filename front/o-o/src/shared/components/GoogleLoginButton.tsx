@@ -1,7 +1,17 @@
 import { API_BASE_URL } from "@/constants/baseUrl";
+import { setRedirectPath } from "@/store/slices/authSlice";
+import { useDispatch } from "react-redux";
 
 export function GoogleLoginButton() {
+  const dispatch = useDispatch();
+
   const handleLogin = () => {
+    // 현재 경로 저장
+    const currentPath = globalThis.location.pathname;
+    console.log("🔐 로그인 버튼 클릭 - 현재 경로 저장");
+    dispatch(setRedirectPath(currentPath));
+    localStorage.setItem("redirectPath", currentPath);
+
     globalThis.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 

@@ -6,7 +6,6 @@ interface AuthState {
   isLoggedIn: boolean;
   accessToken: string | null;
   redirectPath: string | null;
-  redirectState: any;
 }
 
 const getInitialState = (): AuthState => {
@@ -16,7 +15,6 @@ const getInitialState = (): AuthState => {
     accessToken: token || null,
     isLoggedIn: !!token,
     redirectPath: null,
-    redirectState: null,
   };
 };
 
@@ -37,25 +35,17 @@ const authSlice = createSlice({
     },
 
     // 로그인 필요 액션 발생 시 - 현재 경로와 상태 저장
-    setLoginRequired: (
-      state,
-      action: PayloadAction<{ path: string; state?: any }>
-    ) => {
-      state.redirectPath = action.payload.path;
-      state.redirectState = action.payload.state;
+    // 로그인 버튼 클릭 시 현재 경로 저장
+    setRedirectPath: (state, action: PayloadAction<string>) => {
+      state.redirectPath = action.payload;
     },
-    // 로그인 후 리다이렉트 정보 초기화
-    clearLoginRequired: (state) => {
+    // 로그인 후 리다이렉트 경로 초기화
+    clearRedirectPath: (state) => {
       state.redirectPath = null;
-      state.redirectState = null;
     },
   },
 });
 
-export const {
-  setAccessToken,
-  clearAuth,
-  setLoginRequired,
-  clearLoginRequired,
-} = authSlice.actions;
+export const { setAccessToken, clearAuth, setRedirectPath, clearRedirectPath } =
+  authSlice.actions;
 export default authSlice.reducer;
