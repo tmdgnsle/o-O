@@ -23,6 +23,7 @@ import { useNodeOperations } from "../hooks/custom/useNodeOperations";
 import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
+import { useMindmapSync } from "../hooks/custom/useMindmapSync";
 import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
@@ -73,6 +74,8 @@ const MindmapPageContent: React.FC = () => {
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
+  // 5a. Sync Yjs changes to backend API
+  useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();

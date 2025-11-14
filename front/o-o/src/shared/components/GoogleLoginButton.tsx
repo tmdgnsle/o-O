@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "@/constants/baseUrl";
+
 export function GoogleLoginButton() {
   const handleLogin = () => {
-    globalThis.location.href = `${import.meta.env.VITE_API_URL}/oauth2/authorization/google`;
+    globalThis.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
 
   return (

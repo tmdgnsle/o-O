@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API_BASE_URL } from "@/constants/baseUrl";
 import { clearAuth } from "@/store/slices/authSlice";
 import { clearUser } from "@/store/slices/userSlice";
 
@@ -14,7 +15,7 @@ export const injectStore = (_store: any) => {
 
 // axios 인스턴스 생성 (인터셉터 없음 - reissue 요청용)
 const axiosPlain = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -23,7 +24,7 @@ const axiosPlain = axios.create({
 
 // axios 인스턴스 생성 (인터셉터 있음)
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -59,7 +60,7 @@ apiClient.interceptors.response.use(
       try {
         console.log(
           "🔄 Reissue 요청 시작:",
-          `${import.meta.env.VITE_API_URL}/auth/reissue`
+          `${API_BASE_URL}/auth/reissue`
         );
 
         // refreshToken(쿠키)으로 새 accessToken 받기
