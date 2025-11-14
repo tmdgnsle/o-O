@@ -249,7 +249,7 @@ export function useYjsCollaboration(
     const setAwarenessState = () => {
       const initialState = {
         user: {
-          name: currentUser?.nickname || "Anonymous",
+          name: currentUser?.nickname || "익명의 사용자",
           email: currentUser?.email || "",
           profileImage: currentUser?.profileImage,
           color: cursorColor,
@@ -283,47 +283,47 @@ export function useYjsCollaboration(
   }, [collab, cursorColor, currentUser]);
 
   // Cytoscape 마우스 위치 → awareness.cursor 브로드캐스트
-  useEffect(() => {
-    if (!collab) return;
-    const cy = cyRef.current;
-    if (!cy) return;
+  // useEffect(() => {
+  //   if (!collab) return;
+  //   const cy = cyRef.current;
+  //   if (!cy) return;
 
-    const awareness = collab.client.provider.awareness;
-    if (!awareness) return;
+  //   const awareness = collab.client.provider.awareness;
+  //   if (!awareness) return;
 
-    let raf = 0;
-    let lastLog = 0;
+  //   let raf = 0;
+  //   let lastLog = 0;
 
-    const handleMouseMove = (event: cytoscape.EventObject) => {
-      if (raf) cancelAnimationFrame(raf);
+  //   const handleMouseMove = (event: cytoscape.EventObject) => {
+  //     if (raf) cancelAnimationFrame(raf);
 
-      raf = requestAnimationFrame(() => {
-        const position = event.position;
-        if (!position) return;
+  //     raf = requestAnimationFrame(() => {
+  //       const position = event.position;
+  //       if (!position) return;
 
-        const cursorData = {
-          x: position.x, // model 좌표 (pan/zoom 영향 없음)
-          y: position.y,
-          color: cursorColor,
-        };
+  //       const cursorData = {
+  //         x: position.x, // model 좌표 (pan/zoom 영향 없음)
+  //         y: position.y,
+  //         color: cursorColor,
+  //       };
 
-        if (Date.now() - lastLog > 5000) {
-          console.log("[useYjsCollaboration] set cursor (model coords):", cursorData);
-          lastLog = Date.now();
-        }
+  //       if (Date.now() - lastLog > 5000) {
+  //         console.log("[useYjsCollaboration] set cursor (model coords):", cursorData);
+  //         lastLog = Date.now();
+  //       }
 
-        awareness.setLocalStateField("cursor", cursorData);
-      });
-    };
+  //       awareness.setLocalStateField("cursor", cursorData);
+  //     });
+  //   };
 
-    console.log("[useYjsCollaboration] attach mousemove to Cytoscape");
-    cy.on("mousemove", handleMouseMove);
+  //   console.log("[useYjsCollaboration] attach mousemove to Cytoscape");
+  //   cy.on("mousemove", handleMouseMove);
 
-    return () => {
-      cy.off("mousemove", handleMouseMove);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [collab, cyRef, cursorColor]);
+  //   return () => {
+  //     cy.off("mousemove", handleMouseMove);
+  //     if (raf) cancelAnimationFrame(raf);
+  //   };
+  // }, [collab, cyRef, cursorColor]);
 
   // 채팅 상태 업데이트 메서드
   const updateChatState = (

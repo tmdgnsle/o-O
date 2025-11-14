@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from "react";
+import React, { useRef, useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Core } from "cytoscape";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
@@ -43,6 +43,8 @@ const MindmapPageContent: React.FC = () => {
   // 2. Refs for Cytoscape
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const [cyReady, setCyReady] = useState(false);
+
 
   // 3. Helper hooks
   const { getRandomThemeColor } = useColorTheme();
@@ -108,24 +110,60 @@ const MindmapPageContent: React.FC = () => {
     { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
   ], []);
 
-  // 10b. Track cursor position for chat input (model coordinates only)
+  // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {
+    if (!collab) return;
+    if (!cyReady) return;
+
     const cy = cyRef.current;
-    if (!cy) return;
+    if (!cy) {
+      console.log("[MindmapPage] cyRef.current is null, skip cursor binding");
+      return;
+    }
+
+    const awareness = collab.client.provider.awareness;
+    if (!awareness) {
+      console.log("[MindmapPage] provider.awareness is null");
+      return;
+    }
+
+    let raf = 0;
+    let lastLog = 0;
 
     const handleMouseMove = (event: cytoscape.EventObject) => {
-      const position = event.position;
-      if (!position) return;
+      if (raf) cancelAnimationFrame(raf);
 
-      // Store model coordinates directly (no screen coordinate conversion)
-      chatInput.updateCursorPosition({ x: position.x, y: position.y });
+      raf = requestAnimationFrame(() => {
+        const position = event.position;
+        if (!position) return;
+
+        // 1) ChatInput 위치 업데이트 (모델 좌표)
+        chatInput.updateCursorPosition({ x: position.x, y: position.y });
+
+        // 2) Awareness cursor 브로드캐스트
+        const cursorData = {
+          x: position.x,
+          y: position.y,
+          color: cursorColorRef.current,
+        };
+
+        if (Date.now() - lastLog > 3000) {
+          console.log("[MindmapPage] set cursor (model coords):", cursorData);
+          lastLog = Date.now();
+        }
+
+        awareness.setLocalStateField("cursor", cursorData);
+      });
     };
 
+    console.log("[MindmapPage] attach mousemove for awareness cursor + chatInput");
     cy.on("mousemove", handleMouseMove);
+
     return () => {
       cy.off("mousemove", handleMouseMove);
+      if (raf) cancelAnimationFrame(raf);
     };
-  }, [cyRef.current, chatInput]);
+  }, [collab, cyReady, chatInput]);
 
   // 11. Loading state
   if (!collab || !crud || isBootstrapping) {
@@ -204,7 +242,10 @@ const MindmapPageContent: React.FC = () => {
             onEditNode={nodeOperations.handleEditNode}
             onNodePositionChange={nodeOperations.handleNodePositionChange}
             onBatchNodePositionChange={nodeOperations.handleBatchNodePositionChange}
-            onCyReady={(cy) => { cyRef.current = cy; }}
+            onCyReady={(cy) => {
+              cyRef.current = cy;
+              setCyReady(true);
+            }}            
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
             detachedSelectionMap={detachedSelection.detachedSelectionMap}
