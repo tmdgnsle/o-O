@@ -138,14 +138,14 @@ class LlamaVisionAnalyzer:
 
         # 생성
         with torch.no_grad():
+            # repetition_penalty는 양자화 모델에서 CUDA 에러 발생 가능하므로 제거
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=max_tokens,
                 temperature=temperature,
                 top_p=0.9,
                 do_sample=True if temperature > 0 else False,
-                pad_token_id=self.processor.tokenizer.pad_token_id,
-                repetition_penalty=repetition_penalty
+                pad_token_id=self.processor.tokenizer.pad_token_id
             )
 
         # 디코딩 (입력 제거하고 생성된 부분만)
@@ -255,14 +255,14 @@ class LlamaVisionAnalyzer:
 
         # 생성
         with torch.no_grad():
+            # repetition_penalty는 양자화 모델에서 CUDA 에러 발생 가능하므로 제거
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=max_tokens,
                 temperature=temperature,
                 top_p=0.9,
                 do_sample=True if temperature > 0 else False,
-                pad_token_id=self.processor.tokenizer.pad_token_id,
-                repetition_penalty=repetition_penalty
+                pad_token_id=self.processor.tokenizer.pad_token_id
             )
 
         # 디코딩

@@ -85,23 +85,28 @@ class AnalysisProcessor:
                 logger.info(f"✅ 이미지 다운로드 성공: {image_path}")
 
                 # Vision 모델로 이미지 분석
-                vision_prompt = f"""이 이미지를 상세하게 분석하고 포괄적인 설명을 제공해주세요.
+                vision_prompt = f"""Analyze this image concisely in 3-5 sentences. Focus on unique information only.
 
-사용자 요청: {prompt}
+User request: {prompt}
 
-다음 내용을 설명해주세요:
-1. 주요 내용과 텍스트 (보이는 모든 텍스트를 읽어주세요)
-2. 시각적 요소들 (차트, 그래프, 다이어그램, 로고, 심볼)
-3. 제시된 핵심 개념과 아이디어
-4. 계층 구조나 조직 방식
+Describe:
+1. Main visible text and content
+2. Key visual elements (charts, diagrams, logos)
+3. Core concepts presented
 
-명확하고 완전한 문장으로 상세한 분석을 제공해주세요. 반복하지 마세요."""
+Be concise. Never repeat yourself. Stop after describing main points."""
 
                 content_text = self.vision_analyzer.analyze_image(
                     image=image_path,
-                    prompt=vision_prompt
+                    prompt=vision_prompt,
+                    max_tokens=512,
+                    temperature=0.3
                 )
                 logger.info(f"✅ Vision 분석 완료: {len(content_text)}자")
+                logger.info(f"📄 Vision 분석 내용:\n{content_text}")
+
+                # 이미지 파일 삭제
+                self.image_analyzer.cleanup(image_path)
 
             elif content_type == 'TEXT':
                 # TEXT: prompt만 사용
@@ -116,8 +121,9 @@ class AnalysisProcessor:
 
 CRITICAL REQUIREMENTS:
 1. Output ONLY valid JSON - No explanations, no markdown, no code blocks
-2. MUST include both "aiSummary" and "nodes" fields
+2. MUST include "title", "aiSummary", and "nodes" fields
 3. The root node already exists - DO NOT create a top-level category node
+4. Each field must appear ONLY ONCE per node (no duplicate keys)
 
 Generate nodes with appropriate depth (5-15 nodes recommended):
 - All first-level nodes MUST have parentId={node_id}
@@ -126,6 +132,7 @@ Generate nodes with appropriate depth (5-15 nodes recommended):
 
 REQUIRED JSON structure (copy this format exactly):
 {{
+  "title": "Concise mindmap title (3-10 words)",
   "aiSummary": "Brief 1-2 sentence summary of the content",
   "nodes": [
     {{"tempId": "temp-1", "parentId": {node_id}, "keyword": "Main Topic 1", "memo": "Detailed description"}},
@@ -136,11 +143,14 @@ REQUIRED JSON structure (copy this format exactly):
 }}
 
 MANDATORY Rules:
-1. "aiSummary" field is REQUIRED at the top level
-2. tempId: "temp-1", "temp-2", etc (sequential)
-3. parentId: MUST be {node_id} or another tempId (NEVER null)
-4. keyword: 2-5 words, concise
-5. memo: 10-50 characters, informative (NEVER empty)
+1. "title" field is REQUIRED - a concise title for the entire mindmap (3-10 words)
+2. "aiSummary" field is REQUIRED at the top level
+3. tempId: "temp-1", "temp-2", etc (sequential)
+4. parentId: MUST be {node_id} or another tempId (NEVER null, NEVER duplicate)
+5. keyword: 2-5 words, concise (NEVER empty)
+6. memo: 10-50 characters, informative (NEVER empty)
+7. Each node must have exactly 4 fields: tempId, parentId, keyword, memo
+8. DO NOT repeat field names within a single node
 """.format(node_id=node_id)
 
             # contentType에 따라 user prompt 구성
@@ -151,13 +161,17 @@ MANDATORY Rules:
 {content_text[:5000]}
 
 위 내용을 분석하여 체계적인 마인드맵 노드들을 생성해주세요.
-콘텐츠의 복잡도와 내용에 따라 적절한 개수와 깊이로 구성하세요."""
+콘텐츠의 복잡도와 내용에 따라 적절한 개수와 깊이로 구성하세요.
+
+IMPORTANT: keyword와 memo는 반드시 한국어로 작성해주세요. title과 aiSummary도 한국어로 작성해주세요."""
             else:
                 # TEXT 타입: prompt만 사용
                 user_prompt_text = f"""사용자 요청: {prompt}
 
 위 주제/요청을 분석하여 체계적인 마인드맵 노드들을 생성해주세요.
-주제의 복잡도와 내용에 따라 적절한 개수와 깊이로 구성하세요."""
+주제의 복잡도와 내용에 따라 적절한 개수와 깊이로 구성하세요.
+
+IMPORTANT: keyword와 memo는 반드시 한국어로 작성해주세요. title과 aiSummary도 한국어로 작성해주세요."""
 
             # LLM 호출 (JSON 생성을 위해 낮은 temperature)
             logger.info("🤖 LLM으로 마인드맵 생성 중...")
@@ -199,16 +213,38 @@ MANDATORY Rules:
 
             # JSON 파싱 시도
             import json
+            import re
             try:
                 result_data = json.loads(response)
             except json.JSONDecodeError as e:
-                logger.error(f"JSON 파싱 실패!")
-                logger.error(f"파싱하려던 문자열:\n{response}")
-                raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e}")
+                logger.warning(f"⚠️ JSON 파싱 실패. 오류 복구를 시도합니다: {e}")
+
+                # 중복 필드 제거: 같은 객체 내에서 동일 필드가 2번 나오면 첫 번째만 유지
+                # 각 노드 객체를 순회하며 중복 제거
+                try:
+                    # 수동으로 노드별로 파싱
+                    fixed_response = response
+                    # 중복 parentId 패턴 찾기
+                    fixed_response = re.sub(
+                        r'("parentId"\s*:\s*"[^"]*"),\s*("keyword"[^}]*)"parentId"\s*:\s*"[^"]*"',
+                        r'\1, \2',
+                        fixed_response
+                    )
+                    result_data = json.loads(fixed_response)
+                    logger.info("✅ JSON 오류 복구 성공")
+                except Exception as e2:
+                    logger.error(f"JSON 파싱 최종 실패!")
+                    logger.error(f"원본:\n{response[:500]}")
+                    raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e2}")
 
             # 결과 검증 및 보정
             if 'nodes' not in result_data:
                 raise ValueError("응답에 nodes가 없습니다")
+
+            # title이 없으면 기본값 생성
+            if 'title' not in result_data or not result_data['title']:
+                logger.warning("⚠️ title이 없습니다. 기본값을 생성합니다.")
+                result_data['title'] = f"{content_type} 분석 마인드맵"
 
             # aiSummary가 없으면 기본값 생성
             if 'aiSummary' not in result_data or not result_data['aiSummary']:
@@ -232,6 +268,7 @@ MANDATORY Rules:
             # Kafka 응답 형식으로 변환
             kafka_response = {
                 "workspaceId": workspace_id,
+                "title": result_data['title'],
                 "aiSummary": result_data['aiSummary'],
                 "status": "SUCCESS",
                 "nodes": result_data['nodes']
@@ -320,21 +357,26 @@ MANDATORY Rules:
                 logger.info(f"✅ 이미지 다운로드 성공: {image_path}")
 
                 # Vision 모델로 이미지 분석
-                vision_prompt = f"""이 이미지를 상세하게 분석하고 포괄적인 설명을 제공해주세요.
+                vision_prompt = f"""Analyze this image concisely in 3-5 sentences. Focus on unique information only.
 
-다음 내용을 설명해주세요:
-1. 주요 내용과 텍스트 (보이는 모든 텍스트를 읽어주세요)
-2. 시각적 요소들 (차트, 그래프, 다이어그램, 로고, 심볼)
-3. 제시된 핵심 개념과 아이디어
-4. 상세한 하위 주제나 구성 요소
+Describe:
+1. Main visible text and content
+2. Key visual elements (charts, diagrams, logos)
+3. Core concepts and subtopics
 
-명확하고 완전한 문장으로 상세한 분석을 제공해주세요. 반복하지 마세요."""
+Be concise. Never repeat yourself. Stop after describing main points."""
 
                 content_text = self.vision_analyzer.analyze_image(
                     image=image_path,
-                    prompt=vision_prompt
+                    prompt=vision_prompt,
+                    max_tokens=512,
+                    temperature=0.3
                 )
                 logger.info(f"✅ Vision 분석 완료: {len(content_text)}자")
+                logger.info(f"📄 Vision 분석 내용:\n{content_text}")
+
+                # 이미지 파일 삭제
+                self.image_analyzer.cleanup(image_path)
 
             elif content_type == 'TEXT':
                 # TEXT: 부모 노드 문맥만 사용
@@ -426,12 +468,29 @@ Rules:
 
             # JSON 파싱 시도
             import json
+            import re
             try:
                 result_data = json.loads(response)
             except json.JSONDecodeError as e:
-                logger.error(f"JSON 파싱 실패!")
-                logger.error(f"파싱하려던 문자열:\n{response}")
-                raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e}")
+                logger.warning(f"⚠️ JSON 파싱 실패. 오류 복구를 시도합니다: {e}")
+
+                # 중복 필드 제거: 같은 객체 내에서 동일 필드가 2번 나오면 첫 번째만 유지
+                # 각 노드 객체를 순회하며 중복 제거
+                try:
+                    # 수동으로 노드별로 파싱
+                    fixed_response = response
+                    # 중복 parentId 패턴 찾기
+                    fixed_response = re.sub(
+                        r'("parentId"\s*:\s*"[^"]*"),\s*("keyword"[^}]*)"parentId"\s*:\s*"[^"]*"',
+                        r'\1, \2',
+                        fixed_response
+                    )
+                    result_data = json.loads(fixed_response)
+                    logger.info("✅ JSON 오류 복구 성공")
+                except Exception as e2:
+                    logger.error(f"JSON 파싱 최종 실패!")
+                    logger.error(f"원본:\n{response[:500]}")
+                    raise ValueError(f"LLM 응답을 JSON으로 파싱할 수 없습니다: {e2}")
 
             # 결과 검증
             if 'nodes' not in result_data:

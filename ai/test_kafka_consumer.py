@@ -35,6 +35,10 @@ def print_result(message_value: dict):
     if status == "SUCCESS":
         # INITIAL 결과
         if 'aiSummary' in message_value:
+            # 제목 출력
+            title = message_value.get('title', 'N/A')
+            print(f"\n📌 마인드맵 제목: {title}")
+
             print(f"\n📝 AI 요약:")
             print(f"   {message_value['aiSummary']}")
 
