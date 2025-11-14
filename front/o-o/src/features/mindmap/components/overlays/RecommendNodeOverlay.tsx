@@ -13,6 +13,8 @@ export default function RecommendNodeOverlay({
   open,
   onClose,
   onSelectRecommendation,
+  selectedNodeX,
+  selectedNodeY,
 }: RecommendNodeOverlayProps) {
   if (!open) return null;
 
@@ -105,7 +107,14 @@ export default function RecommendNodeOverlay({
 
   const content = (
     <div className="fixed inset-0 pointer-events-none z-[9999]">
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div
+        className="absolute"
+        style={{
+          left: `${selectedNodeX}px`,
+          top: `${selectedNodeY}px`,
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
         {/* AI 아이콘 */}
         {renderIconButton("ai", RECOMMENDATION_THEME.ai.angles[0])}
 

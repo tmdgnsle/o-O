@@ -195,6 +195,8 @@ function NodeOverlay({
             open={focusedButton === "recommend"}
             onClose={() => setFocusedButton(null)}
             onSelectRecommendation={handleRecommendSelect}
+            selectedNodeX={x}
+            selectedNodeY={y}
           />
         )}
 

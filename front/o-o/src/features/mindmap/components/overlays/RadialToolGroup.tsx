@@ -171,6 +171,10 @@ export default function RadialToolGroup({
                 onConfirm={onAddConfirm}
                 onCancel={onAddCancel}
                 buttonRef={addButtonRef}
+                centerX={centerX}
+                centerY={centerY}
+                buttonOffsetX={x}
+                buttonOffsetY={y}
               />
             )}
           </div>

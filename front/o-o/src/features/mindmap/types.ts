@@ -8,6 +8,10 @@ export type NodeAddInputProps = Readonly<{
   onConfirm: (keyword: string, description: string) => void;
   onCancel: () => void;
   buttonRef?: React.RefObject<HTMLButtonElement | null>;
+  centerX?: number;
+  centerY?: number;
+  buttonOffsetX?: number;
+  buttonOffsetY?: number;
 }>;
 
 // ColorPalette.tsx
@@ -108,6 +112,8 @@ export type RecommendNodeOverlayProps = Readonly<{
   open: boolean;
   onClose: () => void;
   onSelectRecommendation: (text: string) => void;
+  selectedNodeX: number;
+  selectedNodeY: number;
 }>;
 
 // Textbox.tsx
@@ -123,11 +129,12 @@ export type TextboxProps = Readonly<{
 
 export type MindmapNodeType = "text" | "image" | "link";
 
-export type NodeAnalysisStatus = "NONE" | "PENDING" | "DONE";
+export type NodeAnalysisStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
 
 // Mindmap nodes can carry optional metadata from REST → Yjs → UI
 export type NodeData = {
   id: string;
+  nodeId?: number; // Backend DB ID (for update/delete operations)
   text: string;
   x: number;
   y: number;
