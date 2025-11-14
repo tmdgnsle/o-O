@@ -92,11 +92,11 @@ export function TrendMindmapPage() {
       </div>
 
       {/* 경로 표시 (디버깅용, 필요시 제거) */}
-      <div className="fixed top-24 left-10 z-40 bg-white p-2 rounded shadow text-sm max-w-md">
+      {/* <div className="fixed top-24 left-10 z-40 bg-white p-2 rounded shadow text-sm max-w-md">
         <p className="text-gray-600 break-all">
           경로: {visitPath.join(" > ") || "없음"}
         </p>
-      </div>
+      </div> */}
 
       {/* 마인드맵 - 전체 화면 */}
       <div className="absolute inset-0 w-full h-full">
