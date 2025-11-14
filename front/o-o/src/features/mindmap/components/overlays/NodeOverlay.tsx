@@ -35,11 +35,11 @@ function NodeOverlay({
   onConnectDetachedSelection,
   onDismissDetachedSelection,
 }: Readonly<CytoscapeNodeOverlayProps>) {
-  const { text, color: initialColor } = node;
+  const { text, memo, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const { isEditing, editValue, setEditValue, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(text);
+  const { isEditing, editValue, editMemo, setEditValue, setEditMemo, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(text, memo);
   const { showAddInput, openAddInput, closeAddInput } = useNodeAdd();
   const { paletteOpen, togglePalette, closePalette } = useNodeColorEdit(initialColor);
   const { focusedButton, setFocusedButton } = useNodeFocus();
@@ -139,18 +139,32 @@ function NodeOverlay({
         }}
       >
         <div
-          className={`w-40 h-40 rounded-full flex items-center justify-center transition-all ${selectionRingClass}`}
+          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${selectionRingClass}`}
           style={{
             background: createRadialGradient(initialColor),
             pointerEvents: "none",
           }}
         >
           {isEditing ? (
-            <NodeEditForm value={editValue} onChange={setEditValue} onConfirm={handleEditConfirm} onCancel={handleEditCancel} />
+            <NodeEditForm
+              value={editValue}
+              memo={editMemo}
+              onChange={setEditValue}
+              onMemoChange={setEditMemo}
+              onConfirm={handleEditConfirm}
+              onCancel={handleEditCancel}
+            />
           ) : (
-            <span className="font-paperlogy font-semibold text-lg px-6 text-center break-words" style={{ color: textColor }}>
-              {text}
-            </span>
+            <div className="flex flex-col items-center justify-center px-4 text-center">
+              <span className="font-paperlogy font-bold text-base mb-1 break-words" style={{ color: textColor }}>
+                {text}
+              </span>
+              {memo && (
+                <span className="font-paperlogy text-xs leading-tight break-words line-clamp-3" style={{ color: textColor, opacity: 0.85 }}>
+                  {memo}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -234,6 +248,7 @@ function NodeOverlay({
 export default memo(NodeOverlay, (prev, next) =>
   prev.node.id === next.node.id &&
   prev.node.text === next.node.text &&
+  prev.node.memo === next.node.memo &&
   prev.node.color === next.node.color &&
   prev.x === next.x &&
   prev.y === next.y &&

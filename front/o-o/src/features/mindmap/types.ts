@@ -147,6 +147,7 @@ export type ChildNodeRequest = {
   parentX: number;
   parentY: number;
   text: string;
+  memo?: string;
 };
 
 export type DeleteNodePayload = {
@@ -157,6 +158,7 @@ export type DeleteNodePayload = {
 export type EditNodePayload = {
   nodeId: string;
   newText?: string;
+  newMemo?: string;
   newColor?: string;
   newParentId?: string | null;
 };

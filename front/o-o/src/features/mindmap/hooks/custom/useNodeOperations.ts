@@ -84,11 +84,13 @@ export function useNodeOperations(params: {
     parentX,
     parentY,
     text,
+    memo,
   }: {
     parentId: string;
     parentX: number;
     parentY: number;
     text: string;
+    memo?: string;
   }) => {
     if (!crud || !text) return;
 
@@ -101,6 +103,7 @@ export function useNodeOperations(params: {
       y,
       color: getRandomThemeColor(),
       parentId,
+      ...(memo ? { memo } : {}),
     };
 
     crud.set(newNode.id, newNode);
@@ -154,15 +157,16 @@ export function useNodeOperations(params: {
 
   /**
    * 노드 수정
-   * - 텍스트, 색상, 부모 관계 변경
+   * - 텍스트, 메모, 색상, 부모 관계 변경
    */
-  const handleEditNode = useCallback(({ nodeId, newText, newColor, newParentId }: EditNodePayload) => {
+  const handleEditNode = useCallback(({ nodeId, newText, newMemo, newColor, newParentId }: EditNodePayload) => {
     if (!crud) return;
     crud.update(nodeId, (current) => {
       if (!current) return current;
       return {
         ...current,
         ...(newText !== undefined ? { text: newText } : {}),
+        ...(newMemo !== undefined ? { memo: newMemo } : {}),
         ...(newColor !== undefined ? { color: newColor } : {}),
         ...(newParentId !== undefined ? { parentId: newParentId ?? undefined } : {}),
       };
