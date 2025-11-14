@@ -118,7 +118,7 @@ public class PublicWorkspaceSearchService {
 
         // 2. 각 workspace 안에서 parentKeyword 가진 부모 노드들 찾기
         List<MindmapNode> parentNodes =
-                nodeRepository.findByWorkspaceIdInAndKeywordContaining(publicWorkspaceIds, parentKeyword);
+                nodeRepository.findByWorkspaceIdInAndKeywordEqualsIgnoreCase(publicWorkspaceIds, parentKeyword);
 
         log.info("[ChildrenSearch] parentKeyword='{}', parents={}", parentKeyword, parentNodes.size());
 

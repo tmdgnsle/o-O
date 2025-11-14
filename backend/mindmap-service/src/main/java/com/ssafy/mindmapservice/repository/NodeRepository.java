@@ -45,6 +45,9 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
     @Query("{ 'workspaceId': { $in: ?0 }, 'keyword': { $regex: ?1, $options: 'i' } }")
     List<MindmapNode> findByWorkspaceIdInAndKeywordContaining(List<Long> workspaceIds, String keyword);
 
+    @Query("{ 'workspaceId': { $in: ?0 }, 'keyword': { $regex: '^?1$', $options: 'i' } }")
+    List<MindmapNode> findByWorkspaceIdInAndKeywordEqualsIgnoreCase(List<Long> workspaceIds, String keyword);
+
     /**
      * 특정 워크스페이스의 부모 키워드로 자식 노드 검색
      */
