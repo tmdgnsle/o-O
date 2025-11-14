@@ -5,7 +5,16 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { NodeAddInputProps } from "../../types";
 
-export default function NodeAddInput({ open, onConfirm, onCancel, buttonRef }: NodeAddInputProps) {
+export default function NodeAddInput({
+  open,
+  onConfirm,
+  onCancel,
+  buttonRef,
+  centerX,
+  centerY,
+  buttonOffsetX = 0,
+  buttonOffsetY = 0,
+}: NodeAddInputProps) {
   const [keyword, setKeyword] = useState("");
   const [description, setDescription] = useState("");
   const [position, setPosition] = useState({ left: 0, top: 0 });
@@ -30,7 +39,19 @@ export default function NodeAddInput({ open, onConfirm, onCancel, buttonRef }: N
 
   /** 버튼 위치 계산 */
   useEffect(() => {
-    if (!open || !buttonRef?.current) return;
+    if (!open) return;
+
+    // centerX, centerY가 제공되면 노드 위치 기준으로 계산
+    if (centerX !== undefined && centerY !== undefined) {
+      setPosition({
+        left: centerX + buttonOffsetX + 16, // 노드 중심 + 버튼 오프셋 + 16px margin
+        top: centerY + buttonOffsetY,
+      });
+      return;
+    }
+
+    // 기존 방식: buttonRef 기준으로 계산
+    if (!buttonRef?.current) return;
 
     const updatePosition = () => {
       const rect = buttonRef.current!.getBoundingClientRect();
@@ -48,7 +69,7 @@ export default function NodeAddInput({ open, onConfirm, onCancel, buttonRef }: N
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [open, buttonRef]);
+  }, [open, buttonRef, centerX, centerY, buttonOffsetX, buttonOffsetY]);
 
   if (!open) return null;
 
