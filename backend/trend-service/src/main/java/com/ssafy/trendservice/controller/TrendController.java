@@ -76,8 +76,8 @@ public class TrendController {
             String period,
 
             @Parameter(
-                    description = "최대 결과 수 (1~100). null이면 기본값(예: 20 or 50) 사용",
-                    example = "20"
+                    description = "최대 결과 수 (1~100). null이면 기본값(예: 5 or 50) 사용",
+                    example = "5"
             )
             @RequestParam(required = false)
             @Min(1) @Max(100)
