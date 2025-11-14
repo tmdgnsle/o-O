@@ -5,8 +5,21 @@ interface TrendPathState {
   visitPath: string[];
 }
 
+const STORAGE_KEY = "trendVisitPath";
+
+// localStorage에서 초기값 읽기
+const loadInitialPath = (): string[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.error("❌ localStorage에서 경로 읽기 실패:", error);
+    return [];
+  }
+};
+
 const initialState: TrendPathState = {
-  visitPath: [],
+  visitPath: loadInitialPath(),
 };
 
 const trendPathSlice = createSlice({
@@ -23,6 +36,7 @@ const trendPathSlice = createSlice({
       } else {
         state.visitPath = state.visitPath.slice(0, existingIndex + 1);
       }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.visitPath));
     },
     // 전체 경로 설정
     setPath: (state, action: PayloadAction<string[]>) => {
@@ -31,6 +45,7 @@ const trendPathSlice = createSlice({
     // 경로 초기화
     resetPath: (state) => {
       state.visitPath = [];
+      localStorage.removeItem(STORAGE_KEY);
     },
     // 부모 노드만 남기고 나머지 삭제
     resetPathExceptParent: (state, action: PayloadAction<string>) => {
