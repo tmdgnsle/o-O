@@ -3,6 +3,7 @@ import authReducer from "./slices/authSlice";
 import userReducer from "./slices/userSlice";
 import mypageReducer from "./slices/mypageSlice";
 import calendarReducer from "./slices/calendarSlice";
+import trendReducer from "./slices/trendSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     user: userReducer,
     mypage: mypageReducer,
     calendar: calendarReducer,
+    trend: trendReducer,
   },
 });
 

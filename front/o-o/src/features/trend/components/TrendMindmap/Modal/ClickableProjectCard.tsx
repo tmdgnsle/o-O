@@ -1,5 +1,5 @@
 import { ProjectCard } from "@/features/mypage/components/ProjectCard/ProjectCard";
-import type { Project } from "@/features/trend/types";
+import type { Project } from "@/features/trend/types/types";
 
 interface ClickableProjectCardProps {
   readonly project: Project;

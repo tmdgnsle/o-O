@@ -1,6 +1,6 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { ClickableProjectCard } from "./ClickableProjectCard";
-import type { Project } from "@/features/trend/types";
+import type { Project } from "@/features/trend/types/types";
 
 interface MindmapSelectionModalProps {
   readonly isOpen: boolean;
