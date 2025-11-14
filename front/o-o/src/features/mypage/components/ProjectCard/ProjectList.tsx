@@ -54,7 +54,7 @@ export function ProjectList({
   }
 
   return (
-    <div className="h-[calc(100vh-300px)] overflow-y-auto scrollbar-hide p-3">
+    <div className="h-[95%] overflow-y-auto scrollbar-hide p-3">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {projects.map((project) => (
           <ProjectCard key={project.id} project={project} />
@@ -69,8 +69,8 @@ export function ProjectList({
         >
           {isLoading && (
             <div className="flex flex-col items-center gap-2">
-              <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">더 불러오는 중...</p>
+              {/* <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-500">더 불러오는 중...</p> */}
             </div>
           )}
         </div>
