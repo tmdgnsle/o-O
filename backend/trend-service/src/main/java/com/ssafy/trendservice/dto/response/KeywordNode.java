@@ -8,5 +8,5 @@ public class KeywordNode {
     private Long parentId;
     private Long nodeId;
     private String parentKeyword;
-    private String childKeyword;
+    private String keyword;
 }

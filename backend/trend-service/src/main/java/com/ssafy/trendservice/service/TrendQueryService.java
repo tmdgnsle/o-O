@@ -94,7 +94,7 @@ public class TrendQueryService {
 
         // 2. 자식 키워드만 뽑아서 중복 제거
         List<String> publicChildKeywords = childrenResp.getNodes().stream()
-                .map(node -> node.getChildKeyword())
+                .map(node -> node.getKeyword())
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
