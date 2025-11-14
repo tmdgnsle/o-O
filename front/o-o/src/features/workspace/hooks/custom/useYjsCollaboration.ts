@@ -199,8 +199,6 @@ export function useYjsCollaboration(
 
         attachStatusListener(client);
 
-
-        // ⭐⭐⭐ 여기 붙여!!! ⭐⭐⭐
         client.provider.on("connection-close", (event: any) => {
           console.log(
             "🧯 [y-websocket] connection-close",
@@ -208,7 +206,6 @@ export function useYjsCollaboration(
             "reason =", event?.evt?.reason
           );
         });
-        // ————————————————————————————————
 
         scheduleConnectionCheck(client);
 
@@ -281,49 +278,6 @@ export function useYjsCollaboration(
       awareness.setLocalState(null);
     };
   }, [collab, cursorColor, currentUser]);
-
-  // Cytoscape 마우스 위치 → awareness.cursor 브로드캐스트
-  // useEffect(() => {
-  //   if (!collab) return;
-  //   const cy = cyRef.current;
-  //   if (!cy) return;
-
-  //   const awareness = collab.client.provider.awareness;
-  //   if (!awareness) return;
-
-  //   let raf = 0;
-  //   let lastLog = 0;
-
-  //   const handleMouseMove = (event: cytoscape.EventObject) => {
-  //     if (raf) cancelAnimationFrame(raf);
-
-  //     raf = requestAnimationFrame(() => {
-  //       const position = event.position;
-  //       if (!position) return;
-
-  //       const cursorData = {
-  //         x: position.x, // model 좌표 (pan/zoom 영향 없음)
-  //         y: position.y,
-  //         color: cursorColor,
-  //       };
-
-  //       if (Date.now() - lastLog > 5000) {
-  //         console.log("[useYjsCollaboration] set cursor (model coords):", cursorData);
-  //         lastLog = Date.now();
-  //       }
-
-  //       awareness.setLocalStateField("cursor", cursorData);
-  //     });
-  //   };
-
-  //   console.log("[useYjsCollaboration] attach mousemove to Cytoscape");
-  //   cy.on("mousemove", handleMouseMove);
-
-  //   return () => {
-  //     cy.off("mousemove", handleMouseMove);
-  //     if (raf) cancelAnimationFrame(raf);
-  //   };
-  // }, [collab, cyRef, cursorColor]);
 
   // 채팅 상태 업데이트 메서드
   const updateChatState = (
