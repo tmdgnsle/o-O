@@ -1,6 +1,6 @@
 package com.ssafy.mindmapservice.service;
 
-import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
+import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.kafka.AiNodeResult;
@@ -24,7 +24,7 @@ import java.util.*;
 public class NodeService {
 
     private final NodeRepository nodeRepository;
-    private final WorkspaceServiceClient workspaceServiceClient;
+    private final WorkspaceServiceClientAdapter workspaceServiceClient;
     private final AiAnalysisProducer aiAnalysisProducer;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final TrendEventPublisher trendEventPublisher;
@@ -174,8 +174,8 @@ public class NodeService {
     }
 
     @Transactional
-    public List<MindmapNode> cloneWorkspace(Long sourceWorkspaceId, String newWorkspaceName, String newWorkspaceDescription) {
-        log.info("Cloning workspace: source={}, newName={}", sourceWorkspaceId, newWorkspaceName);
+    public List<MindmapNode> cloneWorkspace(Long userId, Long sourceWorkspaceId, String newWorkspaceName, String newWorkspaceDescription) {
+        log.info("Cloning workspace: userId={}, source={}, newName={}", userId, sourceWorkspaceId, newWorkspaceName);
 
         List<MindmapNode> sourceNodes = nodeRepository.findByWorkspaceId(sourceWorkspaceId);
 
@@ -183,7 +183,7 @@ public class NodeService {
             throw new IllegalArgumentException("Source workspace is empty: " + sourceWorkspaceId);
         }
 
-        Long newWorkspaceId = workspaceServiceClient.createWorkspace(newWorkspaceName, newWorkspaceDescription);
+        Long newWorkspaceId = workspaceServiceClient.createWorkspace(userId, newWorkspaceName, newWorkspaceDescription);
         log.info("Created new workspace with ID: {}", newWorkspaceId);
 
         List<MindmapNode> clonedNodes = sourceNodes.stream()
@@ -210,16 +210,12 @@ public class NodeService {
     }
 
     /**
-     * 특정 노드의 조상 경로를 추적하여 컨텍스트 정보를 수집합니다.
-     * CONTEXTUAL 분석 시 부모 노드들의 keyword와 memo를 AI에게 전달하기 위해 사용합니다.
+     * 노드의 조상 경로를 수집합니다 (CONTEXTUAL 분석용)
+     * nodeId부터 루트까지의 모든 노드 정보를 수집하여 반환합니다.
      *
      * @param workspaceId 워크스페이스 ID
      * @param nodeId 시작 노드 ID
      * @return 조상 노드들의 컨텍스트 정보 (루트부터 현재 노드까지)
-     */
-    /**
-     * 노드의 조상 경로를 수집합니다 (CONTEXTUAL 분석용)
-     * nodeId부터 루트까지의 모든 노드 정보를 수집하여 반환합니다.
      */
     public List<NodeContextDto> getAncestorContext(Long workspaceId, Long nodeId) {
         log.debug("Collecting ancestor context: workspaceId={}, startNodeId={}", workspaceId, nodeId);
@@ -418,22 +414,111 @@ public class NodeService {
     }
 
     /**
+     * 모바일 음성 아이디어로 새 워크스페이스와 루트 노드를 생성합니다.
+     * 1. 워크스페이스 생성
+     * 2. 루트 노드 생성 (x, y = null, parentId = null)
+     * 3. AI 분석 요청 (INITIAL 타입)
+     * 4. 비동기 처리 (202 Accepted 반환)
+     *
+     * @param text STT로 변환된 텍스트
+     * @param userId 사용자 ID (X-USER-ID 헤더에서 전달됨)
+     * @return 생성된 워크스페이스 및 노드 정보
+     */
+    @Transactional
+    public InitialMindmapResponse createVoiceIdeaNode(String text, String userId) {
+        log.info("Creating voice idea workspace and node: text={}, userId={}", text, userId);
+
+        // 1. 워크스페이스 생성 (workspace-service 호출)
+        // 워크스페이스 이름은 STT 텍스트 사용 (최대 50자로 제한)
+        String workspaceName = text.length() > 50 ? text.substring(0, 50) : text;
+        Long userIdLong = Long.parseLong(userId);
+        Long workspaceId = workspaceServiceClient.createWorkspace(userIdLong, workspaceName, "");
+        log.info("Voice idea workspace created: workspaceId={}", workspaceId);
+        // 2. 루트 노드 생성 (x, y = null)
+        MindmapNode rootNode = MindmapNode.builder()
+                .workspaceId(workspaceId)
+                .parentId(null)  // 루트 노드
+                .keyword(text)
+                .type("text")  // STT 결과는 텍스트
+                .x(null)  // 모바일에서는 좌표 없음
+                .y(null)
+                .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                .build();
+
+        MindmapNode createdNode = createNode(rootNode);
+        log.info("Voice idea root node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
+
+        // 3. AI 분석 요청 (INITIAL 타입으로)
+        try {
+            requestVoiceIdeaAnalysis(workspaceId, createdNode.getNodeId(), text);
+            log.info("AI analysis requested for voice idea: workspaceId={}, nodeId={}",
+                    workspaceId, createdNode.getNodeId());
+        } catch (Exception e) {
+            log.error("Failed to request AI analysis for voice idea nodeId={}",
+                    createdNode.getNodeId(), e);
+            // AI 분석 실패해도 노드 생성은 성공으로 처리
+        }
+
+        // 4. 응답 생성
+        return new InitialMindmapResponse(
+                workspaceId,
+                createdNode.getNodeId(),
+                createdNode.getKeyword(),
+                createdNode.getMemo(),
+                createdNode.getAnalysisStatus().name(),
+                "음성 아이디어가 추가되었습니다. AI 분석이 진행 중입니다."
+        );
+    }
+
+    /**
+     * 음성 아이디어에 대한 AI 분석을 요청합니다 (INITIAL 타입).
+     * 음성 아이디어 노드에서 사용하는 간소화된 버전
+     *
+     * @param workspaceId 워크스페이스 ID
+     * @param nodeId 노드 ID
+     * @param text STT로 변환된 텍스트
+     */
+    private void requestVoiceIdeaAnalysis(Long workspaceId, Long nodeId, String text) {
+        log.info("Requesting INITIAL AI analysis for voice idea: workspaceId={}, nodeId={}", workspaceId, nodeId);
+
+        // 1. 노드 존재 확인
+        nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId).
+                orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
+
+        // 2. Kafka를 통해 AI 서버로 분석 요청 전송 (INITIAL 타입)
+        AiAnalysisRequest request = new AiAnalysisRequest(
+                workspaceId,
+                nodeId,
+                null,  // contentUrl 없음
+                "TEXT",  // contentType은 TEXT
+                text,  // prompt는 STT 텍스트 사용
+                "INITIAL",  // INITIAL 분석
+                null  // INITIAL에서는 nodes = null
+        );
+
+        aiAnalysisProducer.sendAnalysisRequest(request);
+        log.info("INITIAL AI analysis request sent successfully for voice idea: nodeId={}", nodeId);
+    }
+
+    /**
      * 홈 화면에서 새 마인드맵을 생성합니다.
      * 1. 워크스페이스 생성 (workspace-service 호출)
      * 2. 첫 번째 노드 생성
      * 3. INITIAL AI 분석 요청 (Kafka)
      * 4. 생성 정보 반환
      *
+     * @param userId 사용자 ID (X-USER-ID 헤더에서 전달됨)
      * @param request 초기 마인드맵 생성 요청
      * @return 생성된 워크스페이스 및 노드 정보
      */
     @Transactional
-    public InitialMindmapResponse createInitialMindmap(InitialMindmapRequest request) {
-        log.info("Creating initial mindmap: workspaceName={}, contentType={}",
-                request.workspaceName(), request.contentType());
+    public InitialMindmapResponse createInitialMindmap(Long userId, InitialMindmapRequest request) {
+        log.info("Creating initial mindmap: userId={}, workspaceName={}, contentType={}",
+                userId, request.workspaceName(), request.contentType());
 
         // 1. 워크스페이스 생성 (workspace-service 호출)
         Long workspaceId = workspaceServiceClient.createWorkspace(
+                userId,
                 request.workspaceName(),
                 request.workspaceDescription()
         );

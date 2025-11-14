@@ -1,120 +1,41 @@
 package com.ssafy.mindmapservice.client;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class WorkspaceServiceClient {
+@FeignClient(name = "workspace-service", url = "${workspace.service.url:http://localhost:8083}")
+public interface WorkspaceServiceClient {
 
-    private final WebClient.Builder webClientBuilder;
-
-    @Value("${workspace.service.url:http://localhost:8082}")
-    private String workspaceServiceUrl;
-
-    public Long createWorkspace(String name, String description) {
-        log.info("Creating workspace via REST API: name={}", name);
-
-        try {
-            Map<String, Object> request = Map.of(
-                    "name", name,
-                    "description", description != null ? description : ""
-            );
-
-            Map<String, Object> response = webClientBuilder.build()
-                    .post()
-                    .uri(workspaceServiceUrl + "/workspace")
-                    .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
-
-            if (response != null && response.containsKey("workspaceId")) {
-                Object workspaceIdObj = response.get("workspaceId");
-                Long workspaceId = workspaceIdObj instanceof Integer
-                        ? ((Integer) workspaceIdObj).longValue()
-                        : (Long) workspaceIdObj;
-
-                log.info("Workspace created successfully: workspaceId={}", workspaceId);
-                return workspaceId;
-            }
-
-            throw new RuntimeException("Failed to create workspace: Invalid response");
-
-        } catch (Exception e) {
-            log.error("Failed to create workspace via REST API", e);
-            throw new RuntimeException("Failed to create workspace: " + e.getMessage(), e);
-        }
-    }
-
-    private WebClient getClient() {
-        return webClientBuilder.baseUrl(workspaceServiceUrl).build();
-    }
+    /**
+     * 워크스페이스 생성
+     * @param userId 사용자 ID (X-USER-ID 헤더로 전송)
+     * @return 워크스페이스 응답 (workspaceId 포함)
+     */
+    @PostMapping("/workspace")
+    Map<String, Object> createWorkspace(@RequestHeader("X-USER-ID") Long userId);
 
     /**
      * 워크스페이스 가시성 조회 (PUBLIC/PRIVATE)
      */
-    public String getVisibility(Long workspaceId) {
-        String url = "/workspace/" + workspaceId + "/visibility";
-
-        try {
-            Map<String, Object> result = getClient()
-                    .get()
-                    .uri(url)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block(); // 동기 방식 유지
-
-            if (result == null) return "PRIVATE";
-
-            String visibility = (String) result.get("visibility");
-
-            log.debug("Workspace {} visibility: {}", workspaceId, visibility);
-            return visibility != null ? visibility : "PRIVATE";
-
-        } catch (Exception e) {
-            log.error("Failed to check workspace visibility: workspaceId={}", workspaceId, e);
-            return "PRIVATE";
-        }
-    }
+    @GetMapping("/workspace/{workspaceId}/visibility")
+    Map<String, Object> getVisibility(@PathVariable("workspaceId") Long workspaceId);
 
     /**
-     * 🆕 모든 Public 워크스페이스 ID 목록 조회
+     * 모든 Public 워크스페이스 ID 목록 조회
      */
-    public List<Long> getPublicWorkspaceIds() {
-        String url = "/workspace/workspace-ids";
+    @GetMapping("/workspace/workspace-ids")
+    Map<String, List<Integer>> getPublicWorkspaceIds();
 
-        try {
-            Map<String, List<Integer>> result = getClient()
-                    .get()
-                    .uri(url)
-                    .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<Map<String, List<Integer>>>() {})
-                    .block();
-
-            if (result == null) return List.of();
-
-            List<Integer> ids = result.get("workspaceIds");
-
-            List<Long> longIds = ids.stream()
-                    .map(Integer::longValue)
-                    .toList();
-
-            log.debug("Retrieved {} public workspace IDs", longIds.size());
-
-            return longIds;
-
-        } catch (Exception e) {
-            log.error("Failed to fetch public workspace IDs", e);
-            return List.of();
-        }
-    }
+    /**
+     * 워크스페이스 제목 업데이트
+     */
+    @PatchMapping("/workspace/{workspaceId}")
+    void updateWorkspaceTitle(
+            @RequestHeader("X-USER-ID") Long userId,
+            @PathVariable("workspaceId") Long workspaceId,
+            @RequestBody Map<String, Object> request
+    );
 }

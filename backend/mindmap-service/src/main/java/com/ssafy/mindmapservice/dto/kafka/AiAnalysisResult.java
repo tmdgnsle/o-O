@@ -6,8 +6,8 @@ import java.util.List;
 
 /**
  * AI 서버에서 분석 결과를 받을 때 사용하는 DTO
- * INITIAL: aiSummary 포함, nodeId는 null
- * CONTEXTUAL: nodeId 포함, aiSummary는 null
+ * INITIAL: aiSummary, title 포함, nodeId는 null
+ * CONTEXTUAL: nodeId 포함, aiSummary와 title은 null
  */
 @Schema(description = "AI 분석 결과 DTO (Kafka 응답용)")
 public record AiAnalysisResult(
@@ -21,7 +21,10 @@ public record AiAnalysisResult(
         @Schema(description = "AI 분석 요약 (INITIAL 전용)", example = "'고기'와 관련된 다양한 아이디어를 분류했습니다.", nullable = true)
         String aiSummary,
 
-        @Schema(description = "AI가 생성한 노드 배열 (INITIAL: 6개, CONTEXTUAL: 3개)", required = true)
+        @Schema(description = "워크스페이스 제목 (INITIAL 전용, 워크스페이스 title 업데이트용)", example = "고기와 관련된 회의", nullable = true)
+        String title,
+
+        @Schema(description = "AI가 생성한 노드 배열 (INITIAL: 가변, CONTEXTUAL: 3개)", required = true)
         List<AiNodeResult> nodes,
 
         @Schema(description = "처리 상태", example = "SUCCESS", allowableValues = {"SUCCESS", "FAILED"}, required = true)
