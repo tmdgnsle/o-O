@@ -39,7 +39,7 @@ public class TrendController {
             description = """
                     전체 사용자/워크스페이스 기준으로 상위 트렌드 키워드를 조회합니다.
                     - 기간(period)에 따라 7일/30일 집계 결과를 반환합니다.
-                    - limit가 null이면 서비스 내부 기본값(예: 20 or 50)이 사용됩니다.
+                    - limit가 null이면 서비스 내부 기본값(예: 5 )이 사용됩니다.
                     """
     )
     @ApiResponses({
@@ -149,7 +149,7 @@ public class TrendController {
 
             @Parameter(
                     description = "최대 결과 수 (1~100). null이면 기본값 사용",
-                    example = "20"
+                    example = "99"
             )
             @RequestParam(required = false)
             @Min(1) @Max(100)
@@ -216,7 +216,7 @@ public class TrendController {
 
             @Parameter(
                     description = "최대 결과 수 (1~100). null이면 기본값 사용",
-                    example = "20"
+                    example = "5"
             )
             @RequestParam(required = false)
             @Min(1) @Max(100)
