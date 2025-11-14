@@ -108,6 +108,8 @@ export type RecommendNodeOverlayProps = Readonly<{
   open: boolean;
   onClose: () => void;
   onSelectRecommendation: (text: string) => void;
+  selectedNodeX: number;
+  selectedNodeY: number;
 }>;
 
 // Textbox.tsx
