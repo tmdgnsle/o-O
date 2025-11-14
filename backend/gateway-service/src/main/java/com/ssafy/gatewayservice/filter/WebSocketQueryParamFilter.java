@@ -15,9 +15,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
- * 웹소켓 연결 시 쿼리 파라미터를 헤더로 변환하는 필터
- * 예: ws://host:3000/ws?workspace=123&token=xxx
+ * 웹소켓 연결 시 쿼리 파라미터 또는 URL path를 헤더로 변환하는 필터
+ * 예1 (쿼리 파라미터): ws://host:3000/mindmap/ws?workspace=123&token=xxx
+ * 예2 (URL path, y-websocket): ws://host:3000/mindmap/ws/workspace:123?token=xxx
  * -> 헤더에 X-Workspace-ID: 123, X-USER-ID: userId 추가
  */
 @Slf4j
@@ -46,11 +50,15 @@ public class WebSocketQueryParamFilter implements GlobalFilter, Ordered {
             MultiValueMap<String, String> queryParams = request.getQueryParams();
             ServerHttpRequest.Builder mutatedRequest = request.mutate();
 
-            // workspace 파라미터를 X-Workspace-ID 헤더로 변환
-            String workspace = queryParams.getFirst("workspace");
+            // workspace ID 추출 (URL path 우선, 쿼리 파라미터 fallback)
+            // URL path에서 추출: /mindmap/ws/workspace:123
+            String workspaceFromPath = extractWorkspaceFromPath(path);
+            String workspace = workspaceFromPath != null ? workspaceFromPath : queryParams.getFirst("workspace");
+
             if (workspace != null) {
                 mutatedRequest.header("X-Workspace-ID", workspace);
-                log.debug("[WebSocket Filter] Added X-Workspace-ID header: {}", workspace);
+                log.debug("[WebSocket Filter] Added X-Workspace-ID header: {} (source: {})",
+                          workspace, workspaceFromPath != null ? "path" : "query");
             }
 
             // token 파라미터에서 userId 추출하여 X-USER-ID 헤더로 변환
@@ -96,6 +104,21 @@ public class WebSocketQueryParamFilter implements GlobalFilter, Ordered {
      */
     private boolean isWebSocketPath(String path) {
         return path.startsWith("/mindmap/ws") || path.startsWith("/ws");
+    }
+
+    /**
+     * URL path에서 workspace ID 추출
+     * y-websocket은 room name을 URL path에 포함시킴
+     * 예: /mindmap/ws/workspace:123 -> "123"
+     */
+    private String extractWorkspaceFromPath(String path) {
+        // y-websocket 형식: /mindmap/ws/workspace:123 또는 /ws/workspace:123
+        Pattern pattern = Pattern.compile("/(?:mindmap/)?ws/workspace:(\\d+)");
+        Matcher matcher = pattern.matcher(path);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 
     @Override
