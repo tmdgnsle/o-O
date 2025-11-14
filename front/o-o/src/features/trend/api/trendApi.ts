@@ -23,4 +23,30 @@ export const trendApi = {
 
     return data;
   },
+
+  // GET /trend/search?keyword=검색어
+  getSearchKeywordTrend: async (
+    keyword: string
+  ): Promise<TrendKeywordResponse> => {
+    if (!keyword.trim()) {
+      console.warn("⚠️ 검색어가 비어있습니다.");
+      return {
+        period: "",
+        parentKeyword: null,
+        totalCount: 0,
+        items: [],
+      };
+    }
+
+    const { data } = await apiClient.get<TrendKeywordResponse>(
+      "/trend/search",
+      {
+        params: {
+          keyword: keyword.trim(),
+        },
+      }
+    );
+
+    return data;
+  },
 };

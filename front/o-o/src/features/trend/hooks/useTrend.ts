@@ -3,6 +3,7 @@ import {
   clearChildKeywords,
   fetchChildTrendKeywords,
   fetchTrendKeywords,
+  searchTrendKeywords,
 } from "@/store/slices/trendSlice";
 import { useCallback } from "react";
 import type { TrendKeywordItem } from "../types/trend";
@@ -16,6 +17,7 @@ interface UseTrendReturn {
   fetchTopTrendList: () => void;
   fetchChildTrendList: (parentKeyword: string) => void;
   clearChildTrendList: () => void;
+  searchTrendList: (keyword: string) => void;
 }
 
 export const useTrend = (): UseTrendReturn => {
@@ -44,6 +46,19 @@ export const useTrend = (): UseTrendReturn => {
     dispatch(clearChildKeywords());
   }, [dispatch]);
 
+  // 키워드 검색
+  const searchTrendList = useCallback(
+    (keyword: string) => {
+      if (!keyword.trim()) {
+        // 검색어가 비어있으면 초기화
+        dispatch(clearChildKeywords());
+        return;
+      }
+      dispatch(searchTrendKeywords(keyword));
+    },
+    [dispatch]
+  );
+
   return {
     // 상위 키워드
     keywords,
@@ -53,5 +68,6 @@ export const useTrend = (): UseTrendReturn => {
     fetchTopTrendList,
     fetchChildTrendList,
     clearChildTrendList,
+    searchTrendList,
   };
 };
