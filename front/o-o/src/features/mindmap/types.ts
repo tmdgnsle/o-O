@@ -8,6 +8,10 @@ export type NodeAddInputProps = Readonly<{
   onConfirm: (keyword: string, description: string) => void;
   onCancel: () => void;
   buttonRef?: React.RefObject<HTMLButtonElement | null>;
+  centerX?: number;
+  centerY?: number;
+  buttonOffsetX?: number;
+  buttonOffsetY?: number;
 }>;
 
 // ColorPalette.tsx
@@ -108,6 +112,8 @@ export type RecommendNodeOverlayProps = Readonly<{
   open: boolean;
   onClose: () => void;
   onSelectRecommendation: (text: string) => void;
+  selectedNodeX: number;
+  selectedNodeY: number;
 }>;
 
 // Textbox.tsx
