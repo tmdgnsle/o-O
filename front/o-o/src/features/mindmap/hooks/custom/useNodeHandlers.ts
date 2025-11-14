@@ -19,7 +19,7 @@ type UseNodeHandlersParams = {
   editNode: (payload: EditNodePayload) => void;
   startEdit: () => void;
   cancelEdit: () => void;
-  confirmEdit: () => string | null;
+  confirmEdit: () => { text: string; memo: string };
   openAddInput: () => void;
   closeAddInput: () => void;
   togglePalette: () => void;
@@ -82,9 +82,9 @@ export const useNodeHandlers = ({
   }, [cancelEdit, setFocusedButton]);
 
   const handleEditConfirm = useCallback(() => {
-    const newText = confirmEdit();
+    const { text: newText, memo: newMemo } = confirmEdit();
     if (newText) {
-      editNode({ nodeId: id, newText });
+      editNode({ nodeId: id, newText, newMemo });
     }
     setFocusedButton(null);
   }, [confirmEdit, editNode, id, setFocusedButton]);
@@ -100,13 +100,14 @@ export const useNodeHandlers = ({
   }, [closeAddInput, setFocusedButton]);
 
   const handleAddConfirm = useCallback(
-    (keyword: string, _description: string) => {
+    (keyword: string, description: string) => {
       if (keyword) {
         onCreateChildNode({
           parentId: id,
           parentX: x,
           parentY: y,
           text: keyword,
+          memo: description || undefined,
         });
         closeAddInput();
       }

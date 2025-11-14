@@ -130,7 +130,7 @@ export default function ColorPalette({
       const rect = buttonRef.current!.getBoundingClientRect();
       setPosition({
         left: rect.right + 8, // 버튼 오른쪽 + 8px margin
-        top: rect.top + rect.height / 2, // 버튼 중앙
+        top: rect.top - 320, // 버튼 위쪽으로 팔레트 배치
       });
     };
 
@@ -156,7 +156,6 @@ export default function ColorPalette({
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
-        transform: 'translateY(-50%)',
       }}
     >
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[340px] font-paperlogy">
@@ -220,7 +219,7 @@ export default function ColorPalette({
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[1100]">
+              <SelectContent className="z-[10000]" side="bottom" align="start">
                 {Object.keys(COLOR_THEMES).map((theme) => (
                   <SelectItem key={theme} value={theme}>
                     {theme}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import type { Core } from "cytoscape";
-import type { NodeData } from "../../types";
+import type { NodeData, MindmapMode } from "../../types";
 import { getAnimationConfig, nodeCreationAnimation } from "../../config/animationConfig";
 
 /** 노드 데이터를 기반으로 엣지 계산 */
@@ -21,7 +21,9 @@ export function useEdges(nodes: NodeData[]) {
 }
 
 /** 노드 업데이트 또는 추가 */
-function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>) {
+function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode: MindmapMode) {
+  const isDraggable = mode === "edit";
+
   if (existingNodeIds.has(node.id)) {
     // 기존 노드 업데이트
     const cyNode = cy.getElementById(node.id);
@@ -32,7 +34,13 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>) {
     }
 
     cyNode.data({ label: node.text, color: node.color });
-    cyNode.grabify();
+
+    // 모드에 따라 드래그 가능 여부 설정
+    if (isDraggable) {
+      cyNode.grabify();
+    } else {
+      cyNode.ungrabify();
+    }
     cyNode.selectify();
   } else {
     // 새 노드 추가
@@ -40,7 +48,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>) {
       group: "nodes",
       data: { id: node.id, label: node.text, color: node.color },
       position: { x: node.x, y: node.y },
-      grabbable: true,
+      grabbable: isDraggable,
       selectable: true,
     });
 
@@ -140,6 +148,7 @@ export function useGraphSync(
   cy: Core | null,
   nodes: NodeData[],
   edges: Array<{ id: string; source: string; target: string }>,
+  mode: MindmapMode,
   cyReady: boolean = true
 ) {
   useEffect(() => {
@@ -166,7 +175,7 @@ export function useGraphSync(
 
         // 노드 동기화
         for (const node of nodes) {
-          upsertNode(cy, node, existingNodeIds);
+          upsertNode(cy, node, existingNodeIds, mode);
         }
 
         const newNodeIds = new Set(nodes.map((n) => n.id));
@@ -185,7 +194,7 @@ export function useGraphSync(
     } catch (error) {
       console.error("[useGraphSync] Error during batch update:", error);
     }
-  }, [cy, cyReady, nodes, edges]);
+  }, [cy, cyReady, nodes, edges, mode]);
 }
 
 /** 드래그 중 오버레이 위치 갱신 (rAF 스로틀) */

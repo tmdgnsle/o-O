@@ -1,22 +1,27 @@
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
 
 type NodeEditFormProps = {
   value: string;
+  memo: string;
   onChange: (value: string) => void;
+  onMemoChange: (memo: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
 /**
  * NodeEditForm
- * - 노드 텍스트 편집 UI
- * - Input과 확인/취소 버튼
+ * - 노드 텍스트 및 메모 편집 UI
+ * - Input과 Textarea, 확인/취소 버튼
  */
 export default function NodeEditForm({
   value,
+  memo,
   onChange,
+  onMemoChange,
   onConfirm,
   onCancel,
 }: Readonly<NodeEditFormProps>) {
@@ -25,15 +30,35 @@ export default function NodeEditForm({
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-32 h-10 text-sm text-center bg-white"
+        placeholder="키워드"
+        className="w-36 h-10 text-sm text-center bg-white"
         style={{ pointerEvents: "auto" }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Enter") onConfirm();
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onConfirm();
+          }
           if (e.key === "Escape") onCancel();
           e.stopPropagation();
         }}
         autoFocus
+      />
+      <Textarea
+        value={memo}
+        onChange={(e) => onMemoChange(e.target.value)}
+        placeholder="메모 (선택사항)"
+        className="w-36 h-20 text-xs bg-white resize-none"
+        style={{ pointerEvents: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            onConfirm();
+          }
+          if (e.key === "Escape") onCancel();
+          e.stopPropagation();
+        }}
       />
       <div className="flex gap-2">
         <Button
