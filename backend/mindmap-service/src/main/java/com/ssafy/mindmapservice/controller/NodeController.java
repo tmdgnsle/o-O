@@ -1,13 +1,13 @@
 package com.ssafy.mindmapservice.controller;
 
 import com.ssafy.mindmapservice.domain.MindmapNode;
-import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
-import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
-import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
-import com.ssafy.mindmapservice.dto.NodeColorUpdateRequest;
-import com.ssafy.mindmapservice.dto.NodePositionUpdateRequest;
-import com.ssafy.mindmapservice.dto.NodeSimpleDto;
-import com.ssafy.mindmapservice.dto.WorkspaceCloneRequest;
+import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
+import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
+import com.ssafy.mindmapservice.dto.request.NodeColorUpdateRequest;
+import com.ssafy.mindmapservice.dto.request.NodePositionUpdateRequest;
+import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
+import com.ssafy.mindmapservice.dto.request.WorkspaceCloneRequest;
 import com.ssafy.mindmapservice.service.NodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "Mindmap Node API", description = "마인드맵 노드 관리 및 AI 분석 API")
 @Slf4j
@@ -153,11 +152,11 @@ public class NodeController {
             @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음", content = @Content)
     })
     @GetMapping("/{workspaceId}/nodes/simple")
-    public ResponseEntity<List<NodeSimpleDto>> getSimpleNodes(
+    public ResponseEntity<List<NodeSimpleResponse>> getSimpleNodes(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId) {
         log.info("GET /mindmap/{}/nodes/simple", workspaceId);
-        List<NodeSimpleDto> nodes = nodeService.getSimpleNodesByWorkspace(workspaceId);
+        List<NodeSimpleResponse> nodes = nodeService.getSimpleNodesByWorkspace(workspaceId);
         return ResponseEntity.ok(nodes);
     }
 

@@ -1,7 +1,7 @@
 package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
+import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

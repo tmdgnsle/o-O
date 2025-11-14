@@ -2,7 +2,7 @@ package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.mindmapservice.domain.MindmapNode;
-import com.ssafy.mindmapservice.dto.AiAnalysisResult;
+import com.ssafy.mindmapservice.dto.kafka.AiAnalysisResult;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import com.ssafy.mindmapservice.service.NodeService;
 import lombok.RequiredArgsConstructor;
