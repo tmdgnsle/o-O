@@ -78,6 +78,7 @@ export function useNodeOperations(params: {
   /**
    * 자식 노드 생성
    * - 부모 노드 오른쪽에 배치
+   * - 형제 노드들은 수직으로 분산 배치
    */
   const handleCreateChildNode = useCallback(({
     parentId,
@@ -94,7 +95,21 @@ export function useNodeOperations(params: {
   }) => {
     if (!crud || !text) return;
 
-    const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, parentY);
+    // 같은 부모를 가진 형제 노드들 찾기
+    const siblings = nodes.filter(node => node.parentId === parentId);
+    const siblingCount = siblings.length;
+    const childIndex = siblingCount; // 새로 추가될 자식의 인덱스
+
+    // 수직 간격 설정 (자식 개수에 따라 조정)
+    const verticalSpacing = 180;
+
+    // 중심을 기준으로 균등 분산
+    // 예: 자식 3개 → [-1, 0, 1] * spacing → [-180, 0, 180]
+    const totalHeight = siblingCount * verticalSpacing;
+    const startOffset = -totalHeight / 2;
+    const baseY = parentY + startOffset + (childIndex * verticalSpacing);
+
+    const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, baseY);
 
     const newNode: NodeData = {
       id: Date.now().toString(),
