@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.request;
 
 public record WorkspaceCloneRequest(
         String workspaceName,

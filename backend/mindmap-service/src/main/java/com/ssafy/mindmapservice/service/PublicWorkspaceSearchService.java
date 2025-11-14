@@ -2,8 +2,8 @@ package com.ssafy.mindmapservice.service;
 
 import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
-import com.ssafy.mindmapservice.dto.KeywordNodeSearchResponse;
-import com.ssafy.mindmapservice.dto.PublicRelationSearchResponse;
+import com.ssafy.mindmapservice.dto.response.KeywordNodeSearchResponse;
+import com.ssafy.mindmapservice.dto.response.PublicRelationSearchResponse;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

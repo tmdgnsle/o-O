@@ -1,5 +1,6 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.request;
 
+import com.ssafy.mindmapservice.dto.kafka.NodeContextDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;

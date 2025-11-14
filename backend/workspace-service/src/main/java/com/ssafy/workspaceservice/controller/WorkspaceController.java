@@ -58,8 +58,8 @@ public class WorkspaceController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "403", description = "접근 권한 없음"),
-            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
+            @ApiResponse(responseCode = "403", content = @Content, description = "접근 권한 없음"),
+            @ApiResponse(responseCode = "404", content = @Content, description = "워크스페이스를 찾을 수 없음")
     })
     @GetMapping("/{workspaceId}")
     public ResponseEntity<WorkspaceDetailResponse> detail(

@@ -1,13 +1,11 @@
 package com.ssafy.mindmapservice.controller;
 
 import com.ssafy.mindmapservice.domain.MindmapNode;
-import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
-import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
-import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
-import com.ssafy.mindmapservice.dto.NodeColorUpdateRequest;
-import com.ssafy.mindmapservice.dto.NodePositionUpdateRequest;
-import com.ssafy.mindmapservice.dto.NodeSimpleDto;
-import com.ssafy.mindmapservice.dto.WorkspaceCloneRequest;
+import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
+import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
+import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
+import com.ssafy.mindmapservice.dto.request.WorkspaceCloneRequest;
 import com.ssafy.mindmapservice.service.NodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "Mindmap Node API", description = "마인드맵 노드 관리 및 AI 분석 API")
 @Slf4j
@@ -153,11 +150,11 @@ public class NodeController {
             @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음", content = @Content)
     })
     @GetMapping("/{workspaceId}/nodes/simple")
-    public ResponseEntity<List<NodeSimpleDto>> getSimpleNodes(
+    public ResponseEntity<List<NodeSimpleResponse>> getSimpleNodes(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId) {
         log.info("GET /mindmap/{}/nodes/simple", workspaceId);
-        List<NodeSimpleDto> nodes = nodeService.getSimpleNodesByWorkspace(workspaceId);
+        List<NodeSimpleResponse> nodes = nodeService.getSimpleNodesByWorkspace(workspaceId);
         return ResponseEntity.ok(nodes);
     }
 
@@ -263,14 +260,34 @@ public class NodeController {
                     required = true,
                     content = @Content(
                             mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "keyword": "수정된 키워드",
-                                              "memo": "수정된 메모"
-                                            }
-                                            """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "키워드와 메모 수정",
+                                            value = """
+                                                    {
+                                                      "keyword": "수정된 키워드",
+                                                      "memo": "수정된 메모"
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "위치 수정",
+                                            value = """
+                                                    {
+                                                      "x": 150.5,
+                                                      "y": 250.3
+                                                    }
+                                                    """
+                                    ),
+                                    @ExampleObject(
+                                            name = "색상 수정",
+                                            value = """
+                                                    {
+                                                      "color": "#3b82f6"
+                                                    }
+                                                    """
+                                    )
+                            }
                     )
             )
             @RequestBody MindmapNode updates) {
@@ -329,75 +346,6 @@ public class NodeController {
         log.info("GET /mindmap/{}/nodes/count", workspaceId);
         long count = nodeService.countNodes(workspaceId);
         return ResponseEntity.ok(count);
-    }
-
-    @Operation(
-            summary = "노드 위치 업데이트",
-            description = "캔버스 상에서 노드의 위치(x, y 좌표)를 업데이트합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "위치 업데이트 성공"),
-            @ApiResponse(responseCode = "404", description = "노드를 찾을 수 없음", content = @Content)
-    })
-    @PatchMapping("/{workspaceId}/node/{nodeId}/position")
-    public ResponseEntity<MindmapNode> updateNodePosition(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId,
-            @Parameter(description = "노드 ID", required = true, example = "1")
-            @PathVariable Long nodeId,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "새 위치 좌표",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "x": 150.5,
-                                              "y": 250.3
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody NodePositionUpdateRequest request) {
-        log.info("PATCH /mindmap/{}/node/{}/position", workspaceId, nodeId);
-        MindmapNode updated = nodeService.updateNodePosition(workspaceId, nodeId, request.x(), request.y());
-        return ResponseEntity.ok(updated);
-    }
-
-    @Operation(
-            summary = "노드 색상 업데이트",
-            description = "노드의 배경 색상을 업데이트합니다. (Hex 코드 형식)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "색상 업데이트 성공"),
-            @ApiResponse(responseCode = "404", description = "노드를 찾을 수 없음", content = @Content)
-    })
-    @PatchMapping("/{workspaceId}/node/{nodeId}/color")
-    public ResponseEntity<MindmapNode> updateNodeColor(
-            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
-            @PathVariable Long workspaceId,
-            @Parameter(description = "노드 ID", required = true, example = "1")
-            @PathVariable Long nodeId,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "새 색상 (Hex 코드)",
-                    required = true,
-                    content = @Content(
-                            mediaType = "application/json",
-                            examples = @ExampleObject(
-                                    value = """
-                                            {
-                                              "color": "#3b82f6"
-                                            }
-                                            """
-                            )
-                    )
-            )
-            @RequestBody NodeColorUpdateRequest request) {
-        log.info("PATCH /mindmap/{}/node/{}/color", workspaceId, nodeId);
-        MindmapNode updated = nodeService.updateNodeColor(workspaceId, nodeId, request.color());
-        return ResponseEntity.ok(updated);
     }
 
     @Operation(

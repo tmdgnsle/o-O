@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.kafka;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * CONTEXTUAL: keyword, memo만 포함 (tempId, parentId는 null)
  */
 @Schema(description = "AI 생성 노드 DTO")
-public record AiNodeDto(
+public record AiNodeResult(
 
         @Schema(description = "임시 ID (INITIAL 전용, 예: 'temp-1')", example = "temp-1", nullable = true)
         String tempId,

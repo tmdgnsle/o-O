@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.kafka;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -22,7 +22,7 @@ public record AiAnalysisResult(
         String aiSummary,
 
         @Schema(description = "AI가 생성한 노드 배열 (INITIAL: 6개, CONTEXTUAL: 3개)", required = true)
-        List<AiNodeDto> nodes,
+        List<AiNodeResult> nodes,
 
         @Schema(description = "처리 상태", example = "SUCCESS", allowableValues = {"SUCCESS", "FAILED"}, required = true)
         String status

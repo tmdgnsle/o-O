@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

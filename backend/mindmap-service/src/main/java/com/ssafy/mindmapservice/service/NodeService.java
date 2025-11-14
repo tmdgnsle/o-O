@@ -2,12 +2,12 @@ package com.ssafy.mindmapservice.service;
 
 import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
-import com.ssafy.mindmapservice.dto.AiAnalysisRequest;
-import com.ssafy.mindmapservice.dto.AiNodeDto;
-import com.ssafy.mindmapservice.dto.InitialMindmapRequest;
-import com.ssafy.mindmapservice.dto.InitialMindmapResponse;
-import com.ssafy.mindmapservice.dto.NodeContextDto;
-import com.ssafy.mindmapservice.dto.NodeSimpleDto;
+import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
+import com.ssafy.mindmapservice.dto.kafka.AiNodeResult;
+import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
+import com.ssafy.mindmapservice.dto.kafka.NodeContextDto;
+import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
 import com.ssafy.mindmapservice.kafka.AiAnalysisProducer;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,11 +38,11 @@ public class NodeService {
      * 워크스페이스의 노드 간단 정보 조회 (nodeId, keyword만 포함)
      * 캘린더 등에서 경량화된 응답이 필요할 때 사용
      */
-    public List<NodeSimpleDto> getSimpleNodesByWorkspace(Long workspaceId) {
+    public List<NodeSimpleResponse> getSimpleNodesByWorkspace(Long workspaceId) {
         log.debug("Getting simple nodes for workspace: {}", workspaceId);
         List<MindmapNode> nodes = nodeRepository.findByWorkspaceId(workspaceId);
         return nodes.stream()
-                .map(NodeSimpleDto::from)
+                .map(NodeSimpleResponse::from)
                 .toList();
     }
 
@@ -178,31 +177,6 @@ public class NodeService {
         return nodeRepository.countByWorkspaceId(workspaceId);
     }
 
-    public MindmapNode updateNodePosition(Long workspaceId, Long nodeId, Double x, Double y) {
-        log.debug("Updating node position: workspaceId={}, nodeId={}, x={}, y={}", workspaceId, nodeId, x, y);
-
-        MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
-                .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
-
-        node.setX(x);
-        node.setY(y);
-        node.setUpdatedAt(LocalDateTime.now());
-
-        return nodeRepository.save(node);
-    }
-
-    public MindmapNode updateNodeColor(Long workspaceId, Long nodeId, String color) {
-        log.debug("Updating node color: workspaceId={}, nodeId={}, color={}", workspaceId, nodeId, color);
-
-        MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
-                .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
-
-        node.setColor(color);
-        node.setUpdatedAt(LocalDateTime.now());
-
-        return nodeRepository.save(node);
-    }
-
     @Transactional
     public List<MindmapNode> cloneWorkspace(Long sourceWorkspaceId, String newWorkspaceName, String newWorkspaceDescription) {
         log.info("Cloning workspace: source={}, newName={}", sourceWorkspaceId, newWorkspaceName);
@@ -296,7 +270,7 @@ public class NodeService {
     @Transactional
     public List<MindmapNode> createNodesFromAiResult(
             Long workspaceId,
-            List<AiNodeDto> aiNodes,
+            List<AiNodeResult> aiNodes,
             Long parentNodeId,
             String analysisType) {
 
@@ -310,7 +284,7 @@ public class NodeService {
         if ("INITIAL".equals(analysisType)) {
             // INITIAL: 계층 구조를 유지하며 순차 생성
             // 1. 먼저 parentId가 null인 루트 레벨 노드들 생성
-            for (AiNodeDto aiNode : aiNodes) {
+            for (AiNodeResult aiNode : aiNodes) {
                 if (aiNode.parentId() == null) {
                     Long realParentId = parentNodeId; // INITIAL의 경우 최초 요청 노드가 부모
                     MindmapNode node = createNodeFromAiDto(workspaceId, aiNode, realParentId);
@@ -329,7 +303,7 @@ public class NodeService {
                 hasUnprocessed = false;
                 iteration++;
 
-                for (AiNodeDto aiNode : aiNodes) {
+                for (AiNodeResult aiNode : aiNodes) {
                     // 이미 처리된 노드는 스킵
                     if (tempIdToRealIdMap.containsKey(aiNode.tempId())) {
                         continue;
@@ -369,7 +343,7 @@ public class NodeService {
 
         } else if ("CONTEXTUAL".equals(analysisType)) {
             // CONTEXTUAL: 모든 노드가 parentNodeId를 부모로 가짐
-            for (AiNodeDto aiNode : aiNodes) {
+            for (AiNodeResult aiNode : aiNodes) {
                 MindmapNode node = createNodeFromAiDto(workspaceId, aiNode, parentNodeId);
                 createdNodes.add(node);
                 log.debug("Created contextual node: keyword={}, realId={}, parentId={}",
@@ -389,7 +363,7 @@ public class NodeService {
      * @param parentId 부모 노드 ID
      * @return 생성된 MindmapNode
      */
-    private MindmapNode createNodeFromAiDto(Long workspaceId, AiNodeDto aiNode, Long parentId) {
+    private MindmapNode createNodeFromAiDto(Long workspaceId, AiNodeResult aiNode, Long parentId) {
         MindmapNode node = MindmapNode.builder()
                 .workspaceId(workspaceId)
                 .parentId(parentId)

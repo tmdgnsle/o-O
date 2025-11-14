@@ -1,8 +1,8 @@
 package com.ssafy.mindmapservice.controller;
 
-import com.ssafy.mindmapservice.dto.KeywordListResponse;
-import com.ssafy.mindmapservice.dto.KeywordNodeSearchResponse;
-import com.ssafy.mindmapservice.dto.PublicRelationSearchResponse;
+import com.ssafy.mindmapservice.dto.response.KeywordListResponse;
+import com.ssafy.mindmapservice.dto.response.KeywordNodeSearchResponse;
+import com.ssafy.mindmapservice.dto.response.PublicRelationSearchResponse;
 import com.ssafy.mindmapservice.service.PublicWorkspaceSearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

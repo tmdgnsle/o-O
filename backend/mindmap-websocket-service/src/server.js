@@ -81,12 +81,15 @@ app.get('/stats', (req, res) => {
 const server = http.createServer(app);
 
 // WebSocket 서버 생성 (HTTP 서버에 연결)
+// path를 제거하고 noServer: false로 설정하여 모든 경로 허용
+// 대신 connection 핸들러에서 URL 검증 수행
 const wss = new WebSocketServer({
   server,       // HTTP 서버에 WebSocket 서버 연결
-  path: '/mindmap/ws',  // WebSocket 엔드포인트 경로
+  // path를 지정하지 않으면 모든 WebSocket 요청을 받음
+  // y-websocket이 만드는 /mindmap/ws/{roomId} 형태도 처리 가능
 });
 
-logger.info('WebSocket server created on path mindmap/ws');
+logger.info('WebSocket server created (accepts /mindmap/ws and /mindmap/ws/{roomId})');
 
 /**
  * ============================================

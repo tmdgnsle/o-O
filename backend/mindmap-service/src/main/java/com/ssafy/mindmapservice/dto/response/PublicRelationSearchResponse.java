@@ -1,4 +1,4 @@
-package com.ssafy.mindmapservice.dto;
+package com.ssafy.mindmapservice.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
