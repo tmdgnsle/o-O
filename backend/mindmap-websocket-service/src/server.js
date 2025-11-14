@@ -142,10 +142,11 @@ wss.on('connection', (conn, req) => {
 
   // Y.js WebSocket 연결 설정 (y-websocket 라이브러리 유틸 사용)
   // 이 함수가 Y.js 프로토콜을 처리해줌 (동기화, 업데이트 전파 등)
+  // awareness를 주입하면 클라이언트 간 커서/채팅 자동 동기화됨
   setupWSConnection(conn, req, {
     docName: `workspace-${workspaceId}`,           // 문서 이름
     gc: process.env.YDOC_GC_ENABLED === 'true',    // 가비지 컬렉션 활성화 여부
-  });
+  }, ydoc, awareness);  // ydoc과 awareness 명시적으로 전달
 
   // 각 연결에 고유 ID 부여 (로깅용)
   const connectionId = Math.random().toString(36).substr(2, 9);
