@@ -11,4 +11,16 @@ export const trendApi = {
 
     return data;
   },
+
+  // GET /trend/{parentKeyword}
+  getChildTrend: async (
+    parentKeyword: string
+  ): Promise<TrendKeywordResponse> => {
+    const { data } = await apiClient.get<TrendKeywordResponse>(
+      `/trend/${parentKeyword}`,
+      {}
+    );
+
+    return data;
+  },
 };

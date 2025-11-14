@@ -8,7 +8,7 @@
  * @returns Object with r, g, b values
  */
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const cleanHex = hex.replace('#', '');
+  const cleanHex = hex.replace("#", "");
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
@@ -35,3 +35,73 @@ export function createRadialGradient(hexColor: string): string {
 
   return `radial-gradient(circle at center, rgba(${r}, ${g}, ${b}, 1) 0%, rgba(${r}, ${g}, ${b}, 0.75) 25%, rgba(${r}, ${g}, ${b}, 0.4) 50%, rgba(${r}, ${g}, ${b}, 0) 70%)`;
 }
+
+/**
+ * Gets node color based on rank
+ * @param rank - Node rank (1-7+)
+ * @param isParent - Whether the node is a parent node
+ * @returns Hex color code
+ */
+export const getNodeColorByRank = (
+  rank?: number,
+  isParent?: boolean
+): string => {
+  if (isParent) return "#FBCFE8";
+
+  const colors = [
+    "#BFDBFE", // rank 1: 파란색
+    "#FBCFE8", // rank 2: 핑크색
+    "#DDD6FE", // rank 3: 보라색
+    "#FED7AA", // rank 4: 주황색
+    "#BBF7D0", // rank 5: 초록색
+    "#FEF08A", // rank 6: 노란색
+    "#A5F3FC", // rank 7+: 청록색
+  ];
+
+  return colors[(rank || 1) - 1] || colors[0];
+};
+
+/**
+ * Creates an SVG radial gradient with customizable opacity stops
+ * @param defs - D3 selection of SVG defs element
+ * @param id - Unique ID for the gradient
+ * @param baseColor - Base hex color for the gradient
+ * @param opacities - Optional opacity values for inner, middle, and outer stops
+ * @returns D3 selection of the created gradient
+ *
+ * @example
+ * const defs = svg.append("defs");
+ * createSVGRadialGradient(defs, "gradient-1", "#BFDBFE");
+ */
+export const createSVGRadialGradient = (
+  defs: any, // d3.Selection<SVGDefsElement, unknown, null, undefined>
+  id: string,
+  baseColor: string,
+  opacities: { inner: number; middle: number; outer: number } = {
+    inner: 0.8,
+    middle: 0.6,
+    outer: 0.3,
+  }
+) => {
+  const gradient = defs.append("radialGradient").attr("id", id);
+
+  gradient
+    .append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", baseColor)
+    .attr("stop-opacity", opacities.inner);
+
+  gradient
+    .append("stop")
+    .attr("offset", "70%")
+    .attr("stop-color", baseColor)
+    .attr("stop-opacity", opacities.middle);
+
+  gradient
+    .append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", baseColor)
+    .attr("stop-opacity", opacities.outer);
+
+  return gradient;
+};

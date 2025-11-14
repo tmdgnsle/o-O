@@ -13,3 +13,6 @@ export interface TrendKeywordResponse {
 }
 
 /* Request DTO */
+export interface TrendKeywordRequest {
+  parentKeyword: string;
+}
