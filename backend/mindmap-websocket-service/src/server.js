@@ -181,92 +181,11 @@ wss.on('connection', (conn, req) => {
     });
   });
 
-  /**
-   * 커스텀 메시지 핸들러 (Awareness 이벤트)
-   * Y.js 프로토콜 외에 추가로 정의한 커스텀 메시지 처리
-   * 예: 커서 이동, 임시 채팅, 사용자 정보 업데이트
-   */
-  conn.on('message', (message) => {
-    try {
-      // JSON 메시지 파싱 시도
-      const data = JSON.parse(message.toString());
-
-      // type이 'awareness'인 커스텀 메시지인 경우 처리
-      if (data.type === 'awareness') {
-        handleAwarenessMessage(workspaceId, connectionId, data);
-      }
-    } catch (error) {
-      // JSON 파싱 실패 = Y.js 바이너리 프로토콜 메시지
-      // Y.js가 자동으로 처리하므로 무시
-    }
-  });
-
-  // 클라이언트에게 연결 성공 메시지 전송
-  conn.send(JSON.stringify({
-    type: 'connection',
-    status: 'connected',
-    workspaceId,
-    userId: userId || null,
-    connectionId,
-    timestamp: new Date().toISOString(),
-  }));
+  // NOTE: 커스텀 메시지 핸들러 제거됨
+  // Yjs의 setupWSConnection이 awareness를 주입받아서 자동으로 처리하므로
+  // 클라이언트의 awareness.setLocalStateField() 호출이 자동으로 동기화됨
+  // 서버에서는 awareness.on('change') 이벤트로 변경사항을 감지할 수 있음 (awareness.js 참고)
 });
-
-/**
- * ============================================
- * Awareness 커스텀 메시지 핸들러
- * ============================================
- *
- * 클라이언트가 보낸 Awareness 관련 메시지 처리
- * 메시지 형식: { type: 'awareness', event: 'cursor:move', data: {...} }
- *
- * 지원하는 이벤트:
- * - cursor:move: 커서 위치 업데이트
- * - chat:temp: 임시 채팅 메시지 (Figma "/" 기능)
- * - chat:clear: 임시 채팅 제거
- * - user:info: 사용자 정보 설정 (이름, 색상 등)
- */
-function handleAwarenessMessage(workspaceId, connectionId, message) {
-  const { event, data } = message;
-
-  switch (event) {
-    // 커서 이동 이벤트
-    case 'cursor:move':
-      awarenessManager.setCursor(connectionId, workspaceId, {
-        x: data.x,  // 캔버스 X 좌표
-        y: data.y,  // 캔버스 Y 좌표
-      });
-      break;
-
-    // 임시 채팅 메시지 입력 (Figma처럼 "/" 키로 활성화)
-    case 'chat:temp':
-      awarenessManager.setTempChat(connectionId, workspaceId, {
-        message: data.message,      // 채팅 내용
-        position: data.position,    // 채팅 표시 위치 {x, y}
-        timestamp: new Date().toISOString(),
-      });
-      break;
-
-    // 임시 채팅 제거 (ESC 키나 전송 후)
-    case 'chat:clear':
-      awarenessManager.clearTempChat(connectionId, workspaceId);
-      break;
-
-    // 사용자 정보 설정 (최초 접속 시)
-    case 'user:info':
-      awarenessManager.setUser(connectionId, workspaceId, {
-        id: data.userId,
-        name: data.userName,
-        email: data.userEmail,
-        color: data.userColor,  // 커서 색상
-      });
-      break;
-
-    // 알 수 없는 이벤트 타입
-    default:
-      logger.warn(`Unknown awareness event: ${event}`);
-  }
-}
 
 /**
  * ============================================
