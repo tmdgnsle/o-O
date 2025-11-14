@@ -168,6 +168,21 @@ wss.on('connection', (conn, req) => {
       logger.info(`Flushing pending changes for workspace ${workspaceId} on disconnect`);
       kafkaProducer.sendImmediately(workspaceId);
     }
+
+    // 메모리 누수 방지: 해당 workspace에 연결된 클라이언트가 0명이면 메모리 정리
+    // Awareness에서 현재 접속 중인 클라이언트 수 확인
+    const connectedClients = awarenessManager.getConnectedClients(workspaceId);
+    if (connectedClients.length === 0) {
+      logger.info(`No clients left in workspace ${workspaceId}, cleaning up memory`);
+
+      // Y.Doc 및 Awareness 인스턴스 삭제 (메모리 해제)
+      ydocManager.destroyDoc(workspaceId);
+      awarenessManager.destroyAwareness(workspaceId);
+
+      logger.info(`Memory cleanup completed for workspace ${workspaceId}`);
+    } else {
+      logger.debug(`Workspace ${workspaceId} still has ${connectedClients.length} connected client(s)`);
+    }
   });
 
   /**
