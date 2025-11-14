@@ -1,6 +1,7 @@
 package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.kafka.AiAnalysisResult;
 import com.ssafy.mindmapservice.repository.NodeRepository;
@@ -24,6 +25,7 @@ public class AiAnalysisConsumer {
     private final NodeUpdateProducer nodeUpdateProducer;
     private final NodeService nodeService;
     private final ObjectMapper objectMapper;
+    private final WorkspaceServiceClientAdapter workspaceServiceClient;
 
     /**
      * AI 서버로부터 분석 결과를 받아서 처리합니다.
@@ -73,11 +75,22 @@ public class AiAnalysisConsumer {
                 return;
             }
 
-            // 2. INITIAL인 경우 원본 노드의 memo에 aiSummary 업데이트
-            if (isInitial && result.aiSummary() != null) {
-                updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
-                log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
-                        result.workspaceId(), originalNodeId);
+            // 2. INITIAL인 경우 원본 노드의 memo에 aiSummary 업데이트 및 워크스페이스 title 업데이트
+            if (isInitial) {
+                if (result.aiSummary() != null) {
+                    updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
+                    log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
+                            result.workspaceId(), originalNodeId);
+                }
+
+                // 워크스페이스 title 업데이트
+                if (result.title() != null && !result.title().isBlank()) {
+                    // TODO: userId를 AiAnalysisResult에 포함시켜야 함
+                    Long userId = 1L; // 임시 하드코딩
+                    workspaceServiceClient.updateWorkspaceTitle(userId, result.workspaceId(), result.title());
+                    log.info("Updated workspace title: workspaceId={}, title={}",
+                            result.workspaceId(), result.title());
+                }
             }
 
             // 3. AI가 생성한 노드들 처리

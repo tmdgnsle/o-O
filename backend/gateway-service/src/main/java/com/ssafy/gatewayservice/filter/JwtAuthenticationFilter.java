@@ -1,9 +1,12 @@
 package com.ssafy.gatewayservice.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.gatewayservice.constant.FilterConstants;
 import com.ssafy.gatewayservice.jwt.JwtException;
 import com.ssafy.gatewayservice.jwt.JwtTokenValidator;
 import com.ssafy.gatewayservice.util.GatewayResponseUtil;
+import com.ssafy.gatewayservice.util.PathMatcherUtil;
+import com.ssafy.gatewayservice.util.TokenExtractorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -11,42 +14,19 @@ import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.List;
-
+/**
+ * JWT 인증 필터
+ * Authorization 헤더의 Bearer 토큰을 검증하고 userId를 추출하여 헤더에 추가
+ */
 @Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtTokenValidator jwtTokenValidator;
     private final ObjectMapper objectMapper;
-
-    // 인증이 필요 없는 경로
-    private static final List<String> EXCLUDED_PATHS = Arrays.asList(
-            "/auth/app/google-login",
-            "/oauth2/authorization/google",
-            "/auth/issue-token",
-            "/login/oauth2/",
-            "/auth/reissue",
-            "/actuator",
-            "/health",
-            "/swagger-ui",
-            "/v3/api-docs",
-            "/user-service/v3/api-docs",
-            "/workspace-service/v3/api-docs",
-            "/mindmap-service/v3/api-docs",
-            "/trend-service/v3/api-docs",
-            "/webjars",
-            "/mindmap/ws",  // WebSocket 경로 (WebSocketQueryParamFilter에서 처리)
-            "/trend/top",
-            "/trend/search",
-            "/trend/"
-
-    );
 
     public JwtAuthenticationFilter(JwtTokenValidator jwtTokenValidator, ObjectMapper objectMapper) {
         this.jwtTokenValidator = jwtTokenValidator;
@@ -59,73 +39,82 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = request.getURI().getPath();
 
         // 인증이 필요 없는 경로는 필터 통과
-        if (isExcludedPath(path)) {
+        if (PathMatcherUtil.isExcludedPath(path, FilterConstants.JWT_EXCLUDED_PATHS)) {
             return chain.filter(exchange);
         }
 
         try {
-            // Authorization 헤더에서 JWT 토큰 추출
-            String token = resolveToken(request);
-
-            if (token == null) {
-                return GatewayResponseUtil.sendErrorResponse(
-                        exchange, HttpStatus.UNAUTHORIZED, "인증 토큰이 없습니다.", objectMapper
-                );
-            }
-
-            // JWT 토큰 검증 (만료시간 포함)
-            jwtTokenValidator.validateToken(token);
-
-            // userId 추출
-            String userId = jwtTokenValidator.getUserId(token);
-
-            if (userId == null) {
-                return GatewayResponseUtil.sendErrorResponse(
-                        exchange, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.", objectMapper
-                );
-            }
-
-            // X-USER-ID 헤더에 userId 추가하여 프록시 요청 전달
-            ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-USER-ID", userId)
-                    .build();
-
+            ServerHttpRequest mutatedRequest = buildAuthenticatedRequest(request);
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
-
         } catch (JwtException e) {
-            log.error("[JWT Filter] JWT Exception - Path: {}, Error: {}", path, e.getMessage());
-            return GatewayResponseUtil.sendErrorResponse(
-                    exchange, HttpStatus.UNAUTHORIZED, e.getMessage(), objectMapper
-            );
+            return handleJwtException(exchange, path, e);
         } catch (Exception e) {
-            log.error("[JWT Filter] Unexpected Exception - Path: {}, Type: {}, Message: {}",
-                    path, e.getClass().getName(), e.getMessage(), e);
-            return GatewayResponseUtil.sendErrorResponse(
-                    exchange, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), objectMapper
-            );
+            return handleUnexpectedException(exchange, path, e);
         }
     }
 
     /**
-     * Authorization 헤더에서 Bearer 토큰 추출
+     * 인증된 요청 빌드 (user ID 헤더 추가)
      */
-    private String resolveToken(ServerHttpRequest request) {
-        String bearerToken = request.getHeaders().getFirst("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
+    private ServerHttpRequest buildAuthenticatedRequest(ServerHttpRequest request) {
+        String userId = extractAndValidateUserId(request);
+
+        return request.mutate()
+                .header(FilterConstants.HEADER_USER_ID, userId)
+                .build();
     }
 
     /**
-     * 인증이 필요 없는 경로인지 확인
+     * 토큰 검증 및 userId 추출
      */
-    private boolean isExcludedPath(String path) {
-        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+    private String extractAndValidateUserId(ServerHttpRequest request) {
+        // Authorization 헤더에서 JWT 토큰 추출
+        String token = TokenExtractorUtil.extractBearerToken(request);
+
+        if (!TokenExtractorUtil.isValidToken(token)) {
+            throw new JwtException(FilterConstants.MSG_NO_TOKEN);
+        }
+
+        // JWT 토큰 검증 (만료시간 포함)
+        jwtTokenValidator.validateToken(token);
+
+        // userId 추출
+        String userId = jwtTokenValidator.getUserId(token);
+        if (userId == null) {
+            throw new JwtException(FilterConstants.MSG_INVALID_TOKEN);
+        }
+
+        return userId;
+    }
+
+    /**
+     * JWT 예외 처리
+     */
+    private Mono<Void> handleJwtException(ServerWebExchange exchange, String path, JwtException e) {
+        log.error("[{}] JWT Exception - Path: {}, Error: {}",
+                FilterConstants.LOG_PREFIX_JWT_FILTER, path, e.getMessage());
+        return GatewayResponseUtil.sendErrorResponse(
+                exchange, HttpStatus.UNAUTHORIZED, e.getMessage(), objectMapper
+        );
+    }
+
+    /**
+     * 예상치 못한 예외 처리
+     */
+    private Mono<Void> handleUnexpectedException(ServerWebExchange exchange, String path, Exception e) {
+        log.error("[{}] Unexpected Exception - Path: {}, Type: {}, Message: {}",
+                FilterConstants.LOG_PREFIX_JWT_FILTER,
+                path,
+                e.getClass().getName(),
+                e.getMessage(),
+                e);
+        return GatewayResponseUtil.sendErrorResponse(
+                exchange, HttpStatus.INTERNAL_SERVER_ERROR, FilterConstants.MSG_SERVER_ERROR, objectMapper
+        );
     }
 
     @Override
     public int getOrder() {
-        return -100; // 높은 우선순위로 먼저 실행
+        return FilterConstants.JWT_FILTER_ORDER;
     }
 }

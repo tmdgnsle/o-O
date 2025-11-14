@@ -3,6 +3,7 @@ package com.ssafy.mindmapservice.controller;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.request.VoiceIdeaRequest;
 import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
 import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
 import com.ssafy.mindmapservice.dto.request.WorkspaceCloneRequest;
@@ -115,11 +116,14 @@ public class NodeController {
     )
     @PostMapping("/create-initial")
     public ResponseEntity<InitialMindmapResponse> createInitialMindmap(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") String userId,
             @RequestBody InitialMindmapRequest request) {
-        log.info("POST /mindmap/create-initial - workspaceName={}, contentType={}",
-                request.workspaceName(), request.contentType());
+        log.info("POST /mindmap/create-initial - userId={}, workspaceName={}, contentType={}",
+                userId, request.workspaceName(), request.contentType());
 
-        InitialMindmapResponse response = nodeService.createInitialMindmap(request);
+        Long userIdLong = Long.parseLong(userId);
+        InitialMindmapResponse response = nodeService.createInitialMindmap(userIdLong, request);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
@@ -343,6 +347,8 @@ public class NodeController {
     })
     @PostMapping("/{workspaceId}/clone")
     public ResponseEntity<List<MindmapNode>> cloneWorkspace(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") String userId,
             @Parameter(description = "원본 워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -361,8 +367,10 @@ public class NodeController {
                     )
             )
             @RequestBody WorkspaceCloneRequest request) {
-        log.info("POST /mindmap/{}/clone with name={}", workspaceId, request.workspaceName());
+        log.info("POST /mindmap/{}/clone - userId={}, name={}", workspaceId, userId, request.workspaceName());
+        Long userIdLong = Long.parseLong(userId);
         List<MindmapNode> clonedNodes = nodeService.cloneWorkspace(
+                userIdLong,
                 workspaceId,
                 request.workspaceName(),
                 request.workspaceDescription()
@@ -496,5 +504,78 @@ public class NodeController {
         );
 
         return ResponseEntity.accepted().build();
+    }
+
+    @Operation(
+            summary = "음성 아이디어 추가 (모바일)",
+            description = """
+                    ## 모바일 음성 인식 아이디어 추가
+
+                    STT로 변환된 텍스트를 받아 새 워크스페이스와 루트 노드를 생성하고 AI 분석을 자동으로 요청합니다.
+
+                    ### 📌 처리 흐름
+                    1. **워크스페이스 생성**: workspace-service를 호출하여 새 워크스페이스 생성
+                    2. **루트 노드 생성**: x, y 좌표를 null로 하여 루트 노드 생성
+                    3. **AI 분석 요청**: INITIAL 타입으로 자동 분석 요청
+                    4. **즉시 응답**: 202 Accepted 반환 (비동기 처리)
+
+                    ### ⚡ 비동기 처리
+                    - 워크스페이스와 노드 생성 후 즉시 응답하며, AI 분석은 백그라운드에서 진행됩니다
+                    - 생성된 노드의 `analysisStatus`는 `PENDING` 상태로 반환됩니다
+                    - AI 분석 결과는 WebSocket을 통해 실시간으로 전달됩니다
+                    - AI가 생성하는 노드 개수는 가변적입니다 (고정되지 않음)
+
+                    ### 📝 좌표 처리
+                    - x, y 좌표는 null로 저장됩니다
+                    - 웹에서 워크스페이스를 열 때 자동 배치 또는 수동 배치가 필요합니다
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "202",
+                    description = "음성 아이디어가 추가되었습니다. AI 분석이 진행 중입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = InitialMindmapResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (필수 필드 누락 등)",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "서버 오류 (워크스페이스 생성 실패 등)",
+                    content = @Content
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "음성 아이디어 추가 요청 정보",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = VoiceIdeaRequest.class),
+                    examples = @ExampleObject(
+                            name = "음성 아이디어 예시",
+                            summary = "STT로 변환된 텍스트",
+                            value = """
+                                    {
+                                      "text": "인공지능 윤리 문제"
+                                    }
+                                    """
+                    )
+            )
+    )
+    @PostMapping("/voice-idea")
+    public ResponseEntity<InitialMindmapResponse> addVoiceIdea(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") String userId,
+            @RequestBody VoiceIdeaRequest request) {
+        log.info("POST /mindmap/voice-idea - text={}", request.text());
+
+        InitialMindmapResponse response = nodeService.createVoiceIdeaNode(request.text(), userId);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 }
