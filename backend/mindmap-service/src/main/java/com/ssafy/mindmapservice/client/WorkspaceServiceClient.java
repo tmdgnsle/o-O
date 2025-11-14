@@ -90,7 +90,7 @@ public class WorkspaceServiceClient {
      * 🆕 모든 Public 워크스페이스 ID 목록 조회
      */
     public List<Long> getPublicWorkspaceIds() {
-        String url = "/api/internal/public/workspace-ids";
+        String url = "/workspace/workspace-ids";
 
         try {
             Map<String, List<Integer>> result = getClient()
