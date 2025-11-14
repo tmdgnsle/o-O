@@ -68,7 +68,7 @@ export default function CytoscapeCanvas({
 
   // cy가 준비된 이후에만 초기화/동기화/이벤트 등록
   useCytoscapeInit(cyRef.current, cytoscapeStylesheet, cytoscapeConfig, cyReady);
-  useGraphSync(cyRef.current, nodes, edges, cyReady);
+  useGraphSync(cyRef.current, nodes, edges, mode, cyReady);
   useDragSync(cyRef.current, forceOverlayUpdate, cyReady);
   usePanLimit(cyRef.current, PAN_LIMIT, cyReady);
   useCytoscapeEvents(cyRef.current, {
