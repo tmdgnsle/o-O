@@ -1,9 +1,12 @@
 ﻿import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Lightbulb } from "lucide-react";
 import ContentDialog from "../../../shared/ui/ContentDialog/ContentDialog";
 import analyzePopoImage from "@/shared/assets/images/analyze_popo.png";
 import planningPopoImage from "@/shared/assets/images/planning_popo.png";
 import type { NodeData } from "../types";
+import { buildNodeTree } from "../utils/buildNodeTree";
+import AnalyzeTreeNode from "./AnalyzeTreeNode";
 
 export default function AnalyzeSelectionPanel({
   selectedNodes,
@@ -19,6 +22,9 @@ export default function AnalyzeSelectionPanel({
   const hasSelection = selectedNodes.length > 0;
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+
+  // 선택된 노드들을 계층 구조로 변환
+  const treeRoots = useMemo(() => buildNodeTree(selectedNodes), [selectedNodes]);
 
   const dialogContent = useMemo(() => {
     const keywordLines = selectedNodes
@@ -56,9 +62,12 @@ export default function AnalyzeSelectionPanel({
     <>
       <div className="w-72 rounded-2xl border border-slate-200 bg-white/95 shadow-2xl p-4 font-paperlogy">
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-700">선택된 노드</p>
-            <p className="text-xs text-slate-400">총 {selectedNodes.length}개</p>
+          <div className="flex items-center gap-2">
+            <Lightbulb className="w-5 h-5 text-yellow-500" />
+            <div>
+              <p className="text-sm font-semibold text-slate-700">선택된 노드</p>
+              <p className="text-xs text-slate-400">총 {selectedNodes.length}개</p>
+            </div>
           </div>
           <button
             type="button"
@@ -70,23 +79,21 @@ export default function AnalyzeSelectionPanel({
           </button>
         </div>
 
-        <div className="max-h-48 overflow-y-auto rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 space-y-1">
+        <div className="max-h-48 overflow-y-auto rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2">
           {hasSelection ? (
-            selectedNodes.map((node) => (
-              <div key={node.id} className="flex items-center gap-2">
-                <span className="flex-1 truncate">• {node.text}</span>
-                <button
-                  type="button"
-                  aria-label={`${node.text} 제거`}
-                  className="text-xs text-slate-400 hover:text-slate-600"
-                  onClick={() => onRemoveNode(node.id)}
-                >
-                  &times;
-                </button>
-              </div>
-            ))
+            <div>
+              {treeRoots.map((root, index) => (
+                <AnalyzeTreeNode
+                  key={root.id}
+                  node={root}
+                  onRemove={onRemoveNode}
+                  isLastChild={index === treeRoots.length - 1}
+                  ancestorLines={[]}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="text-xs text-slate-400">아직 선택된 노드가 없습니다.</p>
+            <p className="text-xs text-slate-400 p-3">아직 선택된 노드가 없습니다.</p>
           )}
         </div>
 

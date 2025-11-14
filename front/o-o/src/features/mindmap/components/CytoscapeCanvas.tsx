@@ -99,6 +99,18 @@ export default function CytoscapeCanvas({
     };
   }, [cyReady, mode, onAnalyzeNodeToggle]);
 
+  // 모드 전환 시 Cytoscape 선택 상태 초기화 (React 상태와 동기화)
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || !cyReady) return;
+
+    // Cytoscape 내부 선택 상태를 모두 해제
+    const selectedNodes = cy.nodes(":selected");
+    if (selectedNodes.length > 0) {
+      selectedNodes.unselect();
+    }
+  }, [cyReady, mode]);
+
   // 초기 로드 시 첫 노드에 포커스 및 즉시 렌더링 (한 번만 실행)
   useEffect(() => {
     const cy = cyRef.current;
