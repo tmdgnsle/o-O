@@ -35,7 +35,8 @@ pipeline {
             string(credentialsId: 'fb-msg-sender', variable: 'FB_MESSAGING_SENDER_ID'),
             string(credentialsId: 'fb-app-id', variable: 'FB_APP_ID'),
             string(credentialsId: 'gg-client-id', variable: 'GG_CLIENT_ID'),
-            string(credentialsId: 'vite-api-url', variable: 'VITE_API_URL')
+            string(credentialsId: 'vite-api-url', variable: 'VITE_API_URL'),
+            string(credentialsId: 'ws_url', variable: 'VITE_WS_URL')
           ]) {
             dir('front/o-o') {
               sh '''
@@ -49,6 +50,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=${FB_MESSAGING_SENDER_ID}
 VITE_FIREBASE_APP_ID=${FB_APP_ID}
 VITE_GOOGLE_CLIENT_ID=${GG_CLIENT_ID}
 VITE_API_URL=${VITE_API_URL}
+VITE_WS_URL=${VITE_WS_URL}
 EOF
 
                 node -v && npm -v

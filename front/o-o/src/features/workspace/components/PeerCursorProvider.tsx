@@ -6,15 +6,18 @@ import React, {
   useState,
 } from "react";
 import type { Awareness } from "y-protocols/awareness";
+import type { WorkspaceRole } from "@/services/dto/workspace.dto";
 
 type PeerCursor = {
   id: number;
   x: number;
   y: number;
   color?: string;
+  userId?: number; // 숫자형 userId 추가 (역할 변경 API용)
   name?: string;
   email?: string;
   profileImage?: string;
+  role?: WorkspaceRole; // 워크스페이스 역할 추가
 };
 
 type PeerCursorContextValue = {
@@ -61,7 +64,7 @@ export function PeerCursorProvider({
           continue;
         }
 
-        const cursor = (state as { cursor?: PeerCursor; user?: { name?: string; email?: string; profileImage?: string } }).cursor;
+        const cursor = (state as { cursor?: PeerCursor; user?: { userId?: number; name?: string; email?: string; profileImage?: string; role?: WorkspaceRole } }).cursor;
         console.log(`   ↳ Cursor data:`, cursor);
 
         if (!cursor) {
@@ -69,15 +72,17 @@ export function PeerCursorProvider({
           continue;
         }
 
-        const userState = (state as { user?: { name?: string; email?: string; profileImage?: string } }).user;
+        const userState = (state as { user?: { userId?: number; name?: string; email?: string; profileImage?: string; role?: WorkspaceRole } }).user;
         const peer = {
           id,
           x: cursor.x,
           y: cursor.y,
           color: cursor.color,
+          userId: userState?.userId, // userId 추가
           name: userState?.name,
           email: userState?.email,
           profileImage: userState?.profileImage,
+          role: userState?.role, // role 추가
         };
         console.log(`   ↳ Adding peer:`, peer);
         next.push(peer);

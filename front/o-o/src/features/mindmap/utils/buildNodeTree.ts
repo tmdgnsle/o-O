@@ -14,7 +14,17 @@ export type TreeNode = NodeData & {
 export function buildNodeTree(selectedNodes: NodeData[]): TreeNode[] {
   if (selectedNodes.length === 0) return [];
 
-  // 1단계: 모든 노드를 TreeNode로 변환하고 Map에 저장
+  // 1단계: nodeId -> id 매핑 생성 (D3Canvas와 동일한 방식)
+  const nodeIdToIdMap = new Map<number, string>();
+  for (const node of selectedNodes) {
+    const nodeIdValue = (node as any).nodeId;
+    if (nodeIdValue !== undefined) {
+      nodeIdToIdMap.set(Number(nodeIdValue), node.id);
+    }
+  }
+
+
+  // 2단계: 모든 노드를 TreeNode로 변환하고 Map에 저장
   const nodeMap = new Map<string, TreeNode>();
 
   selectedNodes.forEach((node) => {
@@ -25,19 +35,31 @@ export function buildNodeTree(selectedNodes: NodeData[]): TreeNode[] {
     });
   });
 
-  // 2단계: 루트 노드와 자식 노드 분류
+  // 3단계: 루트 노드와 자식 노드 분류
   const roots: TreeNode[] = [];
 
   selectedNodes.forEach((node) => {
     const nodeIdStr = String(node.id);
     const treeNode = nodeMap.get(nodeIdStr)!;
 
+    // parentId를 실제 노드 id로 변환 (D3Canvas와 동일한 방식)
+    let actualParentId: string | null = null;
+    if (node.parentId && node.parentId !== "0") {
+      const parentIdNum = Number(node.parentId);
+      if (!isNaN(parentIdNum) && nodeIdToIdMap.has(parentIdNum)) {
+        actualParentId = nodeIdToIdMap.get(parentIdNum)!;
+      } else {
+        actualParentId = String(node.parentId);
+      }
+    }
+
+
     // 부모가 없거나, 부모가 선택되지 않은 경우 → 루트 노드
-    if (!node.parentId || !nodeMap.has(String(node.parentId))) {
+    if (!actualParentId || !nodeMap.has(actualParentId)) {
       roots.push(treeNode);
     } else {
       // 부모가 선택된 경우 → 자식 노드로 추가
-      const parent = nodeMap.get(String(node.parentId))!;
+      const parent = nodeMap.get(actualParentId)!;
       treeNode.depth = parent.depth + 1;
       parent.children.push(treeNode);
     }

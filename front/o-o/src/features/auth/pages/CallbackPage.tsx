@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { clearRedirectPath, setAccessToken } from "@/store/slices/authSlice";
-import { fetchUserProfile } from "@/store/slices/userSlice";
+import { fetchUserProfile, setUserId } from "@/store/slices/userSlice";
 import type { RootState } from "@/store/store";
 
 export function CallbackPage() {
@@ -50,10 +50,15 @@ export function CallbackPage() {
 
         if (fetchUserProfile.fulfilled.match(resultAction)) {
           console.log("✅ 사용자 정보 조회 성공:", resultAction.payload);
+
+          // 4. userId를 Redux에 저장
+          dispatch(setUserId(Number(userId)));
+          console.log("✅ userId Redux에 저장:", userId);
+
           console.log("✅ 로그인 완료!");
           console.log("🍪 refreshToken은 쿠키에 자동 저장됨");
 
-          // 4. redirectPath가 있으면 그곳으로, 없으면 홈으로
+          // 5. redirectPath가 있으면 그곳으로, 없으면 홈으로
           let destination = redirectPathFromRedux;
 
           if (!destination) {

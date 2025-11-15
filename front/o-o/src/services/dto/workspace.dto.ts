@@ -43,6 +43,7 @@ export interface WorkspaceDetailDTO {
   readonly createdAt: string;       // ISO
   readonly isMember: boolean;
   readonly myRole: WorkspaceRole;
+  readonly token: string;           // 워크스페이스 초대/공유 토큰
   readonly memberCount: number;
 }
 
@@ -59,9 +60,7 @@ export interface CreateWorkspaceResponseDTO {
 
 // POST /workspace/join?token=...
 export interface JoinWorkspaceResponseDTO {
-  id: number; // 워크스페이스 id (리다이렉트용)
-  myRole: WorkspaceRole;
-  isMember: boolean; // true
+  readonly workspaceId: number; // 워크스페이스 id (리다이렉트용)
 }
 
 

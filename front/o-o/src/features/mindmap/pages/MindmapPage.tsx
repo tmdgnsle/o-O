@@ -8,7 +8,7 @@ import StatusBox from "../../workspace/components/StatusBox";
 import ModeToggleButton from "../components/ModeToggleButton";
 import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
-import CytoscapeCanvas from "../components/CytoscapeCanvas";
+import D3Canvas from "../components/D3Canvas";
 import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
 import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
@@ -24,18 +24,13 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
-// import { useMindmapSync } from "../hooks/custom/useMindmapSync"; // DISABLED: Backend handles persistence
 import {
   getPendingImportKeywords,
   clearPendingImportKeywords,
   convertTrendKeywordsToNodes,
 } from "../utils/importTrendKeywords";
-import popo1 from "@/shared/assets/images/popo1.webp";
-import popo2 from "@/shared/assets/images/popo2.webp";
-import popo3 from "@/shared/assets/images/popo3.webp";
 import {
   DEFAULT_WORKSPACE_ID,
-  buildMindmapShareLink,
   resolveMindmapWsUrl,
 } from "@/constants/mindmapCollaboration";
 
@@ -44,20 +39,22 @@ const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const navigate = useNavigate();
-  const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
   const wsUrl = resolveMindmapWsUrl();
 
-  // 2. Refs for Cytoscape
+  // 2. Get workspace info for role
+  const { workspace } = useWorkspaceAccessQuery(workspaceId);
+
+  // 3. Refs for Cytoscape
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [cyReady, setCyReady] = useState(false);
 
 
-  // 3. Helper hooks
+  // 4. Helper hooks
   const { getRandomThemeColor } = useColorTheme();
-  const { findNonOverlappingPosition } = useNodePositioning();
+  const { findNonOverlappingPosition, findEmptySpace } = useNodePositioning();
 
-  // 4. Stable cursor color (once per session) - separate from node theme colors
+  // 5. Stable cursor color (once per session) - separate from node theme colors
   const cursorColorRef = useRef<string | null>(null);
   if (!cursorColorRef.current) {
     // Use cursor-specific color palette for collaboration
@@ -65,7 +62,7 @@ const MindmapPageContent: React.FC = () => {
     cursorColorRef.current = CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
   }
 
-  // 5. Collaboration hooks
+  // 6. Collaboration hooks
   const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
     workspaceId,
@@ -76,6 +73,7 @@ const MindmapPageContent: React.FC = () => {
         console.warn("[MindmapPage] auth error in collaboration, navigate to home");
         navigate("/"); // 인증 실패 시 홈으로 리다이렉트
       },
+      myRole: workspace?.myRole, // 워크스페이스 역할 전달
     }
   );
 
@@ -90,8 +88,7 @@ const MindmapPageContent: React.FC = () => {
   }, [collab]);
 
   // 5a. Sync Yjs changes to backend API
-  // DISABLED: Backend Yjs server handles persistence via Kafka → MongoDB
-  // useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
+  useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();
@@ -115,6 +112,7 @@ const MindmapPageContent: React.FC = () => {
     workspaceId,
     getRandomThemeColor,
     findNonOverlappingPosition,
+    findEmptySpace,
   });
 
   // 8. Analyze mode hook
@@ -122,13 +120,6 @@ const MindmapPageContent: React.FC = () => {
 
   // 9. Detached selection hook
   const detachedSelection = useDetachedSelection(nodes, nodeOperations.handleEditNode);
-
-  // 10. Voice chat users (mock data)
-  const voiceChatUsers = useMemo(() => [
-    { id: "1", name: "사용자 A", avatar: popo1, isSpeaking: true, colorIndex: 0 },
-    { id: "2", name: "사용자 B", avatar: popo2, colorIndex: 1 },
-    { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
-  ], []);
 
   // 🔥 트렌드 키워드 임포트 (로컬스토리지에서 감지)
   useEffect(() => {
@@ -266,7 +257,6 @@ const MindmapPageContent: React.FC = () => {
           <div className="fixed top-1 right-1 md:top-4 md:right-4 z-50">
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
-              shareLink={shareLink}
               workspaceId={workspaceId}
             />
           </div>
@@ -275,8 +265,7 @@ const MindmapPageContent: React.FC = () => {
         {voiceChatVisible ? (
           <div className="fixed top-1 md:top-4 left-1/2 -translate-x-1/2 z-50">
             <VoiceChat
-              users={voiceChatUsers}
-              onMicToggle={(isMuted) => console.log("Mic muted:", isMuted)}
+              workspaceId={workspaceId}
               onCallEnd={() => setVoiceChatVisible(false)}
               onOrganize={() => console.log("Organize clicked")}
               onShare={() => console.log("Share clicked")}
@@ -294,9 +283,9 @@ const MindmapPageContent: React.FC = () => {
           </div>
         )}
 
-        {/* Cytoscape Canvas */}
+        {/* D3 Canvas */}
         <div className="absolute inset-0" ref={canvasContainerRef}>
-          <CytoscapeCanvas
+          <D3Canvas
             nodes={nodes}
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}
@@ -342,7 +331,7 @@ const MindmapPage: React.FC = () => {
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
 
   // 2. Check workspace access permissions
-  const { hasAccess, isLoading } = useWorkspaceAccessQuery(workspaceId);
+  const { workspace, hasAccess, isLoading } = useWorkspaceAccessQuery(workspaceId);
 
   // 3. Show loading state while checking access
   if (isLoading) {
