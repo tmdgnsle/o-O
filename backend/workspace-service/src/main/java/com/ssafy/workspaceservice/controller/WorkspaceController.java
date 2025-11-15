@@ -284,7 +284,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "200", description = "제목 업데이트 성공"),
             @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
     })
-    @PatchMapping("/internal/{workspaceId}/title")
+    @PutMapping("/internal/{workspaceId}/title")
     public ResponseEntity<Void> updateTitleInternal(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
