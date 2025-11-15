@@ -42,6 +42,9 @@ function NodeOverlay({
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [hasMoved, setHasMoved] = useState(false);
 
   // Debug: 메모 데이터 확인
   useEffect(() => {
@@ -147,6 +150,75 @@ function NodeOverlay({
     [node.type]
   );
 
+  // 드래그/클릭 핸들러
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (isAnalyzeMode) {
+        // analyze 모드에서는 클릭만 처리
+        onSelect();
+        return;
+      }
+
+      // edit 모드: 선택되지 않은 노드면 먼저 선택
+      if (!isSelected) {
+        onSelect();
+      }
+
+      // 드래그 시작
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setHasMoved(false);
+    },
+    [isAnalyzeMode, isSelected, onSelect]
+  );
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || !dragStart) return;
+
+      const dx = (e.clientX - dragStart.x) / zoom;
+      const dy = (e.clientY - dragStart.y) / zoom;
+
+      // 움직임이 있으면 hasMoved 설정
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        setHasMoved(true);
+      }
+
+      const newX = node.x + dx;
+      const newY = node.y + dy;
+
+      onEditNode({
+        nodeId: node.id,
+        x: newX,
+        y: newY,
+      });
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    },
+    [isDragging, dragStart, zoom, node.x, node.y, node.id, onEditNode]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    setDragStart(null);
+    setHasMoved(false);
+  }, []);
+
+  // 드래그 이벤트 리스너 등록
+  useEffect(() => {
+    if (!isDragging) return;
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
   const textColor = getContrastTextColor(initialColor);
 
@@ -167,17 +239,26 @@ function NodeOverlay({
           top: `${y}px`,
           transform: `translate(-50%, -50%) scale(${zoom})`,
           zIndex,
-          pointerEvents: "none",
+          pointerEvents: "none", // 기본은 none, 자식 요소에서 개별 설정
+          transition: "none", // 애니메이션 제거
         }}
       >
         <div
-          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${selectionRingClass}`}
+          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center ${selectionRingClass}`}
           style={{
             background: createRadialGradient(initialColor),
-            pointerEvents: "none",
+            pointerEvents: "auto", // 노드 원형은 클릭 가능
+            cursor: isAnalyzeMode
+              ? "pointer"
+              : isDragging
+                ? "grabbing"
+                : "grab",
+            userSelect: "none", // 드래그 중 텍스트 선택 방지
+            transition: "none", // transition-all 제거
           }}
           data-node-id={node.id}
           data-has-memo={!!memo}
+          onMouseDown={handleMouseDown}
         >
           {isEditing ? (
             <NodeEditForm

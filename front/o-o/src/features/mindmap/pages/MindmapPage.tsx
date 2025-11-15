@@ -8,7 +8,7 @@ import StatusBox from "../../workspace/components/StatusBox";
 import ModeToggleButton from "../components/ModeToggleButton";
 import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
-import CytoscapeCanvas from "../components/CytoscapeCanvas";
+import D3Canvas from "../components/D3Canvas";
 import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
 import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
@@ -294,9 +294,9 @@ const MindmapPageContent: React.FC = () => {
           </div>
         )}
 
-        {/* Cytoscape Canvas */}
+        {/* D3 Canvas */}
         <div className="absolute inset-0" ref={canvasContainerRef}>
-          <CytoscapeCanvas
+          <D3Canvas
             nodes={nodes}
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}

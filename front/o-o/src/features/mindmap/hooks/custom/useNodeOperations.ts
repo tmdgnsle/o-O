@@ -119,7 +119,7 @@ export function useNodeOperations(params: {
 
     const newNode: NodeData = {
       id: Date.now().toString(),
-      parentId: null,
+      parentId: parentId, // 🔥 FIX: 부모 ID를 올바르게 설정
       workspaceId: parseInt(workspaceId, 10),
       type: 'text',
       analysisStatus: 'NONE',
@@ -182,9 +182,9 @@ export function useNodeOperations(params: {
 
   /**
    * 노드 수정
-   * - 텍스트, 메모, 색상, 부모 관계 변경
+   * - 텍스트, 메모, 색상, 부모 관계, 위치 변경
    */
-  const handleEditNode = useCallback(({ nodeId, newText, newMemo, newColor, newParentId }: EditNodePayload) => {
+  const handleEditNode = useCallback(({ nodeId, newText, newMemo, newColor, newParentId, x, y }: EditNodePayload & { x?: number; y?: number }) => {
     if (!crud) return;
     crud.update(nodeId, (current) => {
       if (!current) return current;
@@ -194,6 +194,8 @@ export function useNodeOperations(params: {
         ...(newMemo !== undefined ? { memo: newMemo } : {}),
         ...(newColor !== undefined ? { color: newColor } : {}),
         ...(newParentId !== undefined ? { parentId: newParentId ?? undefined } : {}),
+        ...(x !== undefined ? { x } : {}),
+        ...(y !== undefined ? { y } : {}),
         operation: 'UPDATE',
       };
     });
