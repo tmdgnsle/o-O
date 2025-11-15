@@ -134,4 +134,15 @@ public class WorkspaceServiceClientAdapter {
             throw new RuntimeException("Failed to get public workspace IDs", e);
         }
     }
+
+    public boolean isPublic(Long workspaceId) {
+        try {
+            String vis = getVisibility(workspaceId);
+            return "PUBLIC".equalsIgnoreCase(vis);
+        } catch (Exception e) {
+            // 실패 시 보수적으로 false
+            log.error("Failed to get visibility for workspaceId={}", workspaceId, e);
+            return false;
+        }
+    }
 }

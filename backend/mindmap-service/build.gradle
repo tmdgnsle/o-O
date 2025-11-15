@@ -57,6 +57,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation 'co.elastic.clients:elasticsearch-java:8.14.0'
+    implementation 'org.elasticsearch.client:elasticsearch-rest-client:8.14.0'
+    // JSON 매퍼 (Jackson)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 dependencyManagement {
