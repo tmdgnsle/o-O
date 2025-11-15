@@ -16,4 +16,12 @@ public interface MindmapClient {
      */
     @PostMapping("/mindmap/nodes/keywords/batch")
     List<String> getKeywordsByWorkspaceIds(@RequestBody List<Long> workspaceIds);
+
+    /**
+     * 여러 워크스페이스에 노드가 존재하는지 일괄 확인
+     * @param workspaceIds 확인할 워크스페이스 ID 목록
+     * @return 노드가 존재하는 워크스페이스 ID 목록
+     */
+    @PostMapping("/mindmap/nodes/exists/batch")
+    List<Long> getWorkspaceIdsWithNodes(@RequestBody List<Long> workspaceIds);
 }
