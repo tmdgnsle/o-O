@@ -1,6 +1,6 @@
 package com.ssafy.mindmapservice.service;
 
-import com.ssafy.mindmapservice.client.WorkspaceServiceClient; // 네가 준 것 재사용(REST로 public 조회)
+import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
 import com.ssafy.mindmapservice.dto.TrendEventType;
 import com.ssafy.mindmapservice.dto.TrendRelationEvent;
 import com.ssafy.mindmapservice.kafka.TrendEventBuffer;
@@ -14,7 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TrendEventPublisher {
 
-    private final WorkspaceServiceClient workspaceClient;
+    private final WorkspaceServiceClientAdapter workspaceClient;
     private final TrendEventBuffer buffer;
 
     public void publishRelationAdd(long workspaceId, String parent, String child) {

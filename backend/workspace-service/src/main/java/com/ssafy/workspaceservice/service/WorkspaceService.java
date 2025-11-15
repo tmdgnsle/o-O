@@ -307,7 +307,7 @@ public class WorkspaceService {
 
     /**
      * 월별 활성 날짜 조회 (웹 전용)
-     * 내가 멤버인 워크스페이스들이 생성된 날짜만 반환
+     * 내가 멤버인 워크스페이스들 중 마인드맵 노드가 존재하는 워크스페이스의 생성 날짜만 반환
      */
     @Transactional(readOnly = true)
     public List<String> getActivityDays(Long userId, String month) {
@@ -325,11 +325,53 @@ public class WorkspaceService {
         }
 
         log.debug("Fetching activity days for userId={}, year={}, month={}", userId, year, monthValue);
-        List<Integer> days = workspaceRepository.findActiveDaysByUserAndMonth(userId, year, monthValue);
 
-        // Integer 일자를 yyyy-MM-dd 형식으로 변환
-        return days.stream()
-                .map(day -> String.format("%04d-%02d-%02d", year, monthValue, day))
+        // 1. 해당 월에 생성된 내 워크스페이스들을 조회
+        List<Workspace> workspacesInMonth = workspaceRepository.findWorkspacesByUserAndMonth(userId, year, monthValue);
+
+        if (workspacesInMonth.isEmpty()) {
+            log.debug("No workspaces found for userId={} in month {}-{}", userId, year, monthValue);
+            return List.of();
+        }
+
+        log.debug("Found {} workspaces for userId={} in month {}-{}", workspacesInMonth.size(), userId, year, monthValue);
+
+        // 2. 워크스페이스 ID 목록 추출
+        List<Long> workspaceIds = workspacesInMonth.stream()
+                .map(Workspace::getId)
+                .toList();
+
+        log.info("Workspace IDs in month {}-{}: {}", year, monthValue, workspaceIds);
+
+        // 3. 마인드맵 서비스에 노드가 존재하는 워크스페이스 ID 목록 요청
+        List<Long> workspaceIdsWithNodes;
+        try {
+            workspaceIdsWithNodes = mindmapClient.getWorkspaceIdsWithNodes(workspaceIds);
+            log.info("Workspace IDs with nodes: {}", workspaceIdsWithNodes);
+            log.debug("Found {} workspaces with nodes out of {}", workspaceIdsWithNodes.size(), workspaceIds.size());
+        } catch (Exception e) {
+            log.error("Failed to fetch workspace IDs with nodes from mindmap-service: {}", e.getMessage(), e);
+            // 마인드맵 서비스 호출 실패 시 빈 목록 반환
+            return List.of();
+        }
+
+        if (workspaceIdsWithNodes.isEmpty()) {
+            log.debug("No workspaces with nodes found for userId={} in month {}-{}", userId, year, monthValue);
+            return List.of();
+        }
+
+        // Integer 일자를 yyyy-MM-dd 형식으로 변환하되, 노드가 있는 워크스페이스의 날짜만 포함
+        return workspacesInMonth.stream()
+                .filter(workspace -> workspaceIdsWithNodes.contains(workspace.getId()))
+                .map(workspace -> {
+                    LocalDateTime createdAt = workspace.getCreatedAt();
+                    return String.format("%04d-%02d-%02d",
+                            createdAt.getYear(),
+                            createdAt.getMonthValue(),
+                            createdAt.getDayOfMonth());
+                })
+                .distinct()
+                .sorted()
                 .toList();
     }
 
