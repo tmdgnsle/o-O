@@ -276,6 +276,8 @@ public class WorkspaceService {
                 .pointerColor(PointerColor.randomColor())
                 .build();
 
+        workspace.changeType(WorkspaceType.TEAM);
+        workspaceRepository.save(workspace);
         workspaceMemberRepository.save(newMember);
 
         return new WorkspaceJoinResponse(workspace.getId());
