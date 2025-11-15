@@ -38,17 +38,28 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
+        log.info("[JWT Filter] Incoming request - {} {}",
+                request.getMethod(), request.getURI().getPath());
+
         // 인증이 필요 없는 경로는 필터 통과
         if (PathMatcherUtil.isExcludedPath(path, FilterConstants.JWT_EXCLUDED_PATHS)) {
+            log.info("[JWT Filter] Excluded path → {}", path);
             return chain.filter(exchange);
         }
 
         try {
+            log.info("[JWT Filter] Validating token...");
             ServerHttpRequest mutatedRequest = buildAuthenticatedRequest(request);
+            log.info("[JWT Filter] Authentication success → userId: {}",
+                    mutatedRequest.getHeaders().getFirst(FilterConstants.HEADER_USER_ID));
+
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
         } catch (JwtException e) {
+            log.warn("[JWT Filter] JWT Exception - Path: {}, Error: {}", path, e.getMessage());
             return handleJwtException(exchange, path, e);
         } catch (Exception e) {
+            log.error("[JWT Filter] Unexpected Exception - Path: {}, Error: {}",
+                    path, e.getMessage(), e);
             return handleUnexpectedException(exchange, path, e);
         }
     }
