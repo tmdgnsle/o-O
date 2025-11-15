@@ -597,7 +597,7 @@ public class NodeController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
             @RequestBody VoiceIdeaRequest request) {
-        log.info("POST /mindmap/voice-idea - text={}", request.text());
+        log.info("POST /mindmap/stt-idea - text={}", request.text());
 
         InitialMindmapResponse response = nodeService.createVoiceIdeaNode(request.text(), userId);
 
