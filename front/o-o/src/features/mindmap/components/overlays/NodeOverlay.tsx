@@ -143,11 +143,15 @@ function NodeOverlay({
   const handleIconClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      // 분석 모드에서는 모달을 열지 않음
+      if (isAnalyzeMode) {
+        return;
+      }
       if (node.type === "image" || node.type === "video") {
         setDetailModalOpen((prev) => !prev);
       }
     },
-    [node.type]
+    [node.type, isAnalyzeMode]
   );
 
   // 드래그/클릭 핸들러
@@ -161,17 +165,12 @@ function NodeOverlay({
         return;
       }
 
-      // edit 모드: 선택되지 않은 노드면 먼저 선택
-      if (!isSelected) {
-        onSelect();
-      }
-
-      // 드래그 시작
+      // edit 모드: 드래그 시작
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
       setHasMoved(false);
     },
-    [isAnalyzeMode, isSelected, onSelect]
+    [isAnalyzeMode, onSelect]
   );
 
   const handleMouseMove = useCallback(
@@ -201,10 +200,15 @@ function NodeOverlay({
   );
 
   const handleMouseUp = useCallback(() => {
+    // 드래그하지 않고 클릭만 한 경우 onSelect 호출
+    if (!hasMoved && !isAnalyzeMode) {
+      onSelect();
+    }
+
     setIsDragging(false);
     setDragStart(null);
     setHasMoved(false);
-  }, []);
+  }, [hasMoved, isAnalyzeMode, onSelect]);
 
   // 드래그 이벤트 리스너 등록
   useEffect(() => {

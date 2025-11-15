@@ -488,7 +488,10 @@ export default function D3Canvas({
     const svg = d3.select(svgRef.current);
 
     const handleBackgroundClick = (event: MouseEvent) => {
-      if (event.target === svgRef.current) {
+      const target = event.target as HTMLElement;
+
+      // 노드를 클릭한 경우가 아니면 선택 해제
+      if (!target.closest('[data-node-id]')) {
         // 스크린 좌표
         const rect = svgRef.current!.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
@@ -665,7 +668,19 @@ export default function D3Canvas({
                 isSelected={isSelected}
                 mode={mode}
                 isAnalyzeSelected={isAnalyzeSelected}
-                onSelect={() => onNodeSelect(node.id)}
+                onSelect={() => {
+                  if (mode === "analyze") {
+                    // 분석 모드: onAnalyzeNodeToggle 호출
+                    onAnalyzeNodeToggle(node.id);
+                  } else {
+                    // 편집 모드: 선택 토글
+                    if (selectedNodeId === node.id) {
+                      onNodeUnselect();
+                    } else {
+                      onNodeSelect(node.id);
+                    }
+                  }
+                }}
                 onDeselect={onNodeUnselect}
                 onApplyTheme={onApplyTheme}
                 onDeleteNode={onDeleteNode}
