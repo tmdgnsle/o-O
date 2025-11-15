@@ -62,9 +62,9 @@ public class AiAnalysisConsumer {
                     return;
                 }
                 try {
-                    originalNodeId = Long.parseLong(result.nodes().get(0).parentId());
+                    originalNodeId = Long.parseLong(result.nodes().getFirst().parentId());
                 } catch (NumberFormatException e) {
-                    log.error("Failed to parse parentId as nodeId in INITIAL result: {}", result.nodes().get(0).parentId());
+                    log.error("Failed to parse parentId as nodeId in INITIAL result: {}", result.nodes().getFirst().parentId());
                     return;
                 }
             } else {

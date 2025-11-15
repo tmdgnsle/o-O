@@ -436,7 +436,7 @@ public class NodeService {
                 .parentId(parentId)
                 .keyword(aiNode.keyword())
                 .memo(aiNode.memo())
-                .type("ai-generated")
+                .type("text")
                 .analysisStatus(MindmapNode.AnalysisStatus.NONE)
                 .build();
 
@@ -606,7 +606,7 @@ public class NodeService {
         MindmapNode firstNode = MindmapNode.builder()
                 .workspaceId(workspaceId)
                 .parentId(null) // 루트 노드
-                .type("root")
+                .type("text")
                 .keyword(nodeKeyword)
                 .memo("")
                 .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
