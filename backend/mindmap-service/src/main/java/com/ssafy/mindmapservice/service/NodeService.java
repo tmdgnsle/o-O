@@ -252,7 +252,7 @@ public class NodeService {
             throw new IllegalArgumentException("Source workspace is empty: " + sourceWorkspaceId);
         }
 
-        Long newWorkspaceId = workspaceServiceClientAdapter.createWorkspace(userId, newWorkspaceName, newWorkspaceDescription);
+        Long newWorkspaceId = workspaceServiceClientAdapter.createWorkspace(userId, newWorkspaceName);
         log.info("Created new workspace with ID: {}", newWorkspaceId);
 
         List<MindmapNode> clonedNodes = sourceNodes.stream()
@@ -347,8 +347,8 @@ public class NodeService {
             // 1. 먼저 parentId가 null인 루트 레벨 노드들 생성
             for (AiNodeResult aiNode : aiNodes) {
                 if (aiNode.parentId() == null) {
-                    Long realParentId = parentNodeId; // INITIAL의 경우 최초 요청 노드가 부모
-                    MindmapNode node = createNodeFromAiDto(workspaceId, aiNode, realParentId);
+                    // INITIAL의 경우 최초 요청 노드가 부모
+                    MindmapNode node = createNodeFromAiDto(workspaceId, aiNode, parentNodeId);
                     tempIdToRealIdMap.put(aiNode.tempId(), node.getNodeId());
                     createdNodes.add(node);
                     log.debug("Created root-level node: tempId={}, realId={}", aiNode.tempId(), node.getNodeId());
@@ -501,7 +501,7 @@ public class NodeService {
         // 워크스페이스 이름은 STT 텍스트 사용 (최대 50자로 제한)
         String workspaceName = text.length() > 50 ? text.substring(0, 50) : text;
         Long userIdLong = Long.parseLong(userId);
-        Long workspaceId = workspaceServiceClientAdapter.createWorkspace(userIdLong, workspaceName, "");
+        Long workspaceId = workspaceServiceClientAdapter.createWorkspace(userIdLong, workspaceName);
         log.info("Voice idea workspace created: workspaceId={}", workspaceId);
         // 2. 루트 노드 생성 (x, y = null)
         MindmapNode rootNode = MindmapNode.builder()
@@ -588,8 +588,7 @@ public class NodeService {
         // 1. 워크스페이스 생성 (workspace-service 호출)
         Long workspaceId = workspaceServiceClientAdapter.createWorkspace(
                 userId,
-                request.workspaceName(),
-                request.workspaceDescription()
+                request.workspaceName()
         );
         log.info("Workspace created: workspaceId={}", workspaceId);
 

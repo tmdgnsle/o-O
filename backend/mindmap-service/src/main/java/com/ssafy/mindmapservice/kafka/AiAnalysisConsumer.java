@@ -39,13 +39,19 @@ public class AiAnalysisConsumer {
     @KafkaListener(topics = "${kafka.topics.ai-analysis-result}", groupId = "${spring.kafka.consumer.group-id}")
     public void consumeAnalysisResult(String message) {
         try {
-            log.debug("Received AI analysis result: {}", message);
+            log.info("🎯 [KAFKA RECEIVED] AI analysis result received from topic 'ai-analysis-result'");
+            log.debug("📨 Raw message: {}", message);
 
             AiAnalysisResult result = objectMapper.readValue(message, AiAnalysisResult.class);
 
             // 분석 타입 판별: aiSummary가 있으면 INITIAL, nodeId가 있으면 CONTEXTUAL
             boolean isInitial = result.aiSummary() != null;
             String analysisType = isInitial ? "INITIAL" : "CONTEXTUAL";
+
+            log.info("📊 [PARSED RESULT] workspaceId={}, analysisType={}, status={}, title={}, aiSummary={}, nodeCount={}",
+                    result.workspaceId(), analysisType, result.status(),
+                    result.title(), result.aiSummary() != null ? "present" : "null",
+                    result.nodes() != null ? result.nodes().size() : 0);
 
             // 원본 노드 ID 결정
             Long originalNodeId;
@@ -77,11 +83,9 @@ public class AiAnalysisConsumer {
 
             // 2. INITIAL인 경우 원본 노드의 memo에 aiSummary 업데이트 및 워크스페이스 title 업데이트
             if (isInitial) {
-                if (result.aiSummary() != null) {
-                    updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
-                    log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
-                            result.workspaceId(), originalNodeId);
-                }
+                updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
+                log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
+                        result.workspaceId(), originalNodeId);
 
                 // 워크스페이스 title 업데이트 (내부 API 사용 - userId 불필요)
                 if (result.title() != null && !result.title().isBlank()) {
@@ -93,6 +97,17 @@ public class AiAnalysisConsumer {
 
             // 3. AI가 생성한 노드들 처리
             if (result.nodes() != null && !result.nodes().isEmpty()) {
+                log.info("🔥 [AI Node Creation START] workspaceId={}, originalNodeId={}, analysisType={}, nodeCount={}",
+                        result.workspaceId(), originalNodeId, analysisType, result.nodes().size());
+
+                // 받은 노드 데이터 로그
+                for (int i = 0; i < result.nodes().size(); i++) {
+                    var aiNode = result.nodes().get(i);
+                    log.info("  📝 AI Node #{}: tempId={}, parentId={}, keyword={}, memo={}",
+                            i + 1, aiNode.tempId(), aiNode.parentId(), aiNode.keyword(),
+                            aiNode.memo() != null ? aiNode.memo().substring(0, Math.min(50, aiNode.memo().length())) + "..." : "null");
+                }
+
                 List<MindmapNode> createdNodes = nodeService.createNodesFromAiResult(
                         result.workspaceId(),
                         result.nodes(),
@@ -100,10 +115,17 @@ public class AiAnalysisConsumer {
                         analysisType
                 );
 
-                log.info("Created {} nodes from AI result: workspaceId={}, type={}",
+                log.info("✅ [AI Node Creation SUCCESS] Created {} nodes from AI result: workspaceId={}, type={}",
                         createdNodes.size(), result.workspaceId(), analysisType);
 
+                // 생성된 노드 확인 로그
+                for (MindmapNode node : createdNodes) {
+                    log.info("  ✨ Created Node: nodeId={}, parentId={}, keyword={}, type={}, x={}, y={}",
+                            node.getNodeId(), node.getParentId(), node.getKeyword(), node.getType(), node.getX(), node.getY());
+                }
+
                 // 4. 생성된 각 노드를 WebSocket으로 전파
+                log.info("📡 [WebSocket Broadcast START] Broadcasting {} nodes to y.js server", createdNodes.size());
                 for (MindmapNode node : createdNodes) {
                     Map<String, Object> nodeData = new HashMap<>();
                     nodeData.put("nodeId", node.getNodeId());
@@ -119,9 +141,13 @@ public class AiAnalysisConsumer {
                             nodeData
                     );
 
-                    log.debug("Published new node to y.js server: workspaceId={}, nodeId={}, keyword={}",
+                    log.info("  📤 Sent to WebSocket: workspaceId={}, nodeId={}, keyword={}",
                             result.workspaceId(), node.getNodeId(), node.getKeyword());
                 }
+                log.info("✅ [WebSocket Broadcast COMPLETE]");
+            } else {
+                log.warn("⚠️ [NO NODES] AI result has no nodes to create: workspaceId={}, nodes={}",
+                        result.workspaceId(), result.nodes());
             }
 
             // 5. 원본 노드의 분석 상태를 DONE으로 변경
