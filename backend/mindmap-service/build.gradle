@@ -62,6 +62,8 @@ dependencies {
     implementation 'org.elasticsearch.client:elasticsearch-rest-client:8.14.0'
     // JSON 매퍼 (Jackson)
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
 }
 
 dependencyManagement {
