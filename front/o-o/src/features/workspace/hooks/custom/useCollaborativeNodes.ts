@@ -53,13 +53,17 @@ export function useCollaborativeNodes(
 
     const run = async () => {
       try {
+        console.time('[useCollaborativeNodes] fetchMindmapNodes');
         const restNodes = await fetchMindmapNodes(workspaceId);
+        console.timeEnd('[useCollaborativeNodes] fetchMindmapNodes');
+
         if (cancelled || restNodes.length === 0) {
           setIsBootstrapping(false);
           return;
         }
 
         // Use transaction to batch all insertions for performance
+        console.time('[useCollaborativeNodes] Y.Map transaction');
         collab.client.doc.transact(() => {
           for (const node of restNodes) {
             if (!collab.map.has(node.id)) {
@@ -67,6 +71,7 @@ export function useCollaborativeNodes(
             }
           }
         }, "mindmap-bootstrap");
+        console.timeEnd('[useCollaborativeNodes] Y.Map transaction');
 
         console.log(`✅ [useCollaborativeNodes] Bootstrapped ${restNodes.length} nodes`);
         setIsBootstrapping(false);

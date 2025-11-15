@@ -66,6 +66,11 @@ export function useMindmapSync(
           }
 
           console.log("[useMindmapSync] creating node", key, nodeData);
+          console.time(`[useMindmapSync] API createNode ${key}`);
+
+          // WebSocket 연결 상태 확인
+          const wsConnected = yMap.doc?.getMap('__meta__')?.get('wsConnected') || 'unknown';
+          console.log(`[useMindmapSync] WebSocket connected: ${wsConnected}`);
 
           createMindmapNode(workspaceId, {
             parentId: nodeData.parentId ? Number(nodeData.parentId) : null,
@@ -77,6 +82,7 @@ export function useMindmapSync(
             color: nodeData.color,
           })
             .then((createdNode) => {
+              console.timeEnd(`[useMindmapSync] API createNode ${key}`);
               console.log("[useMindmapSync] node created:", createdNode);
 
               // 백엔드에서 받은 nodeId를 로컬 노드에 반영 (조용히)

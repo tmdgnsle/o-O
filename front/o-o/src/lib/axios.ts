@@ -29,11 +29,15 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 30000, // 30초 타임아웃 (무한 대기 방지)
 });
 
 // 요청 인터셉터: accessToken 자동 추가
 apiClient.interceptors.request.use(
   (config) => {
+    // 요청 시작 시간 기록
+    (config as any).__requestStartTime = performance.now();
+
     if (store) {
       const token = store.getState().auth.accessToken;
 
@@ -42,6 +46,8 @@ apiClient.interceptors.request.use(
       }
     }
 
+    console.log(`[axios request] Starting: ${config.method?.toUpperCase()} ${config.url}`);
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -49,13 +55,26 @@ apiClient.interceptors.request.use(
 
 // 응답 인터셉터: 401 에러 시 토큰 갱신
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const duration = performance.now() - (response.config as any).__requestStartTime;
+    if (duration > 100) {
+      console.log(`[axios response] ${response.config.url}: ${duration.toFixed(2)}ms`);
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+
+    console.log(`[axios interceptor] Error response:`, {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      hasRetry: originalRequest?._retry
+    });
 
     if (error.response?.status == 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       console.error("4️⃣ AccessToken 만료");
+      console.time('[axios] reissue + retry');
 
       try {
         console.log(
@@ -83,7 +102,10 @@ apiClient.interceptors.response.use(
 
         // 실패했던 요청 재시도
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-        return apiClient(originalRequest);
+        console.log(`[axios] Retrying original request: ${originalRequest.url}`);
+        const retryResult = await apiClient(originalRequest);
+        console.timeEnd('[axios] reissue + retry');
+        return retryResult;
       } catch (refreshError) {
         // refresh 실패 = 로그아웃
         console.error("❌ Refresh Token 만료 - 로그아웃 처리");

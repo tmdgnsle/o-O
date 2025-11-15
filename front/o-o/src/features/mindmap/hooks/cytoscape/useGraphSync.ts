@@ -29,7 +29,13 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
     const cyNode = cy.getElementById(node.id);
     const pos = cyNode.position();
 
-    if (pos.x !== node.x || pos.y !== node.y) {
+    // 부동소수점 오차 허용 (1px 이하는 무시) - 무한 루프 방지
+    const POSITION_THRESHOLD = 1;
+    const needsPositionUpdate =
+      Math.abs(pos.x - node.x) > POSITION_THRESHOLD ||
+      Math.abs(pos.y - node.y) > POSITION_THRESHOLD;
+
+    if (needsPositionUpdate) {
       cyNode.position({ x: node.x, y: node.y });
     }
 
