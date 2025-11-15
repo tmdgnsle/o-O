@@ -27,7 +27,6 @@ import { useMemo } from "react";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
-  shareLink: string;
   workspaceId: string;
 };
 
@@ -66,7 +65,7 @@ const roleToPermission = (role: WorkspaceRole): Permission => {
   return role === "EDIT" ? "can Edit" : "can View";
 };
 
-export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: Readonly<StatusBoxProps>) {
+export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<StatusBoxProps>) {
   // Fetch workspace data
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const currentUser = useAppSelector((state) => state.user.user);
@@ -74,8 +73,15 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
   const { mutate: updateRole } = useUpdateMemberRoleMutation();
   const { mutate: updateVisibility } = useUpdateWorkspaceVisibilityMutation();
 
+  // Generate invite link using workspace token
+  const inviteLink = useMemo(() => {
+    if (!workspace?.token) return "";
+    const baseUrl = window.location.origin; // e.g., https://www.o-o.io.kr
+    return `${baseUrl}/workspace/join?token=${workspace.token}`;
+  }, [workspace?.token]);
+
   // Custom hooks
-  const { copied, handleCopyLink } = useShareLink(shareLink);
+  const { copied, handleCopyLink } = useShareLink(inviteLink);
 
   // Get access type from workspace
   const accessType = workspace?.visibility === "PRIVATE" ? "private" : "public";
@@ -233,25 +239,27 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
             {/* 구분선 */}
             <div className="border-t pt-4" />
 
-            {/* 링크 섹션 */}
+            {/* 초대 링크 섹션 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-primary font-paperlogy font-extrabold">Link</Label>
+                <Label className="text-primary font-paperlogy font-extrabold">Invite Link</Label>
                 {copied && (
                   <p className="text-xs font-paperlogy text-primary">링크가 복사되었습니다!</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Input
-                  value={shareLink}
+                  value={inviteLink}
                   readOnly
                   className="flex-1 text-sm bg-gray-50"
+                  placeholder="워크스페이스 정보를 불러오는 중..."
                 />
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={handleCopyLink}
                   className="shrink-0"
+                  disabled={!inviteLink}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>

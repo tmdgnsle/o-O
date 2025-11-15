@@ -4,6 +4,7 @@ export const PATHS = {
   TREND: "/trend",
   TREND_MINDMAP: "/trend/:trendId",
   MINDMAP: "/mindmap/:workspaceId",
+  WORKSPACE_JOIN: "/workspace/join",
   MYPAGE: "/mypage",
   PROJECT_DETAIL: "/project/:id",
   CALLBACK: "/callback",

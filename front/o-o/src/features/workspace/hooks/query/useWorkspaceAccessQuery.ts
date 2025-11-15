@@ -31,6 +31,7 @@ export function useWorkspaceAccessQuery(
     queryFn: () => getWorkspace(workspaceId),
     staleTime: 1000 * 60 * 5, // 5분간 캐시 유지
     retry: false, // 403/404 시 재시도하지 않음
+    enabled: !!workspaceId && workspaceId !== 'undefined', // workspaceId가 유효할 때만 쿼리 실행
   });
 
   // 접근 권한 확인 로직

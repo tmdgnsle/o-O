@@ -35,7 +35,6 @@ import popo2 from "@/shared/assets/images/popo2.webp";
 import popo3 from "@/shared/assets/images/popo3.webp";
 import {
   DEFAULT_WORKSPACE_ID,
-  buildMindmapShareLink,
   resolveMindmapWsUrl,
 } from "@/constants/mindmapCollaboration";
 
@@ -44,7 +43,6 @@ const MindmapPageContent: React.FC = () => {
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const navigate = useNavigate();
-  const shareLink = useMemo(() => buildMindmapShareLink(workspaceId), [workspaceId]);
   const wsUrl = resolveMindmapWsUrl();
 
   // 2. Refs for Cytoscape
@@ -266,7 +264,6 @@ const MindmapPageContent: React.FC = () => {
           <div className="fixed top-1 right-1 md:top-4 md:right-4 z-50">
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
-              shareLink={shareLink}
               workspaceId={workspaceId}
             />
           </div>
