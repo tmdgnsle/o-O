@@ -591,7 +591,7 @@ public class NodeController {
                     )
             )
     )
-    @PostMapping("/voice-idea")
+    @PostMapping("/stt-idea")
     public ResponseEntity<InitialMindmapResponse> addVoiceIdea(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
