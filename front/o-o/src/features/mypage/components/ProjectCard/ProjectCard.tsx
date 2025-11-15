@@ -1,5 +1,5 @@
 import { Avatar } from "@/components/ui/avatar";
-import Mindmap from "@/shared/assets/images/basic_bg.png";
+import Mindmap from "@/shared/assets/images/basic_bg.webp";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { AvatarImage } from "@radix-ui/react-avatar";
@@ -9,16 +9,21 @@ import type { Project } from "@/features/mypage/types/project";
 
 interface ProjectCardProps {
   readonly project: Project;
+  readonly onClick?: () => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onClick }: ProjectCardProps) {
   const displayCollaborators = project.collaborators.slice(0, 3);
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/mindmap/${project.id}`, {
-      state: { project },
-    });
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/mindmap/${project.id}`, {
+        state: { project },
+      });
+    }
   };
 
   return (

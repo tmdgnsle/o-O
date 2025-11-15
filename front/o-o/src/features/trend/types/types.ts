@@ -1,10 +1,14 @@
+import type { TrendKeywordItem } from "./trend";
+
 export interface Keyword {
   readonly id: number;
   readonly text: string;
 }
 
 export interface TrendKeywordProps {
-  readonly keywords?: readonly Keyword[];
+  readonly keywords?: TrendKeywordItem[];
+  readonly keywordsError?: string | null;
+  readonly keywordsLoading: boolean;
   readonly characterImage?: string;
 }
 

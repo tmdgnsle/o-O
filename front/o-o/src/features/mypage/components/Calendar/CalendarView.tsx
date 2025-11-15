@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CalendarDetail } from "./CalendarDetail";
 import { DashboardTabNav } from "../DashboardTabNav";
-import popo from "@/shared/assets/images/popo_chu.png";
+import popo from "@/shared/assets/images/popo_chu.webp";
 import { MarblesView } from "../MarblesView";
 
 interface CalendarViewProps {

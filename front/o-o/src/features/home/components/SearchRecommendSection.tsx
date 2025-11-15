@@ -1,13 +1,42 @@
+import type { TrendKeywordItem } from "@/features/trend/types/trend";
+
 interface SearchRecommendSectionProps {
+  readonly keywords?: TrendKeywordItem[];
+  readonly keywordsError?: string | null;
+  readonly keywordsLoading: boolean;
   readonly onKeywordClick: (keyword: string) => void;
   readonly selectedKeyword: string | null;
 }
 
 export function SearchRecommendSection({
+  keywords = [],
+  keywordsError,
+  keywordsLoading,
   onKeywordClick,
   selectedKeyword,
 }: SearchRecommendSectionProps) {
-  const keywords = ["침착맨", "메인", "카피바라", "동동이", "오늘의 키워드"];
+  // 로딩 중
+  if (keywordsLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <div className="w-6 h-6 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // 에러 발생
+  if (keywordsError) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-sm text-red-500">추천 키워드를 불러올 수 없습니다</p>
+      </div>
+    );
+  }
+
+  // 데이터 없음
+  if (keywords.length === 0) {
+    return null;
+  }
 
   const handleClick = (keyword: string) => {
     if (selectedKeyword === keyword) {
@@ -25,23 +54,26 @@ export function SearchRecommendSection({
           gap-0 sm:gap-8 md:gap-16 lg:gap-28
         "
       >
-        {keywords.map((keyword) => (
+        {keywords.slice(0, 5).map((item) => (
           <button
             className={`
               px-4 py-1
               rounded-full 
-              font-[500]
+              font-medium
               transition-all 
+              cursor-pointer
+              hover:scale-105
+              active:scale-95
               ${
-                selectedKeyword === keyword
+                selectedKeyword === item.keyword
                   ? "bg-primary text-white"
-                  : "text-semi-deep-gray  hover:bg-gray"
+                  : "text-semi-deep-gray hover:bg-gray"
               }
             `}
-            key={keyword}
-            onClick={() => handleClick(keyword)}
+            key={item.rank}
+            onClick={() => handleClick(item.keyword)}
           >
-            {keyword}
+            {item.keyword}
           </button>
         ))}
       </div>

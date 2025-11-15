@@ -4,10 +4,21 @@ import { SearchInput } from "./SearchInput";
 import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
 import LoginPromptModel from "@/shared/ui/LoginPromptModal";
-import popo from "@/shared/assets/images/popo_chu.png";
+import popo from "@/shared/assets/images/popo_chu.webp";
 import { useAppSelector } from "@/store/hooks";
+import type { TrendKeywordItem } from "@/features/trend/types/trend";
 
-export function SearchSection() {
+interface SearchSectionProps {
+  readonly keywords?: TrendKeywordItem[];
+  readonly keywordsError?: string | null;
+  readonly keywordsLoading: boolean;
+}
+
+export function SearchSection({
+  keywords = [],
+  keywordsError,
+  keywordsLoading,
+}: SearchSectionProps) {
   const [searchValue, setSearchValue] = useState("");
   const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -52,12 +63,15 @@ export function SearchSection() {
       <div
         className="
           w-full flex flex-col justify-center items-center gap-16 
-          translate-y-[-20%] 
+          translate-y-[-20%] relative z-10
         "
       >
         <div className="w-full flex flex-col justify-center items-center gap-8">
           <SearchInput value={searchValue} onChange={handleInputChange} />
           <SearchRecommendSection
+            keywords={keywords}
+            keywordsError={keywordsError}
+            keywordsLoading={keywordsLoading}
             onKeywordClick={handleKeywordClick}
             selectedKeyword={selectedKeyword}
           />
@@ -71,7 +85,7 @@ export function SearchSection() {
       <img
         src={popo}
         alt="popo character"
-        className="absolute bottom-0 left-4 sm:left-6 md:left-8"
+        className="absolute bottom-0 left-4 sm:left-6 md:left-8 pointer-events-none"
         style={{
           width: "clamp(220px, 30vw, 400px)",
           height: "auto",

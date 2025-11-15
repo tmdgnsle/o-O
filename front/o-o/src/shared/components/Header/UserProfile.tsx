@@ -1,4 +1,4 @@
-import popo1 from "@/shared/assets/images/popo1.png";
+import popo1 from "@/shared/assets/images/popo1.webp";
 interface UserProfileProps {
   readonly userName: string;
   readonly profileImage?: string;

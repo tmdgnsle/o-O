@@ -1,4 +1,4 @@
-import { type KeywordBoxProps } from "../../types";
+import { type KeywordBoxProps } from "../../types/types";
 
 export function KeywordBox({
   text,
