@@ -1,5 +1,6 @@
 // components/TrendMindmap/MindmapNode.tsx
 import type { CSSProperties } from "react";
+import { COLOR_THEMES } from "@/features/mindmap/styles/colorThemes";
 
 interface MindmapNodeProps {
   keyword: string;
@@ -9,15 +10,8 @@ interface MindmapNodeProps {
   style?: CSSProperties;
 }
 
-const colorPalette = [
-  "bg-blue-200/70",
-  "bg-pink-200/70",
-  "bg-purple-200/70",
-  "bg-orange-200/70",
-  "bg-green-200/70",
-  "bg-yellow-200/70",
-  "bg-teal-200/70",
-];
+// Pastel 테마 사용 (기본값)
+const colorPalette = COLOR_THEMES.Pastel;
 
 export function MindmapNode({
   keyword,
@@ -26,8 +20,8 @@ export function MindmapNode({
   rank,
   style,
 }: MindmapNodeProps) {
-  const colorClass = isParent
-    ? "bg-pink-200/70"
+  const backgroundColor = isParent
+    ? colorPalette[0]
     : colorPalette[rank ? (rank - 1) % colorPalette.length : 0];
 
   // 크기 계산: rank가 높을수록(숫자가 작을수록) 크게
@@ -77,17 +71,17 @@ export function MindmapNode({
 
   return (
     <div
-      className={`
-        ${colorClass}
+      className="
         backdrop-blur-sm
         rounded-full
         flex items-center justify-center
         cursor-pointer
         transition-all duration-300
         hover:scale-110 hover:shadow-lg
-      `}
+      "
       style={{
         ...style,
+        backgroundColor: `${backgroundColor}B3`, // B3 = 70% opacity in hex
         width: `${size}px`,
         height: `${size}px`,
         minWidth: `${size}px`,

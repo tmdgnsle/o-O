@@ -1,6 +1,7 @@
 /**
  * Utility functions for creating gradient effects
  */
+import { COLOR_THEMES } from "@/features/mindmap/styles/colorThemes";
 
 /**
  * Converts hex color to RGB values
@@ -46,17 +47,10 @@ export const getNodeColorByRank = (
   rank?: number,
   isParent?: boolean
 ): string => {
-  if (isParent) return "#FBCFE8";
+  // Pastel 테마 사용 (기본값)
+  const colors = COLOR_THEMES.Pastel;
 
-  const colors = [
-    "#BFDBFE", // rank 1: 파란색
-    "#FBCFE8", // rank 2: 핑크색
-    "#DDD6FE", // rank 3: 보라색
-    "#FED7AA", // rank 4: 주황색
-    "#BBF7D0", // rank 5: 초록색
-    "#FEF08A", // rank 6: 노란색
-    "#A5F3FC", // rank 7+: 청록색
-  ];
+  if (isParent) return colors[0];
 
   return colors[(rank || 1) - 1] || colors[0];
 };
