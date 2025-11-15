@@ -242,6 +242,8 @@ function handleYjsConnection(conn, req, url) {
   // Awareness: 커서 위치, 사용자 정보 등 임시 상태 공유
   const awareness = awarenessManager.getAwareness(workspaceId, ydoc);
 
+  logger.info(`[YJS] Setting up Y.js sync for workspace=${workspaceId}`);
+
   // Y.js WebSocket 연결 설정 (y-websocket 라이브러리 유틸 사용)
   // 이 함수가 Y.js 프로토콜을 처리해줌 (동기화, 업데이트 전파 등)
   // awareness를 주입하면 클라이언트 간 커서/채팅 자동 동기화됨
@@ -249,6 +251,10 @@ function handleYjsConnection(conn, req, url) {
     docName: `workspace-${workspaceId}`,           // 문서 이름
     gc: process.env.YDOC_GC_ENABLED === 'true',    // 가비지 컬렉션 활성화 여부
   }, ydoc, awareness);  // ydoc과 awareness 명시적으로 전달
+
+  conn.on('message', (msg) => {
+    logger.debug(`[WS] Raw message received (${msg.length} bytes) workspace=${workspaceId}`);
+  });
 
   // 각 연결에 고유 ID 부여 (로깅용)
   const connectionId = Math.random().toString(36).substr(2, 9);
@@ -283,7 +289,7 @@ function handleYjsConnection(conn, req, url) {
 
       logger.info(`Memory cleanup completed for workspace ${workspaceId}`);
     } else {
-      logger.debug(`Workspace ${workspaceId} still has ${connectedClients.length} connected client(s)`);
+      logger.info(`Workspace ${workspaceId} still has ${connectedClients.length} connected client(s)`);
     }
   });
 
