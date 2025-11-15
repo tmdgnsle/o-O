@@ -97,4 +97,4 @@ mindmap:
     url: http://mindmap-svc:8082
 
 elasticsearch:
-  host: http://k13d202.p.ssafy.io:9200
+  host: ${ELASTICSEARCH_URL:http://k13d202.p.ssafy.io:9200}

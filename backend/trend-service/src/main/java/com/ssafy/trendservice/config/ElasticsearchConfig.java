@@ -17,7 +17,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 @Configuration
 public class ElasticsearchConfig {
 
-    @Value("${spring.elasticsearch.uris}")
+    @Value("${elasticsearch.host}")
     private String esUrl;
 
     @Bean
