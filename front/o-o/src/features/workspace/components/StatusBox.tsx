@@ -23,11 +23,11 @@ import { useAppSelector } from "@/store/hooks";
 import { useUpdateMemberRoleMutation } from "../hooks/mutation/useUpdateMemberRoleMutation";
 import { useUpdateWorkspaceVisibilityMutation } from "../hooks/mutation/useUpdateWorkspaceVisibilityMutation";
 import type { WorkspaceRole, WorkspaceVisibility } from "@/services/dto/workspace.dto";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
-  shareLink: string;
   workspaceId: string;
 };
 
@@ -66,16 +66,27 @@ const roleToPermission = (role: WorkspaceRole): Permission => {
   return role === "EDIT" ? "can Edit" : "can View";
 };
 
-export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: Readonly<StatusBoxProps>) {
+export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<StatusBoxProps>) {
   // Fetch workspace data
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
+  const queryClient = useQueryClient();
   const { mutate: updateRole } = useUpdateMemberRoleMutation();
   const { mutate: updateVisibility } = useUpdateWorkspaceVisibilityMutation();
 
+  // 로컬 상태로 멤버 역할 관리 (userId → WorkspaceRole)
+  const [memberRoles, setMemberRoles] = useState<Map<number, WorkspaceRole>>(new Map());
+
+  // Generate invite link using workspace token
+  const inviteLink = useMemo(() => {
+    if (!workspace?.token) return "";
+    const baseUrl = window.location.origin; // e.g., https://www.o-o.io.kr
+    return `${baseUrl}/workspace/join?token=${workspace.token}`;
+  }, [workspace?.token]);
+
   // Custom hooks
-  const { copied, handleCopyLink } = useShareLink(shareLink);
+  const { copied, handleCopyLink } = useShareLink(inviteLink);
 
   // Get access type from workspace
   const accessType = workspace?.visibility === "PRIVATE" ? "private" : "public";
@@ -95,13 +106,39 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
   };
 
   // Handle permission change
-  const handlePermissionChange = (_userId: string, _newPermission: Permission) => {
+  const handlePermissionChange = (userEmail: string, newPermission: Permission) => {
     if (!workspace || !isMaintainer) return;
 
-    // For now, we can't update other users' roles because we don't have their userId (number)
-    // This would require a members API endpoint that returns numeric user IDs
-    // TODO: Implement when member list API is available, API 연결 후 컴포넌트/훅 분리 작업 필요
-    console.warn("Role update not yet implemented - requires member API with user IDs");
+    // Find the user's numeric userId from peers
+    const targetPeer = peers.find((p) => p.email === userEmail);
+    if (!targetPeer?.userId) {
+      console.error("Cannot find userId for user:", userEmail);
+      return;
+    }
+
+    // Convert Permission to WorkspaceRole
+    const newRole: WorkspaceRole = permissionToRole(newPermission);
+
+    // 낙관적 업데이트: 즉시 로컬 상태 업데이트
+    setMemberRoles((prev) => {
+      const next = new Map(prev);
+      next.set(targetPeer.userId!, newRole);
+      return next;
+    });
+
+    updateRole(
+      {
+        workspaceId,
+        targetUserId: targetPeer.userId,
+        role: newRole,
+      },
+      {
+        onSuccess: () => {
+          // 성공 시 workspace query를 invalidate해서 상대방도 최신 role을 받도록 함
+          queryClient.invalidateQueries({ queryKey: ['workspace', workspaceId] });
+        },
+      }
+    );
   };
 
   // Combine current user and online peers into collaborators list
@@ -122,22 +159,23 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
 
     // Add online peers (excluding self)
     peers.forEach((peer) => {
-      if (peer.email && peer.email !== currentUser?.email) {
+      if (peer.email && peer.email !== currentUser?.email && peer.userId) {
+        // 우선순위: 1) 로컬 상태 2) awareness에서 받은 role 3) 기본값 VIEW
+        const peerRole = memberRoles.get(peer.userId) || peer.role || "VIEW";
+
         users.push({
           id: peer.email,
           name: peer.name || "Anonymous",
           avatar: peer.profileImage,
-          // We don't have peer roles from awareness, default to Viewer for display
-          // In real implementation, you'd need to fetch member roles from API
-          role: "Viewer",
-          permission: "can View",
+          role: roleToDisplay(peerRole),
+          permission: roleToPermission(peerRole),
           email: peer.email,
         });
       }
     });
 
     return users;
-  }, [currentUser, workspace, peers]);
+  }, [currentUser, workspace, peers, memberRoles]);
 
   const windowWidth = useWindowWidth();
 
@@ -194,38 +232,38 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
                     <p className="font-paperlogy text-sm">{user.name}</p>
                   </div>
 
-                  {user.role === "Maintainer" ? (
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
+                    {user.role === "Maintainer" ? (
                       <p className="text-xs text-gray-500 w-[110px]">{user.role}</p>
-                      {onStartVoiceChat && user.email === currentUser?.email ? (
-                        <button
-                          type="button"
-                          onClick={onStartVoiceChat}
-                          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                          aria-label="Voice chat 열기"
-                        >
-                          <Headphones className="w-4 h-4 text-gray-500" />
-                        </button>
-                      ) : (
-                        <Headphones className="w-4 h-4 text-gray-400" />
-                      )}
-                    </div>
-                  ) : isMaintainer && user.email !== currentUser?.email ? (
-                    <Select
-                      value={user.permission}
-                      onValueChange={(value) => handlePermissionChange(user.id, value as Permission)}
-                    >
-                      <SelectTrigger className="w-[110px] h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="can View">can View</SelectItem>
-                        <SelectItem value="can Edit">can Edit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-xs text-gray-500 w-[110px]">{user.role}</p>
-                  )}
+                    ) : isMaintainer && user.email !== currentUser?.email ? (
+                      <Select
+                        value={user.permission}
+                        onValueChange={(value) => handlePermissionChange(user.id, value as Permission)}
+                      >
+                        <SelectTrigger className="w-[110px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="can View">can View</SelectItem>
+                          <SelectItem value="can Edit">can Edit</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-xs text-gray-500 w-[110px]">{user.role}</p>
+                    )}
+
+                    {/* 본인에게만 음성 채팅 버튼 표시 */}
+                    {onStartVoiceChat && user.email === currentUser?.email && (
+                      <button
+                        type="button"
+                        onClick={onStartVoiceChat}
+                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        aria-label="Voice chat 열기"
+                      >
+                        <Headphones className="w-4 h-4 text-gray-500" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -233,25 +271,27 @@ export default function StatusBox({ onStartVoiceChat, shareLink, workspaceId }: 
             {/* 구분선 */}
             <div className="border-t pt-4" />
 
-            {/* 링크 섹션 */}
+            {/* 초대 링크 섹션 */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-primary font-paperlogy font-extrabold">Link</Label>
+                <Label className="text-primary font-paperlogy font-extrabold">Invite Link</Label>
                 {copied && (
                   <p className="text-xs font-paperlogy text-primary">링크가 복사되었습니다!</p>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Input
-                  value={shareLink}
+                  value={inviteLink}
                   readOnly
                   className="flex-1 text-sm bg-gray-50"
+                  placeholder="워크스페이스 정보를 불러오는 중..."
                 />
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={handleCopyLink}
                   className="shrink-0"
+                  disabled={!inviteLink}
                 >
                   <Copy className="w-4 h-4" />
                 </Button>

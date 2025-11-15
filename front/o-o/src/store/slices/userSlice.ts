@@ -91,6 +91,12 @@ const userSlice = createSlice({
       state.error = null;
       localStorage.removeItem("user");
     },
+    setUserId: (state, action) => {
+      if (state.user) {
+        state.user.id = action.payload;
+        localStorage.setItem("user", JSON.stringify(state.user));
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -125,5 +131,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearUser } = userSlice.actions;
+export const { clearUser, setUserId } = userSlice.actions;
 export default userSlice.reducer;

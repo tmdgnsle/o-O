@@ -11,6 +11,7 @@ import { ProjectDetailPage } from "@/features/mypage/pages/ProjectDetailPage";
 import { TrendPage } from "@/features/trend/pages/TrendPage";
 import { TrendMindmapPage } from "@/features/trend/pages/TrendMindmapPage";
 import { CallbackPage } from "@/features/auth/pages/CallbackPage";
+import { WorkspaceJoinPage } from "@/features/workspace/pages/WorkspaceJoinPage";
 
 
 const routeConfig = [
@@ -29,6 +30,10 @@ const routeConfig = [
   {
     path: PATHS.MINDMAP,
     element: <MindmapPage />,
+  },
+  {
+    path: PATHS.WORKSPACE_JOIN,
+    element: <WorkspaceJoinPage />,
   },
   {
     path: PATHS.MYPAGE,

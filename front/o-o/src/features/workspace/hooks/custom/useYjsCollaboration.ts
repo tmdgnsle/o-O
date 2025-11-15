@@ -7,12 +7,15 @@ import { NODES_YMAP_KEY } from "@/constants/mindmapCollaboration";
 import type { NodeData } from "../../../mindmap/types";
 import { useAppSelector } from "@/store/hooks";
 import { fetchWebSocketToken } from "@/services/websocketTokenService";
+import type { WorkspaceRole } from "@/services/dto/workspace.dto";
 
 type UseYjsCollaborationOptions = {
   /** 이 훅을 활성화할지 여부 (페이지에 따라 on/off 가능) */
   enabled?: boolean;
   /** 인증 실패 등 더 이상 재연결 시도하면 안 되는 상황에서 호출 */
   onAuthError?: () => void;
+  /** 현재 사용자의 워크스페이스 역할 (awareness에 포함) */
+  myRole?: WorkspaceRole;
 };
 
 /**
@@ -30,7 +33,7 @@ export function useYjsCollaboration(
   cursorColor: string,
   options: UseYjsCollaborationOptions = {}
 ) {
-  const { enabled = true, onAuthError } = options;
+  const { enabled = true, onAuthError, myRole } = options;
 
   const [collab, setCollab] = useState<{ client: YClient; map: Y.Map<NodeData> } | null>(null);
   const [crud, setCrud] = useState<YMapCrud<NodeData> | null>(null);
@@ -251,10 +254,12 @@ export function useYjsCollaboration(
     const setAwarenessState = () => {
       const initialState = {
         user: {
+          userId: currentUser?.id, // 숫자형 userId 추가 (역할 변경 API용)
           name: currentUser?.nickname || "익명의 사용자",
           email: currentUser?.email || "",
           profileImage: currentUser?.profileImage,
           color: cursorColor,
+          role: myRole, // 워크스페이스 역할 추가 (MAINTAINER, EDIT, VIEW)
         },
         cursor: null, // mousemove에서 갱신
         chat: null, // 채팅 입력 시 갱신
@@ -282,7 +287,7 @@ export function useYjsCollaboration(
     return () => {
       awareness.setLocalState(null);
     };
-  }, [collab, cursorColor, currentUser]);
+  }, [collab, cursorColor, currentUser, myRole]);
 
   // 채팅 상태 업데이트 메서드
   const updateChatState = (
