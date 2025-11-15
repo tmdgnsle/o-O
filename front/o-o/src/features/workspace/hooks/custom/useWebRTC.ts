@@ -191,26 +191,48 @@ export function useWebRTC(
 
   // Sync peer connections with participants list
   useEffect(() => {
-    if (!myUserId) return;
+    if (!myUserId) {
+      console.log('[useWebRTC] No myUserId, skipping sync');
+      return;
+    }
+
+    console.log('[useWebRTC] Syncing participants:', {
+      myUserId,
+      participants: participants.map(p => p.userId),
+      existingConnections: Array.from(peerConnectionsRef.current.keys())
+    });
 
     // Create peer connections for new participants
     participants.forEach((participant) => {
       if (participant.userId !== myUserId && !peerConnectionsRef.current.has(participant.userId)) {
+        console.log(`[useWebRTC] New participant detected: ${participant.userId}`);
         // Only send offer if my userId is greater (to avoid both sides sending offer)
         // This prevents "glare" situation in WebRTC signaling
-        if (myUserId > participant.userId) {
+        // Convert to numbers for comparison to ensure consistency
+        const myUserIdNum = Number(myUserId);
+        const participantUserIdNum = Number(participant.userId);
+
+        if (myUserIdNum > participantUserIdNum) {
+          console.log(`[useWebRTC] I'm initiating connection (${myUserId} > ${participant.userId})`);
           sendOffer(participant.userId);
+        } else {
+          console.log(`[useWebRTC] Waiting for offer from ${participant.userId} (${myUserId} < ${participant.userId})`);
         }
       }
     });
 
     // Remove peer connections for participants who left
+    // Add a small delay to avoid race conditions with participant list updates
     const participantIds = new Set(participants.map((p) => p.userId));
-    peerConnectionsRef.current.forEach((_, userId) => {
-      if (!participantIds.has(userId)) {
-        removePeerConnection(userId);
-      }
-    });
+    const removalTimer = setTimeout(() => {
+      peerConnectionsRef.current.forEach((_, userId) => {
+        if (!participantIds.has(userId)) {
+          removePeerConnection(userId);
+        }
+      });
+    }, 500); // 500ms delay before removing connections
+
+    return () => clearTimeout(removalTimer);
   }, [participants, myUserId, sendOffer, removePeerConnection]);
 
   // Cleanup on unmount
