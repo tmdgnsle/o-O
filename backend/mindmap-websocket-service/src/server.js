@@ -216,10 +216,15 @@ function handleVoiceConnection(conn, req, url) {
 function handleYjsConnection(conn, req, url) {
   // workspace ID 추출 (헤더 우선, 쿼리 파라미터 fallback)
   // Gateway를 통해 들어오면 X-Workspace-ID 헤더로 전달됨
+  const t0 = Date.now();
+
+  const urlStr = req.url;
   const workspaceId = req.headers['x-workspace-id'] || url.searchParams.get('workspace');
 
   // user ID 추출 (Gateway의 JWT 검증 결과)
   const userId = req.headers['x-user-id'];
+
+  const t1 = Date.now();
 
   // workspace ID가 없으면 연결 거부
   if (!workspaceId) {
@@ -242,6 +247,8 @@ function handleYjsConnection(conn, req, url) {
   // Awareness: 커서 위치, 사용자 정보 등 임시 상태 공유
   const awareness = awarenessManager.getAwareness(workspaceId, ydoc);
 
+  const t2 = Date.now();
+
   logger.info(`[YJS] Setting up Y.js sync for workspace=${workspaceId}`);
 
   // Y.js WebSocket 연결 설정 (y-websocket 라이브러리 유틸 사용)
@@ -254,6 +261,14 @@ function handleYjsConnection(conn, req, url) {
 
   conn.on('message', (msg) => {
     logger.debug(`[WS] Raw message received (${msg.length} bytes) workspace=${workspaceId}`);
+  });
+  const t3 = Date.now();
+
+  logger.info(`[PROFILE][YJS] workspace=${workspaceId} timings(ms)`, {
+      parseUrl: t1 - t0,
+      docAndAwareness: t2 - t1,
+      setupWS: t3 - t2,
+      total: t3 - t0,
   });
 
   // 각 연결에 고유 ID 부여 (로깅용)
