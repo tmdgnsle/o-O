@@ -53,14 +53,15 @@ public class NodeService {
     public List<String> getKeywordsByWorkspaces(List<Long> workspaceIds) {
         log.debug("Getting keywords for {} workspaces", workspaceIds.size());
 
-        if (workspaceIds == null || workspaceIds.isEmpty()) {
+        if (workspaceIds.isEmpty()) {
             return List.of();
         }
 
         List<MindmapNode> nodes = nodeRepository.findByWorkspaceIdIn(workspaceIds);
 
-        // 키워드만 추출 (null이 아닌 것만)
+        // type이 "text"인 노드의 키워드만 추출 (null이 아닌 것만)
         return nodes.stream()
+                .filter(node -> "text".equals(node.getType()))
                 .map(MindmapNode::getKeyword)
                 .filter(Objects::nonNull)
                 .filter(keyword -> !keyword.isBlank())
