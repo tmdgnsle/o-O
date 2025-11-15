@@ -72,14 +72,15 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     });
 
     // Cleanup audio elements for users who left
-    return () => {
-      remoteStreams.forEach((_, userId) => {
-        const audioElement = document.getElementById(`voice-audio-${userId}`);
-        if (audioElement) {
-          audioElement.remove();
-        }
-      });
-    };
+    // Only remove audio elements that are no longer in remoteStreams
+    const activeUserIds = new Set(Array.from(remoteStreams.keys()));
+    const allAudioElements = document.querySelectorAll('[id^="voice-audio-"]');
+    allAudioElements.forEach((element) => {
+      const userId = element.id.replace('voice-audio-', '');
+      if (!activeUserIds.has(userId)) {
+        element.remove();
+      }
+    });
   }, [remoteStreams]);
 
   // Build user list with voice states
