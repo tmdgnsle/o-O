@@ -61,3 +61,9 @@ workspace:
 
 elasticsearch:
   host: ${ELASTICSEARCH_URL:http://k13d202.p.ssafy.io:9200}
+
+feign:
+  httpclient:
+    enabled: false
+  okhttp:
+    enabled: true
