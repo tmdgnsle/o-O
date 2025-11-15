@@ -35,11 +35,11 @@ function NodeOverlay({
   onConnectDetachedSelection,
   onDismissDetachedSelection,
 }: Readonly<CytoscapeNodeOverlayProps>) {
-  const { text, memo, color: initialColor } = node;
+  const { keyword, memo, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const { isEditing, editValue, editMemo, setEditValue, setEditMemo, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(text, memo);
+  const { isEditing, editValue, editMemo, setEditValue, setEditMemo, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(keyword, memo);
   const { showAddInput, openAddInput, closeAddInput } = useNodeAdd();
   const { paletteOpen, togglePalette, closePalette } = useNodeColorEdit(initialColor);
   const { focusedButton, setFocusedButton } = useNodeFocus();
@@ -157,7 +157,7 @@ function NodeOverlay({
           ) : (
             <div className="flex flex-col items-center justify-center px-4 text-center">
               <span className="font-paperlogy font-bold text-base mb-1 break-words" style={{ color: textColor }}>
-                {text}
+                {keyword}
               </span>
               {memo && (
                 <span className="font-paperlogy text-xs leading-tight break-words line-clamp-3" style={{ color: textColor, opacity: 0.85 }}>
@@ -249,7 +249,7 @@ function NodeOverlay({
 
 export default memo(NodeOverlay, (prev, next) =>
   prev.node.id === next.node.id &&
-  prev.node.text === next.node.text &&
+  prev.node.keyword === next.node.keyword &&
   prev.node.memo === next.node.memo &&
   prev.node.color === next.node.color &&
   prev.x === next.x &&

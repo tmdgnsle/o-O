@@ -20,15 +20,15 @@ export default function RecommendNodeOverlay({
 
   // Dummy 추천 노드 데이터
   const aiRecommendations: RecommendNodeData[] = [
-    { id: "ai-1", text: "AI 추천 아이디어 1", type: "ai" },
-    { id: "ai-2", text: "AI 추천 아이디어 2", type: "ai" },
-    { id: "ai-3", text: "AI 추천 아이디어 3", type: "ai" },
+    { id: "ai-1", keyword: "AI 추천 아이디어 1", type: "ai" },
+    { id: "ai-2", keyword: "AI 추천 아이디어 2", type: "ai" },
+    { id: "ai-3", keyword: "AI 추천 아이디어 3", type: "ai" },
   ];
 
   const trendRecommendations: RecommendNodeData[] = [
-    { id: "trend-1", text: "트렌드 아이디어 1", type: "trend" },
-    { id: "trend-2", text: "트렌드 아이디어 2", type: "trend" },
-    { id: "trend-3", text: "트렌드 아이디어 3", type: "trend" },
+    { id: "trend-1", keyword: "트렌드 아이디어 1", type: "trend" },
+    { id: "trend-2", keyword: "트렌드 아이디어 2", type: "trend" },
+    { id: "trend-3", keyword: "트렌드 아이디어 3", type: "trend" },
   ];
 
   // 각도와 반지름으로 위치 계산
@@ -79,10 +79,10 @@ export default function RecommendNodeOverlay({
       <button
         type="button"
         key={node.id}
-        aria-label={`추천 선택: ${node.text}`}
+        aria-label={`추천 선택: ${node.keyword}`}
         onClick={(e) => {
           e.stopPropagation();
-          onSelectRecommendation(node.text);
+          onSelectRecommendation(node.keyword);
         }}
         className="absolute pointer-events-auto hover:scale-110 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary cursor-pointer"
         style={{
@@ -98,7 +98,7 @@ export default function RecommendNodeOverlay({
           style={{ background: createRadialGradient(bgColor) }}
         >
           <span className="text-sm font-paperlogy font-semibold px-4 text-center break-words">
-            {node.text}
+            {node.keyword}
           </span>
         </div>
       </button>

@@ -87,13 +87,16 @@ const resolveNodeId = (dto: NodeDTO): string => {
 // Maps backend payload into the structure Cytoscape + overlays render (DataSource 역할)
 export const mapDtoToNodeData = (dto: NodeDTO): NodeData => ({
   id: resolveNodeId(dto),
-  text: dto.keyword,
+  nodeId: typeof dto.nodeId === 'number' ? dto.nodeId : undefined,
+  workspaceId: typeof dto.workspaceId === 'number' ? dto.workspaceId :
+               (typeof dto.workspaceId === 'string' ? parseInt(dto.workspaceId, 10) : undefined),
+  keyword: dto.keyword,
   x: dto.x,
   y: dto.y,
   color: dto.color ?? "#222222",
   parentId: ensureString(dto.parentId) ?? null,
   memo: dto.memo,
-  type: dto.type,
+  type: dto.type ?? 'text',
   contentUrl: dto.contentUrl,
   analysisStatus: dto.analysisStatus ?? "NONE",
   createdBy: dto.createdBy,

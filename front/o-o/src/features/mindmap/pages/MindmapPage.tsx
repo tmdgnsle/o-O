@@ -23,7 +23,7 @@ import { useNodeOperations } from "../hooks/custom/useNodeOperations";
 import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
-import { useMindmapSync } from "../hooks/custom/useMindmapSync";
+// import { useMindmapSync } from "../hooks/custom/useMindmapSync"; // DISABLED: Backend handles persistence
 import popo1 from "@/shared/assets/images/popo1.png";
 import popo2 from "@/shared/assets/images/popo2.png";
 import popo3 from "@/shared/assets/images/popo3.png";
@@ -63,7 +63,6 @@ const MindmapPageContent: React.FC = () => {
   const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
     workspaceId,
-    cyRef,
     cursorColorRef.current,
     {
       enabled: true, // Mindmap 페이지에서는 항상 활성화
@@ -76,8 +75,17 @@ const MindmapPageContent: React.FC = () => {
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
+  // 🐛 DEBUG: Expose Yjs map to window for console debugging
+  useEffect(() => {
+    if (collab?.map) {
+      (globalThis as any).yNodes = collab.map;
+      console.log("[MindmapPage] Yjs map exposed to window.yNodes");
+    }
+  }, [collab]);
+
   // 5a. Sync Yjs changes to backend API
-  useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
+  // DISABLED: Backend Yjs server handles persistence via Kafka → MongoDB
+  // useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();
@@ -98,6 +106,7 @@ const MindmapPageContent: React.FC = () => {
     nodes,
     cyRef,
     mode,
+    workspaceId,
     getRandomThemeColor,
     findNonOverlappingPosition,
   });
@@ -245,12 +254,11 @@ const MindmapPageContent: React.FC = () => {
             onApplyTheme={nodeOperations.handleApplyTheme}
             onDeleteNode={nodeOperations.handleDeleteNode}
             onEditNode={nodeOperations.handleEditNode}
-            onNodePositionChange={nodeOperations.handleNodePositionChange}
             onBatchNodePositionChange={nodeOperations.handleBatchNodePositionChange}
             onCyReady={(cy) => {
               cyRef.current = cy;
               setCyReady(true);
-            }}            
+            }}
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
             detachedSelectionMap={detachedSelection.detachedSelectionMap}

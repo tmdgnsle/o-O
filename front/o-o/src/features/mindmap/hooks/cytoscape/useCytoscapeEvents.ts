@@ -5,7 +5,6 @@ import type { Core, EventObject } from "cytoscape";
 export type CytoscapeEventHandlers = {
   onNodeSelect?: (nodeId: string) => void;
   onNodeUnselect?: () => void;
-  onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBackgroundClick?: () => void;
 };
 
