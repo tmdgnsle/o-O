@@ -1,9 +1,4 @@
 import { useEffect, useState } from "react";
-
-import popo1 from "@/shared/assets/images/popo1.webp";
-import popo2 from "@/shared/assets/images/popo2.webp";
-import popo3 from "@/shared/assets/images/popo3.webp";
-import popo4 from "@/shared/assets/images/popo4.webp";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 interface ProfileImageProps {
@@ -18,15 +13,32 @@ export function ProfileImage({
   onImageChange,
 }: ProfileImageProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
 
   const handleSelectImage = (image: string) => {
-    setSelectedImage(image);
-    onImageChange?.(image);
+    // 같은 아바타를 다시 클릭하면 원래 이미지로 복원
+    if (selectedImage === image) {
+      setSelectedImage(originalImage);
+      onImageChange?.(originalImage || "");
+    } else {
+      setSelectedImage(image);
+      onImageChange?.(image);
+    }
   };
 
   useEffect(() => {
-    setSelectedImage(currentImage || null);
-  }, [currentImage]);
+    if (isEditing) {
+      // 편집 모드 시작 시 현재 이미지를 원본으로 저장
+      if (!originalImage) {
+        setOriginalImage(currentImage || null);
+      }
+      setSelectedImage(currentImage || null);
+    } else {
+      // 편집 모드가 아니면 상태 초기화
+      setOriginalImage(null);
+      setSelectedImage(currentImage || null);
+    }
+  }, [currentImage, isEditing, originalImage]);
 
   const avatarOptions = ["popo4", "popo3", "popo2", "popo1"];
 
@@ -80,7 +92,7 @@ export function ProfileImage({
 
       <div className="rounded-full bg-[#F6F6F6] border-[#E5E5E5] border sm:p-2 p-1 z-10">
         <img
-          src={currentImage}
+          src={getProfileImageUrl(currentImage || "")}
           alt="profile"
           className="object-cover rounded-full"
           style={{

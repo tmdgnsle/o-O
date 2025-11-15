@@ -18,7 +18,7 @@ export const updateUserInfo = async (userData: {
   nickname: string;
   profileImage: string;
 }): Promise<User> => {
-  const response = await apiClient.put<User>("/users", userData);
+  const response = await apiClient.patch<User>("/users", userData);
   return response.data;
 };
 
