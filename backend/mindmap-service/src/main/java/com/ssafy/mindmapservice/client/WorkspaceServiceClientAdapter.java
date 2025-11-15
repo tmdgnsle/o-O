@@ -39,7 +39,7 @@ public class WorkspaceServiceClientAdapter {
             // workspaceId 추출 (응답 필드명은 "id")
             Object workspaceIdObj = response.get("id");
             if (workspaceIdObj == null) {
-                throw new IllegalStateException("workspaceId not found in response"); //test commit
+                throw new IllegalStateException("workspaceId not found in response");
             }
 
             Long workspaceId;
