@@ -43,7 +43,6 @@ function NodeOverlay({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-<<<<<<< HEAD
   const {
     isEditing,
     editValue,
@@ -53,10 +52,7 @@ function NodeOverlay({
     startEdit,
     cancelEdit,
     confirmEdit,
-  } = useNodeTextEdit(text, memo);
-=======
-  const { isEditing, editValue, editMemo, setEditValue, setEditMemo, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(keyword, memo);
->>>>>>> 795fc36a66f18aed4d75180d3599068f35ab2b91
+  } = useNodeTextEdit(keyword, memo);
   const { showAddInput, openAddInput, closeAddInput } = useNodeAdd();
   const { paletteOpen, togglePalette, closePalette } =
     useNodeColorEdit(initialColor);
@@ -112,14 +108,10 @@ function NodeOverlay({
 
   const handleDeleteOnlyCurrent = useCallback(() => {
     if (hasChildren) {
-<<<<<<< HEAD
       onKeepChildrenDelete?.({
         deletedNodeId: node.id,
-        parentId: node.parentId ?? null,
+        parentId: node.parentId ? String(node.parentId) : null,
       });
-=======
-      onKeepChildrenDelete?.({ deletedNodeId: node.id, parentId: node.parentId ? String(node.parentId) : null });
->>>>>>> 795fc36a66f18aed4d75180d3599068f35ab2b91
     }
     handleDelete();
     setDeleteDialogOpen(false);
@@ -140,12 +132,15 @@ function NodeOverlay({
     onDismissDetachedSelection?.(detachedSelection.anchorNodeId);
   }, [detachedSelection, onDismissDetachedSelection]);
 
-  const handleIconClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (node.type === "image" || node.type === "video") {
-      setDetailModalOpen((prev) => !prev);
-    }
-  }, [node.type]);
+  const handleIconClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (node.type === "image" || node.type === "video") {
+        setDetailModalOpen((prev) => !prev);
+      }
+    },
+    [node.type]
+  );
 
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
   const textColor = getContrastTextColor(initialColor);

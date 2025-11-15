@@ -18,7 +18,7 @@ export default function NodeDetailModal({
 }: Readonly<NodeDetailModalProps>) {
   if (!isOpen) return null;
 
-  const { text, memo, type, color } = node;
+  const { keyword, memo, type, color } = node;
 
   // YouTube URL을 embed URL로 변환
   const getYouTubeEmbedUrl = (url: string): string | null => {
@@ -50,7 +50,7 @@ export default function NodeDetailModal({
       return (
         <div className="flex items-center justify-center rounded-lg p-4">
           <img
-            src={text}
+            src={keyword}
             alt="Node content"
             className="max-w-full max-h-[300px] object-contain rounded"
             onError={(e) => {
@@ -67,7 +67,7 @@ export default function NodeDetailModal({
     }
 
     if (type === "video") {
-      const embedUrl = getYouTubeEmbedUrl(text);
+      const embedUrl = getYouTubeEmbedUrl(keyword);
 
       if (embedUrl) {
         return (
@@ -88,12 +88,12 @@ export default function NodeDetailModal({
         <div className="flex flex-col items-center justify-center rounded-lg p-8">
           <span className="text-6xl mb-4">🎥</span>
           <a
-            href={text}
+            href={keyword}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline break-all"
           >
-            {text}
+            {keyword}
           </a>
         </div>
       );
@@ -102,7 +102,7 @@ export default function NodeDetailModal({
     // text 타입
     return (
       <div className="text-center py-8">
-        <p className="text-2xl font-bold font-paperlogy">{text}</p>
+        <p className="text-2xl font-bold font-paperlogy">{keyword}</p>
       </div>
     );
   };
