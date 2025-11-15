@@ -18,6 +18,16 @@ export function setupSimulation(
   const { width, height, linkDistance, chargeStrength, collisionRadius } =
     config;
 
+  // 자식 노드 개수 계산 (부모와 더보기 버튼 제외)
+  const childCount = nodes.filter((n) => !n.isParent && !n.isMoreButton).length;
+
+  // 자식이 적을 때는 더 강한 힘으로 거리 유지
+  const adjustedChargeStrength =
+    childCount <= 2 ? chargeStrength * 3 : chargeStrength;
+
+  // 자식이 적을 때는 링크 강도를 낮춰서 부모에게 덜 끌리도록
+  const linkStrength = childCount <= 2 ? 0.3 : 1;
+
   const simulation = d3
     .forceSimulation(nodes)
     .force(
@@ -26,8 +36,9 @@ export function setupSimulation(
         .forceLink<Node, Link>(links)
         .id((d) => d.id)
         .distance(linkDistance)
+        .strength(linkStrength)
     )
-    .force("charge", d3.forceManyBody().strength(chargeStrength))
+    .force("charge", d3.forceManyBody().strength(adjustedChargeStrength))
     .force("center", d3.forceCenter(width / 2, height / 2))
     .force(
       "collision",

@@ -95,7 +95,10 @@ export function D3Mindmap({
       scaleFactor = 1;
     }
 
-    const linkDistance = 320 * scaleFactor;
+    // 자식 개수에 따라 거리 조정 (자식이 적을수록 더 멀리)
+    const baseLinkDistance = 320 * scaleFactor;
+    const linkDistance =
+      childKeywords.length <= 2 ? baseLinkDistance * 1.5 : baseLinkDistance;
     const chargeStrength = -700 * scaleFactor;
     const collisionRadius = 50 * scaleFactor;
 
@@ -105,7 +108,8 @@ export function D3Mindmap({
       displayKeywords,
       width,
       height,
-      scaleFactor
+      scaleFactor,
+      childKeywords.length
     );
     const links = createLinkData(parentKeyword, displayKeywords);
 

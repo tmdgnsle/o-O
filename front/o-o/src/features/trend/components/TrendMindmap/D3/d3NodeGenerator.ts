@@ -6,9 +6,10 @@ export function createNodeData(
   displayKeywords: TrendKeywordItem[],
   width: number,
   height: number,
-  scaleFactor: number
+  scaleFactor: number,
+  totalChildCount: number
 ): Node[] {
-  return [
+  const nodes: Node[] = [
     {
       id: parentKeyword,
       label: parentKeyword,
@@ -18,8 +19,11 @@ export function createNodeData(
       fx: width / 2,
       fy: height / 2,
     },
-    // 더보기 버튼 (부모 노드 오른쪽에 고정, 화면 크기에 비례)
-    {
+  ];
+
+  // 자식 키워드가 7개보다 많을 때만 더보기 버튼 추가
+  if (totalChildCount > 7) {
+    nodes.push({
       id: "__more__",
       label: "더보기",
       isMoreButton: true,
@@ -27,13 +31,34 @@ export function createNodeData(
       y: height / 2,
       fx: width / 2 + 280 * Math.max(scaleFactor, 1),
       fy: height / 2,
-    },
-    ...displayKeywords.map((child) => ({
-      id: child.keyword,
-      label: child.keyword,
-      rank: child.rank,
-    })),
-  ];
+    });
+  }
+
+  // 자식이 적을 때는 초기 위치를 부모로부터 멀리 배치하고 고정
+  const initialDistance = displayKeywords.length <= 2 ? 480 : 350;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const shouldFixPosition = displayKeywords.length <= 2;
+
+  nodes.push(
+    ...displayKeywords.map((child, index) => {
+      const angle = (index / displayKeywords.length) * 2 * Math.PI;
+      const x = centerX + Math.cos(angle) * initialDistance * scaleFactor;
+      const y = centerY + Math.sin(angle) * initialDistance * scaleFactor;
+
+      return {
+        id: child.keyword,
+        label: child.keyword,
+        rank: child.rank,
+        x,
+        y,
+        // 자식이 2개 이하일 때는 위치 고정
+        ...(shouldFixPosition && { fx: x, fy: y }),
+      };
+    })
+  );
+
+  return nodes;
 }
 
 export function createLinkData(

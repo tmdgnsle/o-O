@@ -28,16 +28,15 @@ export function renderNodeGroups(svg: any, nodes: Node[]) {
 }
 
 export function renderBlurBackgrounds(node: any) {
+  let childIndex = 0;
   node
     .append("circle")
     .attr("r", (d: any) => getNodeSize(d) / 2 + 20)
-    .attr("fill", (d: any, i: number) =>
-      d.isParent
-        ? "url(#gradient-parent)"
-        : d.isMoreButton
-          ? "url(#gradient-more)"
-          : `url(#gradient-${i - 2})`
-    )
+    .attr("fill", (d: any) => {
+      if (d.isParent) return "url(#gradient-parent)";
+      if (d.isMoreButton) return "url(#gradient-more)";
+      return `url(#gradient-${childIndex++})`;
+    })
     .attr("opacity", 0.3)
     .style("filter", "blur(12px)");
 }
@@ -49,25 +48,23 @@ export function renderMainCircles(
   childKeywords: TrendKeywordItem[],
   setIsMoreButtonClicked: (fn: (prev: boolean) => boolean) => void
 ) {
+  let childIndex = 0;
   return node
     .append("circle")
     .attr("r", (d: any) => getNodeSize(d) / 2)
-    .attr("fill", (d: any, i: number) =>
-      d.isParent
-        ? "url(#gradient-parent)"
-        : d.isMoreButton
-          ? "url(#gradient-more)"
-          : `url(#gradient-${i - 2})`
-    )
+    .attr("fill", (d: any) => {
+      if (d.isParent) return "url(#gradient-parent)";
+      if (d.isMoreButton) return "url(#gradient-more)";
+      return `url(#gradient-${childIndex++})`;
+    })
     .attr("stroke", "none")
     .attr("stroke-width", 0)
-    .style("filter", (d: any, i: number) =>
-      d.isParent
-        ? "url(#shadow-parent)"
-        : d.isMoreButton
-          ? "url(#shadow-more)"
-          : `url(#shadow-${i - 2})`
-    )
+    .style("filter", (d: any) => {
+      if (d.isParent) return "url(#shadow-parent)";
+      if (d.isMoreButton) return "url(#shadow-more)";
+      // childIndex는 이미 증가했으므로 -1
+      return `url(#shadow-${childIndex - 1})`;
+    })
     .on("mouseenter", function () {
       d3.select(this)
         .transition()

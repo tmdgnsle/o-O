@@ -53,7 +53,7 @@ export function TrendMindmapPage() {
         <div className="w-full h-full flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-600">마인드맵을 생성하는 중...</p>
+            <p className="text-gray-600">마인드맵을 구성하는 중...</p>
           </div>
         </div>
       );
