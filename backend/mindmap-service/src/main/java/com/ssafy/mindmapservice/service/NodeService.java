@@ -31,7 +31,7 @@ public class NodeService {
     private final TrendEventPublisher trendEventPublisher;
 
     public List<MindmapNode> getNodesByWorkspace(Long workspaceId) {
-        log.debug("Getting all nodes for workspace: {}", workspaceId);
+        log.info("Getting all nodes for workspace: {}", workspaceId);
         return nodeRepository.findByWorkspaceId(workspaceId);
     }
 
@@ -103,7 +103,7 @@ public class NodeService {
     }
 
     public MindmapNode createNode(MindmapNode node) {
-        log.debug("Creating node: workspaceId={}", node.getWorkspaceId());
+        log.info("Creating node: workspaceId={}", node.getWorkspaceId());
 
         // nodeId 자동 생성 (워크스페이스별로 1부터 증가)
         Long nextNodeId = sequenceGeneratorService.generateNextNodeId(node.getWorkspaceId());
