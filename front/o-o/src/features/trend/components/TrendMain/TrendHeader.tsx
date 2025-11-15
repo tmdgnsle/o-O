@@ -15,7 +15,7 @@ export function TrendHeader({ onSearch }: TrendHeaderProps) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<SearchInputHandle>(null);
-  const { searchTrendList, keywords, keywordsError } = useTrend();
+  const { searchTrendList, keywords, keywordsError, keywordsLoading } = useTrend();
   const [lastSearchQuery, setLastSearchQuery] = useState("");
   const [showNoResultModal, setShowNoResultModal] = useState(false);
 
@@ -32,15 +32,24 @@ export function TrendHeader({ onSearch }: TrendHeaderProps) {
       return;
     }
 
+    // 로딩 중일 때는 처리하지 않음 (API 응답 대기)
+    if (keywordsLoading) {
+      console.log("⏳ 검색 중...");
+      return;
+    }
+
     console.log("📊 검색 결과 개수:", keywords.length);
     console.log("🔎 첫 번째 결과:", keywords[0]?.keyword);
     console.log("❌ 에러:", keywordsError);
 
-    // 1. 정확히 일치하는 1개 결과 → 마인드맵 페이지로 이동 (최우선)
-    if (keywords.length === 1 && keywords[0].keyword === lastSearchQuery) {
-      console.log("✅ 정확한 일치 → 마인드맵 페이지로 이동");
+    // 1. 정확히 일치하는 결과가 있으면 → 마인드맵 페이지로 이동 (최우선)
+    const exactMatch = keywords.find(
+      (kw) => kw.keyword === lastSearchQuery
+    );
+    if (exactMatch) {
+      console.log("✅ 정확한 일치 → 마인드맵 페이지로 이동:", exactMatch.keyword);
       clearSearchInput();
-      navigate(`/trend/${encodeURIComponent(keywords[0].keyword)}`);
+      navigate(`/trend/${encodeURIComponent(exactMatch.keyword)}`);
       setLastSearchQuery("");
       return;
     }
@@ -70,7 +79,7 @@ export function TrendHeader({ onSearch }: TrendHeaderProps) {
       console.log("📋 5개 이상 검색 결과 → 상위 5개 표시");
       clearSearchInput();
     }
-  }, [keywords, keywordsError, lastSearchQuery, navigate]);
+  }, [keywords, keywordsError, keywordsLoading, lastSearchQuery, navigate]);
 
   const clearSearchInput = () => {
     searchInputRef.current?.clear();
