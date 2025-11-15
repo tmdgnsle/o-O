@@ -197,15 +197,14 @@ public class NodeService {
     }
 
     /**
-     * 여러 노드의 좌표를 일괄 업데이트합니다.
+     * 여러 노드의 좌표 및 색상을 일괄 업데이트합니다.
      * 모바일에서 STT 아이디어 확장 후 레이아웃 계산 결과를 반영할 때 사용됩니다.
      *
      * @param workspaceId 워크스페이스 ID
-     * @param positions 업데이트할 노드 좌표 리스트
-     * @return 업데이트된 노드 수
+     * @param positions   업데이트할 노드 좌표 및 색상 리스트
      */
     @Transactional
-    public int batchUpdatePositions(Long workspaceId, List<NodePositionUpdateRequest> positions) {
+    public void batchUpdatePositions(Long workspaceId, List<NodePositionUpdateRequest> positions) {
         log.info("Batch updating positions: workspaceId={}, count={}", workspaceId, positions.size());
 
         int updatedCount = 0;
@@ -218,13 +217,19 @@ public class NodeService {
 
                 node.setX(position.x());
                 node.setY(position.y());
+
+                // color가 제공된 경우에만 업데이트
+                if (position.color() != null) {
+                    node.setColor(position.color());
+                }
+
                 node.setUpdatedAt(LocalDateTime.now());
 
                 nodeRepository.save(node);
                 updatedCount++;
 
-                log.debug("Updated position for node: nodeId={}, x={}, y={}",
-                        position.nodeId(), position.x(), position.y());
+                log.debug("Updated position for node: nodeId={}, x={}, y={}, color={}",
+                        position.nodeId(), position.x(), position.y(), position.color());
 
             } catch (Exception e) {
                 log.error("Failed to update position for node: nodeId={}", position.nodeId(), e);
@@ -233,7 +238,6 @@ public class NodeService {
         }
 
         log.info("Successfully updated {} node positions", updatedCount);
-        return updatedCount;
     }
 
     @Transactional
