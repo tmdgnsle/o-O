@@ -54,4 +54,6 @@ public class Workspace {
     public void changeVisibility(WorkspaceVisibility visibility) { this.visibility = visibility; }
     public void changeSubject(String subject) { this.title = subject; }
     public void changeThumbnail(String thumbnail) { this.thumbnail = thumbnail; }
+    public void changeTitle(String title) {this.title = title;}
+
 }

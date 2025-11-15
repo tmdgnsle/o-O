@@ -22,19 +22,17 @@ public class WorkspaceServiceClientAdapter {
     /**
      * 워크스페이스를 생성하고 workspaceId를 반환합니다.
      *
-     * 참고: workspaceName과 workspaceDescription은 현재 workspace-service API에서 사용하지 않습니다.
-     * 워크스페이스는 기본 제목으로 생성되며, AI 분석 후 PATCH로 제목이 업데이트됩니다.
-     *
      * @param userId 사용자 ID
-     * @param workspaceName 워크스페이스 이름 (현재 미사용, AI가 나중에 생성)
-     * @param workspaceDescription 워크스페이스 설명 (현재 미사용)
+     * @param workspaceName STT 텍스트 (startPrompt로 전달됨)
+     * @param workspaceDescription 현재 미사용
      * @return 생성된 워크스페이스 ID
      */
     public Long createWorkspace(Long userId, String workspaceName, String workspaceDescription) {
-        log.debug("Creating workspace via Feign: userId={}", userId);
+        log.debug("Creating workspace via Feign: userId={}, startPrompt={}", userId, workspaceName);
 
         try {
-            Map<String, Object> response = workspaceServiceClient.createWorkspace(userId);
+            // workspaceName을 startPrompt로 전달
+            Map<String, Object> response = workspaceServiceClient.createWorkspace(userId, workspaceName);
 
             // workspaceId 추출 (응답 필드명은 "id")
             Object workspaceIdObj = response.get("id");
@@ -51,11 +49,11 @@ public class WorkspaceServiceClientAdapter {
                 throw new IllegalStateException("Invalid workspaceId type: " + workspaceIdObj.getClass());
             }
 
-            log.info("Workspace created successfully: workspaceId={}", workspaceId);
+            log.info("Workspace created successfully: workspaceId={}, startPrompt={}", workspaceId, workspaceName);
             return workspaceId;
 
         } catch (Exception e) {
-            log.error("Failed to create workspace: userId={}", userId, e);
+            log.error("Failed to create workspace: userId={}, startPrompt={}", userId, workspaceName, e);
             throw new RuntimeException("Failed to create workspace", e);
         }
     }
@@ -86,22 +84,18 @@ public class WorkspaceServiceClientAdapter {
     }
 
     /**
-     * 워크스페이스의 제목을 업데이트합니다.
+     * 워크스페이스의 제목을 업데이트합니다 (내부용).
      * AI 분석 후 생성된 제목으로 워크스페이스를 업데이트할 때 사용됩니다.
+     * userId 없이 workspaceId와 title만으로 업데이트합니다.
      *
-     * @param userId 사용자 ID
      * @param workspaceId 워크스페이스 ID
      * @param title 새로운 제목
      */
-    public void updateWorkspaceTitle(Long userId, Long workspaceId, String title) {
-        log.debug("Updating workspace title: userId={}, workspaceId={}, title={}",
-                userId, workspaceId, title);
+    public void updateWorkspaceTitle(Long workspaceId, String title) {
+        log.debug("Updating workspace title: workspaceId={}, title={}", workspaceId, title);
 
         try {
-            Map<String, Object> request = new HashMap<>();
-            request.put("title", title);
-
-            workspaceServiceClient.updateWorkspaceTitle(userId, workspaceId, request);
+            workspaceServiceClient.updateWorkspaceTitleInternal(workspaceId, title);
             log.info("Workspace title updated successfully: workspaceId={}, title={}",
                     workspaceId, title);
 

@@ -25,7 +25,7 @@ import java.util.*;
 public class NodeService {
 
     private final NodeRepository nodeRepository;
-    private final WorkspaceServiceClientAdapter workspaceServiceClient;
+    private final WorkspaceServiceClientAdapter workspaceServiceClientAdapter;
     private final AiAnalysisProducer aiAnalysisProducer;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final TrendEventPublisher trendEventPublisher;
@@ -252,7 +252,7 @@ public class NodeService {
             throw new IllegalArgumentException("Source workspace is empty: " + sourceWorkspaceId);
         }
 
-        Long newWorkspaceId = workspaceServiceClient.createWorkspace(userId, newWorkspaceName, newWorkspaceDescription);
+        Long newWorkspaceId = workspaceServiceClientAdapter.createWorkspace(userId, newWorkspaceName, newWorkspaceDescription);
         log.info("Created new workspace with ID: {}", newWorkspaceId);
 
         List<MindmapNode> clonedNodes = sourceNodes.stream()
@@ -501,7 +501,7 @@ public class NodeService {
         // 워크스페이스 이름은 STT 텍스트 사용 (최대 50자로 제한)
         String workspaceName = text.length() > 50 ? text.substring(0, 50) : text;
         Long userIdLong = Long.parseLong(userId);
-        Long workspaceId = workspaceServiceClient.createWorkspace(userIdLong, workspaceName, "");
+        Long workspaceId = workspaceServiceClientAdapter.createWorkspace(userIdLong, workspaceName, "");
         log.info("Voice idea workspace created: workspaceId={}", workspaceId);
         // 2. 루트 노드 생성 (x, y = null)
         MindmapNode rootNode = MindmapNode.builder()
@@ -586,7 +586,7 @@ public class NodeService {
                 userId, request.workspaceName(), request.contentType());
 
         // 1. 워크스페이스 생성 (workspace-service 호출)
-        Long workspaceId = workspaceServiceClient.createWorkspace(
+        Long workspaceId = workspaceServiceClientAdapter.createWorkspace(
                 userId,
                 request.workspaceName(),
                 request.workspaceDescription()
