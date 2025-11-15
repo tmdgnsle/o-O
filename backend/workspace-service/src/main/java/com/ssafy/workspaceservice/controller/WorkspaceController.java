@@ -282,7 +282,7 @@ public class WorkspaceController {
     })
     @GetMapping("my/activity/monthly")
     public ResponseEntity<WorkspaceActivityDaysResponse> getActivityDays(
-            @Parameter(hidden = false)
+            @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") Long userId,
 
             @Parameter(description = "조회할 월 (yyyy-MM)", required = true, example = "2025-11")
