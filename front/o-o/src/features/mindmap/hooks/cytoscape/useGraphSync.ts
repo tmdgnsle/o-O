@@ -27,6 +27,10 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
   const isDraggable = mode === "edit";
   const nodeIdStr = String(node.id);
 
+  // 좌표가 null이면 기본값 사용 (0, 0) - Cytoscape가 레이아웃 알고리즘으로 배치
+  const x = node.x ?? 0;
+  const y = node.y ?? 0;
+
   if (existingNodeIds.has(nodeIdStr)) {
     // 기존 노드 업데이트
     const cyNode = cy.getElementById(nodeIdStr);
@@ -34,13 +38,18 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
 
     // 부동소수점 오차 허용 (1px 이하는 무시) - 무한 루프 방지
     const POSITION_THRESHOLD = 1;
-    const needsPositionUpdate =
-      Math.abs(pos.x - node.x) > POSITION_THRESHOLD ||
-      Math.abs(pos.y - node.y) > POSITION_THRESHOLD;
 
-    if (needsPositionUpdate) {
-      cyNode.position({ x: node.x, y: node.y });
+    // 좌표가 유효한 경우에만 위치 업데이트
+    if (node.x != null && node.y != null) {
+      const needsPositionUpdate =
+        Math.abs(pos.x - x) > POSITION_THRESHOLD ||
+        Math.abs(pos.y - y) > POSITION_THRESHOLD;
+
+      if (needsPositionUpdate) {
+        cyNode.position({ x, y });
+      }
     }
+    // 좌표가 null이면 현재 Cytoscape 위치 유지 (드래그로 이동한 위치 보존)
 
     cyNode.data({ label: node.keyword, color: node.color });
 
@@ -56,7 +65,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
     const newNode = cy.add({
       group: "nodes",
       data: { id: nodeIdStr, label: node.keyword, color: node.color },
-      position: { x: node.x, y: node.y },
+      position: { x, y },
       grabbable: isDraggable,
       selectable: true,
     });

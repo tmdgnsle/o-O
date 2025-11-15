@@ -20,6 +20,9 @@ export default function NodeDetailModal({
 
   const { keyword, memo, type, color } = node;
 
+  // Debug: 노드 데이터 확인
+  console.log("[NodeDetailModal] node:", { keyword, memo, type, color });
+
   // YouTube URL을 embed URL로 변환
   const getYouTubeEmbedUrl = (url: string): string | null => {
     try {

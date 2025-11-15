@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useState, useEffect } from "react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import NodeEditForm from "./NodeEditForm";
@@ -42,6 +42,11 @@ function NodeOverlay({
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  // Debug: 메모 데이터 확인
+  useEffect(() => {
+    console.log(`[NodeOverlay ${node.id}] keyword: "${keyword}", memo: "${memo}", has memo: ${!!memo}`);
+  }, [node.id, keyword, memo]);
 
   const {
     isEditing,
@@ -171,6 +176,8 @@ function NodeOverlay({
             background: createRadialGradient(initialColor),
             pointerEvents: "none",
           }}
+          data-node-id={node.id}
+          data-has-memo={!!memo}
         >
           {isEditing ? (
             <NodeEditForm
