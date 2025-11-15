@@ -94,7 +94,7 @@ function NodeOverlay({
 
   const handleDeleteOnlyCurrent = useCallback(() => {
     if (hasChildren) {
-      onKeepChildrenDelete?.({ deletedNodeId: node.id, parentId: node.parentId ?? null });
+      onKeepChildrenDelete?.({ deletedNodeId: node.id, parentId: node.parentId ? String(node.parentId) : null });
     }
     handleDelete();
     setDeleteDialogOpen(false);

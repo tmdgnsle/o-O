@@ -54,7 +54,8 @@ export default function OverlayLayer({
   const OVERSCAN_PX = 200;
   const childCountMap = nodes.reduce<Map<string, number>>((acc, currentNode) => {
     if (currentNode.parentId) {
-      acc.set(currentNode.parentId, (acc.get(currentNode.parentId) ?? 0) + 1);
+      const parentIdStr = String(currentNode.parentId);
+      acc.set(parentIdStr, (acc.get(parentIdStr) ?? 0) + 1);
     }
     return acc;
   }, new Map());
@@ -78,24 +79,25 @@ export default function OverlayLayer({
             return null;
           }
 
+          const nodeId = String(node.id);
           return (
             <NodeOverlay
-              key={node.id}
+              key={nodeId}
               node={node}
               x={x}
               y={y}
               zoom={zoom}
-              hasChildren={(childCountMap.get(node.id) ?? 0) > 0}
+              hasChildren={(childCountMap.get(nodeId) ?? 0) > 0}
               mode={mode}
-              isAnalyzeSelected={analyzeSelection.includes(node.id)}
-              isSelected={selectedNodeId === node.id}
-              onSelect={() => onNodeSelect(node.id)}
+              isAnalyzeSelected={analyzeSelection.includes(nodeId)}
+              isSelected={selectedNodeId === nodeId}
+              onSelect={() => onNodeSelect(nodeId)}
               onDeselect={onNodeUnselect}
               onApplyTheme={onApplyTheme}
               onDeleteNode={onDeleteNode}
               onEditNode={onEditNode}
               onCreateChildNode={onCreateChildNode}
-              detachedSelection={detachedSelectionMap?.[node.id]}
+              detachedSelection={detachedSelectionMap?.[nodeId]}
               onKeepChildrenDelete={onKeepChildrenDelete}
               onConnectDetachedSelection={onConnectDetachedSelection}
               onDismissDetachedSelection={onDismissDetachedSelection}
