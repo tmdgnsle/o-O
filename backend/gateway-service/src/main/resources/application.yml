@@ -56,14 +56,14 @@ spring:
               - StripPrefix=1
           # Mindmap WebSocket Service (실시간 협업)
           - id: mindmap-websocket-service
-            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:8084}
+            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://mindmap-websocket-service:8084}
             predicates:
               - Path=/mindmap/ws/**
             filters:
               - PreserveHostHeader
           # Mindmap Voice WebSocket Service (음성 채팅)
           - id: mindmap-voice-websocket
-            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:8084}
+            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://mindmap-websocket-service:8084}
             predicates:
               - Path=/mindmap/voice/**
             filters:
