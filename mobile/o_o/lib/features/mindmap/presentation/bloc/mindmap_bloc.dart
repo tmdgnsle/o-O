@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../domain/usecases/create_mindmap_from_text.dart';
 import '../../domain/usecases/get_mindmap_nodes.dart';
+import '../../domain/usecases/update_node_positions.dart';
 import 'mindmap_event.dart';
 import 'mindmap_state.dart';
 
@@ -10,10 +11,12 @@ import 'mindmap_state.dart';
 class MindmapBloc extends Bloc<MindmapEvent, MindmapState> {
   final GetMindmapNodes getMindmapNodes;
   final CreateMindmapFromText createMindmapFromText;
+  final UpdateNodePositions updateNodePositions;
 
   MindmapBloc({
     required this.getMindmapNodes,
     required this.createMindmapFromText,
+    required this.updateNodePositions,
   }) : super(const MindmapState.initial()) {
     logger.i('📦 MindmapBloc initialized');
 
@@ -55,8 +58,37 @@ class MindmapBloc extends Bloc<MindmapEvent, MindmapState> {
         }
 
         emit(MindmapState.loaded(mindmap: mindmap));
+
+        // 백그라운드에서 null 노드 위치 업데이트
+        _updateNullNodesToServer(workspaceId, mindmap);
       },
     );
+  }
+
+  /// 원래 null이었던 노드들의 위치를 서버에 업데이트 (백그라운드)
+  void _updateNullNodesToServer(int workspaceId, mindmap) {
+    if (mindmap.nullNodeIds.isEmpty) {
+      logger.d('🔍 No null nodes to update');
+      return;
+    }
+
+    // null이었던 노드만 필터링
+    final nodesToUpdate = mindmap.nodes.where((node) {
+      return mindmap.nullNodeIds.contains(node.id);
+    }).toList();
+
+    logger.i('📤 Updating ${nodesToUpdate.length} null nodes to server (background)');
+
+    // 백그라운드에서 실행 (await 하지 않음)
+    updateNodePositions(UpdateNodePositionsParams(
+      workspaceId: workspaceId,
+      nodes: nodesToUpdate,
+    )).then((result) {
+      result.fold(
+        (failure) => logger.w('⚠️ Position update failed: ${failure.message}'),
+        (_) => logger.i('✅ Node positions updated to server'),
+      );
+    });
   }
 
   Future<void> _onRefreshMindmap(

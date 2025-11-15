@@ -36,6 +36,7 @@ import '../../features/mindmap/data/repositories/mindmap_repository_impl.dart';
 import '../../features/mindmap/domain/repositories/mindmap_repository.dart';
 import '../../features/mindmap/domain/usecases/create_mindmap_from_text.dart';
 import '../../features/mindmap/domain/usecases/get_mindmap_nodes.dart';
+import '../../features/mindmap/domain/usecases/update_node_positions.dart';
 import '../../features/mindmap/presentation/bloc/mindmap_bloc.dart';
 import '../constants/api_constants.dart';
 import '../network/auth_interceptor.dart';
@@ -211,12 +212,14 @@ Future<void> init() async {
     () => MindmapBloc(
       getMindmapNodes: sl(),
       createMindmapFromText: sl(),
+      updateNodePositions: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetMindmapNodes(sl()));
   sl.registerLazySingleton(() => CreateMindmapFromText(sl()));
+  sl.registerLazySingleton(() => UpdateNodePositions(sl()));
 
   // Repository
   sl.registerLazySingleton<MindmapRepository>(

@@ -29,6 +29,9 @@ class ApiConstants {
   /// STT 텍스트로 마인드맵 생성
   static const String createMindmapFromStt = '/mindmap/stt-idea';
 
+  /// 워크스페이스 ID로 노드 위치 업데이트
+  static String updateNodePositions(int workspaceId) => '$mindmap/$workspaceId/nodes/positions';
+
   /// 전체 URL 생성
   static String getUrl(String endpoint) => '$baseUrl$endpoint';
 }

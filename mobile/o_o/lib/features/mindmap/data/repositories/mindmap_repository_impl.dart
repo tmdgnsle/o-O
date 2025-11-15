@@ -13,6 +13,7 @@ import '../../domain/repositories/mindmap_repository.dart';
 import '../datasources/mindmap_api_data_source.dart';
 import '../models/mindmap_creation_response.dart';
 import '../models/mindmap_node_model.dart';
+import '../models/node_position_update_request.dart';
 
 /// Mindmap Repository Implementation
 class MindmapRepositoryImpl implements MindmapRepository {
@@ -35,15 +36,22 @@ class MindmapRepositoryImpl implements MindmapRepository {
         return Left(ServerFailure('마인드맵 노드가 없습니다'));
       }
 
-      // 2. 레벨 계산 (parentId 기반 BFS)
+      // 2. 원래 x, y, color가 null이었던 노드 ID 추적 (String으로 변환)
+      final nullNodeIds = nodeModels
+          .where((n) => n.x == null || n.y == null || n.color == null)
+          .map((n) => n.id.toString())
+          .toSet();
+      logger.d('🔍 Found ${nullNodeIds.length} nodes with null positions/colors: $nullNodeIds');
+
+      // 3. 레벨 계산 (parentId 기반 BFS)
       final levels = _calculateLevels(nodeModels);
       logger.d('📊 Calculated levels: $levels');
 
-      // 3. 좌표 할당 (x, y가 null인 경우 자동 배치)
+      // 4. 좌표 할당 (x, y가 null인 경우 자동 배치)
       final positions = _calculatePositions(nodeModels, levels);
       logger.d('📍 Calculated positions for ${positions.length} nodes');
 
-      // 4. Entity 변환
+      // 5. Entity 변환
       final nodes = nodeModels.map((model) {
         final level = levels[model.id] ?? 0;
         final position = positions[model.id] ?? const Offset(0, 0);
@@ -54,17 +62,18 @@ class MindmapRepositoryImpl implements MindmapRepository {
         );
       }).toList();
 
-      // 5. Edge 자동 생성 (parentId 기반)
+      // 6. Edge 자동 생성 (parentId 기반)
       final edges = _generateEdges(nodeModels);
       logger.d('🔗 Generated ${edges.length} edges');
 
-      // 6. Mindmap 생성
+      // 7. Mindmap 생성
       final mindmap = Mindmap(
         id: workspaceId.toString(),
         title: 'Workspace $workspaceId Mindmap',
         nodes: nodes,
         edges: edges,
         createdAt: DateTime.now(),
+        nullNodeIds: nullNodeIds,
       );
 
       logger.i('✅ MindmapRepositoryImpl: Successfully created mindmap with ${nodes.length} nodes and ${edges.length} edges');
@@ -139,7 +148,6 @@ class MindmapRepositoryImpl implements MindmapRepository {
     final positions = <String, Offset>{};
 
     // 1. API에서 제공한 좌표가 있는지 확인
-    final nodesWithPos = nodes.where((n) => n.x != null && n.y != null).toList();
     final nodesWithoutPos = nodes.where((n) => n.x == null || n.y == null).toList();
 
     // 2. 모든 노드에 좌표가 있는 경우: 루트를 캔버스 중앙으로 이동 + 스케일링
@@ -364,5 +372,46 @@ class MindmapRepositoryImpl implements MindmapRepository {
       logger.e('📍 StackTrace: $stackTrace');
       return Left(ServerFailure('마인드맵 생성 실패: $e'));
     }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateNodePositions(
+    int workspaceId,
+    List<MindmapNode> nodes,
+  ) async {
+    try {
+      logger.i('🔄 MindmapRepositoryImpl: Updating ${nodes.length} node positions for workspace $workspaceId');
+
+      // MindmapNode → NodePositionItem 변환
+      final items = nodes.map((node) {
+        return NodePositionItem(
+          nodeId: int.parse(node.id), // String → int 변환
+          x: node.position.dx,
+          y: node.position.dy,
+          color: _colorToHex(node.color),
+        );
+      }).toList();
+
+      final request = NodePositionUpdateRequest(positions: items);
+
+      await apiDataSource.updateNodePositions(workspaceId, request);
+
+      logger.i('✅ MindmapRepositoryImpl: Successfully updated node positions');
+
+      return const Right(null);
+    } on ServerException catch (e) {
+      logger.e('❌ MindmapRepositoryImpl: ServerException - ${e.message}');
+      return Left(ServerFailure(e.message));
+    } catch (e, stackTrace) {
+      logger.e('❌ MindmapRepositoryImpl: Unexpected error - $e');
+      logger.e('📍 StackTrace: $stackTrace');
+      return Left(ServerFailure('노드 위치 업데이트 실패: $e'));
+    }
+  }
+
+  /// Color를 #RRGGBB 형식의 String으로 변환
+  String _colorToHex(Color color) {
+    final rgb = color.value & 0x00FFFFFF; // Alpha 제거
+    return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 }
