@@ -116,8 +116,33 @@ export default function D3Canvas({
     // Defs 생성
     const defs = svg.append("defs");
 
+    // 점박이 패턴 생성
+    const dotPattern = defs
+      .append("pattern")
+      .attr("id", "dot-pattern")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 20)
+      .attr("height", 20)
+      .attr("patternUnits", "userSpaceOnUse");
+
+    dotPattern
+      .append("circle")
+      .attr("cx", 10)
+      .attr("cy", 10)
+      .attr("r", 1.5)
+      .attr("fill", "#D1D5DB")
+      .attr("opacity", 0.5);
+
     // 모든 노드에 대한 그라데이션 생성
     createAllGradients(defs, nodes);
+
+    // 배경 사각형 (점박이 패턴)
+    svg
+      .append("rect")
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("fill", "url(#dot-pattern)");
 
     // 그룹 생성 (줌/팬 적용될 컨테이너)
     const g = svg.append("g").attr("class", "viewport");
