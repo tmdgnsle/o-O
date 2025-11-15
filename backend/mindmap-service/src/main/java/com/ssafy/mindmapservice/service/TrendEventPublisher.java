@@ -14,38 +14,31 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TrendEventPublisher {
 
-    private final WorkspaceServiceClientAdapter workspaceClient;
     private final TrendEventBuffer buffer;
 
-    public void publishRelationAdd(long workspaceId, String parent, String child) {
-        if (!isPublic(workspaceId)) return;
+    public void publishRelationAdd(long workspaceId, String parent, String child, boolean isPublic) {
+        if (!isPublic) return;
+
         long now = System.currentTimeMillis();
-        String idemp = TrendEventBuffer.makeIdempotency(workspaceId, parent, child, TrendEventType.RELATION_ADD, now);
+        String idemp = TrendEventBuffer.makeIdempotency(
+                workspaceId, parent, child, TrendEventType.RELATION_ADD, now
+        );
 
         buffer.offer(new TrendRelationEvent(
                 TrendEventType.RELATION_ADD, now, workspaceId, parent, child, idemp
         ));
     }
 
-    public void publishRelationView(long workspaceId, String parent, String child) {
-        if (!isPublic(workspaceId)) return;
+    public void publishRelationView(long workspaceId, String parent, String child, boolean isPublic) {
+        if (!isPublic) return;
+
         long now = System.currentTimeMillis();
-        String idemp = TrendEventBuffer.makeIdempotency(workspaceId, parent, child, TrendEventType.RELATION_VIEW, now);
+        String idemp = TrendEventBuffer.makeIdempotency(
+                workspaceId, parent, child, TrendEventType.RELATION_VIEW, now
+        );
 
         buffer.offer(new TrendRelationEvent(
                 TrendEventType.RELATION_VIEW, now, workspaceId, parent, child, idemp
         ));
-    }
-
-    private boolean isPublic(long workspaceId) {
-        try {
-            String vis = workspaceClient.getVisibility(workspaceId);
-            return "PUBLIC".equalsIgnoreCase(vis);
-
-        } catch (Exception e) {
-            // 안전하게: 실패 시 발행하지 않음
-            log.error(e.getMessage());
-            return false;
-        }
     }
 }
