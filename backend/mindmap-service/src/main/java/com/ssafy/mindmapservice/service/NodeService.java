@@ -5,6 +5,7 @@ import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.kafka.AiNodeResult;
 import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
+import com.ssafy.mindmapservice.dto.request.NodePositionUpdateRequest;
 import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
 import com.ssafy.mindmapservice.dto.kafka.NodeContextDto;
 import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
@@ -187,6 +188,46 @@ public class NodeService {
         existingNode.setUpdatedAt(LocalDateTime.now());
 
         return nodeRepository.save(existingNode);
+    }
+
+    /**
+     * 여러 노드의 좌표를 일괄 업데이트합니다.
+     * 모바일에서 STT 아이디어 확장 후 레이아웃 계산 결과를 반영할 때 사용됩니다.
+     *
+     * @param workspaceId 워크스페이스 ID
+     * @param positions 업데이트할 노드 좌표 리스트
+     * @return 업데이트된 노드 수
+     */
+    @Transactional
+    public int batchUpdatePositions(Long workspaceId, List<NodePositionUpdateRequest> positions) {
+        log.info("Batch updating positions: workspaceId={}, count={}", workspaceId, positions.size());
+
+        int updatedCount = 0;
+
+        for (NodePositionUpdateRequest position : positions) {
+            try {
+                MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, position.nodeId())
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Node not found: workspaceId=" + workspaceId + ", nodeId=" + position.nodeId()));
+
+                node.setX(position.x());
+                node.setY(position.y());
+                node.setUpdatedAt(LocalDateTime.now());
+
+                nodeRepository.save(node);
+                updatedCount++;
+
+                log.debug("Updated position for node: nodeId={}, x={}, y={}",
+                        position.nodeId(), position.x(), position.y());
+
+            } catch (Exception e) {
+                log.error("Failed to update position for node: nodeId={}", position.nodeId(), e);
+                throw new RuntimeException("Failed to update position for nodeId: " + position.nodeId(), e);
+            }
+        }
+
+        log.info("Successfully updated {} node positions", updatedCount);
+        return updatedCount;
     }
 
     @Transactional
