@@ -24,6 +24,7 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
+// import { useMindmapSync } from "../hooks/custom/useMindmapSync"; // DISABLED: Backend handles persistence
 import {
   getPendingImportKeywords,
   clearPendingImportKeywords,
@@ -56,17 +57,18 @@ const MindmapPageContent: React.FC = () => {
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
 
-  // 4. Stable cursor color (once per session)
+  // 4. Stable cursor color (once per session) - separate from node theme colors
   const cursorColorRef = useRef<string | null>(null);
   if (!cursorColorRef.current) {
-    cursorColorRef.current = getRandomThemeColor();
+    // Use cursor-specific color palette for collaboration
+    const CURSOR_COLORS = ["#F24822", "#57E257", "#FF824D", "#29DFFF", "#FF50F0", "#FFC60B"];
+    cursorColorRef.current = CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
   }
 
   // 5. Collaboration hooks
   const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
     workspaceId,
-    cyRef,
     cursorColorRef.current,
     {
       enabled: true, // Mindmap 페이지에서는 항상 활성화
@@ -79,8 +81,17 @@ const MindmapPageContent: React.FC = () => {
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
+  // 🐛 DEBUG: Expose Yjs map to window for console debugging
+  useEffect(() => {
+    if (collab?.map) {
+      (globalThis as any).yNodes = collab.map;
+      console.log("[MindmapPage] Yjs map exposed to window.yNodes");
+    }
+  }, [collab]);
+
   // 5a. Sync Yjs changes to backend API
-  useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
+  // DISABLED: Backend Yjs server handles persistence via Kafka → MongoDB
+  // useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();
@@ -101,6 +112,7 @@ const MindmapPageContent: React.FC = () => {
     nodes,
     cyRef,
     mode,
+    workspaceId,
     getRandomThemeColor,
     findNonOverlappingPosition,
   });
@@ -294,12 +306,11 @@ const MindmapPageContent: React.FC = () => {
             onApplyTheme={nodeOperations.handleApplyTheme}
             onDeleteNode={nodeOperations.handleDeleteNode}
             onEditNode={nodeOperations.handleEditNode}
-            onNodePositionChange={nodeOperations.handleNodePositionChange}
             onBatchNodePositionChange={nodeOperations.handleBatchNodePositionChange}
             onCyReady={(cy) => {
               cyRef.current = cy;
               setCyReady(true);
-            }}            
+            }}
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
             detachedSelectionMap={detachedSelection.detachedSelectionMap}

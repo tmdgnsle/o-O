@@ -39,7 +39,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
       cyNode.position({ x: node.x, y: node.y });
     }
 
-    cyNode.data({ label: node.text, color: node.color });
+    cyNode.data({ label: node.keyword, color: node.color });
 
     // 모드에 따라 드래그 가능 여부 설정
     if (isDraggable) {
@@ -52,7 +52,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
     // 새 노드 추가
     const newNode = cy.add({
       group: "nodes",
-      data: { id: node.id, label: node.text, color: node.color },
+      data: { id: node.id, label: node.keyword, color: node.color },
       position: { x: node.x, y: node.y },
       grabbable: isDraggable,
       selectable: true,

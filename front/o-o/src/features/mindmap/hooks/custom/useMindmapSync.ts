@@ -8,17 +8,22 @@ import {
 } from "@/services/mindmapService";
 
 /**
- * Yjs Y.Map 변경사항을 백엔드 API와 동기화하는 훅
+ * ⚠️ DEPRECATED: 이 훅은 더 이상 사용되지 않습니다.
  *
- * **동작 방식:**
+ * 백엔드 Yjs 서버가 Y.Doc 변경사항을 직접 관찰하여 Kafka → MongoDB로 영속화합니다.
+ * 프론트엔드에서 REST API를 통해 중복으로 저장할 필요가 없습니다.
+ *
+ * **현재 아키텍처:**
+ * - Frontend Y.Map → WebSocket → Backend Yjs Server → Kafka → MongoDB
+ * - REST API는 초기 로딩(GET /nodes)에만 사용됨
+ *
+ * **이전 동작 방식 (현재는 사용 안 함):**
  * 1. Y.Map에 observe 리스너 등록
  * 2. 로컬 변경(add/update/delete) 감지
- * 3. 해당 변경사항을 백엔드 API로 전송
+ * 3. 해당 변경사항을 백엔드 API로 전송 ← 이제 불필요
  * 4. 원격 변경(다른 사용자)은 무시 (이미 Yjs가 동기화함)
  *
- * **주의사항:**
- * - transaction.origin이 'mindmap-crud'인 경우만 처리 (로컬 변경)
- * - 네트워크 오류 시 재시도 로직 없음 (추후 개선 가능)
+ * @deprecated 백엔드 Yjs 서버가 영속화를 담당하므로 사용하지 마세요.
  */
 export function useMindmapSync(
   workspaceId: string,
@@ -75,7 +80,7 @@ export function useMindmapSync(
           createMindmapNode(workspaceId, {
             parentId: nodeData.parentId ? Number(nodeData.parentId) : null,
             type: nodeData.type || "text",
-            keyword: nodeData.text,
+            keyword: nodeData.keyword,
             memo: nodeData.memo,
             x: nodeData.x,
             y: nodeData.y,
@@ -118,7 +123,7 @@ export function useMindmapSync(
           console.log("[useMindmapSync] updating node", nodeData.nodeId, nodeData);
 
           updateMindmapNode(workspaceId, nodeData.nodeId, {
-            keyword: nodeData.text,
+            keyword: nodeData.keyword,
             memo: nodeData.memo,
             x: nodeData.x,
             y: nodeData.y,

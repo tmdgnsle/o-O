@@ -32,7 +32,6 @@ export default function CytoscapeCanvas({
   onApplyTheme,
   onDeleteNode,
   onEditNode,
-  onNodePositionChange,
   onBatchNodePositionChange,
   onCyReady,
   onCreateChildNode,
@@ -75,7 +74,6 @@ export default function CytoscapeCanvas({
   useCytoscapeEvents(cyRef.current, {
     onNodeSelect,
     onNodeUnselect,
-    onNodePositionChange,
     onBackgroundClick: onNodeUnselect,
   }, cyReady && mode === "edit");
 

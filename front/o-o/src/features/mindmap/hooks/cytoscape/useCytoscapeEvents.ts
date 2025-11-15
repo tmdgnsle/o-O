@@ -1,11 +1,10 @@
 import { useEffect } from "react";
 import type { Core, EventObject } from "cytoscape";
-import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
+// import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
 
 export type CytoscapeEventHandlers = {
   onNodeSelect?: (nodeId: string) => void;
   onNodeUnselect?: () => void;
-  onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBackgroundClick?: () => void;
 };
 
@@ -30,38 +29,39 @@ export function useCytoscapeEvents(
       const selectedNode = event.target;
 
       // 애니메이션: 선택 시 펄스 효과
-      const config = getAnimationConfig();
-      if (config.selectionPulse.duration > 0) {
-        selectedNode.animate(
-          {
-            style: {
-              width: selectionPulseAnimation.keyframes[1].width,
-              height: selectionPulseAnimation.keyframes[1].height,
-            },
-            duration: config.selectionPulse.duration / 2,
-            easing: config.selectionPulse.easing,
-          },
-          {
-            queue: false,
-            complete: () => {
-              // 원래 크기로 복귀
-              selectedNode.animate(
-                {
-                  style: {
-                    width: selectionPulseAnimation.keyframes[2].width,
-                    height: selectionPulseAnimation.keyframes[2].height,
-                  },
-                  duration: config.selectionPulse.duration / 2,
-                  easing: config.selectionPulse.easing,
-                },
-                {
-                  queue: false,
-                }
-              );
-            },
-          }
-        );
-      }
+      // TODO : cytoscape 캔버스 자체를 투명 처리했으므로, 애니메이션을 리액트로 트리거만 할까 고민
+      // const config = getAnimationConfig();
+      // if (config.selectionPulse.duration > 0) {
+      //   selectedNode.animate(
+      //     {
+      //       style: {
+      //         width: selectionPulseAnimation.keyframes[1].width,
+      //         height: selectionPulseAnimation.keyframes[1].height,
+      //       },
+      //       duration: config.selectionPulse.duration / 2,
+      //       easing: config.selectionPulse.easing,
+      //     },
+      //     {
+      //       queue: false,
+      //       complete: () => {
+      //         // 원래 크기로 복귀
+      //         selectedNode.animate(
+      //           {
+      //             style: {
+      //               width: selectionPulseAnimation.keyframes[2].width,
+      //               height: selectionPulseAnimation.keyframes[2].height,
+      //             },
+      //             duration: config.selectionPulse.duration / 2,
+      //             easing: config.selectionPulse.easing,
+      //           },
+      //           {
+      //             queue: false,
+      //           }
+      //         );
+      //       },
+      //     }
+      //   );
+      // }
 
       onNodeSelect(nodeId);
     };

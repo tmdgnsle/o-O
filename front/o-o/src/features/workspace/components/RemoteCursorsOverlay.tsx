@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Core } from "cytoscape";
 import { usePeerCursors } from "./PeerCursorProvider";
+import { CursorIcon } from "@/shared/ui/CursorIcon";
 
 type RemoteCursorsOverlayProps = {
   cy: Core | null;
@@ -68,15 +69,7 @@ export function RemoteCursorsOverlay({
               gap: 4,
             }}
           >
-            <div
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "9999px",
-                background: peer.color ?? "#3b82f6",
-                boxShadow: "0 0 0 2px #fff",
-              }}
-            />
+            <CursorIcon color={peer.color ?? "#3b82f6"} width={20} height={20} />
             {peer.name && (
               <div
                 style={{

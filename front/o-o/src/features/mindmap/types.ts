@@ -39,7 +39,6 @@ export type CytoscapeCanvasProps = Readonly<{
   onApplyTheme: (colors: string[]) => void;
   onDeleteNode: (payload: DeleteNodePayload) => void;
   onEditNode: (payload: EditNodePayload) => void;
-  onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBatchNodePositionChange?: (
     positions: Array<{ id: string; x: number; y: number }>
   ) => void;
@@ -104,7 +103,7 @@ export type RadialToolGroupProps = Readonly<{
 // RecommendNodeOverlay.tsx
 export type RecommendNodeData = {
   id: string;
-  text: string;
+  keyword: string;
   type: "ai" | "trend";
 };
 
@@ -131,19 +130,23 @@ export type MindmapNodeType = "text" | "image" | "link";
 
 export type NodeAnalysisStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
 
+export type NodeOperation = "ADD" | "UPDATE" | "DELETE";
+
 // Mindmap nodes can carry optional metadata from REST → Yjs → UI
 export type NodeData = {
   id: string;
   nodeId?: number; // Backend DB ID (for update/delete operations)
-  text: string;
+  workspaceId?: number; // Workspace ID (required for backend persistence)
+  keyword: string;
   x: number;
   y: number;
   color: string;
-  parentId?: string | null;
+  parentId?: string | number | null; // Frontend uses string IDs, backend uses numeric nodeId (0 for root)
   memo?: string;
   type?: MindmapNodeType;
   contentUrl?: string;
   analysisStatus?: NodeAnalysisStatus;
+  operation?: NodeOperation; // Operation type for backend sync (ADD/UPDATE/DELETE)
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -153,7 +156,7 @@ export type ChildNodeRequest = {
   parentId: string;
   parentX: number;
   parentY: number;
-  text: string;
+  keyword: string;
   memo?: string;
 };
 
