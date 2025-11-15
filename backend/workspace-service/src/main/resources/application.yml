@@ -37,3 +37,7 @@ management:
       probes:
         enabled: true          # /actuator/health/liveness, /readiness 자동 생성
       show-details: never      # 운영 기본값. 필요시 when_authorized
+
+feign:
+  user-service:
+    url: http://user-svc:8081

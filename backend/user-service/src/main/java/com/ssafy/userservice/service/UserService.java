@@ -1,5 +1,6 @@
 package com.ssafy.userservice.service;
 
+import com.ssafy.userservice.dto.UserProfileDto;
 import com.ssafy.userservice.dto.UserResponse;
 import com.ssafy.userservice.dto.UserUpdateRequest;
 import com.ssafy.userservice.domain.User;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -43,5 +46,16 @@ public class UserService {
         log.info("User updated - userId: {}", userId);
 
         return UserResponse.from(user);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserProfileDto> getProfiles(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userRepository.findByIdIn(userIds).stream()
+                .map(UserProfileDto::from)
+                .toList();
     }
 }

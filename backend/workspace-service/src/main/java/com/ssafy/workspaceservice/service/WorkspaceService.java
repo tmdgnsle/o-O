@@ -1,6 +1,8 @@
 package com.ssafy.workspaceservice.service;
 
 import com.ssafy.workspaceservice.client.MindmapClient;
+import com.ssafy.workspaceservice.client.UserServiceClient;
+import com.ssafy.workspaceservice.dto.request.UserProfileRequest;
 import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.entity.WorkspaceMember;
@@ -20,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -29,6 +32,7 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final MindmapClient mindmapClient;
+    private final UserServiceClient userServiceClient;
 
     private static final int MAX_MEMBERS = 6;
     private static final int DEFAULT_PAGE_SIZE = 20;
@@ -121,59 +125,104 @@ public class WorkspaceService {
     // 내가 속한 워크스페이스 조회 (커서 기반 페이징)
     @Transactional(readOnly = true)
     public WorkspaceCursorResponse getMyWorkspaces(Long userId, String category, Long cursor) {
-        // size+1개 조회하여 hasNext 판단
         Pageable pageable = PageRequest.of(0, DEFAULT_PAGE_SIZE + 1);
         List<Workspace> workspaces;
 
-        // category에 따라 쿼리 분기
+        // 🔹 category 분기
         switch (category.toLowerCase()) {
-            case "recent":
-                // 전체 워크스페이스
+            case "recent" -> {
                 if (cursor == null) {
                     workspaces = workspaceRepository.findMyWorkspacesInitial(userId, pageable);
                 } else {
                     workspaces = workspaceRepository.findMyWorkspacesWithCursor(userId, cursor, pageable);
                 }
-                break;
-
-            case "team":
-                // TEAM 타입만
+            }
+            case "team" -> {
                 if (cursor == null) {
                     workspaces = workspaceRepository.findMyWorkspacesByTypeInitial(userId, WorkspaceType.TEAM, pageable);
                 } else {
                     workspaces = workspaceRepository.findMyWorkspacesByTypeWithCursor(userId, WorkspaceType.TEAM, cursor, pageable);
                 }
-                break;
-
-            case "personal":
-                // PERSONAL 타입만
+            }
+            case "personal" -> {
                 if (cursor == null) {
                     workspaces = workspaceRepository.findMyWorkspacesByTypeInitial(userId, WorkspaceType.PERSONAL, pageable);
                 } else {
                     workspaces = workspaceRepository.findMyWorkspacesByTypeWithCursor(userId, WorkspaceType.PERSONAL, cursor, pageable);
                 }
-                break;
-
-            default:
-                throw new BadRequestException(ErrorCode.INVALID_INPUT_VALUE);
+            }
+            default -> throw new BadRequestException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        // hasNext 확인 (size+1개 조회했으므로)
         boolean hasNext = workspaces.size() > DEFAULT_PAGE_SIZE;
 
-        // 실제 반환할 데이터 (size개만)
-        List<WorkspaceSimpleResponse> content = workspaces.stream()
+        // 실제 페이지에 들어갈 워크스페이스
+        List<Workspace> pageWorkspaces = workspaces.stream()
                 .limit(DEFAULT_PAGE_SIZE)
-                .map(WorkspaceSimpleResponse::from)
                 .toList();
 
-        // nextCursor는 마지막 항목의 id
+        if (pageWorkspaces.isEmpty()) {
+            return WorkspaceCursorResponse.of(List.of(), null, false);
+        }
+
+        // 1) workspaceId 목록
+        List<Long> workspaceIds = pageWorkspaces.stream()
+                .map(Workspace::getId)
+                .toList();
+
+        // 2) 워크스페이스 멤버 조회
+        List<WorkspaceMember> members =
+                workspaceMemberRepository.findByWorkspaceIds(workspaceIds);
+
+        // workspaceId -> userId 리스트 매핑
+        Map<Long, List<Long>> workspaceUserMap = members.stream()
+                .collect(Collectors.groupingBy(
+                        wm -> wm.getWorkspace().getId(),
+                        Collectors.mapping(WorkspaceMember::getUserId, Collectors.toList())
+                ));
+
+        // 3) 전체 userId 모으기
+        List<Long> allUserIds = members.stream()
+                .map(WorkspaceMember::getUserId)
+                .distinct()
+                .toList();
+
+        // 🔹 userId -> profileImage("popo1"~"popo4") 맵 (effectively final로 만들기)
+        final Map<Long, String> profileImageMap;
+        if (!allUserIds.isEmpty()) {
+            List<UserProfileDto> profileDtos =
+                    userServiceClient.getUserProfiles(new UserProfileRequest(allUserIds));
+
+            profileImageMap = profileDtos.stream()
+                    .collect(Collectors.toMap(
+                            UserProfileDto::id,
+                            UserProfileDto::profileImage
+                    ));
+        } else {
+            profileImageMap = Collections.emptyMap();
+        }
+
+        // 4) WorkspaceSimpleResponse로 매핑 (profiles 채우기)
+        List<WorkspaceSimpleResponse> content = pageWorkspaces.stream()
+                .map(w -> {
+                    List<Long> memberIds = workspaceUserMap.getOrDefault(w.getId(), List.of());
+
+                    List<String> profiles = memberIds.stream()
+                            .map(uid -> profileImageMap.getOrDefault(uid, "popo1"))
+                            .toList();
+
+                    return WorkspaceSimpleResponse.from(w, profiles);
+                })
+                .toList();
+
         Long nextCursor = hasNext && !content.isEmpty()
                 ? content.getLast().id()
                 : null;
 
         return WorkspaceCursorResponse.of(content, nextCursor, hasNext);
     }
+
+
 
 
     // 워크스페이스 삭제

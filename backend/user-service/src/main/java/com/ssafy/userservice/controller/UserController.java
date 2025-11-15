@@ -1,5 +1,7 @@
 package com.ssafy.userservice.controller;
 
+import com.ssafy.userservice.dto.UserProfileDto;
+import com.ssafy.userservice.dto.UserProfileRequest;
 import com.ssafy.userservice.dto.UserResponse;
 import com.ssafy.userservice.dto.UserUpdateRequest;
 import com.ssafy.userservice.service.UserService;
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "사용자 API", description = "사용자 정보 조회 및 수정 API")
 @RestController
@@ -54,5 +58,12 @@ public class UserController {
         log.info("PATCH /users - Updating user information for userId: {}", userId);
         UserResponse response = userService.updateUser(userId, request);
         return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/internal/profiles")
+    public List<UserProfileDto> getProfiles(@RequestBody UserProfileRequest request) {
+        return userService.getProfiles(request.userIds());
     }
 }

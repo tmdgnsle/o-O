@@ -1,6 +1,7 @@
 package com.ssafy.workspaceservice.repository;
 
 import com.ssafy.workspaceservice.entity.Workspace;
+import com.ssafy.workspaceservice.entity.WorkspaceMember;
 import com.ssafy.workspaceservice.enums.WorkspaceType;
 import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import org.springframework.data.domain.Pageable;
@@ -108,4 +109,8 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
             @Param("userId") Long userId,
             @Param("date") LocalDateTime date
     );
+
+    @Query("SELECT wm FROM WorkspaceMember wm WHERE wm.workspace.id IN :workspaceIds")
+    List<WorkspaceMember> findByWorkspaceIdIn(@Param("workspaceIds") List<Long> workspaceIds);
+
 }
