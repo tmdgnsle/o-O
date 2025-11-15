@@ -78,6 +78,7 @@ export default function CytoscapeCanvas({
     onNodePositionChange,
     onBackgroundClick: onNodeUnselect,
     enableToggle: true,
+    selectedNodeId,
   }, cyReady && mode === "edit");
 
   // 분석 모드 전용 노드 클릭 토글

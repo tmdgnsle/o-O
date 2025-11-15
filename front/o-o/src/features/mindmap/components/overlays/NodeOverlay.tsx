@@ -139,18 +139,6 @@ function NodeOverlay({
     }
   }, [node.type]);
 
-  const handleNodeClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (mode === "analyze") return; // 분석 모드에서는 별도 처리
-
-    // Edit 모드에서 노드 클릭 토글
-    if (isSelected) {
-      onDeselect();
-    } else {
-      onSelect();
-    }
-  }, [mode, isSelected, onSelect, onDeselect]);
-
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
   const textColor = getContrastTextColor(initialColor);
 
@@ -175,12 +163,11 @@ function NodeOverlay({
         }}
       >
         <div
-          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer ${selectionRingClass}`}
+          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${selectionRingClass}`}
           style={{
             background: createRadialGradient(initialColor),
-            pointerEvents: isAnalyzeMode ? "none" : "auto",
+            pointerEvents: "none",
           }}
-          onClick={handleNodeClick}
         >
           {isEditing ? (
             <NodeEditForm
