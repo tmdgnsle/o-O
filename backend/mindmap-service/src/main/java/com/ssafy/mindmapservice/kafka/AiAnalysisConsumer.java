@@ -77,11 +77,9 @@ public class AiAnalysisConsumer {
 
             // 2. INITIAL인 경우 원본 노드의 memo에 aiSummary 업데이트 및 워크스페이스 title 업데이트
             if (isInitial) {
-                if (result.aiSummary() != null) {
-                    updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
-                    log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
-                            result.workspaceId(), originalNodeId);
-                }
+                updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
+                log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
+                        result.workspaceId(), originalNodeId);
 
                 // 워크스페이스 title 업데이트
                 if (result.title() != null && !result.title().isBlank()) {
