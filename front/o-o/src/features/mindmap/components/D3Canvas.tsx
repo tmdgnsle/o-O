@@ -10,7 +10,7 @@ import {
   CANVAS_CENTER_Y,
   NODE_RADIUS,
   PAN_LIMIT,
-  createBezierPath,
+  createStraightPath,
   findParentNode,
   clampPan,
 } from "../utils/d3Utils";
@@ -337,129 +337,8 @@ export default function D3Canvas({
     return () => clearTimeout(timer);
   }, [d3Ready, nodes.length]);
 
-  // 엣지 렌더링 (애니메이션 포함)
-  useEffect(() => {
-    if (!svgRef.current || !d3Ready) return;
-
-    const svg = d3.select(svgRef.current);
-    const edgesGroup = svg.select<SVGGElement>("g.edges");
-
-    // 🔍 디버깅: 노드 좌표 상태 확인
-    const nodesWithCoords = nodes.filter(n => n.x != null && n.y != null);
-    const nodesWithoutCoords = nodes.filter(n => n.x == null || n.y == null);
-    console.log(`[D3Canvas] 📊 Node coordinate status:`, {
-      totalNodes: nodes.length,
-      withCoordinates: nodesWithCoords.length,
-      withoutCoordinates: nodesWithoutCoords.length,
-      allNodes: nodes.map(n => ({
-        id: n.id,
-        keyword: n.keyword,
-        x: n.x,
-        y: n.y,
-        parentId: n.parentId,
-      })),
-    });
-
-    if (nodesWithoutCoords.length > 0) {
-      console.warn(`[D3Canvas] ⚠️ ${nodesWithoutCoords.length} nodes have null coordinates! Edges cannot be rendered.`);
-      console.warn(`[D3Canvas] ⚠️ Nodes without coords:`, nodesWithoutCoords.map(n => ({
-        id: n.id,
-        keyword: n.keyword,
-        x: n.x,
-        y: n.y,
-      })));
-    }
-
-    console.log(`[D3Canvas] 🔗 Rendering edges:`, {
-      totalEdges: edges.length,
-      edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-    });
-
-    // 노드 맵 생성 (빠른 조회)
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
-    // 엣지 데이터 바인딩
-    const edgePaths = edgesGroup
-      .selectAll<SVGPathElement, typeof edges[0]>("path")
-      .data(edges, (d) => d.id);
-
-    // Enter: 새로운 엣지 추가 (애니메이션)
-    edgePaths
-      .enter()
-      .append("path")
-      .attr("class", "edge")
-      .attr("stroke", "#2563eb") // 진한 파란색으로 변경
-      .attr("stroke-width", 5) // 두께 더 증가 (4 → 5)
-      .attr("stroke-linecap", "round") // 끝부분 둥글게
-      .attr("fill", "none")
-      .attr("opacity", 0) // 초기 투명도 0
-      .attr("d", (d) => {
-        const source = nodeMap.get(d.source);
-        const target = nodeMap.get(d.target);
-
-        if (!source || !target) {
-          console.warn(`[D3Canvas] ❌ Missing node for edge ${d.id}:`, {
-            source: d.source,
-            target: d.target,
-            sourceExists: !!source,
-            targetExists: !!target,
-          });
-          return "";
-        }
-
-        // 🔥 좌표가 null이면 엣지를 그릴 수 없음
-        if (source.x == null || source.y == null || target.x == null || target.y == null) {
-          console.warn(`[D3Canvas] ❌ Node has null coordinates for edge ${d.id}:`, {
-            source: { id: source.id, keyword: source.keyword, x: source.x, y: source.y },
-            target: { id: target.id, keyword: target.keyword, x: target.x, y: target.y },
-          });
-          return "";
-        }
-
-        const path = createBezierPath(source, target);
-        console.log(`[D3Canvas] ✅ Edge ${d.id} rendered:`, {
-          source: { id: source.id, keyword: source.keyword, x: source.x, y: source.y },
-          target: { id: target.id, keyword: target.keyword, x: target.x, y: target.y },
-          pathPreview: path.substring(0, 80) + "...",
-        });
-        return path;
-      })
-      .transition() // 애니메이션 시작
-      .duration(500) // 0.5초
-      .attr("opacity", 0.9); // 투명도 증가 (0.8 → 0.9)
-
-    // Update: 기존 엣지 위치 업데이트 (애니메이션)
-    edgePaths
-      .attr("stroke", "#2563eb") // 진한 파란색 유지
-      .attr("stroke-width", 5) // 두께 유지
-      .attr("stroke-linecap", "round") // 끝부분 둥글게 유지
-      .attr("opacity", 0.9) // 투명도 유지
-      .transition()
-      .duration(500)
-      .attr("d", (d) => {
-        const source = nodeMap.get(d.source);
-        const target = nodeMap.get(d.target);
-        if (!source || !target) return "";
-        return createBezierPath(source, target);
-      });
-
-    // Exit: 제거되는 엣지 (애니메이션)
-    edgePaths
-      .exit()
-      .transition()
-      .duration(300)
-      .attr("opacity", 0)
-      .remove();
-
-    const totalPathsInDOM = edgesGroup.selectAll("path").size();
-    console.log(`[D3Canvas] 🔗 Edge rendering complete. Total paths in DOM: ${totalPathsInDOM}`);
-
-    if (totalPathsInDOM === 0 && edges.length > 0) {
-      console.error(`[D3Canvas] ❌❌❌ CRITICAL: ${edges.length} edges defined but 0 paths rendered! Check node coordinates!`);
-    } else if (totalPathsInDOM > 0) {
-      console.log(`[D3Canvas] ✅✅✅ SUCCESS: ${totalPathsInDOM} edge paths are rendered in the DOM!`);
-    }
-  }, [d3Ready, nodes, edges]);
+  // 엣지 렌더링 - D3 렌더링 비활성화 (React 오버레이에서만 렌더링)
+  // Edge는 React 오버레이(라인 600번대)에서 직선으로 렌더링됨
 
   // 노드 렌더링 - SVG 원 비활성화 (NodeOverlay만 사용)
   useEffect(() => {
@@ -714,7 +593,7 @@ export default function D3Canvas({
                 return null;
               }
 
-              const path = createBezierPath(source, target);
+              const path = createStraightPath(source, target);
 
               return (
                 <path

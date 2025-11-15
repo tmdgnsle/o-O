@@ -4,14 +4,15 @@ import { fetchMindmapNodes } from "@/services/mindmapService";
 import { useYMapState } from "./useYMapState";
 import type { NodeData } from "../../../mindmap/types";
 import type { YClient } from "./yjsClient";
-import { calculateRadialLayout, CANVAS_CENTER_X, CANVAS_CENTER_Y } from "../../../mindmap/utils/d3Utils";
+import { CANVAS_CENTER_X, CANVAS_CENTER_Y } from "../../../mindmap/utils/d3Utils";
+import { calculateRadialLayoutWithForces } from "../../../mindmap/utils/radialLayoutWithForces";
 
 /**
  * x, y가 null인 노드들에게 자동으로 위치를 할당
- * - calculateRadialLayout 함수를 사용하여 방사형 레이아웃 적용
- * - D3 Tree Layout으로 선 겹침 방지
+ * - calculateRadialLayoutWithForces 함수를 사용하여 방사형 레이아웃 적용 (BFS 기반)
+ * - D3 Tree Layout + Force Simulation + BFS 빈 자리 찾기로 노드 겹침 방지
  */
-function calculateNodePositions(nodes: NodeData[]): NodeData[] {
+async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   if (nodes.length === 0) return nodes;
 
   console.log(`[calculateNodePositions] Processing ${nodes.length} nodes`);
@@ -58,9 +59,9 @@ function calculateNodePositions(nodes: NodeData[]): NodeData[] {
     };
   });
 
-  // 방사형 레이아웃 계산 (Tree layout으로 선 겹침 방지)
-  const positions = calculateRadialLayout(nodesForLayout, CANVAS_CENTER_X, CANVAS_CENTER_Y, 350);
-  console.log(`[calculateNodePositions] Calculated ${positions.length} radial positions`);
+  // 방사형 레이아웃 계산 (BFS 기반 빈 자리 찾기로 노드 겹침 방지)
+  const positions = await calculateRadialLayoutWithForces(nodesForLayout, CANVAS_CENTER_X, CANVAS_CENTER_Y, 350);
+  console.log(`[calculateNodePositions] Calculated ${positions.length} radial positions with BFS`);
 
   // 계산된 좌표를 노드에 적용
   const processedNodes = nodes.map(node => {
@@ -144,7 +145,7 @@ export function useCollaborativeNodes(
 
         // Calculate positions for nodes with null x/y
         console.time('[useCollaborativeNodes] calculateNodePositions');
-        const processedNodes = calculateNodePositions(restNodes);
+        const processedNodes = await calculateNodePositions(restNodes);
         console.timeEnd('[useCollaborativeNodes] calculateNodePositions');
 
         // Use transaction to batch all insertions for performance
@@ -203,34 +204,38 @@ export function useCollaborativeNodes(
     console.log(`[useCollaborativeNodes] 🔧 Found ${nullPositionNodes.length} nodes with null positions, recalculating...`);
     console.log(`[useCollaborativeNodes] 🔧 Sample null node:`, nullPositionNodes[0]);
 
-    // 전체 노드에 대해 좌표 재계산
-    const processedNodes = calculateNodePositions(nodes);
+    // 전체 노드에 대해 좌표 재계산 (async)
+    const updatePositions = async () => {
+      const processedNodes = await calculateNodePositions(nodes);
 
-    console.log(`[useCollaborativeNodes] 🔧 Processed nodes sample:`, processedNodes.slice(0, 3).map(n => ({
-      id: n.id,
-      keyword: n.keyword,
-      x: n.x,
-      y: n.y,
-    })));
+      console.log(`[useCollaborativeNodes] 🔧 Processed nodes sample:`, processedNodes.slice(0, 3).map(n => ({
+        id: n.id,
+        keyword: n.keyword,
+        x: n.x,
+        y: n.y,
+      })));
 
-    // Yjs map에 업데이트
-    collab.client.doc.transact(() => {
-      for (const node of processedNodes) {
-        if (node.x != null && node.y != null) {
-          const existingNode = collab.map.get(node.id);
-          if (existingNode && (existingNode.x == null || existingNode.y == null)) {
-            console.log(`[useCollaborativeNodes] 🔧 Updating position for ${node.id}:`, {
-              keyword: node.keyword,
-              x: node.x,
-              y: node.y,
-            });
-            collab.map.set(node.id, { ...existingNode, x: node.x, y: node.y });
+      // Yjs map에 업데이트
+      collab.client.doc.transact(() => {
+        for (const node of processedNodes) {
+          if (node.x != null && node.y != null) {
+            const existingNode = collab.map.get(node.id);
+            if (existingNode && (existingNode.x == null || existingNode.y == null)) {
+              console.log(`[useCollaborativeNodes] 🔧 Updating position for ${node.id}:`, {
+                keyword: node.keyword,
+                x: node.x,
+                y: node.y,
+              });
+              collab.map.set(node.id, { ...existingNode, x: node.x, y: node.y });
+            }
           }
         }
-      }
-    }, "position-update");
+      }, "position-update");
 
-    console.log(`[useCollaborativeNodes] 🔧 Position update complete`);
+      console.log(`[useCollaborativeNodes] 🔧 Position update complete`);
+    };
+
+    updatePositions();
   }, [collab, nodes]); // nodes 전체를 의존성으로 변경
 
   return {

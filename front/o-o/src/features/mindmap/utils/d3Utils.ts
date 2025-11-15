@@ -29,17 +29,24 @@ export const NODE_RADIUS = 80; // 160px diameter
 
 /**
  * 두 노드 사이의 직선 경로를 생성합니다
+ * 🔥 IMPORTANT: 반드시 직선으로만 렌더링됩니다 (곡선 금지)
  * @param source - 시작 노드
  * @param target - 끝 노드
- * @returns SVG path d 속성 문자열
+ * @returns SVG path d 속성 문자열 (직선)
  */
-export function createBezierPath(
+export function createStraightPath(
   source: { x: number; y: number },
   target: { x: number; y: number }
 ): string {
-  // 직선으로 변경 (M = Move to, L = Line to)
+  // M = Move to, L = Line to (100% 직선)
   return `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
 }
+
+/**
+ * @deprecated Use createStraightPath instead
+ * 이전 이름과의 호환성을 위한 alias
+ */
+export const createBezierPath = createStraightPath;
 
 /**
  * 스크린 좌표를 모델 좌표로 변환합니다
