@@ -24,9 +24,14 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
-import popo1 from "@/shared/assets/images/popo1.png";
-import popo2 from "@/shared/assets/images/popo2.png";
-import popo3 from "@/shared/assets/images/popo3.png";
+import {
+  getPendingImportKeywords,
+  clearPendingImportKeywords,
+  convertTrendKeywordsToNodes,
+} from "../utils/importTrendKeywords";
+import popo1 from "@/shared/assets/images/popo1.webp";
+import popo2 from "@/shared/assets/images/popo2.webp";
+import popo3 from "@/shared/assets/images/popo3.webp";
 import {
   DEFAULT_WORKSPACE_ID,
   buildMindmapShareLink,
@@ -112,6 +117,52 @@ const MindmapPageContent: React.FC = () => {
     { id: "2", name: "사용자 B", avatar: popo2, colorIndex: 1 },
     { id: "3", name: "사용자 C", avatar: popo3, colorIndex: 2 },
   ], []);
+
+  // 🔥 트렌드 키워드 임포트 (로컬스토리지에서 감지)
+  useEffect(() => {
+    if (!collab || !crud) return;
+    if (isBootstrapping) return; // 부트스트랩 완료 후에만 실행
+
+    const pendingKeywords = getPendingImportKeywords();
+    if (!pendingKeywords || pendingKeywords.length === 0) return;
+
+    console.log("[MindmapPage] 트렌드 키워드 임포트:", pendingKeywords);
+
+    // viewport 중심 좌표 계산
+    let startX = 0;
+    let startY = 0;
+    if (cyRef.current) {
+      const pan = cyRef.current.pan();
+      const zoom = cyRef.current.zoom();
+      const container = cyRef.current.container();
+      if (container) {
+        const centerX = container.clientWidth / 2;
+        const centerY = container.clientHeight / 2;
+        startX = (centerX - pan.x) / zoom;
+        startY = (centerY - pan.y) / zoom;
+      }
+    }
+
+    // 키워드를 노드로 변환
+    const newNodes = convertTrendKeywordsToNodes(
+      pendingKeywords,
+      getRandomThemeColor,
+      startX,
+      startY
+    );
+
+    // Y.Map에 노드 추가 (transaction으로 한 번에)
+    crud.transact((map) => {
+      for (const node of newNodes) {
+        map.set(node.id, node);
+      }
+    });
+
+    // 로컬스토리지에서 제거
+    clearPendingImportKeywords();
+
+    console.log(`[MindmapPage] ${newNodes.length}개의 트렌드 키워드 노드 생성 완료`);
+  }, [collab, crud, isBootstrapping, getRandomThemeColor]);
 
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {

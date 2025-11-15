@@ -4,7 +4,7 @@ import type { NavLinkRenderProps } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 
-import logo from "@/shared/assets/images/logo.png";
+import logo from "@/shared/assets/images/logo.webp";
 
 import { ProfileEditModal } from "@/features/mypage/components/Profile/ProfileEditModal";
 import { useHeader } from "@/shared/hooks/useHeader";

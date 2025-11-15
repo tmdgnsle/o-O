@@ -1,7 +1,6 @@
 import { DashboardTabNav } from "./DashboardTabNav";
 import { ProjectList } from "../components/ProjectCard/ProjectList";
 import type { Workspace } from "../types/mypage";
-import { useAppSelector } from "@/store/hooks";
 import type { Project } from "../types/project";
 
 interface DashboardProps {
@@ -21,8 +20,6 @@ export function Dashboard({
   hasNext = false,
   onLoadMore,
 }: DashboardProps) {
-  // 현재 유저 가져오기
-  const currentUser = useAppSelector((state) => state.user);
 
   // 공통 스타일
   const containerStyle = isFullscreen
@@ -86,15 +83,11 @@ export function Dashboard({
     title: workspace.title,
     date: new Date(workspace.createdAt).toLocaleDateString("ko-KR"),
     isPrivate: workspace.visibility === "PRIVATE",
-    thumbnail: workspace.thumbnail,
-    collaborators: currentUser.user?.nickname // 현재 유저를 협업자로 추가
-      ? [
-          {
-            name: currentUser.user.nickname,
-            image: currentUser.user.profileImage || "popo1",
-          },
-        ]
-      : [], // 유저 정보 없으면 빈 배열
+    thumbnail: workspace.thumbnail || undefined,
+    collaborators: workspace.profiles.map((profile) => ({
+      name: profile,
+      image: profile,
+    })),
   }));
 
   return (

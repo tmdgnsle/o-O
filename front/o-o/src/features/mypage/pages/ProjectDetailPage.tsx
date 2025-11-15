@@ -1,5 +1,5 @@
 import { Header } from "@/shared/ui/Header";
-import background from "@/shared/assets/images/mypage_bg.png";
+import background from "@/shared/assets/images/mypage_bg.webp";
 import { useLocation } from "react-router-dom";
 import { ProjectDetailCard } from "../components/ProjectCard/ProjectDetailCard";
 

@@ -1,5 +1,5 @@
 import { Header } from "@/shared/ui/Header";
-import background from "@/shared/assets/images/mypage_bg.png";
+import background from "@/shared/assets/images/mypage_bg.webp";
 import { Dashboard } from "../components/Dashboard";
 import { useSearchParams } from "react-router-dom";
 import { CalendarView } from "../components/Calendar/CalendarView";

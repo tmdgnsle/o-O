@@ -1,5 +1,5 @@
-import Calendar from "@/shared/assets/images/uim_calender.png";
-import Dashboard from "@/shared/assets/images/MdDashboard.png";
+import Calendar from "@/shared/assets/images/uim_calender.webp";
+import Dashboard from "@/shared/assets/images/MdDashboard.webp";
 import { useSearchParams } from "react-router-dom";
 
 type TabType = "recently-viewed" | "team-project" | "personal-project";

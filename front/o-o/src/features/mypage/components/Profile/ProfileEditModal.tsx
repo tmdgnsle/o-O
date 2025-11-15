@@ -4,7 +4,6 @@ import { ProfileForm } from "./ProfileForm";
 import { ModalHeader } from "./ModalHeader";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updateUserProfile } from "@/store/slices/userSlice";
-import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 interface ProfileEditModalProps {
   readonly onClose: () => void;
@@ -64,7 +63,7 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
 
           <div className="flex gap-10 py-3 px-6 items-center">
             <ProfileImage
-              currentImage={getProfileImageUrl(profileImage)}
+              currentImage={profileImage}
               isEditing={isEditing}
               onImageChange={handleImageChange}
             />
