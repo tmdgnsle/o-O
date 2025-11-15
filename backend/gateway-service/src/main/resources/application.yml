@@ -61,6 +61,13 @@ spring:
               - Path=/mindmap/ws/**
             filters:
               - PreserveHostHeader
+          # Mindmap Voice WebSocket Service (음성 채팅)
+          - id: mindmap-voice-websocket
+            uri: ${MINDMAP_WEBSOCKET_SERVICE_URL:ws://localhost:8084}
+            predicates:
+              - Path=/mindmap/voice/**
+            filters:
+              - PreserveHostHeader
         # Mindmap Service 정적 라우팅
           - id: mindmap-service
             uri: ${MINDMAP_SERVICE_URL:http://localhost:8083}
