@@ -5,6 +5,7 @@ import type { RootState } from "@/store/store";
 import { addToPath } from "@/store/slices/trendPathSlice";
 import { useTrend } from "../hooks/useTrend";
 import { useMypage } from "@/features/mypage/hooks/useMypage";
+import { useCreateWorkspaceMutation } from "@/features/workspace/hooks/mutation/useCreateWorkspaceMutation";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
 import { D3Mindmap } from "../components/TrendMindmap/D3/D3Mindmap";
 import { TrendExpandKeyword } from "../components/TrendMindmap/TrendExpandKeyword";
@@ -21,6 +22,7 @@ export function TrendMindmapPage() {
   const { childKeywords, keywordsLoading, keywordsError, fetchChildTrendList } =
     useTrend();
   const { workspaces, fetchWorkspacesList } = useMypage();
+  const { mutateAsync: createWorkspace } = useCreateWorkspaceMutation();
   const [showExpandKeywords, setShowExpandKeywords] = useState(false);
   const [expandedKeywords, setExpandedKeywords] = useState<TrendKeywordItem[]>(
     []
@@ -94,17 +96,48 @@ export function TrendMindmapPage() {
     setIsModalOpen(false);
   };
 
-  const handleCreateNewMindmap = () => {
+  const handleCreateNewMindmap = async () => {
     console.log("새 마인드맵 생성");
     console.log("생성할 마인드맵 경로:", visitPath.join(" > "));
-    // TODO: 새 마인드맵 생성 로직
+
+    // 로컬스토리지에 임시 저장
+    if (visitPath.length > 0) {
+      localStorage.setItem("pendingImportKeywords", JSON.stringify(visitPath));
+    }
+
     setIsModalOpen(false);
+
+    try {
+      // 새 워크스페이스 생성
+      const newWorkspace = await createWorkspace({
+        title: visitPath.length > 0 ? visitPath[0] : "새 마인드맵",
+        type: "PERSONAL",
+        visibility: "PRIVATE",
+      });
+
+      console.log("새 워크스페이스 생성 완료:", newWorkspace);
+
+      // 생성된 워크스페이스로 이동
+      navigate(`/mindmap/${newWorkspace.id}`);
+    } catch (error) {
+      console.error("워크스페이스 생성 실패:", error);
+      // 실패 시 로컬스토리지에서 제거
+      localStorage.removeItem("pendingImportKeywords");
+      alert("워크스페이스 생성에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   const handleSelectMindmap = (mindmapId: string) => {
     console.log("마인드맵 선택:", mindmapId);
     console.log("선택한 경로:", visitPath.join(" > "));
-    // TODO: 선택한 마인드맵에 키워드 추가 로직 (visitPath 포함)
+
+    // 로컬스토리지에 임시 저장
+    if (visitPath.length > 0) {
+      localStorage.setItem("pendingImportKeywords", JSON.stringify(visitPath));
+    }
+
+    // 선택한 워크스페이스로 이동
+    navigate(`/mindmap/${mindmapId}`);
     setIsModalOpen(false);
   };
 
