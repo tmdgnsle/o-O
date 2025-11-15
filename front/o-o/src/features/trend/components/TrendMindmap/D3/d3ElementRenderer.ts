@@ -65,7 +65,7 @@ export function renderMainCircles(
       // childIndex는 이미 증가했으므로 -1
       return `url(#shadow-${childIndex - 1})`;
     })
-    .on("mouseenter", function () {
+    .on("mouseenter", function (this: SVGCircleElement) {
       d3.select(this)
         .transition()
         .duration(300)
@@ -73,7 +73,7 @@ export function renderMainCircles(
           return (getNodeSize(d) / 2) * 1.1;
         });
     })
-    .on("mouseleave", function () {
+    .on("mouseleave", function (this: SVGCircleElement) {
       d3.select(this)
         .transition()
         .duration(300)
