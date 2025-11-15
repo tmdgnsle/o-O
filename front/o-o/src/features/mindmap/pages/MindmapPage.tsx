@@ -8,7 +8,7 @@ import StatusBox from "../../workspace/components/StatusBox";
 import ModeToggleButton from "../components/ModeToggleButton";
 import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
-import CytoscapeCanvas from "../components/CytoscapeCanvas";
+import D3Canvas from "../components/D3Canvas";
 import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
 import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
@@ -24,7 +24,6 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
-// import { useMindmapSync } from "../hooks/custom/useMindmapSync"; // DISABLED: Backend handles persistence
 import {
   getPendingImportKeywords,
   clearPendingImportKeywords,
@@ -53,7 +52,7 @@ const MindmapPageContent: React.FC = () => {
 
   // 4. Helper hooks
   const { getRandomThemeColor } = useColorTheme();
-  const { findNonOverlappingPosition } = useNodePositioning();
+  const { findNonOverlappingPosition, findEmptySpace } = useNodePositioning();
 
   // 5. Stable cursor color (once per session) - separate from node theme colors
   const cursorColorRef = useRef<string | null>(null);
@@ -89,8 +88,7 @@ const MindmapPageContent: React.FC = () => {
   }, [collab]);
 
   // 5a. Sync Yjs changes to backend API
-  // DISABLED: Backend Yjs server handles persistence via Kafka → MongoDB
-  // useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
+  useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
   // 5b. Chat input hook
   const chatInput = useChatInput();
@@ -114,6 +112,7 @@ const MindmapPageContent: React.FC = () => {
     workspaceId,
     getRandomThemeColor,
     findNonOverlappingPosition,
+    findEmptySpace,
   });
 
   // 8. Analyze mode hook
@@ -284,9 +283,9 @@ const MindmapPageContent: React.FC = () => {
           </div>
         )}
 
-        {/* Cytoscape Canvas */}
+        {/* D3 Canvas */}
         <div className="absolute inset-0" ref={canvasContainerRef}>
-          <CytoscapeCanvas
+          <D3Canvas
             nodes={nodes}
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}

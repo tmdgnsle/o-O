@@ -33,8 +33,9 @@ export function useNodeOperations(params: {
   workspaceId: string;
   getRandomThemeColor: () => string;
   findNonOverlappingPosition: (nodes: NodeData[], baseX: number, baseY: number) => { x: number; y: number };
+  findEmptySpace: (nodes: NodeData[], preferredX: number, preferredY: number, minDistance?: number) => { x: number; y: number };
 }) {
-  const { crud, nodes, cyRef, mode, workspaceId, getRandomThemeColor, findNonOverlappingPosition } = params;
+  const { crud, nodes, cyRef, mode, workspaceId, getRandomThemeColor, findNonOverlappingPosition, findEmptySpace } = params;
 
   /**
    * 텍스트박스에서 새 노드 추가
@@ -67,7 +68,7 @@ export function useNodeOperations(params: {
     console.log("[Mindmap] New node base position", { x, y });
 
     const newNode: NodeData = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       parentId: null,
       workspaceId: parseInt(workspaceId, 10),
       type: 'text',
@@ -83,8 +84,8 @@ export function useNodeOperations(params: {
 
   /**
    * 자식 노드 생성
-   * - 부모 노드 오른쪽에 배치
-   * - 형제 노드들은 수직으로 분산 배치
+   * - 캔버스 전체에서 가장 빈 공간을 찾아 배치
+   * - 선호 위치: 부모 노드 오른쪽
    */
   const handleCreateChildNode = useCallback(({
     parentId,
@@ -101,25 +102,23 @@ export function useNodeOperations(params: {
   }) => {
     if (!crud || !keyword) return;
 
-    // 같은 부모를 가진 형제 노드들 찾기
-    const siblings = nodes.filter(node => node.parentId === parentId);
-    const siblingCount = siblings.length;
-    const childIndex = siblingCount; // 새로 추가될 자식의 인덱스
+    // 부모 노드 찾기 (nodeId를 가져오기 위해)
+    const parentNode = nodes.find(n => n.id === parentId);
+    if (!parentNode) {
+      console.error("[handleCreateChildNode] parent node not found", parentId);
+      return;
+    }
 
-    // 수직 간격 설정 (자식 개수에 따라 조정)
-    const verticalSpacing = 180;
+    // 선호 위치: 부모 노드 오른쪽
+    const preferredX = parentX + 250;
+    const preferredY = parentY;
 
-    // 중심을 기준으로 균등 분산
-    // 예: 자식 3개 → [-1, 0, 1] * spacing → [-180, 0, 180]
-    const totalHeight = siblingCount * verticalSpacing;
-    const startOffset = -totalHeight / 2;
-    const baseY = parentY + startOffset + (childIndex * verticalSpacing);
-
-    const { x, y } = findNonOverlappingPosition(nodes, parentX + 200, baseY);
+    // 캔버스 전체에서 가장 빈 공간 찾기
+    const { x, y } = findEmptySpace(nodes, preferredX, preferredY, 180);
 
     const newNode: NodeData = {
-      id: Date.now().toString(),
-      parentId: null,
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      parentId: parentNode.nodeId, // 부모 노드의 nodeId 사용
       workspaceId: parseInt(workspaceId, 10),
       type: 'text',
       analysisStatus: 'NONE',
@@ -131,8 +130,15 @@ export function useNodeOperations(params: {
       ...(memo ? { memo } : {}),
     };
 
+    console.log("[handleCreateChildNode] Creating new child node:", {
+      id: newNode.id,
+      parentId: newNode.parentId,
+      parentNodeId: parentNode.nodeId,
+      keyword: newNode.keyword,
+    });
+
     crud.set(newNode.id, newNode);
-  }, [crud, findNonOverlappingPosition, getRandomThemeColor, nodes, workspaceId]);
+  }, [crud, findEmptySpace, getRandomThemeColor, nodes, workspaceId]);
 
   /**
    * 노드 삭제
@@ -182,9 +188,9 @@ export function useNodeOperations(params: {
 
   /**
    * 노드 수정
-   * - 텍스트, 메모, 색상, 부모 관계 변경
+   * - 텍스트, 메모, 색상, 부모 관계, 위치 변경
    */
-  const handleEditNode = useCallback(({ nodeId, newText, newMemo, newColor, newParentId }: EditNodePayload) => {
+  const handleEditNode = useCallback(({ nodeId, newText, newMemo, newColor, newParentId, x, y }: EditNodePayload & { x?: number; y?: number }) => {
     if (!crud) return;
     crud.update(nodeId, (current) => {
       if (!current) return current;
@@ -194,6 +200,8 @@ export function useNodeOperations(params: {
         ...(newMemo !== undefined ? { memo: newMemo } : {}),
         ...(newColor !== undefined ? { color: newColor } : {}),
         ...(newParentId !== undefined ? { parentId: newParentId ?? undefined } : {}),
+        ...(x !== undefined ? { x } : {}),
+        ...(y !== undefined ? { y } : {}),
         operation: 'UPDATE',
       };
     });
