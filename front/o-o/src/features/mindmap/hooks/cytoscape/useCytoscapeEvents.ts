@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import type { Core, EventObject } from "cytoscape";
-// import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
+import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
 
 export type CytoscapeEventHandlers = {
   onNodeSelect?: (nodeId: string) => void;
   onNodeUnselect?: () => void;
   onBackgroundClick?: () => void;
+  enableToggle?: boolean;
+  selectedNodeId?: string | null;
 };
 
 /**
@@ -18,11 +20,12 @@ export function useCytoscapeEvents(
   handlers: CytoscapeEventHandlers,
   cyReady: boolean = true
 ) {
-  const { onNodeSelect, onNodeUnselect, onBackgroundClick } = handlers;
+  const { onNodeSelect, onNodeUnselect, onBackgroundClick, enableToggle, selectedNodeId } = handlers;
 
   // 노드 선택/선택 해제 이벤트
   useEffect(() => {
     if (!cy || !cyReady || !onNodeSelect || !onNodeUnselect) return;
+    if (enableToggle) return; // 토글 모드에서는 select/unselect 이벤트 비활성화
 
     const handleSelect = (event: EventObject) => {
       const nodeId = event.target.id();
@@ -96,6 +99,68 @@ export function useCytoscapeEvents(
       cy.off("tap", handleBackgroundTap);
     };
   }, [cy, cyReady, onBackgroundClick]);
+
+  // 노드 클릭 토글 (이미 선택된 노드를 다시 클릭하면 선택 해제)
+  useEffect(() => {
+    if (!cy || !cyReady || !enableToggle || !onNodeSelect || !onNodeUnselect) return;
+
+    const handleNodeTap = (event: EventObject) => {
+      const tappedNode = event.target;
+      const nodeId = tappedNode.id();
+
+      // React 상태와 비교하여 이미 선택된 노드인지 확인
+      if (selectedNodeId === nodeId) {
+        // 이미 선택된 노드를 다시 클릭 → 선택 해제
+        cy.nodes(":selected").unselect();
+        onNodeUnselect();
+      } else {
+        // 다른 노드 클릭 → 기존 선택 해제하고 새 노드 선택
+        cy.nodes(":selected").unselect();
+        tappedNode.select();
+
+        // 애니메이션: 선택 시 펄스 효과
+        const config = getAnimationConfig();
+        if (config.selectionPulse.duration > 0) {
+          tappedNode.animate(
+            {
+              style: {
+                width: selectionPulseAnimation.keyframes[1].width,
+                height: selectionPulseAnimation.keyframes[1].height,
+              },
+              duration: config.selectionPulse.duration / 2,
+              easing: config.selectionPulse.easing,
+            },
+            {
+              queue: false,
+              complete: () => {
+                tappedNode.animate(
+                  {
+                    style: {
+                      width: selectionPulseAnimation.keyframes[2].width,
+                      height: selectionPulseAnimation.keyframes[2].height,
+                    },
+                    duration: config.selectionPulse.duration / 2,
+                    easing: config.selectionPulse.easing,
+                  },
+                  {
+                    queue: false,
+                  }
+                );
+              },
+            }
+          );
+        }
+
+        onNodeSelect(nodeId);
+      }
+    };
+
+    cy.on("tap", "node", handleNodeTap);
+
+    return () => {
+      cy.off("tap", "node", handleNodeTap);
+    };
+  }, [cy, cyReady, enableToggle, selectedNodeId, onNodeSelect, onNodeUnselect]);
 }
 
 

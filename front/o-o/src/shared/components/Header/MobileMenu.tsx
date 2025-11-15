@@ -1,8 +1,12 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
+import { useCallback } from "react";
 import popo1 from "@/shared/assets/images/popo1.webp";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
+import { getMindmapPath } from "@/constants/paths";
+import { useCreateWorkspaceMutation } from "@/features/workspace/hooks/mutation/useCreateWorkspaceMutation";
+import { useToast } from "@/shared/ui/ToastProvider";
 
 interface MobileMenuProps {
   readonly isOpen: boolean;
@@ -23,6 +27,27 @@ export function MobileMenu({
   onProfileClick,
   getNavLinkClass,
 }: MobileMenuProps) {
+  const navigate = useNavigate();
+  const { mutateAsync: createWorkspaceMutation, isPending } =
+    useCreateWorkspaceMutation();
+  const { showToast } = useToast();
+
+  const handleClickNewProject = useCallback(async () => {
+    if (isPending) return;
+
+    try {
+      const workspace = await createWorkspaceMutation(undefined);
+      onClose();
+      navigate(getMindmapPath(workspace.id));
+    } catch (error) {
+      console.error("Failed to create workspace", error);
+      showToast(
+        "워크스페이스 생성에 실패했어요. 잠시 후 다시 시도해주세요.",
+        "error"
+      );
+    }
+  }, [createWorkspaceMutation, isPending, navigate, showToast, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -36,13 +61,16 @@ export function MobileMenu({
         </NavLink>
         {isLoggedIn ? (
           <>
-            <NavLink
-              to="/new-project"
-              className={getNavLinkClass}
-              onClick={onClose}
+            <button
+              type="button"
+              className={`text-left font-semibold text-semi-black transition-opacity ${
+                isPending ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+              onClick={handleClickNewProject}
+              disabled={isPending}
             >
-              ✨ New Project
-            </NavLink>
+              ✨ {isPending ? "Creating..." : "New Project"}
+            </button>
             <NavLink to="/mypage" className={getNavLinkClass} onClick={onClose}>
               🙋‍♂️ My Page
             </NavLink>

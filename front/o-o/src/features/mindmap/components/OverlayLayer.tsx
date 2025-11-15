@@ -60,6 +60,14 @@ export default function OverlayLayer({
     return acc;
   }, new Map());
 
+  // Debug: 첫 3개 노드의 memo 확인
+  console.log("[OverlayLayer] First 3 nodes:", nodes.slice(0, 3).map(n => ({
+    id: n.id,
+    keyword: n.keyword,
+    memo: n.memo,
+    hasMemo: !!n.memo
+  })));
+
   return (
     <div className="absolute inset-0 pointer-events-none">
       {cy &&

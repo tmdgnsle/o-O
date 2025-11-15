@@ -126,7 +126,7 @@ export type TextboxProps = Readonly<{
 //  Yjs · REST API · Redux가 동일한 데이터 구조를 공유하도록 함
 // ============================================
 
-export type MindmapNodeType = "text" | "image" | "link";
+export type MindmapNodeType = "text" | "image" | "video" | "link";
 
 export type NodeAnalysisStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
 

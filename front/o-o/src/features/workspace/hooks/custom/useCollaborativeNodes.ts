@@ -64,9 +64,18 @@ export function useCollaborativeNodes(
 
         // Use transaction to batch all insertions for performance
         console.time('[useCollaborativeNodes] Y.Map transaction');
+        console.log('[useCollaborativeNodes] First 3 REST nodes:', restNodes.slice(0, 3).map(n => ({
+          id: n.id,
+          keyword: n.keyword,
+          memo: n.memo,
+          type: n.type,
+          hasKeyword: 'keyword' in n,
+          keywordValue: n.keyword
+        })));
         collab.client.doc.transact(() => {
           for (const node of restNodes) {
             if (!collab.map.has(node.id)) {
+              console.log(`[useCollaborativeNodes] Setting node ${node.id}:`, { keyword: node.keyword, memo: node.memo });
               collab.map.set(node.id, node);
             }
           }
