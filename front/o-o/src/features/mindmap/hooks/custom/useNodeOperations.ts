@@ -30,10 +30,11 @@ export function useNodeOperations(params: {
   nodes: NodeData[];
   cyRef: RefObject<Core | null>;
   mode: MindmapMode;
+  workspaceId: string;
   getRandomThemeColor: () => string;
   findNonOverlappingPosition: (nodes: NodeData[], baseX: number, baseY: number) => { x: number; y: number };
 }) {
-  const { crud, nodes, cyRef, mode, getRandomThemeColor, findNonOverlappingPosition } = params;
+  const { crud, nodes, cyRef, mode, workspaceId, getRandomThemeColor, findNonOverlappingPosition } = params;
 
   /**
    * 텍스트박스에서 새 노드 추가
@@ -67,13 +68,18 @@ export function useNodeOperations(params: {
 
     const newNode: NodeData = {
       id: Date.now().toString(),
-      text,
+      parentId: null,
+      workspaceId: parseInt(workspaceId, 10),
+      type: 'text',
+      analysisStatus: 'NONE',
+      keyword: text,
       x,
       y,
       color: randomColor,
+      operation: 'ADD',
     };
     crud.set(newNode.id, newNode);
-  }, [crud, findNonOverlappingPosition, getRandomThemeColor, mode, nodes, cyRef]);
+  }, [crud, findNonOverlappingPosition, getRandomThemeColor, mode, nodes, cyRef, workspaceId]);
 
   /**
    * 자식 노드 생성
@@ -84,16 +90,16 @@ export function useNodeOperations(params: {
     parentId,
     parentX,
     parentY,
-    text,
+    keyword,
     memo,
   }: {
     parentId: string;
     parentX: number;
     parentY: number;
-    text: string;
+    keyword: string;
     memo?: string;
   }) => {
-    if (!crud || !text) return;
+    if (!crud || !keyword) return;
 
     // 같은 부모를 가진 형제 노드들 찾기
     const siblings = nodes.filter(node => node.parentId === parentId);
@@ -113,16 +119,20 @@ export function useNodeOperations(params: {
 
     const newNode: NodeData = {
       id: Date.now().toString(),
-      text,
+      parentId: null,
+      workspaceId: parseInt(workspaceId, 10),
+      type: 'text',
+      analysisStatus: 'NONE',
+      keyword: keyword,
       x,
       y,
       color: getRandomThemeColor(),
-      parentId,
+      operation: 'ADD',
       ...(memo ? { memo } : {}),
     };
 
     crud.set(newNode.id, newNode);
-  }, [crud, findNonOverlappingPosition, getRandomThemeColor, nodes]);
+  }, [crud, findNonOverlappingPosition, getRandomThemeColor, nodes, workspaceId]);
 
   /**
    * 노드 삭제
@@ -180,23 +190,12 @@ export function useNodeOperations(params: {
       if (!current) return current;
       return {
         ...current,
-        ...(newText !== undefined ? { text: newText } : {}),
+        ...(newText !== undefined ? { keyword: newText } : {}),
         ...(newMemo !== undefined ? { memo: newMemo } : {}),
         ...(newColor !== undefined ? { color: newColor } : {}),
         ...(newParentId !== undefined ? { parentId: newParentId ?? undefined } : {}),
+        operation: 'UPDATE',
       };
-    });
-  }, [crud]);
-
-  /**
-   * 단일 노드 위치 변경
-   * - Cytoscape drag 이벤트에서 호출
-   */
-  const handleNodePositionChange = useCallback((nodeId: string, x: number, y: number) => {
-    if (!crud) return;
-    crud.update(nodeId, (current) => {
-      if (!current) return current;
-      return { ...current, x, y };
     });
   }, [crud]);
 
@@ -212,7 +211,7 @@ export function useNodeOperations(params: {
       positionMap.forEach(({ id, x, y }) => {
         const current = map.get(id);
         if (!current) return;
-        map.set(id, { ...current, x, y });
+        map.set(id, { ...current, x, y, operation: 'UPDATE' });
       });
     });
   }, [crud]);
@@ -228,6 +227,7 @@ export function useNodeOperations(params: {
       {
         ...node,
         color: colors[index % colors.length],
+        operation: 'UPDATE',
       },
     ]) as Array<[string, NodeData]>;
     crud.setMany(entries);
@@ -238,7 +238,6 @@ export function useNodeOperations(params: {
     handleCreateChildNode,
     handleDeleteNode,
     handleEditNode,
-    handleNodePositionChange,
     handleBatchNodePositionChange,
     handleApplyTheme,
   };

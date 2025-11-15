@@ -30,7 +30,7 @@ export function convertTrendKeywordsToNodes(
 
     const newNode: NodeData = {
       id: nodeId,
-      text: keyword,
+      keyword: keyword,
       x: currentX,
       y: currentY,
       color: getRandomThemeColor(),

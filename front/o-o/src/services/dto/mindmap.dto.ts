@@ -4,10 +4,7 @@ import type {
   NodeData,
 } from "@/features/mindmap/types";
 
-
-export type AnalysisStatus = 'NONE' | 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
-
-// Backend API Response
+// API Response
 export interface MindmapNode {
   id: string;
   nodeId: number;
@@ -16,7 +13,7 @@ export interface MindmapNode {
   type: string;
   keyword: string;
   memo: string;
-  analysisStatus: AnalysisStatus;
+  analysisStatus: NodeAnalysisStatus;
   x: number;
   y: number;
   color: string;
@@ -24,7 +21,7 @@ export interface MindmapNode {
   updatedAt: string;
 }
 
-// Backend API Request
+// API Request
 export interface CreateMindmapNodeRequest {
   parentId?: number | null;
   type: string;
@@ -43,7 +40,7 @@ export interface UpdateMindmapNodeRequest {
   color?: string | null;
   parentId?: number | null;
   type?: string | null;
-  analysisStatus?: AnalysisStatus | null;
+  analysisStatus?: NodeAnalysisStatus | null;
 }
 
 // Normalizes REST DTOs into the NodeData shape consumed by Yjs/React state
@@ -90,13 +87,16 @@ const resolveNodeId = (dto: NodeDTO): string => {
 // Maps backend payload into the structure Cytoscape + overlays render (DataSource 역할)
 export const mapDtoToNodeData = (dto: NodeDTO): NodeData => ({
   id: resolveNodeId(dto),
-  text: dto.keyword,
+  nodeId: typeof dto.nodeId === 'number' ? dto.nodeId : undefined,
+  workspaceId: typeof dto.workspaceId === 'number' ? dto.workspaceId :
+               (typeof dto.workspaceId === 'string' ? parseInt(dto.workspaceId, 10) : undefined),
+  keyword: dto.keyword,
   x: dto.x,
   y: dto.y,
   color: dto.color ?? "#222222",
   parentId: ensureString(dto.parentId) ?? null,
   memo: dto.memo,
-  type: dto.type,
+  type: dto.type ?? 'text',
   contentUrl: dto.contentUrl,
   analysisStatus: dto.analysisStatus ?? "NONE",
   createdBy: dto.createdBy,

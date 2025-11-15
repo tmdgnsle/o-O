@@ -106,7 +106,7 @@ export const useNodeHandlers = ({
           parentId: id,
           parentX: x,
           parentY: y,
-          text: keyword,
+          keyword: keyword,
           memo: description || undefined,
         });
         closeAddInput();
@@ -147,7 +147,7 @@ export const useNodeHandlers = ({
         parentId: id,
         parentX: x,
         parentY: y,
-        text: recommendText,
+        keyword: recommendText,
       });
       setFocusedButton(null);
     },

@@ -1,7 +1,6 @@
 // useYjsCollaboration.ts
-import { useEffect, useState, useRef, type RefObject } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as Y from "yjs";
-import type { Core } from "cytoscape";
 import { createYClient, type YClient } from "./yjsClient";
 import { createYMapCrud, type YMapCrud } from "./yMapCrud";
 import { NODES_YMAP_KEY } from "@/constants/mindmapCollaboration";
@@ -28,7 +27,6 @@ type UseYjsCollaborationOptions = {
 export function useYjsCollaboration(
   wsUrl: string,
   roomId: string,
-  cyRef: RefObject<Core | null>,
   cursorColor: string,
   options: UseYjsCollaborationOptions = {}
 ) {

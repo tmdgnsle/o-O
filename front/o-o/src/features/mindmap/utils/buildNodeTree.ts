@@ -18,7 +18,7 @@ export function buildNodeTree(selectedNodes: NodeData[]): TreeNode[] {
   const nodeMap = new Map<string, TreeNode>();
 
   selectedNodes.forEach((node) => {
-    nodeMap.set(node.id, {
+    nodeMap.set(String(node.id), {
       ...node,
       children: [],
       depth: 0,
@@ -29,14 +29,15 @@ export function buildNodeTree(selectedNodes: NodeData[]): TreeNode[] {
   const roots: TreeNode[] = [];
 
   selectedNodes.forEach((node) => {
-    const treeNode = nodeMap.get(node.id)!;
+    const nodeIdStr = String(node.id);
+    const treeNode = nodeMap.get(nodeIdStr)!;
 
     // 부모가 없거나, 부모가 선택되지 않은 경우 → 루트 노드
-    if (!node.parentId || !nodeMap.has(node.parentId)) {
+    if (!node.parentId || !nodeMap.has(String(node.parentId))) {
       roots.push(treeNode);
     } else {
       // 부모가 선택된 경우 → 자식 노드로 추가
-      const parent = nodeMap.get(node.parentId)!;
+      const parent = nodeMap.get(String(node.parentId))!;
       treeNode.depth = parent.depth + 1;
       parent.children.push(treeNode);
     }

@@ -9,10 +9,12 @@ export function useEdges(nodes: NodeData[]) {
     const out: Array<{ id: string; source: string; target: string }> = [];
     for (const node of nodes) {
       if (node.parentId) {
+        const parentIdStr = String(node.parentId);
+        const nodeIdStr = String(node.id);
         out.push({
-          id: `${node.parentId}-${node.id}`,
-          source: node.parentId,
-          target: node.id,
+          id: `${parentIdStr}-${nodeIdStr}`,
+          source: parentIdStr,
+          target: nodeIdStr,
         });
       }
     }
@@ -23,10 +25,11 @@ export function useEdges(nodes: NodeData[]) {
 /** 노드 업데이트 또는 추가 */
 function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode: MindmapMode) {
   const isDraggable = mode === "edit";
+  const nodeIdStr = String(node.id);
 
-  if (existingNodeIds.has(node.id)) {
+  if (existingNodeIds.has(nodeIdStr)) {
     // 기존 노드 업데이트
-    const cyNode = cy.getElementById(node.id);
+    const cyNode = cy.getElementById(nodeIdStr);
     const pos = cyNode.position();
 
     // 부동소수점 오차 허용 (1px 이하는 무시) - 무한 루프 방지
@@ -39,7 +42,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
       cyNode.position({ x: node.x, y: node.y });
     }
 
-    cyNode.data({ label: node.text, color: node.color });
+    cyNode.data({ label: node.keyword, color: node.color });
 
     // 모드에 따라 드래그 가능 여부 설정
     if (isDraggable) {
@@ -52,7 +55,7 @@ function upsertNode(cy: Core, node: NodeData, existingNodeIds: Set<string>, mode
     // 새 노드 추가
     const newNode = cy.add({
       group: "nodes",
-      data: { id: node.id, label: node.text, color: node.color },
+      data: { id: nodeIdStr, label: node.keyword, color: node.color },
       position: { x: node.x, y: node.y },
       grabbable: isDraggable,
       selectable: true,
@@ -184,7 +187,7 @@ export function useGraphSync(
           upsertNode(cy, node, existingNodeIds, mode);
         }
 
-        const newNodeIds = new Set(nodes.map((n) => n.id));
+        const newNodeIds = new Set(nodes.map((n) => String(n.id)));
         removeDeletedNodes(cy, existingNodeIds, newNodeIds);
 
         // 엣지 동기화

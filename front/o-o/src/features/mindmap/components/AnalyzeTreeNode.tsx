@@ -55,7 +55,7 @@ export default function AnalyzeTreeNode({
         <span className="font-mono text-slate-400 text-xs leading-none whitespace-pre select-none">{prefix}</span>
 
         {/* 노드 텍스트 */}
-        <span className="flex-1 truncate text-sm text-slate-700">{node.text}</span>
+        <span className="flex-1 truncate text-sm text-slate-700">{node.keyword}</span>
 
         {/* 제거 버튼 */}
         <button
