@@ -95,3 +95,6 @@ server:
 mindmap:
   service:
     url: http://mindmap-svc:8082
+
+elasticsearch:
+  host: http://k13d202.p.ssafy.io:9200

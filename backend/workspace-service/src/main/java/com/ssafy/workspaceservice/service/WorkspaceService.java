@@ -121,7 +121,7 @@ public class WorkspaceService {
                 : WorkspaceVisibility.PUBLIC;
 
         w.changeVisibility(newVisibility); // @Transaction 어노테이션으로 더티 체킹을 통해 자동 업데이트
-        
+
         if (newVisibility == WorkspaceVisibility.PUBLIC) {
             mindmapClient.bulkIndexWorkspace(workspaceId);
         }

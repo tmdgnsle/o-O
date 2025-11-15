@@ -58,6 +58,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    implementation 'co.elastic.clients:elasticsearch-java:8.14.0'
+    implementation 'org.elasticsearch.client:elasticsearch-rest-client:8.14.0'
+    // JSON 매퍼 (Jackson)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
 
 ext {

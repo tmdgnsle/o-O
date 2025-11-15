@@ -30,7 +30,7 @@ public class TrendQueryService {
 
     private final TrendRedisRepository redisRepository;
     private final TrendDbRepository dbRepository;
-    private final MindmapPublicSearchClient mindmapClient;
+    private final PublicNodeSearchService publicNodeSearchService;
 
     @Value("${trend.query.default-limit}")
     private int defaultLimit;
@@ -76,28 +76,25 @@ public class TrendQueryService {
      * - 3) 점수 없으면 0점으로 채우고, 내림차순 정렬해서 반환
      */
     public TrendResponse getParentTrend(String parentKeyword, String period, Integer limit) {
-        if(limit == null || limit <= 0) {
+        if (limit == null || limit <= 0) {
             limit = 99;
         }
         int actualLimit = validateLimit(limit);
 
         String normalizedParent = sanitizeKeyword(parentKeyword);
 
-        // 1. Mindmap 쪽에서 public 자식들 가져오기
-        KeywordNodeSearchResponse childrenResp =
-                mindmapClient.searchChildrenByParent(parentKeyword, 500);
+        // 🔥 1. ES에서 parentKeyword 기준 자식 키워드들 조회
+        List<PublicNodeSearchService.ChildNode> childNodes =
+                publicNodeSearchService.searchChildrenByParent(parentKeyword, 500);
 
-        if (childrenResp == null ||
-                childrenResp.getNodes() == null ||
-                childrenResp.getNodes().isEmpty()) {
-
+        if (childNodes.isEmpty()) {
             log.info("No public children found for parentKeyword='{}'", parentKeyword);
             return buildResponse(period, normalizedParent, List.of());
         }
 
-        // 2. 자식 키워드만 뽑아서 중복 제거
-        List<String> publicChildKeywords = childrenResp.getNodes().stream()
-                .map(node -> node.getKeyword())
+        // 🔥 2. 자식 키워드만 뽑아서 중복 제거
+        List<String> publicChildKeywords = childNodes.stream()
+                .map(PublicNodeSearchService.ChildNode::keyword)
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -122,17 +119,15 @@ public class TrendQueryService {
                 .map(child -> {
                     String normalizedChild = sanitizeKeyword(child);
                     double scoreDouble = dbScores.getOrDefault(normalizedChild, 0.0);
-                    long score = (long) scoreDouble;  // 필요하면 Math.round(scoreDouble) 써도 됨
+                    long score = (long) scoreDouble;
 
                     return TrendItem.builder()
-                            .keyword(child)   // 원본 문자열
-                            .score(score)     // Long 타입
+                            .keyword(child)
+                            .score(score)
                             .build();
                 })
-                // 점수 내림차순 정렬
                 .sorted(Comparator.comparingLong(TrendItem::getScore).reversed())
                 .limit(actualLimit)
-                // rank 채워넣기
                 .map(item -> {
                     item.setRank(rankCounter.getAndIncrement());
                     return item;
@@ -141,6 +136,7 @@ public class TrendQueryService {
 
         return buildResponse(period, normalizedParent, merged);
     }
+
 
 
     // ================== 키워드 검색 ==================
@@ -152,28 +148,24 @@ public class TrendQueryService {
     public TrendResponse searchTrend(String keyword, String period, Integer limit) {
         int actualLimit = validateLimit(limit);
 
-        // 1) Trend DB LIKE 검색
+        // 🔥 1) Trend DB LIKE 검색
         Map<String, Double> dbResults =
                 dbRepository.searchTrend(keyword, period, actualLimit);
 
-        // 2) Mindmap Public 키워드 LIKE 검색
+        // 🔥 2) ES에서 Public 키워드 검색
         List<String> publicKeywords =
-                mindmapClient.searchPublicKeywords(keyword, actualLimit);
+                publicNodeSearchService.searchKeywords(keyword, actualLimit);
 
         // 3) 결과 병합 (Trend DB 점수 우선, 없으면 0점)
         Map<String, Double> merged = new LinkedHashMap<>();
 
-        // DB 결과 먼저 넣고
         merged.putAll(dbResults);
 
-        // Mindmap 키워드는 없으면 0점으로 추가
         for (String k : publicKeywords) {
             merged.putIfAbsent(k, 0.0);
         }
 
         if (!merged.isEmpty()) {
-            // 들어온 keyword와 "정확히 같은" 키워드가 merged 안에 있는지 확인
-            // 대소문자 무시하고 싶으면 equalsIgnoreCase 사용
             var exactOpt = merged.entrySet().stream()
                     .filter(e -> e.getKey().equalsIgnoreCase(keyword))
                     .findFirst();
@@ -184,7 +176,6 @@ public class TrendQueryService {
                 double scoreDouble = entry.getValue() != null ? entry.getValue() : 0.0;
                 long score = (long) scoreDouble;
 
-                // 뷰 카운트는 이 키워드 하나만 +1
                 LocalDateTime now = LocalDateTime.now();
                 long ttl = 86400L * 7;
                 redisRepository.incrementViewCount(
@@ -194,7 +185,6 @@ public class TrendQueryService {
                         ttl
                 );
 
-                // 이 키워드 하나만 결과로 반환
                 TrendItem item = TrendItem.builder()
                         .keyword(exactKey)
                         .score(score)
@@ -205,10 +195,6 @@ public class TrendQueryService {
             }
         }
 
-        // 4) VIEW 포인트 증가
-        //  - 네가 말한대로:
-        //    - LIKE 결과 있으면: 그 결과들만 +1
-        //    - LIKE 결과 없으면: 아무 것도 증가 X
         if (!merged.isEmpty()) {
             LocalDateTime now = LocalDateTime.now();
             long ttl = 86400L * 7;
@@ -223,7 +209,6 @@ public class TrendQueryService {
             }
         }
 
-        // 5) limit 다시 한 번 잘라주기 (혹시 병합으로 초과했을 수 있으니까)
         Map<String, Double> limited = merged.entrySet().stream()
                 .limit(actualLimit)
                 .collect(LinkedHashMap::new,
@@ -233,6 +218,7 @@ public class TrendQueryService {
         List<TrendItem> items = convertMapToItems(limited);
         return buildResponse(period, null, items);
     }
+
 
 
     // ================== Helpers ==================
