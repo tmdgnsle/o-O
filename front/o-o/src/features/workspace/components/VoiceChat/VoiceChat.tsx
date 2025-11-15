@@ -86,25 +86,32 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   const voiceUsers = useMemo(() => {
     // Map participants to user display data
     const users = participants.map((participant, index) => {
-      // Find peer data for avatar/name
+      // Check if this participant is current user
+      const isCurrentUser = participant.userId === currentUser?.id.toString();
+
+      // Find peer data for avatar/name (for other users)
       const peer = peers.find((p) => p.userId?.toString() === participant.userId);
 
       // Determine if this participant is speaking
-      const isUserSpeaking = participant.userId === currentUser?.id.toString()
+      const isUserSpeaking = isCurrentUser
         ? isSpeaking
         : participant.voiceState?.speaking ?? false;
 
       return {
         id: participant.userId,
-        name: peer?.name ?? `User ${participant.userId}`,
-        avatar: peer?.profileImage ?? '',
+        name: isCurrentUser
+          ? currentUser.nickname
+          : (peer?.name ?? `User ${participant.userId}`),
+        avatar: isCurrentUser
+          ? (currentUser.profileImage ?? '')
+          : (peer?.profileImage ?? ''),
         isSpeaking: isUserSpeaking && !(participant.voiceState?.muted ?? false),
         colorIndex: index % 6,
       };
     });
 
     return users;
-  }, [participants, peers, currentUser?.id, isSpeaking]);
+  }, [participants, peers, currentUser, isSpeaking]);
 
   return (
     <div
