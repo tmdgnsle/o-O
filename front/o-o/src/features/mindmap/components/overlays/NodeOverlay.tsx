@@ -188,6 +188,7 @@ function NodeOverlay({
       const newX = node.x + dx;
       const newY = node.y + dy;
 
+      // 드래그 중에는 Y.Map을 업데이트하여 화면상 노드는 움직이되, 위치만 변경
       onEditNode({
         nodeId: node.id,
         x: newX,
@@ -204,6 +205,8 @@ function NodeOverlay({
     if (!hasMoved && !isAnalyzeMode) {
       onSelect();
     }
+    // 드래그가 끝났을 때는 이미 onEditNode로 Y.Map이 업데이트되어 있음
+    // useMindmapSync에서 300ms debounce 후 마지막 업데이트만 서버로 전송됨
 
     setIsDragging(false);
     setDragStart(null);

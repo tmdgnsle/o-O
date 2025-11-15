@@ -59,3 +59,19 @@ export const deleteMindmapNode = async (
 ): Promise<void> => {
   await apiClient.delete(`/mindmap/${workspaceId}/node/${nodeId}`);
 };
+
+// Batch update node positions (for auto-layout calculated coordinates)
+export const batchUpdateNodePositions = async (
+  workspaceId: string,
+  updates: Array<{ nodeId: number; x: number; y: number }>
+): Promise<void> => {
+  // 각 노드를 개별적으로 PATCH 요청 (배치 엔드포인트가 없는 경우)
+  await Promise.all(
+    updates.map((update) =>
+      updateMindmapNode(workspaceId, update.nodeId, {
+        x: update.x,
+        y: update.y,
+      })
+    )
+  );
+};
