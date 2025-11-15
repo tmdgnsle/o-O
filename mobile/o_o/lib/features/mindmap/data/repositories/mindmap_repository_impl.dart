@@ -11,6 +11,7 @@ import '../../domain/entities/mindmap_edge.dart';
 import '../../domain/entities/mindmap_node.dart';
 import '../../domain/repositories/mindmap_repository.dart';
 import '../datasources/mindmap_api_data_source.dart';
+import '../models/mindmap_creation_response.dart';
 import '../models/mindmap_node_model.dart';
 
 /// Mindmap Repository Implementation
@@ -343,5 +344,25 @@ class MindmapRepositoryImpl implements MindmapRepository {
     }
 
     return edges;
+  }
+
+  @override
+  Future<Either<Failure, MindmapCreationResponse>> createMindmapFromText(String text) async {
+    try {
+      logger.i('🔄 MindmapRepositoryImpl: Creating mindmap from text');
+
+      final response = await apiDataSource.createMindmapFromText(text);
+
+      logger.i('✅ MindmapRepositoryImpl: Successfully created mindmap - workspaceId: ${response.workspaceId}');
+
+      return Right(response);
+    } on ServerException catch (e) {
+      logger.e('❌ MindmapRepositoryImpl: ServerException - ${e.message}');
+      return Left(ServerFailure(e.message));
+    } catch (e, stackTrace) {
+      logger.e('❌ MindmapRepositoryImpl: Unexpected error - $e');
+      logger.e('📍 StackTrace: $stackTrace');
+      return Left(ServerFailure('마인드맵 생성 실패: $e'));
+    }
   }
 }

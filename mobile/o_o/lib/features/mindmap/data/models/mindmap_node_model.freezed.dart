@@ -31,7 +31,7 @@ mixin _$MindmapNodeModel {
   String get analysisStatus => throw _privateConstructorUsedError;
   double? get x => throw _privateConstructorUsedError;
   double? get y => throw _privateConstructorUsedError;
-  String get color => throw _privateConstructorUsedError;
+  String? get color => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
@@ -63,7 +63,7 @@ abstract class $MindmapNodeModelCopyWith<$Res> {
     String analysisStatus,
     double? x,
     double? y,
-    String color,
+    String? color,
     DateTime createdAt,
     DateTime updatedAt,
   });
@@ -94,7 +94,7 @@ class _$MindmapNodeModelCopyWithImpl<$Res, $Val extends MindmapNodeModel>
     Object? analysisStatus = null,
     Object? x = freezed,
     Object? y = freezed,
-    Object? color = null,
+    Object? color = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -151,10 +151,10 @@ class _$MindmapNodeModelCopyWithImpl<$Res, $Val extends MindmapNodeModel>
                     : y // ignore: cast_nullable_to_non_nullable
                         as double?,
             color:
-                null == color
+                freezed == color
                     ? _value.color
                     : color // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as String?,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
@@ -191,7 +191,7 @@ abstract class _$$MindmapNodeModelImplCopyWith<$Res>
     String analysisStatus,
     double? x,
     double? y,
-    String color,
+    String? color,
     DateTime createdAt,
     DateTime updatedAt,
   });
@@ -221,7 +221,7 @@ class __$$MindmapNodeModelImplCopyWithImpl<$Res>
     Object? analysisStatus = null,
     Object? x = freezed,
     Object? y = freezed,
-    Object? color = null,
+    Object? color = freezed,
     Object? createdAt = null,
     Object? updatedAt = null,
   }) {
@@ -278,10 +278,10 @@ class __$$MindmapNodeModelImplCopyWithImpl<$Res>
                 : y // ignore: cast_nullable_to_non_nullable
                     as double?,
         color:
-            null == color
+            freezed == color
                 ? _value.color
                 : color // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as String?,
         createdAt:
             null == createdAt
                 ? _value.createdAt
@@ -311,7 +311,7 @@ class _$MindmapNodeModelImpl extends _MindmapNodeModel {
     required this.analysisStatus,
     this.x,
     this.y,
-    required this.color,
+    this.color,
     required this.createdAt,
     required this.updatedAt,
   }) : super._();
@@ -340,7 +340,7 @@ class _$MindmapNodeModelImpl extends _MindmapNodeModel {
   @override
   final double? y;
   @override
-  final String color;
+  final String? color;
   @override
   final DateTime createdAt;
   @override
@@ -424,7 +424,7 @@ abstract class _MindmapNodeModel extends MindmapNodeModel {
     required final String analysisStatus,
     final double? x,
     final double? y,
-    required final String color,
+    final String? color,
     required final DateTime createdAt,
     required final DateTime updatedAt,
   }) = _$MindmapNodeModelImpl;
@@ -454,7 +454,7 @@ abstract class _MindmapNodeModel extends MindmapNodeModel {
   @override
   double? get y;
   @override
-  String get color;
+  String? get color;
   @override
   DateTime get createdAt;
   @override

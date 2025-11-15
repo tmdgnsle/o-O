@@ -112,8 +112,8 @@ class _MindmapCanvasWidgetState extends State<MindmapCanvasWidget> {
     final width = maxX - minX + padding * 2;
     final height = maxY - minY + padding * 2;
 
-    // 최소 크기 보장
-    final minSize = 5000.0;
+    // 최소 크기 보장 (자동 배치는 (5000, 5000) 중심이므로 최소 10000x10000 필요)
+    final minSize = 10000.0;
     return Size(
       width < minSize ? minSize : width,
       height < minSize ? minSize : height,

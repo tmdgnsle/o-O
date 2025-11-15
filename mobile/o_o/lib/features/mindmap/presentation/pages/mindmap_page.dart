@@ -251,6 +251,16 @@ class _MindmapPageState extends State<MindmapPage> {
                         ],
                       ),
                     ),
+                    // 마인드맵 생성 관련 상태들 (이 페이지에서는 사용하지 않음)
+                    creating: () => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
+                    created: (_) => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
+                    createError: (_) => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
                   );
                 },
               ),

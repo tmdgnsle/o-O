@@ -19,7 +19,7 @@ _$MindmapNodeModelImpl _$$MindmapNodeModelImplFromJson(
   analysisStatus: json['analysisStatus'] as String,
   x: (json['x'] as num?)?.toDouble(),
   y: (json['y'] as num?)?.toDouble(),
-  color: json['color'] as String,
+  color: json['color'] as String?,
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
 );

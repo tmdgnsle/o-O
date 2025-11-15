@@ -22,7 +22,7 @@ class MindmapNodeModel with _$MindmapNodeModel {
     required String analysisStatus,
     double? x,
     double? y,
-    required String color,
+    String? color,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _MindmapNodeModel;
@@ -60,18 +60,40 @@ class MindmapNodeModel with _$MindmapNodeModel {
     );
   }
 
+  /// 랜덤 색상 팔레트
+  static const List<Color> _colorPalette = [
+    Color(0xFFFFD0EA), // 분홍
+    Color(0xFFFFEEAC), // 노랑
+    Color(0xFFC2F0F9), // 하늘색
+    Color(0xFFEFB39B), // 살구색
+    Color(0xFFB9BDFF), // 보라
+    Color(0xFFC2DCF9), // 연한 파랑
+    Color(0xFFC3F9C2), // 연두
+  ];
+
   /// Color 파싱 (hex → Color)
-  Color _parseColor(String hexColor) {
+  Color _parseColor(String? hexColor) {
     try {
+      // null이거나 빈 문자열이면 랜덤 색상 반환
+      if (hexColor == null || hexColor.isEmpty) {
+        final random = math.Random();
+        return _colorPalette[random.nextInt(_colorPalette.length)];
+      }
+
       final hex = hexColor.replaceFirst('#', '');
       if (hex.length == 6) {
         return Color(int.parse('0xFF$hex'));
       } else if (hex.length == 8) {
         return Color(int.parse('0x$hex'));
       }
-      return Colors.blue; // 기본 색상
+
+      // 파싱 실패 시 랜덤 색상 반환
+      final random = math.Random();
+      return _colorPalette[random.nextInt(_colorPalette.length)];
     } catch (e) {
-      return Colors.blue; // 파싱 실패 시 기본 색상
+      // 예외 발생 시 랜덤 색상 반환
+      final random = math.Random();
+      return _colorPalette[random.nextInt(_colorPalette.length)];
     }
   }
 

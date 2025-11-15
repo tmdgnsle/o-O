@@ -1,16 +1,23 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../mindmap/presentation/bloc/mindmap_bloc.dart';
+import '../../../mindmap/presentation/bloc/mindmap_event.dart';
+import '../../../mindmap/presentation/bloc/mindmap_state.dart';
+import '../../../workspace/presentation/bloc/workspace_bloc.dart';
+import '../../../workspace/presentation/bloc/workspace_event.dart';
 
 /// 녹음 후 마인드맵 생성 중 로딩 화면
 class ProcessingPage extends StatefulWidget {
-  /// 녹음 파일 경로 (추후 API 연동 시 사용)
-  final String? recordingPath;
+  /// 녹음된 텍스트
+  final String recordingText;
 
-  const ProcessingPage({super.key, this.recordingPath});
+  const ProcessingPage({super.key, required this.recordingText});
 
   @override
   State<ProcessingPage> createState() => _ProcessingPageState();
@@ -26,7 +33,7 @@ class _ProcessingPageState extends State<ProcessingPage>
 
   int _currentMessageIndex = 0;
   Timer? _messageTimer;
-  Timer? _processingTimer;
+  late DateTime _startTime; // 로딩 시작 시간
 
   final List<String> _loadingMessages = [
     '아이디어를 구슬에 담는 중...',
@@ -37,6 +44,9 @@ class _ProcessingPageState extends State<ProcessingPage>
   @override
   void initState() {
     super.initState();
+
+    // 로딩 시작 시간 기록
+    _startTime = DateTime.now();
 
     // 회전 애니메이션 컨트롤러 (fur_zip용 - 계속 한 방향으로)
     _rotationController = AnimationController(
@@ -76,14 +86,11 @@ class _ProcessingPageState extends State<ProcessingPage>
       }
     });
 
-    // 실제 처리 시뮬레이션 (8초 후 RecordListPage로 이동)
-    // TODO: 실제 API 연동 시 이 부분을 API 호출로 교체
-    _processingTimer = Timer(const Duration(seconds: 8), () {
-      if (mounted) {
-        // pushReplacement: 스택 유지하면서 현재 페이지만 교체
-        // 뒤로가기 시 홈으로 돌아감
-        context.pushReplacement('/records');
-      }
+    // 마인드맵 생성 API 호출
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MindmapBloc>().add(
+            MindmapEvent.createMindmapFromText(text: widget.recordingText),
+          );
     });
   }
 
@@ -92,104 +99,161 @@ class _ProcessingPageState extends State<ProcessingPage>
     _rotationController.dispose();
     _floatingController.dispose();
     _messageTimer?.cancel();
-    _processingTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(),
+    return BlocListener<MindmapBloc, MindmapState>(
+      listener: (context, state) {
+        state.when(
+          initial: () {},
+          loading: () {},
+          loaded: (_) {},
+          error: (_) {},
+          creating: () {
+            // 로딩 중 - 아무것도 하지 않음 (애니메이션 계속 표시)
+          },
+          created: (response) {
+            // 마인드맵 생성 완료 - 워크스페이스 목록 새로고침 후 최소 8초 보장하고 이동
+            if (mounted) {
+              // 홈 화면의 워크스페이스 목록 새로고침 (새로 생성된 마인드맵 반영)
+              sl<WorkspaceBloc>().add(const WorkspaceEvent.load());
 
-                // Popo 캐릭터 애니메이션 (fur_zip.png 위에 popo_loading.png)
-                SizedBox(
-                  width: 350,
-                  height: 350,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 아래 이미지: fur_zip.png - 빙글빙글 회전
-                      AnimatedBuilder(
-                        animation: _rotationController,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _rotationAnimation.value * 2 * pi, // 완전히 회전
-                            child: SizedBox(
-                              width: 350,
-                              height: 350,
-                              child: Image.asset(
-                                'assets/images/fur_zip.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      // 위 이미지: popo_loading.png - 위아래로 두둥실 떠다니기
-                      AnimatedBuilder(
-                        animation: _floatingController,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(
-                              20, // 오른쪽으로 고정
-                              _floatingY.value, // 위아래 움직임만
-                            ),
-                            child: SizedBox(
-                              width: 200,
-                              height: 200,
-                              child: Image.asset(
-                                'assets/images/popo_loading.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+              final elapsed = DateTime.now().difference(_startTime);
+              const minDuration = Duration(seconds: 8);
 
-                const SizedBox(height: 60),
-
-                // 로딩 메시지 (애니메이션으로 전환)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.3),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Text(
-                    _loadingMessages[_currentMessageIndex],
-                    key: ValueKey<int>(_currentMessageIndex),
-                    style: AppTextStyles.regular16.copyWith(
-                      color: Colors.black.withValues(alpha: 0.6),
+              if (elapsed < minDuration) {
+                // 8초가 안 지났으면 남은 시간만큼 대기
+                final remainingTime = minDuration - elapsed;
+                Future.delayed(remainingTime, () {
+                  if (mounted) {
+                    context.pushReplacement('/records');
+                  }
+                });
+              } else {
+                // 8초 이상 지났으면 바로 이동
+                context.pushReplacement('/records');
+              }
+            }
+          },
+          createError: (message) {
+            // 에러 발생 - 다이얼로그 표시 후 홈으로 이동
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: const Text('마인드맵 생성 실패'),
+                  content: Text(message),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        context.go('/');
+                      },
+                      child: const Text('확인'),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
+                  ],
                 ),
+              );
+            }
+          },
+        );
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
 
-                const Spacer(),
-              ],
+                  // Popo 캐릭터 애니메이션 (fur_zip.png 위에 popo_loading.png)
+                  SizedBox(
+                    width: 350,
+                    height: 350,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // 아래 이미지: fur_zip.png - 빙글빙글 회전
+                        AnimatedBuilder(
+                          animation: _rotationController,
+                          builder: (context, child) {
+                            return Transform.rotate(
+                              angle: _rotationAnimation.value * 2 * pi, // 완전히 회전
+                              child: SizedBox(
+                                width: 350,
+                                height: 350,
+                                child: Image.asset(
+                                  'assets/images/fur_zip.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        // 위 이미지: popo_loading.png - 위아래로 두둥실 떠다니기
+                        AnimatedBuilder(
+                          animation: _floatingController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(
+                                20, // 오른쪽으로 고정
+                                _floatingY.value, // 위아래 움직임만
+                              ),
+                              child: SizedBox(
+                                width: 200,
+                                height: 200,
+                                child: Image.asset(
+                                  'assets/images/popo_loading.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  // 로딩 메시지 (애니메이션으로 전환)
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.3),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      _loadingMessages[_currentMessageIndex],
+                      key: ValueKey<int>(_currentMessageIndex),
+                      style: AppTextStyles.regular16.copyWith(
+                        color: Colors.black.withValues(alpha: 0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                  const Spacer(),
+                ],
+              ),
             ),
           ),
         ),

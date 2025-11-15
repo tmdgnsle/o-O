@@ -67,8 +67,8 @@ class AppRouter {
         path: '/processing',
         name: 'processing',
         builder: (context, state) {
-          final recordingPath = state.extra as String?;
-          return ProcessingPage(recordingPath: recordingPath);
+          final recordingText = state.extra as String? ?? '';
+          return ProcessingPage(recordingText: recordingText);
         },
       ),
       GoRoute(

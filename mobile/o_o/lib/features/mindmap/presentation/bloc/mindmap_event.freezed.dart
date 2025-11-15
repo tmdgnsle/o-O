@@ -17,45 +17,45 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$MindmapEvent {
-  int get workspaceId => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(int workspaceId) loadMindmap,
     required TResult Function(int workspaceId) refreshMindmap,
+    required TResult Function(String text) createMindmapFromText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int workspaceId)? loadMindmap,
     TResult? Function(int workspaceId)? refreshMindmap,
+    TResult? Function(String text)? createMindmapFromText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int workspaceId)? loadMindmap,
     TResult Function(int workspaceId)? refreshMindmap,
+    TResult Function(String text)? createMindmapFromText,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(LoadMindmapEvent value) loadMindmap,
     required TResult Function(RefreshMindmapEvent value) refreshMindmap,
+    required TResult Function(CreateMindmapFromTextEvent value)
+    createMindmapFromText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadMindmapEvent value)? loadMindmap,
     TResult? Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult? Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadMindmapEvent value)? loadMindmap,
     TResult Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
-
-  /// Create a copy of MindmapEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MindmapEventCopyWith<MindmapEvent> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -64,8 +64,6 @@ abstract class $MindmapEventCopyWith<$Res> {
     MindmapEvent value,
     $Res Function(MindmapEvent) then,
   ) = _$MindmapEventCopyWithImpl<$Res, MindmapEvent>;
-  @useResult
-  $Res call({int workspaceId});
 }
 
 /// @nodoc
@@ -80,30 +78,14 @@ class _$MindmapEventCopyWithImpl<$Res, $Val extends MindmapEvent>
 
   /// Create a copy of MindmapEvent
   /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? workspaceId = null}) {
-    return _then(
-      _value.copyWith(
-            workspaceId:
-                null == workspaceId
-                    ? _value.workspaceId
-                    : workspaceId // ignore: cast_nullable_to_non_nullable
-                        as int,
-          )
-          as $Val,
-    );
-  }
 }
 
 /// @nodoc
-abstract class _$$LoadMindmapEventImplCopyWith<$Res>
-    implements $MindmapEventCopyWith<$Res> {
+abstract class _$$LoadMindmapEventImplCopyWith<$Res> {
   factory _$$LoadMindmapEventImplCopyWith(
     _$LoadMindmapEventImpl value,
     $Res Function(_$LoadMindmapEventImpl) then,
   ) = __$$LoadMindmapEventImplCopyWithImpl<$Res>;
-  @override
   @useResult
   $Res call({int workspaceId});
 }
@@ -175,6 +157,7 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult when<TResult extends Object?>({
     required TResult Function(int workspaceId) loadMindmap,
     required TResult Function(int workspaceId) refreshMindmap,
+    required TResult Function(String text) createMindmapFromText,
   }) {
     return loadMindmap(workspaceId);
   }
@@ -184,6 +167,7 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int workspaceId)? loadMindmap,
     TResult? Function(int workspaceId)? refreshMindmap,
+    TResult? Function(String text)? createMindmapFromText,
   }) {
     return loadMindmap?.call(workspaceId);
   }
@@ -193,6 +177,7 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int workspaceId)? loadMindmap,
     TResult Function(int workspaceId)? refreshMindmap,
+    TResult Function(String text)? createMindmapFromText,
     required TResult orElse(),
   }) {
     if (loadMindmap != null) {
@@ -206,6 +191,8 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(LoadMindmapEvent value) loadMindmap,
     required TResult Function(RefreshMindmapEvent value) refreshMindmap,
+    required TResult Function(CreateMindmapFromTextEvent value)
+    createMindmapFromText,
   }) {
     return loadMindmap(this);
   }
@@ -215,6 +202,7 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadMindmapEvent value)? loadMindmap,
     TResult? Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult? Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
   }) {
     return loadMindmap?.call(this);
   }
@@ -224,6 +212,7 @@ class _$LoadMindmapEventImpl implements LoadMindmapEvent {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadMindmapEvent value)? loadMindmap,
     TResult Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
     required TResult orElse(),
   }) {
     if (loadMindmap != null) {
@@ -237,25 +226,21 @@ abstract class LoadMindmapEvent implements MindmapEvent {
   const factory LoadMindmapEvent({required final int workspaceId}) =
       _$LoadMindmapEventImpl;
 
-  @override
   int get workspaceId;
 
   /// Create a copy of MindmapEvent
   /// with the given fields replaced by the non-null parameter values.
-  @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$LoadMindmapEventImplCopyWith<_$LoadMindmapEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$RefreshMindmapEventImplCopyWith<$Res>
-    implements $MindmapEventCopyWith<$Res> {
+abstract class _$$RefreshMindmapEventImplCopyWith<$Res> {
   factory _$$RefreshMindmapEventImplCopyWith(
     _$RefreshMindmapEventImpl value,
     $Res Function(_$RefreshMindmapEventImpl) then,
   ) = __$$RefreshMindmapEventImplCopyWithImpl<$Res>;
-  @override
   @useResult
   $Res call({int workspaceId});
 }
@@ -327,6 +312,7 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult when<TResult extends Object?>({
     required TResult Function(int workspaceId) loadMindmap,
     required TResult Function(int workspaceId) refreshMindmap,
+    required TResult Function(String text) createMindmapFromText,
   }) {
     return refreshMindmap(workspaceId);
   }
@@ -336,6 +322,7 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(int workspaceId)? loadMindmap,
     TResult? Function(int workspaceId)? refreshMindmap,
+    TResult? Function(String text)? createMindmapFromText,
   }) {
     return refreshMindmap?.call(workspaceId);
   }
@@ -345,6 +332,7 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(int workspaceId)? loadMindmap,
     TResult Function(int workspaceId)? refreshMindmap,
+    TResult Function(String text)? createMindmapFromText,
     required TResult orElse(),
   }) {
     if (refreshMindmap != null) {
@@ -358,6 +346,8 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(LoadMindmapEvent value) loadMindmap,
     required TResult Function(RefreshMindmapEvent value) refreshMindmap,
+    required TResult Function(CreateMindmapFromTextEvent value)
+    createMindmapFromText,
   }) {
     return refreshMindmap(this);
   }
@@ -367,6 +357,7 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(LoadMindmapEvent value)? loadMindmap,
     TResult? Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult? Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
   }) {
     return refreshMindmap?.call(this);
   }
@@ -376,6 +367,7 @@ class _$RefreshMindmapEventImpl implements RefreshMindmapEvent {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(LoadMindmapEvent value)? loadMindmap,
     TResult Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
     required TResult orElse(),
   }) {
     if (refreshMindmap != null) {
@@ -389,13 +381,164 @@ abstract class RefreshMindmapEvent implements MindmapEvent {
   const factory RefreshMindmapEvent({required final int workspaceId}) =
       _$RefreshMindmapEventImpl;
 
-  @override
   int get workspaceId;
 
   /// Create a copy of MindmapEvent
   /// with the given fields replaced by the non-null parameter values.
-  @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$RefreshMindmapEventImplCopyWith<_$RefreshMindmapEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$CreateMindmapFromTextEventImplCopyWith<$Res> {
+  factory _$$CreateMindmapFromTextEventImplCopyWith(
+    _$CreateMindmapFromTextEventImpl value,
+    $Res Function(_$CreateMindmapFromTextEventImpl) then,
+  ) = __$$CreateMindmapFromTextEventImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String text});
+}
+
+/// @nodoc
+class __$$CreateMindmapFromTextEventImplCopyWithImpl<$Res>
+    extends _$MindmapEventCopyWithImpl<$Res, _$CreateMindmapFromTextEventImpl>
+    implements _$$CreateMindmapFromTextEventImplCopyWith<$Res> {
+  __$$CreateMindmapFromTextEventImplCopyWithImpl(
+    _$CreateMindmapFromTextEventImpl _value,
+    $Res Function(_$CreateMindmapFromTextEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of MindmapEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? text = null}) {
+    return _then(
+      _$CreateMindmapFromTextEventImpl(
+        text:
+            null == text
+                ? _value.text
+                : text // ignore: cast_nullable_to_non_nullable
+                    as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$CreateMindmapFromTextEventImpl implements CreateMindmapFromTextEvent {
+  const _$CreateMindmapFromTextEventImpl({required this.text});
+
+  @override
+  final String text;
+
+  @override
+  String toString() {
+    return 'MindmapEvent.createMindmapFromText(text: $text)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CreateMindmapFromTextEventImpl &&
+            (identical(other.text, text) || other.text == text));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, text);
+
+  /// Create a copy of MindmapEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CreateMindmapFromTextEventImplCopyWith<_$CreateMindmapFromTextEventImpl>
+  get copyWith => __$$CreateMindmapFromTextEventImplCopyWithImpl<
+    _$CreateMindmapFromTextEventImpl
+  >(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(int workspaceId) loadMindmap,
+    required TResult Function(int workspaceId) refreshMindmap,
+    required TResult Function(String text) createMindmapFromText,
+  }) {
+    return createMindmapFromText(text);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(int workspaceId)? loadMindmap,
+    TResult? Function(int workspaceId)? refreshMindmap,
+    TResult? Function(String text)? createMindmapFromText,
+  }) {
+    return createMindmapFromText?.call(text);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(int workspaceId)? loadMindmap,
+    TResult Function(int workspaceId)? refreshMindmap,
+    TResult Function(String text)? createMindmapFromText,
+    required TResult orElse(),
+  }) {
+    if (createMindmapFromText != null) {
+      return createMindmapFromText(text);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(LoadMindmapEvent value) loadMindmap,
+    required TResult Function(RefreshMindmapEvent value) refreshMindmap,
+    required TResult Function(CreateMindmapFromTextEvent value)
+    createMindmapFromText,
+  }) {
+    return createMindmapFromText(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(LoadMindmapEvent value)? loadMindmap,
+    TResult? Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult? Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
+  }) {
+    return createMindmapFromText?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(LoadMindmapEvent value)? loadMindmap,
+    TResult Function(RefreshMindmapEvent value)? refreshMindmap,
+    TResult Function(CreateMindmapFromTextEvent value)? createMindmapFromText,
+    required TResult orElse(),
+  }) {
+    if (createMindmapFromText != null) {
+      return createMindmapFromText(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class CreateMindmapFromTextEvent implements MindmapEvent {
+  const factory CreateMindmapFromTextEvent({required final String text}) =
+      _$CreateMindmapFromTextEventImpl;
+
+  String get text;
+
+  /// Create a copy of MindmapEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$CreateMindmapFromTextEventImplCopyWith<_$CreateMindmapFromTextEventImpl>
+  get copyWith => throw _privateConstructorUsedError;
 }

@@ -34,6 +34,7 @@ import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
 import '../../features/mindmap/data/datasources/mindmap_api_data_source.dart';
 import '../../features/mindmap/data/repositories/mindmap_repository_impl.dart';
 import '../../features/mindmap/domain/repositories/mindmap_repository.dart';
+import '../../features/mindmap/domain/usecases/create_mindmap_from_text.dart';
 import '../../features/mindmap/domain/usecases/get_mindmap_nodes.dart';
 import '../../features/mindmap/presentation/bloc/mindmap_bloc.dart';
 import '../constants/api_constants.dart';
@@ -209,11 +210,13 @@ Future<void> init() async {
   sl.registerFactory(
     () => MindmapBloc(
       getMindmapNodes: sl(),
+      createMindmapFromText: sl(),
     ),
   );
 
   // Use cases
   sl.registerLazySingleton(() => GetMindmapNodes(sl()));
+  sl.registerLazySingleton(() => CreateMindmapFromText(sl()));
 
   // Repository
   sl.registerLazySingleton<MindmapRepository>(

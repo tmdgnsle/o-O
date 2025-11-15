@@ -23,7 +23,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late WorkspaceBloc _workspaceBloc;
 
   @override
@@ -32,24 +32,23 @@ class _HomePageState extends State<HomePage> {
     _workspaceBloc = sl<WorkspaceBloc>();
     // 초기 로드
     _workspaceBloc.add(const WorkspaceEvent.load());
+
+    // 앱 라이프사이클 옵저버 등록
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 화면에 돌아올 때마다 API 재호출
-    // (초기 로드 제외하고 매번 재로드)
-    if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _workspaceBloc.add(const WorkspaceEvent.load());
-        }
-      });
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 앱이 다시 활성화될 때 (다른 페이지에서 돌아올 때 포함)
+    if (state == AppLifecycleState.resumed) {
+      _workspaceBloc.add(const WorkspaceEvent.load());
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _workspaceBloc.close();
     super.dispose();
   }
@@ -174,19 +173,26 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _workspaceBloc,
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/background.png'),
-              fit: BoxFit.cover,
+      child: BlocListener<RecordingBloc, RecordingState>(
+        listener: (context, state) {
+          // 녹음 종료 시 텍스트를 가지고 Processing 페이지로 이동
+          if (state is RecordingStopped) {
+            context.push('/processing', extra: state.recognizedText);
+          }
+        },
+        child: Scaffold(
+          body: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/background.png'),
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          child: BlocBuilder<RecordingBloc, RecordingState>(
-          builder: (context, recordingState) {
-            final isRecording = recordingState is RecordingInProgress ||
-                recordingState is RecordingPaused;
-            final isPaused = recordingState is RecordingPaused;
+            child: BlocBuilder<RecordingBloc, RecordingState>(
+            builder: (context, recordingState) {
+              final isRecording = recordingState is RecordingInProgress ||
+                  recordingState is RecordingPaused;
+              final isPaused = recordingState is RecordingPaused;
 
             return Stack(
               children: [
@@ -256,12 +262,10 @@ class _HomePageState extends State<HomePage> {
                                   ? AnimatedCircularButton(
                                     key: const ValueKey('recording'),
                                     onTap: () {
-                                      // 녹음 중단 후 Processing 페이지로 이동
+                                      // 녹음 중단 (BlocListener가 자동으로 Processing 페이지로 이동)
                                       context.read<RecordingBloc>().add(
                                         const RecordingEvent.stop(),
                                       );
-                                      // push: 홈을 스택에 유지하면서 processing으로 이동
-                                      context.push('/processing');
                                     },
                                     containerSize: 220,
                                     imageSize: 170,
@@ -539,7 +543,8 @@ class _HomePageState extends State<HomePage> {
             );
           },
         ),
-      ),
+          ),
+        ),
       ),
     );
   }

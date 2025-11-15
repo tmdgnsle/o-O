@@ -14,4 +14,9 @@ class MindmapEvent with _$MindmapEvent {
   const factory MindmapEvent.refreshMindmap({
     required int workspaceId,
   }) = RefreshMindmapEvent;
+
+  /// STT 텍스트로 마인드맵 생성
+  const factory MindmapEvent.createMindmapFromText({
+    required String text,
+  }) = CreateMindmapFromTextEvent;
 }
