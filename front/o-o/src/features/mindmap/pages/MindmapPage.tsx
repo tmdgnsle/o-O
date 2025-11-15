@@ -219,8 +219,8 @@ const MindmapPageContent: React.FC = () => {
     };
   }, [collab, cyReady, chatInput]);
 
-  // 11. Loading state
-  if (!collab || !crud || isBootstrapping) {
+  // 11. Loading state - collab/crud만 체크 (isBootstrapping은 백그라운드에서 진행)
+  if (!collab || !crud) {
     return (
       <div className="flex items-center justify-center h-screen font-paperlogy">
         워크스페이스를 로딩 중입니다...

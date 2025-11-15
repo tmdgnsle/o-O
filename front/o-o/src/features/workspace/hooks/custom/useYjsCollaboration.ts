@@ -78,6 +78,13 @@ export function useYjsCollaboration(
       if (currentClientRef.current) {
         try {
           console.log("[useYjsCollaboration] cleanup: destroying client");
+
+          // ✅ 재연결 시도를 먼저 중단 (중요!)
+          const provider = currentClientRef.current.provider;
+          provider.shouldConnect = false;  // 자동 재연결 비활성화
+          provider.disconnect();           // 현재 연결 종료
+
+          // 그 다음 destroy 호출
           currentClientRef.current.destroy();
         } catch (e) {
           console.error("[useYjsCollaboration] error destroying client:", e);
