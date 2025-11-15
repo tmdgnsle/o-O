@@ -1,13 +1,17 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useEffect, useState, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 import { addToPath } from "@/store/slices/trendPathSlice";
 import { useTrend } from "../hooks/useTrend";
+import { useMypage } from "@/features/mypage/hooks/useMypage";
 import { TrendMindmapHeader } from "../components/TrendMindmap/TrendMindmapHeader";
 import { D3Mindmap } from "../components/TrendMindmap/D3/D3Mindmap";
 import { TrendExpandKeyword } from "../components/TrendMindmap/TrendExpandKeyword";
 import { DrawerButton } from "../components/TrendMindmap/Drawer/DrawerButton";
+import { MindmapSelectionModal } from "../components/TrendMindmap/Modal/MindmapSelectionModal";
 import type { TrendKeywordItem } from "../types/trend";
+import type { Project } from "../types/types";
 
 export function TrendMindmapPage() {
   const { trendId } = useParams<{ trendId: string }>();
@@ -16,10 +20,44 @@ export function TrendMindmapPage() {
 
   const { childKeywords, keywordsLoading, keywordsError, fetchChildTrendList } =
     useTrend();
+  const { workspaces, fetchWorkspacesList } = useMypage();
   const [showExpandKeywords, setShowExpandKeywords] = useState(false);
   const [expandedKeywords, setExpandedKeywords] = useState<TrendKeywordItem[]>(
     []
   );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Redux에서 경로 가져오기
+  const visitPath = useSelector(
+    (state: RootState) => state.trendPath.visitPath
+  );
+
+  // Workspace를 Project 타입으로 변환
+  const projects: Project[] = useMemo(() => {
+    return workspaces.map((workspace) => ({
+      id: workspace.id.toString(),
+      title: workspace.title,
+      date: new Date(workspace.createdAt).toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }),
+      isPrivate: workspace.visibility === "PRIVATE",
+      collaborators: workspace.profiles.map((profileUrl: string, index: number) => ({
+        id: `user-${workspace.id}-${index}`,
+        name: `사용자 ${index + 1}`,
+        image: profileUrl,
+      })),
+      thumbnail: workspace.thumbnail || undefined,
+    }));
+  }, [workspaces]);
+
+  // 워크스페이스 데이터 가져오기 (최초 1회만)
+  useEffect(() => {
+    if (workspaces.length === 0) {
+      fetchWorkspacesList({ category: "recent" });
+    }
+  }, []);
 
   useEffect(() => {
     if (trendId) {
@@ -44,6 +82,30 @@ export function TrendMindmapPage() {
   // 자식 노드 클릭 핸들러
   const handleNodeClick = (keyword: string) => {
     navigate(`/trend/${encodeURIComponent(keyword)}`);
+  };
+
+  // 모달 핸들러
+  const handleOpenModal = () => {
+    console.log("페이지에서 모달 열기!");
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleCreateNewMindmap = () => {
+    console.log("새 마인드맵 생성");
+    console.log("생성할 마인드맵 경로:", visitPath.join(" > "));
+    // TODO: 새 마인드맵 생성 로직
+    setIsModalOpen(false);
+  };
+
+  const handleSelectMindmap = (mindmapId: string) => {
+    console.log("마인드맵 선택:", mindmapId);
+    console.log("선택한 경로:", visitPath.join(" > "));
+    // TODO: 선택한 마인드맵에 키워드 추가 로직 (visitPath 포함)
+    setIsModalOpen(false);
   };
 
   // 마인드맵 콘텐츠 렌더링
@@ -108,8 +170,17 @@ export function TrendMindmapPage() {
 
       {/* 드로어 버튼 */}
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
-        <DrawerButton />
+        <DrawerButton onOpenModal={handleOpenModal} />
       </div>
+
+      {/* 마인드맵 선택 모달 */}
+      <MindmapSelectionModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onCreateNew={handleCreateNewMindmap}
+        onSelectMindmap={handleSelectMindmap}
+        projects={projects}
+      />
     </div>
   );
 }

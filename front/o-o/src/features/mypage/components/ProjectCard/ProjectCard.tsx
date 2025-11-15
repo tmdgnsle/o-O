@@ -9,16 +9,21 @@ import type { Project } from "@/features/mypage/types/project";
 
 interface ProjectCardProps {
   readonly project: Project;
+  readonly onClick?: () => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onClick }: ProjectCardProps) {
   const displayCollaborators = project.collaborators.slice(0, 3);
   const navigate = useNavigate();
 
   const handleCardClick = () => {
-    navigate(`/mindmap/${project.id}`, {
-      state: { project },
-    });
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/mindmap/${project.id}`, {
+        state: { project },
+      });
+    }
   };
 
   return (
