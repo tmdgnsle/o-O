@@ -37,7 +37,7 @@ public class WorkspaceService {
     private static final int MAX_MEMBERS = 6;
     private static final int DEFAULT_PAGE_SIZE = 20;
 
-    public WorkspaceResponse create(Long userId) {
+    public WorkspaceResponse create(Long userId, String startPrompt) {
         String INITIAL_TITLE = "제목 없음";
 
         Workspace workspace = Workspace.builder()
@@ -45,6 +45,7 @@ public class WorkspaceService {
                 .type(WorkspaceType.PERSONAL)
                 .visibility(WorkspaceVisibility.PRIVATE)
                 .title(INITIAL_TITLE)
+                .startPrompt(startPrompt)
                 .token(UUID.randomUUID().toString())
                 .build();
         Workspace saved = workspaceRepository.save(workspace);
@@ -251,7 +252,7 @@ public class WorkspaceService {
     }
 
     // 토큰으로 워크스페이스 참여
-    public void joinByToken(String token, Long userId) {
+    public WorkspaceJoinResponse joinByToken(String token, Long userId) {
         // 1. 토큰으로 워크스페이스 찾기
         Workspace workspace = workspaceRepository.findByToken(token)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.INVALID_INVITE_TOKEN));
@@ -276,6 +277,8 @@ public class WorkspaceService {
                 .build();
 
         workspaceMemberRepository.save(newMember);
+
+        return new WorkspaceJoinResponse(workspace.getId());
     }
 
     public List<WorkspaceSimpleResponse> getAllMyWorkspacesForMobile(Long userId) {
@@ -303,6 +306,21 @@ public class WorkspaceService {
         return workspaceRepository.findVisibilityById(workspaceId)
                 .map(WorkspaceVisibilityView::getVisibility)
                 .orElseThrow(() -> new WorkspaceNotFoundException(workspaceId));
+    }
+
+    /**
+     * 워크스페이스 제목만 업데이트 (내부용)
+     * mindmap-service에서 AI가 생성한 제목으로 업데이트할 때 사용
+     */
+    @Transactional
+    public void updateTitleOnly(Long workspaceId, String title) {
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new WorkspaceNotFoundException(workspaceId));
+
+        workspace.changeTitle(title);
+        workspaceRepository.save(workspace);
+
+        log.info("Updated workspace title: workspaceId={}, title={}", workspaceId, title);
     }
 
     /**

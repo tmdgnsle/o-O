@@ -47,9 +47,12 @@ public class WorkspaceController {
     @PostMapping
     public ResponseEntity<WorkspaceResponse> create(
             @Parameter(hidden = true)
-            @RequestHeader("X-USER-ID") Long userId) {
-        log.info("POST /workspace - Creating workspace for userId: {}", userId);
-        return ResponseEntity.ok(workspaceService.create(userId));
+            @RequestHeader("X-USER-ID") Long userId,
+
+            @Parameter(description = "초기 프롬프트 (STT 텍스트 등, optional)", example = "인공지능 윤리 문제에 대해 생각해봅시다")
+            @RequestBody(required = false) String startPrompt) {
+        log.info("POST /workspace - Creating workspace for userId: {}, startPrompt: {}", userId, startPrompt);
+        return ResponseEntity.ok(workspaceService.create(userId, startPrompt));
     }
 
     @Operation(
@@ -213,7 +216,7 @@ public class WorkspaceController {
             @ApiResponse(responseCode = "404", description = "유효하지 않은 초대 링크")
     })
     @PostMapping("/join")
-    public ResponseEntity<Void> joinWorkspace(
+    public ResponseEntity<WorkspaceJoinResponse> joinWorkspace(
             @Parameter(description = "초대 토큰", required = true, example = "550e8400-e29b-41d4-a716-446655")
             @RequestParam String token,
 
@@ -221,8 +224,8 @@ public class WorkspaceController {
             @RequestHeader("X-USER-ID") Long userId
     ) {
         log.info("POST /workspace/join - Joining workspace with token: {}, userId: {}", token, userId);
-        workspaceService.joinByToken(token, userId);
-        return ResponseEntity.ok().build();
+
+        return ResponseEntity.ok().body(workspaceService.joinByToken(token, userId));
     }
 
     @Operation(
@@ -267,6 +270,31 @@ public class WorkspaceController {
         log.info("GET /workspace/{}/visibility - Fetching visibility for workspaceId: {}", workspaceId, workspaceId);
         String visibility = workspaceService.getVisibilityOnly(workspaceId);
         return ResponseEntity.ok(Map.of("visibility", visibility));
+    }
+
+    // 🔹 내부용 title 업데이트 API
+    @Operation(
+            summary = "[internal] 워크스페이스 제목 업데이트",
+            description = """
+                    내부 서비스(mindmap-service)에서 AI가 생성한 제목으로 워크스페이스를 업데이트할 때 사용합니다.
+                    인증(X-USER-ID) 없이 workspaceId와 title만으로 업데이트합니다.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "제목 업데이트 성공"),
+            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
+    })
+    @PatchMapping("/internal/{workspaceId}/title")
+    public ResponseEntity<Void> updateTitleInternal(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
+            @PathVariable Long workspaceId,
+
+            @Parameter(description = "업데이트할 제목", required = true, example = "인공지능 윤리 문제 해결 아이디어")
+            @RequestBody String title
+    ) {
+        log.info("PATCH /workspace/internal/{}/title - Updating title to: {}", workspaceId, title);
+        workspaceService.updateTitleOnly(workspaceId, title);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(

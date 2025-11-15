@@ -1,7 +1,7 @@
 package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
+import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.kafka.AiAnalysisResult;
 import com.ssafy.mindmapservice.repository.NodeRepository;
@@ -25,7 +25,7 @@ public class AiAnalysisConsumer {
     private final NodeUpdateProducer nodeUpdateProducer;
     private final NodeService nodeService;
     private final ObjectMapper objectMapper;
-    private final WorkspaceServiceClientAdapter workspaceServiceClient;
+    private final WorkspaceServiceClient workspaceServiceClient;
 
     /**
      * AI 서버로부터 분석 결과를 받아서 처리합니다.
@@ -83,11 +83,9 @@ public class AiAnalysisConsumer {
                             result.workspaceId(), originalNodeId);
                 }
 
-                // 워크스페이스 title 업데이트
+                // 워크스페이스 title 업데이트 (내부 API 사용 - userId 불필요)
                 if (result.title() != null && !result.title().isBlank()) {
-                    // TODO: userId를 AiAnalysisResult에 포함시켜야 함
-                    Long userId = 1L; // 임시 하드코딩
-                    workspaceServiceClient.updateWorkspaceTitle(userId, result.workspaceId(), result.title());
+                    workspaceServiceClient.updateWorkspaceTitleInternal(result.workspaceId(), result.title());
                     log.info("Updated workspace title: workspaceId={}, title={}",
                             result.workspaceId(), result.title());
                 }
