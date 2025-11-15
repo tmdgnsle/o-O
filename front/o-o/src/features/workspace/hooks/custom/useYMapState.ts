@@ -26,26 +26,41 @@ export const useYMapState = <TValue,>(
     // 이후에는 증분 업데이트로 성능 최적화
     const observer = (event: Y.YMapEvent<TValue>) => {
       const startTime = performance.now();
-      setState(prev => {
-        // 변경사항이 없으면 기존 객체 반환 (리렌더링 방지)
-        if (event.keysChanged.size === 0) {
-          return prev;
-        }
 
+      // 변경사항이 없으면 조기 반환
+      if (event.keysChanged.size === 0) {
+        return;
+      }
+
+      // ⚠️ IMPORTANT: event.changes는 동기적으로만 접근 가능
+      // setState 콜백 내부에서 접근하면 "You must not compute changes after the event-handler fired" 에러 발생
+      // 따라서 변경사항을 미리 계산해야 함
+      const changesToApply: Array<{ key: string; action: 'delete' | 'update'; value?: TValue }> = [];
+
+      for (const key of event.keysChanged) {
+        const action = event.changes.keys.get(key);
+
+        if (action?.action === 'delete') {
+          changesToApply.push({ key, action: 'delete' });
+        } else {
+          const value = yMap.get(key);
+          if (value !== undefined) {
+            changesToApply.push({ key, action: 'update', value });
+          }
+        }
+      }
+
+      // 계산된 변경사항을 React state에 적용
+      setState(prev => {
         const next = { ...prev };  // shallow copy
 
-        event.keysChanged.forEach(key => {
-          const action = event.changes.keys.get(key);
-
-          if (action?.action === 'delete') {
-            delete next[key];
+        for (const change of changesToApply) {
+          if (change.action === 'delete') {
+            delete next[change.key];
           } else {
-            const value = yMap.get(key);
-            if (value !== undefined) {
-              next[key] = value;
-            }
+            next[change.key] = change.value!;
           }
-        });
+        }
 
         const elapsed = performance.now() - startTime;
         if (elapsed > 10) {

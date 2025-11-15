@@ -2,6 +2,7 @@ import { memo, useCallback, useState } from "react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import NodeEditForm from "./NodeEditForm";
+import NodeDetailModal from "./NodeDetailModal";
 import { useNodeTextEdit } from "../../hooks/custom/useNodeTextEdit";
 import { useNodeAdd } from "../../hooks/custom/useNodeAdd";
 import { useNodeColorEdit } from "../../hooks/custom/useNodeColorEdit";
@@ -14,6 +15,8 @@ import type { CytoscapeNodeOverlayProps } from "../../types";
 import warningPopoImage from "@/shared/assets/images/warning_popo.webp";
 import ConfirmDialog from "../../../../shared/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import YouTubeIcon from "@mui/icons-material/YouTube";
+import PhotoSizeSelectActualOutlinedIcon from "@mui/icons-material/PhotoSizeSelectActualOutlined";
 
 function NodeOverlay({
   node,
@@ -38,10 +41,21 @@ function NodeOverlay({
   const { text, memo, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
-  const { isEditing, editValue, editMemo, setEditValue, setEditMemo, startEdit, cancelEdit, confirmEdit } = useNodeTextEdit(text, memo);
+  const {
+    isEditing,
+    editValue,
+    editMemo,
+    setEditValue,
+    setEditMemo,
+    startEdit,
+    cancelEdit,
+    confirmEdit,
+  } = useNodeTextEdit(text, memo);
   const { showAddInput, openAddInput, closeAddInput } = useNodeAdd();
-  const { paletteOpen, togglePalette, closePalette } = useNodeColorEdit(initialColor);
+  const { paletteOpen, togglePalette, closePalette } =
+    useNodeColorEdit(initialColor);
   const { focusedButton, setFocusedButton } = useNodeFocus();
 
   const {
@@ -94,7 +108,10 @@ function NodeOverlay({
 
   const handleDeleteOnlyCurrent = useCallback(() => {
     if (hasChildren) {
-      onKeepChildrenDelete?.({ deletedNodeId: node.id, parentId: node.parentId ?? null });
+      onKeepChildrenDelete?.({
+        deletedNodeId: node.id,
+        parentId: node.parentId ?? null,
+      });
     }
     handleDelete();
     setDeleteDialogOpen(false);
@@ -114,6 +131,25 @@ function NodeOverlay({
     if (!detachedSelection) return;
     onDismissDetachedSelection?.(detachedSelection.anchorNodeId);
   }, [detachedSelection, onDismissDetachedSelection]);
+
+  const handleIconClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (node.type === "image" || node.type === "video") {
+      setDetailModalOpen((prev) => !prev);
+    }
+  }, [node.type]);
+
+  const handleNodeClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (mode === "analyze") return; // 분석 모드에서는 별도 처리
+
+    // Edit 모드에서 노드 클릭 토글
+    if (isSelected) {
+      onDeselect();
+    } else {
+      onSelect();
+    }
+  }, [mode, isSelected, onSelect, onDeselect]);
 
   const zIndex = useNodeZIndex({ focusedButton, isSelected });
   const textColor = getContrastTextColor(initialColor);
@@ -139,11 +175,12 @@ function NodeOverlay({
         }}
       >
         <div
-          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${selectionRingClass}`}
+          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer ${selectionRingClass}`}
           style={{
             background: createRadialGradient(initialColor),
-            pointerEvents: "none",
+            pointerEvents: isAnalyzeMode ? "none" : "auto",
           }}
+          onClick={handleNodeClick}
         >
           {isEditing ? (
             <NodeEditForm
@@ -155,14 +192,67 @@ function NodeOverlay({
               onCancel={handleEditCancel}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center px-4 text-center">
-              <span className="font-paperlogy font-bold text-base mb-1 break-words" style={{ color: textColor }}>
-                {text}
-              </span>
-              {memo && (
-                <span className="font-paperlogy text-xs leading-tight break-words line-clamp-3" style={{ color: textColor, opacity: 0.85 }}>
-                  {memo}
-                </span>
+            <div
+              className="flex flex-col items-center justify-center px-4 text-center"
+              style={{
+                pointerEvents: "none",
+              }}
+            >
+              {node.type === "image" ? (
+                <>
+                  <div
+                    className="rounded-lg mb-1 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ pointerEvents: "auto" }}
+                    onClick={handleIconClick}
+                  >
+                    <PhotoSizeSelectActualOutlinedIcon
+                      sx={{ fontSize: 60, color: textColor }}
+                    />
+                  </div>
+                  {memo && (
+                    <span
+                      className="font-paperlogy text-xs leading-tight break-words line-clamp-2"
+                      style={{ color: textColor, opacity: 0.85 }}
+                    >
+                      {memo}
+                    </span>
+                  )}
+                </>
+              ) : node.type === "video" ? (
+                <>
+                  <div
+                    className="rounded-lg mb-1 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ pointerEvents: "auto" }}
+                    onClick={handleIconClick}
+                  >
+                    <YouTubeIcon sx={{ fontSize: 60, color: textColor }} />
+                  </div>
+                  {memo && (
+                    <span
+                      className="font-paperlogy text-xs leading-tight break-words line-clamp-2"
+                      style={{ color: textColor, opacity: 0.85 }}
+                    >
+                      {memo}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span
+                    className="font-paperlogy font-bold text-base mb-1 break-words"
+                    style={{ color: textColor }}
+                  >
+                    {text}
+                  </span>
+                  {memo && (
+                    <span
+                      className="font-paperlogy text-xs leading-tight break-words line-clamp-3"
+                      style={{ color: textColor, opacity: 0.85 }}
+                    >
+                      {memo}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -225,7 +315,9 @@ function NodeOverlay({
             isOpen={deleteDialogOpen}
             characterImage={warningPopoImage}
             title="주의"
-            description={"선택한 아이디어에 하위 아이디어가 있습니다.\n하위 아이디어까지 삭제하시겠습니까?"}
+            description={
+              "선택한 아이디어에 하위 아이디어가 있습니다.\n하위 아이디어까지 삭제하시겠습니까?"
+            }
             onClose={handleDeleteDialogClose}
             buttons={[
               {
@@ -243,25 +335,35 @@ function NodeOverlay({
           />
         </div>
       )}
+
+      <NodeDetailModal
+        isOpen={detailModalOpen}
+        node={node}
+        nodeX={x}
+        nodeY={y}
+        onClose={() => setDetailModalOpen(false)}
+      />
     </>
   );
 }
 
-export default memo(NodeOverlay, (prev, next) =>
-  prev.node.id === next.node.id &&
-  prev.node.text === next.node.text &&
-  prev.node.memo === next.node.memo &&
-  prev.node.color === next.node.color &&
-  prev.x === next.x &&
-  prev.y === next.y &&
-  prev.zoom === next.zoom &&
-  prev.mode === next.mode &&
-  prev.hasChildren === next.hasChildren &&
-  prev.isSelected === next.isSelected &&
-  prev.isAnalyzeSelected === next.isAnalyzeSelected &&
-  prev.detachedSelection?.id === next.detachedSelection?.id &&
-  prev.onCreateChildNode === next.onCreateChildNode &&
-  prev.onKeepChildrenDelete === next.onKeepChildrenDelete &&
-  prev.onConnectDetachedSelection === next.onConnectDetachedSelection &&
-  prev.onDismissDetachedSelection === next.onDismissDetachedSelection
+export default memo(
+  NodeOverlay,
+  (prev, next) =>
+    prev.node.id === next.node.id &&
+    prev.node.text === next.node.text &&
+    prev.node.memo === next.node.memo &&
+    prev.node.color === next.node.color &&
+    prev.x === next.x &&
+    prev.y === next.y &&
+    prev.zoom === next.zoom &&
+    prev.mode === next.mode &&
+    prev.hasChildren === next.hasChildren &&
+    prev.isSelected === next.isSelected &&
+    prev.isAnalyzeSelected === next.isAnalyzeSelected &&
+    prev.detachedSelection?.id === next.detachedSelection?.id &&
+    prev.onCreateChildNode === next.onCreateChildNode &&
+    prev.onKeepChildrenDelete === next.onKeepChildrenDelete &&
+    prev.onConnectDetachedSelection === next.onConnectDetachedSelection &&
+    prev.onDismissDetachedSelection === next.onDismissDetachedSelection
 );

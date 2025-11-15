@@ -7,6 +7,7 @@ export type CytoscapeEventHandlers = {
   onNodeUnselect?: () => void;
   onNodePositionChange?: (nodeId: string, x: number, y: number) => void;
   onBackgroundClick?: () => void;
+  enableToggle?: boolean;
 };
 
 /**
@@ -19,7 +20,7 @@ export function useCytoscapeEvents(
   handlers: CytoscapeEventHandlers,
   cyReady: boolean = true
 ) {
-  const { onNodeSelect, onNodeUnselect, onBackgroundClick } = handlers;
+  const { onNodeSelect, onNodeUnselect, onBackgroundClick, enableToggle } = handlers;
 
   // 노드 선택/선택 해제 이벤트
   useEffect(() => {
@@ -96,6 +97,31 @@ export function useCytoscapeEvents(
       cy.off("tap", handleBackgroundTap);
     };
   }, [cy, cyReady, onBackgroundClick]);
+
+  // 노드 클릭 토글 (이미 선택된 노드를 다시 클릭하면 선택 해제)
+  useEffect(() => {
+    if (!cy || !cyReady || !enableToggle) return;
+
+    const handleNodeTap = (event: EventObject) => {
+      const tappedNode = event.target;
+
+      // 이미 선택된 노드를 다시 클릭한 경우 선택 해제
+      if (tappedNode.selected()) {
+        tappedNode.unselect();
+      } else {
+        // 기존에 선택된 다른 노드가 있으면 선택 해제
+        cy.nodes(":selected").unselect();
+        // 현재 노드 선택
+        tappedNode.select();
+      }
+    };
+
+    cy.on("tap", "node", handleNodeTap);
+
+    return () => {
+      cy.off("tap", "node", handleNodeTap);
+    };
+  }, [cy, cyReady, enableToggle]);
 }
 
 
