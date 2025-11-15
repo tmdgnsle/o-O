@@ -1,6 +1,6 @@
 import { useTrend } from "@/features/trend/hooks/useTrend";
 import { SearchSection } from "../components/SearchSection";
-import background from "@/shared/assets/images/home_bg.png";
+import background from "@/shared/assets/images/home_bg.webp";
 import { Header } from "@/shared/ui/Header";
 import { useEffect } from "react";
 

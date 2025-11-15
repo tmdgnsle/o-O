@@ -1,5 +1,5 @@
 import { Avatar } from "@/components/ui/avatar";
-import Mindmap from "@/shared/assets/images/basic_bg.png";
+import Mindmap from "@/shared/assets/images/basic_bg.webp";
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { AvatarImage } from "@radix-ui/react-avatar";

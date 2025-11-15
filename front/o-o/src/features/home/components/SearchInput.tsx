@@ -1,6 +1,6 @@
 // SearchInput.tsx
 import { useMediaUpload } from "../hooks/custom/useMediaUpload";
-import youtube from "@/shared/assets/images/youtube.png";
+import youtube from "@/shared/assets/images/youtube.webp";
 import { MediaPreview } from "./MediaPreviewProps";
 
 interface SearchInputProps {

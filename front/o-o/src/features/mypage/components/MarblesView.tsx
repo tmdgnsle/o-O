@@ -1,4 +1,4 @@
-import Marble from "@/shared/assets/images/marble.png";
+import Marble from "@/shared/assets/images/marble.webp";
 import { useMarbleLayout } from "../hooks/custom/useMarbleLayout";
 import { useRef } from "react";
 import { getFontSize } from "@/shared/utils/fontSizeUtil";

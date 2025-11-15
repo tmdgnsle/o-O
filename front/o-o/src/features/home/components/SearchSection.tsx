@@ -4,7 +4,7 @@ import { SearchInput } from "./SearchInput";
 import { SearchRecommendSection } from "./SearchRecommendSection";
 import { Button } from "@/components/ui/button";
 import LoginPromptModel from "@/shared/ui/LoginPromptModal";
-import popo from "@/shared/assets/images/popo_chu.png";
+import popo from "@/shared/assets/images/popo_chu.webp";
 import { useAppSelector } from "@/store/hooks";
 import type { TrendKeywordItem } from "@/features/trend/types/trend";
 

@@ -1,7 +1,7 @@
 import LockOutlineIcon from "@mui/icons-material/LockOutline";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import Mindmap from "@/shared/assets/images/mindmap.png";
+import Mindmap from "@/shared/assets/images/mindmap.webp";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { useNavigate } from "react-router-dom";
 

@@ -1,5 +1,5 @@
 // components/TrendKeyword.tsx
-import popo from "@/shared/assets/images/popo4.png";
+import popo from "@/shared/assets/images/popo4.webp";
 import {
   type TrendKeywordProps,
   type Keyword,

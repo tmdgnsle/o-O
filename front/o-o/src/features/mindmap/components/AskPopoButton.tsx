@@ -1,4 +1,4 @@
-import AskPopoIcon from '@/shared/assets/images/AskPopo.png';
+import AskPopoIcon from '@/shared/assets/images/AskPopo.webp';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
