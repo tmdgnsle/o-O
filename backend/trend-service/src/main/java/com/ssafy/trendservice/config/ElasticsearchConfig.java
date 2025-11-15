@@ -10,22 +10,37 @@ import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @Configuration
 public class ElasticsearchConfig {
 
-    @Value("${elasticsearch.host}")
-    private String esHost;
+    @Value("${spring.elasticsearch.uris}")
+    private String esUrl;
 
     @Bean
     public RestClient restClient() {
-        return RestClient.builder(HttpHost.create(esHost)).build();
+        return RestClient.builder(HttpHost.create(esUrl)).build();
+    }
+
+    // ES에서 쓸 ObjectMapper
+    @Bean
+    public ObjectMapper elasticsearchObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        // Instant를 timestamp 숫자 말고 ISO 문자열로 쓰고 싶으면
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 
     @Bean
-    public ElasticsearchClient elasticsearchClient(RestClient restClient) {
-        ElasticsearchTransport transport =
-                new RestClientTransport(restClient, new JacksonJsonpMapper());
+    public ElasticsearchClient elasticsearchClient(RestClient restClient,
+                                                   ObjectMapper elasticsearchObjectMapper) {
+        JacksonJsonpMapper jsonpMapper = new JacksonJsonpMapper(elasticsearchObjectMapper);
+        ElasticsearchTransport transport = new RestClientTransport(restClient, jsonpMapper);
         return new ElasticsearchClient(transport);
     }
 }
+
