@@ -8,8 +8,9 @@ export interface Workspace {
   title: string;
   visibility: WorkspaceVisibility;
   createdAt: string;
-  thumbnail: string;
-  startPrompt: string;
+  thumbnail: string | null;
+  startPrompt: string | null;
+  profiles: string[];
 }
 
 export interface WorkspaceListResponse {

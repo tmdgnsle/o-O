@@ -1,5 +1,5 @@
 import { ProjectCard } from "@/features/mypage/components/ProjectCard/ProjectCard";
-import type { Project } from "@/features/trend/types";
+import type { Project } from "@/features/trend/types/types";
 
 interface ClickableProjectCardProps {
   readonly project: Project;
@@ -10,9 +10,9 @@ export function ClickableProjectCard({
   project,
   onClick,
 }: ClickableProjectCardProps) {
-  return (
-    <button onClick={() => onClick(project.id)} className="cursor-pointer">
-      <ProjectCard project={project} />
-    </button>
-  );
+  const handleClick = () => {
+    onClick(project.id);
+  };
+
+  return <ProjectCard project={project} onClick={handleClick} />;
 }

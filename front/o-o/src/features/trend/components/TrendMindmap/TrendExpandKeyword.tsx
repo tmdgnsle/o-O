@@ -1,27 +1,27 @@
+// components/TrendMindmap/TrendExpandKeyword.tsx
+import { useNavigate } from "react-router-dom";
+import type { TrendKeywordItem } from "../../types/trend";
 import CustomScrollbar from "@/shared/ui/CustomScrollbar";
 
-export function TrendExpandKeyword() {
-  const expandKeywords = [
-    { id: 1, keyword: "소영언니" },
-    { id: 2, keyword: "짱짱걸" },
-    { id: 3, keyword: "짱짱걸" },
-    { id: 4, keyword: "짱짱걸" },
-    { id: 5, keyword: "짱짱걸" },
-    { id: 6, keyword: "짱짱걸" },
-    { id: 7, keyword: "짱짱걸" },
-    { id: 8, keyword: "짱짱걸" },
-    { id: 9, keyword: "짱짱걸" },
-    { id: 10, keyword: "짱짱걸" },
-    { id: 11, keyword: "짱짱걸" },
-    { id: 12, keyword: "짱짱걸걸걸걸걸걸걸걸걸걸" },
-  ];
+interface TrendExpandKeywordProps {
+  readonly keywords: TrendKeywordItem[];
+}
+
+export function TrendExpandKeyword({ keywords }: TrendExpandKeywordProps) {
+  const navigate = useNavigate();
+
+  const handleKeywordClick = (keyword: string) => {
+    navigate(`/trend/${encodeURIComponent(keyword)}`);
+  };
+
   return (
     <div className="bg-[#F4F4F5] w-[226px] h-[60vh] rounded-3xl p-3">
       <CustomScrollbar maxHeight="55vh">
         <div className="pr-5">
-          {expandKeywords.map((item) => (
+          {keywords.map((item, index) => (
             <div
-              key={item.id}
+              key={`${item.keyword}-${index}`}
+              onClick={() => handleKeywordClick(item.keyword)}
               className="
                 pl-4 pr-3 py-2 mb-1
                 hover:bg-primary 

@@ -11,7 +11,7 @@ import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 import { createRadialGradient } from "@/shared/utils/gradientUtils";
 import type { CytoscapeNodeOverlayProps } from "../../types";
-import warningPopoImage from "@/shared/assets/images/warning_popo.png";
+import warningPopoImage from "@/shared/assets/images/warning_popo.webp";
 import ConfirmDialog from "../../../../shared/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 

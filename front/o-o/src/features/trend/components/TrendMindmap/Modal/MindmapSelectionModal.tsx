@@ -1,6 +1,6 @@
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { ClickableProjectCard } from "./ClickableProjectCard";
-import type { Project } from "@/features/trend/types";
+import type { Project } from "@/features/trend/types/types";
 
 interface MindmapSelectionModalProps {
   readonly isOpen: boolean;
@@ -19,18 +19,20 @@ export function MindmapSelectionModal({
 }: MindmapSelectionModalProps) {
   if (!isOpen) return null;
 
+  console.log("MindmapSelectionModal이 렌더링됩니다!");
+
   return (
     <>
       {/* 백드롭 */}
       <button
         type="button"
-        className="fixed inset-0 bg-black/50 z-[100] cursor-default"
+        className="fixed inset-0 bg-black/50 z-[99998] cursor-default"
         onClick={onClose}
         aria-label="모달 닫기"
       />
 
       {/* 모달 */}
-      <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pointer-events-none">
         <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[80vh] overflow-hidden flex flex-col pointer-events-auto">
           {/* 헤더 */}
           <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">

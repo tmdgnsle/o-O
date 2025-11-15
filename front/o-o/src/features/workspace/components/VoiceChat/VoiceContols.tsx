@@ -5,7 +5,7 @@ import MicOffOutlinedIcon from "@mui/icons-material/MicOffOutlined";
 import MicIcon from "@mui/icons-material/Mic";
 import PhoneDisabledIcon from "@mui/icons-material/PhoneDisabled";
 import PhoneEnabledIcon from "@mui/icons-material/PhoneEnabled";
-import organizePopo from "@/shared/assets/images/organize_popo.png";
+import organizePopo from "@/shared/assets/images/organize_popo.webp";
 
 interface VoiceControlsProps {
   isMuted: boolean;

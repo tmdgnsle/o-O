@@ -38,14 +38,14 @@ export const DrawerToggleButton = forwardRef<
       aria-label={isOpen ? "드로어 닫기" : "드로어 열기"}
     >
       {isOpen ? (
-        <ArrowDropUpIcon
+        <ArrowDropDownIcon
           sx={{
             fontSize: { xs: 28, sm: 32, md: 40 },
             color: "#263A6B",
           }}
         />
       ) : (
-        <ArrowDropDownIcon
+        <ArrowDropUpIcon
           sx={{
             fontSize: { xs: 28, sm: 32, md: 40 },
             color: "#263A6B",

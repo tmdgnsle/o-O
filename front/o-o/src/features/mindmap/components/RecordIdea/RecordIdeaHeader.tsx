@@ -1,4 +1,4 @@
-import popo1 from "@/shared/assets/images/organize_real_popo.png";
+import popo1 from "@/shared/assets/images/organize_real_popo.webp";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 

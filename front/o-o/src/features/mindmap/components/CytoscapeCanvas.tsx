@@ -171,21 +171,22 @@ export default function CytoscapeCanvas({
     };
   }, [cyReady, forceOverlayUpdate]);
 
-  // 드래그 완료 시 위치 저장
+  // 드래그 완료 시 위치 저장 (최적화: 드래그된 노드만 업데이트)
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy || !cyReady) return;
 
-    const handleDragFree = () => {
-      // 드래그한 노드들의 위치를 직접 저장
-      const positions = cy.nodes().map(node => ({
-        id: node.id(),
-        x: node.position().x,
-        y: node.position().y,
-      }));
+    const handleDragFree = (event: EventObject) => {
+      // 드래그된 노드만 가져오기 (전체 노드 대신)
+      if (event.target && typeof event.target.id === "function") {
+        const draggedNode = event.target;
+        const id = draggedNode.id();
+        const pos = draggedNode.position();
 
-      if (onBatchNodePositionChange) {
-        onBatchNodePositionChange(positions);
+        // 단일 노드만 업데이트 (성능 최적화)
+        if (onNodePositionChange) {
+          onNodePositionChange(id, pos.x, pos.y);
+        }
       }
 
       // 오버레이 업데이트
@@ -197,7 +198,7 @@ export default function CytoscapeCanvas({
     return () => {
       cy.off("dragfree", "node", handleDragFree);
     };
-  }, [cyReady, onBatchNodePositionChange, forceOverlayUpdate]);
+  }, [cyReady, onNodePositionChange, forceOverlayUpdate]);
 
   // pan/zoom → rAF 스로틀로 오버레이 위치 갱신
   useEffect(() => {

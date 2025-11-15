@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import type { NavLinkRenderProps } from "react-router-dom";
-import popo1 from "@/shared/assets/images/popo1.png";
+import popo1 from "@/shared/assets/images/popo1.webp";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 import { GoogleLoginButton } from "@/shared/components/GoogleLoginButton";
 

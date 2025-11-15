@@ -2,8 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
 import ContentDialog from "../../../shared/ui/ContentDialog/ContentDialog";
-import analyzePopoImage from "@/shared/assets/images/analyze_popo.png";
-import planningPopoImage from "@/shared/assets/images/planning_popo.png";
+import analyzePopoImage from "@/shared/assets/images/analyze_popo.webp";
+import planningPopoImage from "@/shared/assets/images/planning_popo.webp";
 import type { NodeData } from "../types";
 import { buildNodeTree } from "../utils/buildNodeTree";
 import AnalyzeTreeNode from "./AnalyzeTreeNode";

@@ -42,6 +42,7 @@ export const createYClient = (
   const roomName = `workspace:${numericWorkspaceId}`;
 
   // 디버그용 로그
+  const wsStartTime = performance.now();
   console.log("🔧 [createYClient] Debug info:", {
     wsUrl,
     numericWorkspaceId,
@@ -66,14 +67,22 @@ export const createYClient = (
 
   provider.on("status", (event: { status: "connected" | "disconnected" | "connecting" }) => {
     let emoji = "❌";
-    if (event.status === "connected") emoji = "✅";
-    else if (event.status === "connecting") emoji = "🔄";
+    const elapsed = performance.now() - wsStartTime;
 
-    console.log(`${emoji} [y-websocket] status:`, event.status);
+    if (event.status === "connected") {
+      emoji = "✅";
+      console.log(`${emoji} [y-websocket] status: ${event.status} (${elapsed.toFixed(2)}ms from creation)`);
+    } else if (event.status === "connecting") {
+      emoji = "🔄";
+      console.log(`${emoji} [y-websocket] status: ${event.status}`);
+    } else {
+      console.log(`${emoji} [y-websocket] status: ${event.status}`);
+    }
   });
 
   provider.on("sync", (isSynced: boolean) => {
-    console.log("🔄 [y-websocket] document sync:", isSynced ? "synced" : "syncing...");
+    const elapsed = performance.now() - wsStartTime;
+    console.log(`🔄 [y-websocket] document sync: ${isSynced ? "synced" : "syncing..."} (${elapsed.toFixed(2)}ms from creation)`);
   });
 
   // WebSocket low-level close 로그 (있으면 도움 됨)
