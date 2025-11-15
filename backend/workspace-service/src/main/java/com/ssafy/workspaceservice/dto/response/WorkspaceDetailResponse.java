@@ -15,12 +15,13 @@ public record WorkspaceDetailResponse(
         LocalDateTime createdAt,
         boolean isMember,     // 요청자 기준 입장 여부
         String myRole,        // OWNER/ADMIN/... (비회원이면 null)
+        String token,
         Long memberCount
 ) {
     public static WorkspaceDetailResponse of(Workspace w, boolean isMember, String myRole, Long memberCount) {
         return new WorkspaceDetailResponse(
                 w.getId(), w.getType(), w.getVisibility(), w.getTitle(),
-                w.getThumbnail(), w.getCreatedAt(), isMember, myRole, memberCount
+                w.getThumbnail(), w.getCreatedAt(), isMember, myRole, w.getToken(), memberCount
         );
     }
 }
