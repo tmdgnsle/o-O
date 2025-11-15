@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { Core, EventObject } from "cytoscape";
-// import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
+import { getAnimationConfig, selectionPulseAnimation } from "../../config/animationConfig";
 
 export type CytoscapeEventHandlers = {
   onNodeSelect?: (nodeId: string) => void;
