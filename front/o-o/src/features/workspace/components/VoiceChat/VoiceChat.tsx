@@ -34,7 +34,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     toggleMute,
   } = useVoiceChat({
     workspaceId,
-    userId: currentUser?.id,
+    userId: currentUser?.id.toString(),
     enabled: false, // Manual join via button
   });
 
@@ -87,17 +87,17 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     // Map participants to user display data
     const users = participants.map((participant, index) => {
       // Find peer data for avatar/name
-      const peer = peers.find((p) => p.userId === participant.userId);
+      const peer = peers.find((p) => p.userId?.toString() === participant.userId);
 
       // Determine if this participant is speaking
-      const isUserSpeaking = participant.userId === currentUser?.id
+      const isUserSpeaking = participant.userId === currentUser?.id.toString()
         ? isSpeaking
         : participant.voiceState?.speaking ?? false;
 
       return {
         id: participant.userId,
         name: peer?.name ?? `User ${participant.userId}`,
-        avatar: peer?.avatar ?? '',
+        avatar: peer?.profileImage ?? '',
         isSpeaking: isUserSpeaking && !(participant.voiceState?.muted ?? false),
         colorIndex: index % 6,
       };
