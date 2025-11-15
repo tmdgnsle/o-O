@@ -33,6 +33,7 @@ function NodeOverlay({
   onDeleteNode,
   onEditNode,
   onCreateChildNode,
+  onBatchNodePositionChange,
   detachedSelection,
   onKeepChildrenDelete,
   onConnectDetachedSelection,
@@ -175,7 +176,7 @@ function NodeOverlay({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !dragStart) return;
+      if (!isDragging || !dragStart || !onBatchNodePositionChange) return;
 
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
@@ -189,15 +190,15 @@ function NodeOverlay({
       const newY = node.y + dy;
 
       // 드래그 중에는 Y.Map을 업데이트하여 화면상 노드는 움직이되, 위치만 변경
-      onEditNode({
-        nodeId: node.id,
+      onBatchNodePositionChange([{
+        id: node.id,
         x: newX,
         y: newY,
-      });
+      }]);
 
       setDragStart({ x: e.clientX, y: e.clientY });
     },
-    [isDragging, dragStart, zoom, node.x, node.y, node.id, onEditNode]
+    [isDragging, dragStart, zoom, node.x, node.y, node.id, onBatchNodePositionChange]
   );
 
   const handleMouseUp = useCallback(() => {

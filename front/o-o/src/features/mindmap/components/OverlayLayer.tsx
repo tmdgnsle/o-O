@@ -26,6 +26,7 @@ export default function OverlayLayer({
   onDeleteNode,
   onEditNode,
   onCreateChildNode,
+  onBatchNodePositionChange,
   detachedSelectionMap,
   onKeepChildrenDelete,
   onConnectDetachedSelection,
@@ -42,6 +43,9 @@ export default function OverlayLayer({
   onDeleteNode: (payload: DeleteNodePayload) => void;
   onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
+  onBatchNodePositionChange?: (
+    positions: Array<{ id: string; x: number; y: number }>
+  ) => void;
   detachedSelectionMap?: Record<string, DetachedSelectionState>;
   onKeepChildrenDelete?: (payload: { deletedNodeId: string; parentId?: string | null }) => void;
   onConnectDetachedSelection?: (anchorNodeId: string) => void;
@@ -105,6 +109,7 @@ export default function OverlayLayer({
               onDeleteNode={onDeleteNode}
               onEditNode={onEditNode}
               onCreateChildNode={onCreateChildNode}
+              onBatchNodePositionChange={onBatchNodePositionChange}
               detachedSelection={detachedSelectionMap?.[nodeId]}
               onKeepChildrenDelete={onKeepChildrenDelete}
               onConnectDetachedSelection={onConnectDetachedSelection}

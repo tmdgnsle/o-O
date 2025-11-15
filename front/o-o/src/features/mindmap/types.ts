@@ -69,6 +69,9 @@ export type CytoscapeNodeOverlayProps = {
   onDeleteNode: (payload: DeleteNodePayload) => void;
   onEditNode: (payload: EditNodePayload) => void;
   onCreateChildNode: (request: ChildNodeRequest) => void;
+  onBatchNodePositionChange?: (
+    positions: Array<{ id: string; x: number; y: number }>
+  ) => void;
   detachedSelection?: DetachedSelectionState;
   onKeepChildrenDelete?: (payload: {
     deletedNodeId: string;

@@ -291,6 +291,7 @@ export default function CytoscapeCanvas({
         onDeleteNode={onDeleteNode}
         onEditNode={onEditNode}
         onCreateChildNode={onCreateChildNode}
+        onBatchNodePositionChange={onBatchNodePositionChange}
         detachedSelectionMap={detachedSelectionMap}
         onKeepChildrenDelete={onKeepChildrenDelete}
         onConnectDetachedSelection={onConnectDetachedSelection}
