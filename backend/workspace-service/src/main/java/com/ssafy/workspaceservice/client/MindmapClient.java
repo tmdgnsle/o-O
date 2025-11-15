@@ -1,6 +1,7 @@
 package com.ssafy.workspaceservice.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -24,4 +25,8 @@ public interface MindmapClient {
      */
     @PostMapping("/mindmap/nodes/exists/batch")
     List<Long> getWorkspaceIdsWithNodes(@RequestBody List<Long> workspaceIds);
+
+
+    @PostMapping("/internal/workspaces/{workspaceId}")
+    void bulkIndexWorkspace(@PathVariable("workspaceId") Long workspaceId);
 }
