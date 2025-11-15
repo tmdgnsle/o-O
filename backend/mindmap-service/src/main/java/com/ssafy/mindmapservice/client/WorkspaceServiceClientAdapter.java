@@ -24,10 +24,9 @@ public class WorkspaceServiceClientAdapter {
      *
      * @param userId 사용자 ID
      * @param workspaceName STT 텍스트 (startPrompt로 전달됨)
-     * @param workspaceDescription 현재 미사용
      * @return 생성된 워크스페이스 ID
      */
-    public Long createWorkspace(Long userId, String workspaceName, String workspaceDescription) {
+    public Long createWorkspace(Long userId, String workspaceName) {
         log.debug("Creating workspace via Feign: userId={}, startPrompt={}", userId, workspaceName);
 
         try {
