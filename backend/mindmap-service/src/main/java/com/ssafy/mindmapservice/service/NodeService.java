@@ -53,18 +53,46 @@ public class NodeService {
     public List<String> getKeywordsByWorkspaces(List<Long> workspaceIds) {
         log.debug("Getting keywords for {} workspaces", workspaceIds.size());
 
-        if (workspaceIds == null || workspaceIds.isEmpty()) {
+        if (workspaceIds.isEmpty()) {
             return List.of();
         }
 
         List<MindmapNode> nodes = nodeRepository.findByWorkspaceIdIn(workspaceIds);
 
-        // 키워드만 추출 (null이 아닌 것만)
+        // type이 "text"인 노드의 키워드만 추출 (null이 아닌 것만)
         return nodes.stream()
+                .filter(node -> "text".equals(node.getType()))
                 .map(MindmapNode::getKeyword)
                 .filter(Objects::nonNull)
                 .filter(keyword -> !keyword.isBlank())
                 .toList();
+    }
+
+    /**
+     * 여러 워크스페이스에 노드가 존재하는지 일괄 확인
+     * workspace-service의 캘린더 기능에서 사용 (노드가 없는 워크스페이스 필터링용)
+     *
+     * @param workspaceIds 확인할 워크스페이스 ID 목록
+     * @return 노드가 하나라도 존재하는 워크스페이스 ID 목록
+     */
+    public List<Long> getWorkspaceIdsWithNodes(List<Long> workspaceIds) {
+        log.debug("Checking node existence for {} workspaces", workspaceIds.size());
+
+        if (workspaceIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 각 워크스페이스별로 노드 존재 여부를 확인
+        List<MindmapNode> nodes = nodeRepository.findByWorkspaceIdIn(workspaceIds);
+
+        // 노드가 있는 워크스페이스 ID만 중복 제거하여 반환
+        List<Long> result = nodes.stream()
+                .map(MindmapNode::getWorkspaceId)
+                .distinct()
+                .toList();
+
+        log.debug("Found {} workspaces with nodes out of {}", result.size(), workspaceIds.size());
+        return result;
     }
 
     public MindmapNode getNode(Long workspaceId, Long nodeId) {

@@ -1,6 +1,6 @@
 package com.ssafy.mindmapservice.service;
 
-import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
+import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.response.KeywordNodeSearchResponse;
 import com.ssafy.mindmapservice.dto.response.PublicRelationSearchResponse;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class PublicWorkspaceSearchService {
 
     private final NodeRepository nodeRepository;
-    private final WorkspaceServiceClient workspaceServiceClient;
+    private final WorkspaceServiceClientAdapter workspaceServiceClient;
 
     /**
      * Public 워크스페이스에서 키워드 검색 후 부모-자식 관계 반환

@@ -187,6 +187,30 @@ public class NodeController {
     }
 
     @Operation(
+            summary = "[Internal] 노드가 존재하는 워크스페이스 ID 목록 조회",
+            description = """
+                    여러 워크스페이스 중 노드가 하나라도 존재하는 워크스페이스 ID 목록을 반환합니다.
+                    workspace-service의 캘린더 기능에서 사용됩니다. (노드가 없는 워크스페이스 필터링용)
+
+                    ### 응답 예시
+                    ```json
+                    [1, 3, 5, 7]
+                    ```
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "노드 존재 확인 성공")
+    })
+    @PostMapping("/nodes/exists/batch")
+    public ResponseEntity<List<Long>> getWorkspaceIdsWithNodes(
+            @Parameter(description = "워크스페이스 ID 목록", required = true)
+            @RequestBody List<Long> workspaceIds) {
+        log.info("POST /mindmap/nodes/exists/batch - {} workspaces", workspaceIds.size());
+        List<Long> result = nodeService.getWorkspaceIdsWithNodes(workspaceIds);
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(
             summary = "특정 노드 조회",
             description = "워크스페이스 내의 특정 노드를 ID로 조회합니다."
     )

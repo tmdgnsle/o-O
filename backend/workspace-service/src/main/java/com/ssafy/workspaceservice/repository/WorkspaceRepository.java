@@ -108,4 +108,21 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
             @Param("userId") Long userId,
             @Param("date") LocalDateTime date
     );
+
+    // 특정 월에 생성된 내 워크스페이스 목록 조회 (워크스페이스 엔티티 전체)
+    @Query(value = """
+            SELECT DISTINCT w.*
+            FROM workspace w
+            JOIN workspace_member wm ON wm.workspace_id = w.workspace_id
+            WHERE wm.user_id = :userId
+              AND w.created_at >= make_date(:year, :month, 1)
+              AND w.created_at < make_date(:year, :month, 1) + interval '1 month'
+            ORDER BY w.created_at DESC
+            """,
+            nativeQuery = true)
+    List<Workspace> findWorkspacesByUserAndMonth(
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month
+    );
 }
