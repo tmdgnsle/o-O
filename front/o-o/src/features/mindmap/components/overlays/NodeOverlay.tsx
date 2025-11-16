@@ -33,6 +33,7 @@ function NodeOverlay({
   isSelected,
   isAnalyzeSelected,
   allNodes = [], // 🔥 force simulation을 위한 전체 노드 정보
+  canvasApi, // 🔥 D3Canvas API (focusOnNode 등)
   onSelect,
   onDeselect,
   onApplyTheme,
@@ -229,9 +230,20 @@ function NodeOverlay({
   );
 
   const handleMouseUp = useCallback(() => {
-    // 드래그하지 않고 클릭만 한 경우 onSelect 호출
+    // 드래그하지 않고 클릭만 한 경우 노드 중앙 포커스 후 onSelect 호출
     if (!hasMoved && !isAnalyzeMode) {
-      onSelect();
+      // 🔥 노드를 화면 중앙으로 이동하고 최대 줌 레벨로 확대
+      if (canvasApi && canvasApi.focusOnNode) {
+        canvasApi.focusOnNode(node.id);
+
+        // 애니메이션 완료 후(500ms) 버튼 표시
+        setTimeout(() => {
+          onSelect();
+        }, 500);
+      } else {
+        // canvasApi가 없으면 즉시 선택
+        onSelect();
+      }
     }
 
     // 🔥 드래그 종료 시 주변 노드들을 부드럽게 밀어내기
@@ -304,12 +316,14 @@ function NodeOverlay({
     hasMoved,
     isAnalyzeMode,
     onSelect,
+    canvasApi,
     allNodes,
     node.id,
     node.x,
     node.y,
     node.keyword,
-    node.description,
+    node.memo,
+    node.nodeId,
     node.parentId,
     onBatchNodePositionChange,
     onEditNode,
@@ -447,7 +461,7 @@ function NodeOverlay({
 
         {!isAnalyzeMode && (
           <RadialToolGroup
-            open={isSelected && !isEditing && focusedButton !== "recommend"}
+            open={isSelected && !isEditing && focusedButton !== "recommend" && zoom >= 1.2}
             paletteOpen={paletteOpen}
             addInputOpen={showAddInput}
             currentColor={initialColor}

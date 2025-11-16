@@ -64,6 +64,7 @@ export type CytoscapeNodeOverlayProps = {
   mode: MindmapMode;
   isAnalyzeSelected: boolean;
   allNodes?: NodeData[]; // 🔥 force simulation을 위한 전체 노드 정보
+  canvasApi?: any; // D3Canvas mockCy 객체 (focusOnNode 등의 API)
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;

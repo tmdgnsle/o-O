@@ -48,6 +48,7 @@ export default function D3Canvas({
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const transformRef = useRef({ x: 0, y: 0, k: 1 });
   const [d3Ready, setD3Ready] = useState(false);
+  const [canvasApi, setCanvasApi] = useState<any>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<
     SVGSVGElement,
     unknown
@@ -222,8 +223,8 @@ export default function D3Canvas({
           const containerWidth = containerRef.current.clientWidth;
           const containerHeight = containerRef.current.clientHeight;
 
-          // 노드가 화면 중앙에 오도록 transform 계산
-          const scale = 1;
+          // 노드가 화면 중앙에 오도록 transform 계산 (최대 줌 레벨 1.5 적용)
+          const scale = 1.5;
           const translateX = containerWidth / 2 - targetNode.x * scale;
           const translateY = containerHeight / 2 - targetNode.y * scale;
 
@@ -245,6 +246,7 @@ export default function D3Canvas({
         },
       };
 
+      setCanvasApi(mockCy);
       onCyReady(mockCy as any);
     }
 
@@ -753,6 +755,7 @@ export default function D3Canvas({
                 mode={mode}
                 isAnalyzeSelected={isAnalyzeSelected}
                 allNodes={nodes} // 🔥 모든 노드 정보 전달 (force simulation용)
+                canvasApi={canvasApi} // 🔥 D3Canvas API 전달 (focusOnNode 등)
                 onSelect={() => {
                   if (mode === "analyze") {
                     // 분석 모드: onAnalyzeNodeToggle 호출

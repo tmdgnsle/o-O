@@ -9,7 +9,7 @@ import type { RadialToolGroupProps } from "../../types";
 
 export default function RadialToolGroup({
   open,
-  radius = 130,
+  radius = 180,
   paletteOpen = false,
   addInputOpen = false,
   currentColor = "#263A6B",
