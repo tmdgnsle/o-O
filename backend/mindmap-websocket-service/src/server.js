@@ -479,11 +479,6 @@ function handleYjsConnection(conn, req, url) {
   conn.on('message', (msg) => {
     // 바이너리 메시지는 Y.js가 처리 (setupWSConnection이 자동 처리)
     if (msg instanceof Buffer || msg instanceof ArrayBuffer) {
-      logger.debug(`[YJS] Binary message received`, {
-        workspaceId,
-        userId: userId || 'anonymous',
-        sizeBytes: msg.length,
-      });
       return;
     }
 
