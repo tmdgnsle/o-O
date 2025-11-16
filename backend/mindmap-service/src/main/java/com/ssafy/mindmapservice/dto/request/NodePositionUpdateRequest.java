@@ -13,9 +13,6 @@ public record NodePositionUpdateRequest(
         Double x,
 
         @NotNull(message = "y 좌표는 필수입니다")
-        Double y,
-
-        // color는 optional (null 가능)
-        String color
+        Double y
 ) {
 }

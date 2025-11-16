@@ -1,6 +1,7 @@
 package com.ssafy.mindmapservice.service;
 
 import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
+import com.ssafy.mindmapservice.domain.InitialColor;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.kafka.AiNodeResult;
@@ -218,18 +219,13 @@ public class NodeService {
                 node.setX(position.x());
                 node.setY(position.y());
 
-                // color가 제공된 경우에만 업데이트
-                if (position.color() != null) {
-                    node.setColor(position.color());
-                }
-
                 node.setUpdatedAt(LocalDateTime.now());
 
                 nodeRepository.save(node);
                 updatedCount++;
 
-                log.debug("Updated position for node: nodeId={}, x={}, y={}, color={}",
-                        position.nodeId(), position.x(), position.y(), position.color());
+                log.debug("Updated position for node: nodeId={}, x={}, y={}",
+                        position.nodeId(), position.x(), position.y());
 
             } catch (Exception e) {
                 log.error("Failed to update position for node: nodeId={}", position.nodeId(), e);
@@ -441,6 +437,7 @@ public class NodeService {
                 .keyword(aiNode.keyword())
                 .memo(aiNode.memo())
                 .type("text")
+                .color(InitialColor.getRandomColor())  // PASTEL 테마 랜덤 색상
                 .analysisStatus(MindmapNode.AnalysisStatus.NONE)
                 .build();
 
@@ -521,6 +518,7 @@ public class NodeService {
                 .type("text")  // STT 결과는 텍스트
                 .x(null)  // 모바일에서는 좌표 없음
                 .y(null)
+                .color(InitialColor.getRandomColor())
                 .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                 .build();
 
@@ -580,7 +578,7 @@ public class NodeService {
     }
 
     /**
-     * 홈 화면에서 새 마인드맵을 생성합니다.
+     * 텍스트/영상 기반 마인드맵을 생성합니다.
      * 1. 워크스페이스 생성 (workspace-service 호출)
      * 2. 첫 번째 노드 생성
      * 3. INITIAL AI 분석 요청 (Kafka)
@@ -592,7 +590,7 @@ public class NodeService {
      */
     @Transactional
     public InitialMindmapResponse createInitialMindmap(Long userId, InitialMindmapRequest request) {
-        log.info("Creating initial mindmap");
+        log.info("Creating initial mindmap: contentType={}", request.contentType());
 
         // 1. 워크스페이스 생성 (workspace-service 호출)
         Long workspaceId = workspaceServiceClientAdapter.createWorkspace(
@@ -602,64 +600,111 @@ public class NodeService {
         log.info("Workspace created: workspaceId={}", workspaceId);
 
         String contentType = request.contentType();
-        MindmapNode rootNode = new MindmapNode();
+        MindmapNode rootNode;
 
-        if(contentType.equals("TEXT")){
+        if (contentType.equals("TEXT")) {
             rootNode = MindmapNode.builder()
                     .workspaceId(workspaceId)
-                    .parentId(null)  // 루트 노드
+                    .parentId(null)
                     .keyword("분석 중인 노드입니다.")
-                    .type("text")  // STT 결과는 텍스트
-                    .x(null)  // 모바일에서는 좌표 없음
+                    .type("text")
+                    .x(null)
                     .y(null)
+                    .color(InitialColor.getRandomColor())
                     .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                     .build();
-
-        }
-        else if(contentType.equals("IMAGE")){
+        } else if (contentType.equals("VIDEO")) {
             rootNode = MindmapNode.builder()
                     .workspaceId(workspaceId)
-                    .parentId(null)  // 루트 노드
+                    .parentId(null)
                     .keyword(request.contentUrl())
-                    .type("image")  // STT 결과는 텍스트
-                    .x(null)  // 모바일에서는 좌표 없음
+                    .type("video")
+                    .x(null)
                     .y(null)
+                    .color(InitialColor.getRandomColor())
                     .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                     .build();
-
-        }
-        else if(contentType.equals("VIDEO")){
-            rootNode = MindmapNode.builder()
-                    .workspaceId(workspaceId)
-                    .parentId(null)  // 루트 노드
-                    .keyword(request.contentUrl())
-                    .type("video")  // STT 결과는 텍스트
-                    .x(null)  // 모바일에서는 좌표 없음
-                    .y(null)
-                    .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
-                    .build();
-
+        } else {
+            throw new IllegalArgumentException("Unsupported content type: " + contentType + ". Use /initial/upload for IMAGE type.");
         }
 
         MindmapNode createdNode = createNode(rootNode);
-        log.info("First node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
+        log.info("Root node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
 
         // 3. INITIAL AI 분석 요청 (Kafka)
+        sendInitialAnalysisRequest(workspaceId, createdNode.getNodeId(),
+                request.contentUrl(), request.contentType(), request.startPrompt());
+
+        // 4. 응답 생성
+        return buildInitialMindmapResponse(workspaceId, createdNode);
+    }
+
+    /**
+     * 이미지 파일 기반 마인드맵을 생성합니다.
+     * 1. 워크스페이스 생성 (workspace-service 호출)
+     * 2. 이미지 노드 생성 (파일 URL 저장)
+     * 3. INITIAL AI 분석 요청 (Kafka)
+     * 4. 생성 정보 반환
+     *
+     * @param userId 사용자 ID
+     * @param imageUrl 업로드된 이미지의 URL (S3 등)
+     * @param startPrompt 사용자 프롬프트
+     * @return 생성된 워크스페이스 및 노드 정보
+     */
+    @Transactional
+    public InitialMindmapResponse createInitialMindmapWithImage(Long userId, String imageUrl, String startPrompt) {
+        log.info("Creating initial mindmap with image: userId={}", userId);
+
+        // 1. 워크스페이스 생성
+        Long workspaceId = workspaceServiceClientAdapter.createWorkspace(userId, startPrompt);
+        log.info("Workspace created: workspaceId={}", workspaceId);
+
+        // 2. 이미지 노드 생성
+        MindmapNode rootNode = MindmapNode.builder()
+                .workspaceId(workspaceId)
+                .parentId(null)
+                .keyword(imageUrl)  // 이미지 URL을 keyword에 저장
+                .type("image")
+                .x(null)
+                .y(null)
+                .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                .build();
+
+        MindmapNode createdNode = createNode(rootNode);
+        log.info("Image root node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
+
+        // 3. INITIAL AI 분석 요청
+        sendInitialAnalysisRequest(workspaceId, createdNode.getNodeId(),
+                imageUrl, "IMAGE", startPrompt);
+
+        // 4. 응답 생성
+        return buildInitialMindmapResponse(workspaceId, createdNode);
+    }
+
+    /**
+     * INITIAL AI 분석 요청을 Kafka로 전송합니다. (공통 로직)
+     */
+    private void sendInitialAnalysisRequest(Long workspaceId, Long nodeId,
+                                            String contentUrl, String contentType, String prompt) {
         AiAnalysisRequest analysisRequest = new AiAnalysisRequest(
                 workspaceId,
-                createdNode.getNodeId(),
-                request.contentUrl(),
-                request.contentType(),
-                request.startPrompt(),
+                nodeId,
+                contentUrl,
+                contentType,
+                prompt,
                 "INITIAL",
-                null // INITIAL 요청에서는 nodes = null
+                null
         );
 
         aiAnalysisProducer.sendAnalysisRequest(analysisRequest);
-        log.info("INITIAL AI analysis request sent: workspaceId={}, nodeId={}",
-                workspaceId, createdNode.getNodeId());
+        log.info("INITIAL AI analysis request sent: workspaceId={}, nodeId={}, contentType={}",
+                workspaceId, nodeId, contentType);
+    }
 
-        // 4. 응답 생성
+    /**
+     * InitialMindmapResponse를 생성합니다. (공통 로직)
+     */
+    private InitialMindmapResponse buildInitialMindmapResponse(Long workspaceId, MindmapNode createdNode) {
         return new InitialMindmapResponse(
                 workspaceId,
                 createdNode.getNodeId(),
