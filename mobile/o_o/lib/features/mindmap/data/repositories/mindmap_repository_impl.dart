@@ -150,85 +150,14 @@ class MindmapRepositoryImpl implements MindmapRepository {
     // 1. API에서 제공한 좌표가 있는지 확인
     final nodesWithoutPos = nodes.where((n) => n.x == null || n.y == null).toList();
 
-    // 2. 모든 노드에 좌표가 있는 경우: 루트를 캔버스 중앙으로 이동 + 스케일링
+    // 2. 모든 노드에 좌표가 있는 경우: API 좌표를 그대로 사용
     if (nodesWithoutPos.isEmpty) {
-      logger.i('✅ All nodes have API positions - centering root node with scaling');
+      logger.i('✅ All nodes have API positions - using as-is');
 
-      // 루트 노드 찾기
-      final rootNode = nodes.firstWhere(
-        (n) => levels[n.id] == 0,
-        orElse: () => nodes.first,
-      );
-
-      // 루트 노드의 원래 위치
-      final rootOriginalPos = Offset(rootNode.x!, rootNode.y!);
-      logger.d('  📍 Root original position: (${rootOriginalPos.dx}, ${rootOriginalPos.dy})');
-
-      // 스케일 팩터 (노드 간 거리를 늘리기 위한 배율)
-      // 1.0 = 원본 크기, 1.5 = 1.5배 확대, 2.0 = 2배 확대
-      const scaleFactor = 2.0;
-      logger.d('  🔍 Scale factor: $scaleFactor');
-
-      // 모든 노드를 루트 노드 기준으로 스케일링
-      final scaledPositions = <String, Offset>{};
       for (var node in nodes) {
         if (node.x != null && node.y != null) {
-          // 루트로부터의 상대 위치 계산
-          final relativeX = node.x! - rootOriginalPos.dx;
-          final relativeY = node.y! - rootOriginalPos.dy;
-
-          // 스케일 적용
-          final scaledRelativeX = relativeX * scaleFactor;
-          final scaledRelativeY = relativeY * scaleFactor;
-
-          // 스케일된 절대 좌표
-          final scaledX = rootOriginalPos.dx + scaledRelativeX;
-          final scaledY = rootOriginalPos.dy + scaledRelativeY;
-
-          scaledPositions[node.id] = Offset(scaledX, scaledY);
+          positions[node.id] = Offset(node.x!, node.y!);
         }
-      }
-
-      // 스케일된 좌표의 bounding box 계산
-      double minX = double.infinity;
-      double minY = double.infinity;
-      double maxX = double.negativeInfinity;
-      double maxY = double.negativeInfinity;
-
-      for (var pos in scaledPositions.values) {
-        if (pos.dx < minX) minX = pos.dx;
-        if (pos.dy < minY) minY = pos.dy;
-        if (pos.dx > maxX) maxX = pos.dx;
-        if (pos.dy > maxY) maxY = pos.dy;
-      }
-
-      final contentWidth = maxX - minX;
-      final contentHeight = maxY - minY;
-      final padding = 2000.0; // 여유 공간
-
-      final canvasWidth = contentWidth + padding * 2;
-      final canvasHeight = contentHeight + padding * 2;
-      final canvasCenterX = canvasWidth / 2;
-      final canvasCenterY = canvasHeight / 2;
-
-      logger.d('  📐 Canvas size: ${canvasWidth.toStringAsFixed(0)} x ${canvasHeight.toStringAsFixed(0)}');
-      logger.d('  🎯 Canvas center: (${canvasCenterX.toStringAsFixed(1)}, ${canvasCenterY.toStringAsFixed(1)})');
-
-      // 스케일된 루트 위치
-      final scaledRootPos = scaledPositions[rootNode.id]!;
-
-      // 루트를 캔버스 중앙으로 이동시키는 offset 계산
-      final translateX = canvasCenterX - scaledRootPos.dx;
-      final translateY = canvasCenterY - scaledRootPos.dy;
-
-      logger.d('  ↔️ Translation: (${translateX.toStringAsFixed(1)}, ${translateY.toStringAsFixed(1)})');
-
-      // 모든 노드를 translate
-      for (var entry in scaledPositions.entries) {
-        positions[entry.key] = Offset(
-          entry.value.dx + translateX,
-          entry.value.dy + translateY,
-        );
       }
 
       return positions;
@@ -244,13 +173,13 @@ class MindmapRepositoryImpl implements MindmapRepository {
     }
 
     // 레벨 0 (루트 노드): 캔버스 중앙 기준 배치
-    // 캔버스 크기가 10000 x 10000이므로 중앙은 (5000, 5000)
+    // 캔버스 크기가 5000 x 5000이므로 중앙은 (2500, 2500)
     final rootNodes = nodesByLevel[0] ?? [];
-    const centerX = 5000.0;
-    const centerY = 5000.0;
+    const centerX = 2500.0;
+    const centerY = 2500.0;
     for (var i = 0; i < rootNodes.length; i++) {
       // 루트가 여러 개면 중앙 기준으로 가로로 나열
-      final offsetX = (i - rootNodes.length / 2) * 300.0;
+      final offsetX = (i - rootNodes.length / 2) * 150.0;
       final rootPosition = Offset(centerX + offsetX, centerY);
       positions[rootNodes[i].id] = rootPosition;
       logger.d('  🎯 Root node ${i + 1}: positioned at (${rootPosition.dx}, ${rootPosition.dy})');
@@ -281,8 +210,8 @@ class MindmapRepositoryImpl implements MindmapRepository {
 
         // 거리를 자식 개수에 따라 동적으로 계산
         // 기본 거리 + (자식 개수에 따른 추가 거리)
-        final baseRadius = level * 150.0; // 기본 레벨별 거리
-        final childCountBonus = (siblingCount - 1) * 20.0; // 자식 1개당 20px 추가
+        final baseRadius = level * 75.0; // 기본 레벨별 거리
+        final childCountBonus = (siblingCount - 1) * 10.0; // 자식 1개당 10px 추가
         final radius = baseRadius + childCountBonus;
 
         // 섹터 계산
@@ -382,13 +311,13 @@ class MindmapRepositoryImpl implements MindmapRepository {
     try {
       logger.i('🔄 MindmapRepositoryImpl: Updating ${nodes.length} node positions for workspace $workspaceId');
 
-      // MindmapNode → NodePositionItem 변환
+      // MindmapNode → NodePositionItem 변환 (color는 제외)
       final items = nodes.map((node) {
         return NodePositionItem(
-          nodeId: int.parse(node.id), // String → int 변환
+          nodeId: node.nodeId!, // 숫자 ID 사용
           x: node.position.dx,
           y: node.position.dy,
-          color: _colorToHex(node.color),
+          // color는 서버로 전송하지 않음 (클라이언트에서만 관리)
         );
       }).toList();
 

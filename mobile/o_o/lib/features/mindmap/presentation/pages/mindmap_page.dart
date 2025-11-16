@@ -1,4 +1,9 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -71,7 +76,9 @@ class MindmapPage extends StatefulWidget {
 class _MindmapPageState extends State<MindmapPage> {
   final TransformationController _transformationController =
       TransformationController();
+  final GlobalKey _repaintKey = GlobalKey();
   String? _currentMindmapId;
+  bool _hasThumbnailUploaded = false;
 
   @override
   void initState() {
@@ -130,6 +137,85 @@ class _MindmapPageState extends State<MindmapPage> {
         );
 
       _transformationController.value = matrix;
+    });
+  }
+
+  /// 마인드맵 캔버스를 이미지로 캡쳐
+  ///
+  /// 전체 캔버스를 PNG 이미지로 캡쳐하여 Uint8List로 반환합니다.
+  /// API로 multipart 전송 시 사용할 수 있습니다.
+  ///
+  /// Returns: 캡쳐된 이미지의 PNG 바이트 데이터, 실패 시 null
+  Future<Uint8List?> captureMindmap() async {
+    try {
+      logger.i('📸 Starting mindmap canvas capture...');
+
+      // RepaintBoundary의 RenderObject 가져오기
+      final boundary = _repaintKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+
+      if (boundary == null) {
+        logger.e('❌ RenderRepaintBoundary not found');
+        return null;
+      }
+
+      // 이미지 생성 (원본 크기)
+      final image = await boundary.toImage(pixelRatio: 1.0);
+      logger.d('📐 Image size: ${image.width}x${image.height}');
+
+      // PNG 바이트로 변환
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        logger.e('❌ Failed to convert image to byte data');
+        return null;
+      }
+
+      final pngBytes = byteData.buffer.asUint8List();
+      logger.i('✅ Mindmap captured successfully (${pngBytes.length} bytes)');
+
+      return pngBytes;
+    } catch (e, stackTrace) {
+      logger.e('❌ Failed to capture mindmap: $e');
+      logger.e('📍 StackTrace: $stackTrace');
+      return null;
+    }
+  }
+
+  /// 썸네일이 null일 때 캡쳐하여 업로드
+  ///
+  /// 워크스페이스의 썸네일이 null이거나 비어있을 때만 캡쳐 후 업로드합니다.
+  /// 한 번만 실행되도록 _hasThumbnailUploaded 플래그로 관리합니다.
+  void _uploadThumbnailIfNeeded() {
+    // 이미 업로드했거나, workspaceId가 없거나, thumbnail이 이미 있으면 스킵
+    if (_hasThumbnailUploaded ||
+        widget.workspaceId == null ||
+        (widget.imagePath.isNotEmpty)) {
+      logger.d('🔍 Thumbnail upload skipped (uploaded: $_hasThumbnailUploaded, workspaceId: ${widget.workspaceId}, imagePath: ${widget.imagePath})');
+      return;
+    }
+
+    logger.i('🚀 Starting thumbnail upload (thumbnail is null)');
+    _hasThumbnailUploaded = true;
+
+    // 다음 프레임에서 실행 (위젯 트리가 완전히 빌드된 후)
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      // 약간의 딜레이를 줘서 렌더링이 완료되도록 함
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // 캔버스 캡쳐
+      final imageBytes = await captureMindmap();
+      if (imageBytes == null) {
+        logger.w('⚠️ Failed to capture mindmap for thumbnail');
+        return;
+      }
+
+      // BLoC를 통해 업로드
+      if (mounted) {
+        context.read<MindmapBloc>().uploadThumbnail(
+          workspaceId: widget.workspaceId!,
+          imageBytes: imageBytes,
+        );
+      }
     });
   }
 
@@ -194,6 +280,9 @@ class _MindmapPageState extends State<MindmapPage> {
                         // 마인드맵이 로드되면 초기 위치 설정 (루트 노드 중심)
                         _setInitialPosition(context, mindmap);
 
+                        // 썸네일이 null일 때만 캡쳐 후 업로드
+                        _uploadThumbnailIfNeeded();
+
                         return Stack(
                           children: [
                             // 전체 화면을 덮는 점박이 배경
@@ -215,7 +304,10 @@ class _MindmapPageState extends State<MindmapPage> {
                               scaleEnabled: true,
                               constrained: false,
                               child: Center(
-                                child: MindmapCanvasWidget(mindmap: mindmap),
+                                child: MindmapCanvasWidget(
+                                  mindmap: mindmap,
+                                  repaintKey: _repaintKey,
+                                ),
                               ),
                             ),
                           ],

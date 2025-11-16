@@ -30,6 +30,7 @@ import '../../features/workspace/data/repositories/workspace_repository_impl.dar
 import '../../features/workspace/domain/repositories/workspace_repository.dart';
 import '../../features/workspace/domain/usecases/get_workspace_calendar.dart';
 import '../../features/workspace/domain/usecases/get_workspaces.dart';
+import '../../features/workspace/domain/usecases/upload_workspace_thumbnail.dart';
 import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
 import '../../features/mindmap/data/datasources/mindmap_api_data_source.dart';
 import '../../features/mindmap/data/repositories/mindmap_repository_impl.dart';
@@ -193,6 +194,7 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => GetWorkspaces(sl()));
   sl.registerLazySingleton(() => GetWorkspaceCalendar(sl()));
+  sl.registerLazySingleton(() => UploadWorkspaceThumbnail(sl()));
 
   // Repository
   sl.registerLazySingleton<WorkspaceRepository>(
@@ -213,6 +215,7 @@ Future<void> init() async {
       getMindmapNodes: sl(),
       createMindmapFromText: sl(),
       updateNodePositions: sl(),
+      uploadWorkspaceThumbnail: sl(),
     ),
   );
 

@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/error/exceptions.dart';
@@ -14,6 +17,12 @@ abstract class WorkspaceApiDataSource {
   /// Get daily activity keywords
   Future<WorkspaceCalendarModel> getDailyActivity({
     required String date,
+  });
+
+  /// Upload workspace thumbnail
+  Future<void> uploadWorkspaceThumbnail({
+    required int workspaceId,
+    required Uint8List imageBytes,
   });
 }
 
@@ -100,6 +109,49 @@ class WorkspaceApiDataSourceImpl implements WorkspaceApiDataSource {
     } catch (e) {
       logger.e('❌ Unexpected error: $e');
       throw ServerException('Failed to fetch daily activity: $e');
+    }
+  }
+
+  @override
+  Future<void> uploadWorkspaceThumbnail({
+    required int workspaceId,
+    required Uint8List imageBytes,
+  }) async {
+    try {
+      final url = ApiConstants.uploadWorkspaceThumbnail(workspaceId);
+      logger.i('📡 Uploading thumbnail to $url (${imageBytes.length} bytes)');
+
+      // Uint8List → MultipartFile 변환
+      final multipartFile = MultipartFile.fromBytes(
+        imageBytes,
+        filename: 'thumbnail.png',
+        contentType: MediaType('image', 'png'),
+      );
+
+      // FormData 생성
+      final formData = FormData.fromMap({
+        'file': multipartFile,
+      });
+
+      // POST 요청
+      final response = await dio.post(
+        url,
+        data: formData,
+      );
+
+      if (response.statusCode == 204) {
+        logger.i('✅ Thumbnail uploaded successfully');
+      } else {
+        logger.w('⚠️ Unexpected status code: ${response.statusCode}');
+        throw ServerException('Unexpected status code: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      logger.e('❌ DioException: ${e.message}');
+      logger.e('📍 Response data: ${e.response?.data}');
+      throw ServerException('Failed to upload thumbnail: ${e.message}');
+    } catch (e) {
+      logger.e('❌ Unexpected error: $e');
+      throw ServerException('Failed to upload thumbnail: $e');
     }
   }
 }
