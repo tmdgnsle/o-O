@@ -121,7 +121,7 @@ class _ProcessingPageState extends State<ProcessingPage>
               sl<WorkspaceBloc>().add(const WorkspaceEvent.load());
 
               final elapsed = DateTime.now().difference(_startTime);
-              const minDuration = Duration(seconds: 8);
+              const minDuration = Duration(seconds: 12);
 
               if (elapsed < minDuration) {
                 // 8초가 안 지났으면 남은 시간만큼 대기
