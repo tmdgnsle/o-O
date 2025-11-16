@@ -165,7 +165,10 @@ class YDocManager {
         workspaces.push(workspaceId);
       }
     }
-    logger.debug(`[YDocManager] Found ${workspaces.length} workspaces with pending changes`);
+    // 변경사항이 있을 때만 로그 출력
+    if (workspaces.length > 0) {
+      logger.debug(`[YDocManager] Found ${workspaces.length} workspaces with pending changes`);
+    }
     return workspaces;
   }
 
