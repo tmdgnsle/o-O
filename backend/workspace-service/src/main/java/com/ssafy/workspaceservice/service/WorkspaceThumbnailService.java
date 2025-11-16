@@ -3,12 +3,14 @@ package com.ssafy.workspaceservice.service;
 import com.ssafy.workspaceservice.entity.Workspace;
 import com.ssafy.workspaceservice.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WorkspaceThumbnailService {
@@ -42,12 +45,32 @@ public class WorkspaceThumbnailService {
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new IllegalArgumentException("Workspace not found: " + workspaceId));
 
+        // ⭐ 기존 썸네일 key 백업
+        String oldKey = workspace.getThumbnail();
+
+        // 새 key 생성
         String key = buildKey(workspaceId, file.getOriginalFilename());
+
+        // 1) 새 파일 업로드
         putObjectToS3(key, file);
 
-        // 엔티티에 thumbnail(String) 필드가 있다고 가정
+        // 2) DB에 새 key 반영
         workspace.changeThumbnail(key);
+
+        // 3) 기존 썸네일 삭제 (여기가 정확한 위치)
+        if (oldKey != null && !oldKey.isBlank()) {
+            try {
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(oldKey)
+                        .build());
+            } catch (Exception e) {
+                log.error("Failed to delete old thumbnail from S3: {}", oldKey, e);
+                // 실패해도 업로드는 정상 처리됨 → 여기서 롤백하면 안 됨
+            }
+        }
     }
+
 
     private String buildKey(Long workspaceId, String originalFilename) {
         String ext = "bin";
