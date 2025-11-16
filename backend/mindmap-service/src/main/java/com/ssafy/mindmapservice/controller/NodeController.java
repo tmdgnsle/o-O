@@ -20,8 +20,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -133,6 +135,67 @@ public class NodeController {
                 userId, request.contentType(), request.startPrompt());
 
         InitialMindmapResponse response = nodeService.createInitialMindmap(Long.parseLong(userId), request);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @Operation(
+            summary = "이미지 기반 마인드맵 생성",
+            description = """
+                    ## 이미지 파일 기반 마인드맵 자동 생성
+
+                    이미지 파일을 업로드하여 워크스페이스와 루트 노드를 생성하고 AI 분석을 요청합니다.
+
+                    ### 📌 처리 흐름
+                    1. **이미지 업로드**: S3에 이미지 파일 업로드
+                    2. **워크스페이스 생성**: workspace-service를 호출하여 새 워크스페이스 생성
+                    3. **이미지 노드 생성**: keyword = imageUrl, type = "image"
+                    4. **AI 분석 요청**: INITIAL 타입으로 Kafka에 분석 요청 전송
+                    5. **즉시 응답**: 생성된 워크스페이스 및 노드 정보 반환
+
+                    ### ⚡ 비동기 처리
+                    - AI 분석 결과는 Kafka Consumer를 통해 비동기로 처리됩니다
+                    - 생성된 노드의 `analysisStatus`는 `PENDING` 상태로 반환됩니다
+                    - x, y 좌표는 null로 생성됩니다
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "202",
+                    description = "마인드맵 생성 완료. AI 분석이 진행 중입니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = InitialMindmapResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (파일 누락, 잘못된 형식 등)",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "서버 오류 (이미지 업로드 실패, 워크스페이스 생성 실패 등)",
+                    content = @Content
+            )
+    })
+    @PostMapping(value = "/initial/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<InitialMindmapResponse> createInitialMindmapWithImage(
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") String userId,
+            @Parameter(description = "업로드할 이미지 파일", required = true)
+            @RequestParam("file") MultipartFile file,
+            @Parameter(description = "사용자 프롬프트", required = true)
+            @RequestParam("startPrompt") String startPrompt) {
+        log.info("POST /mindmap/initial/image - userId={}, fileName={}, startPrompt={}",
+                userId, file.getOriginalFilename(), startPrompt);
+
+        // TODO: S3에 이미지 업로드
+        log.info("Image uploaded to S3: {}", "imageUrl");
+
+        // 2. 마인드맵 생성
+        InitialMindmapResponse response = nodeService.createInitialMindmapWithImage(
+                Long.parseLong(userId), "imageUrl", startPrompt);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
@@ -655,10 +718,10 @@ public class NodeController {
                             value = """
                                     {
                                       "positions": [
-                                        { "nodeId": 1, "x": 100.0, "y": 200.0, "color": "#3b82f6" },
-                                        { "nodeId": 2, "x": 300.0, "y": 150.0, "color": "#ef4444" },
-                                        { "nodeId": 3, "x": 500.0, "y": 250.0, "color": null },
-                                        { "nodeId": 4, "x": 400.0, "y": 350.0, "color": "#10b981" }
+                                        { "nodeId": 1, "x": 100.0, "y": 200.0 },
+                                        { "nodeId": 2, "x": 300.0, "y": 150.0 },
+                                        { "nodeId": 3, "x": 500.0, "y": 250.0 },
+                                        { "nodeId": 4, "x": 400.0, "y": 350.0 }
                                       ]
                                     }
                                     """

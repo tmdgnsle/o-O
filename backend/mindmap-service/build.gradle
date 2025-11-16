@@ -66,6 +66,10 @@ dependencies {
 
     // openfeign patch 지원하도록 하는 okhttp
     implementation 'io.github.openfeign:feign-okhttp'
+
+    // AWS S3
+    implementation platform('software.amazon.awssdk:bom:2.25.0')
+    implementation 'software.amazon.awssdk:s3'
 }
 
 dependencyManagement {
