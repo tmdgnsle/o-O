@@ -285,7 +285,12 @@ function NodeOverlay({
       // 가까운 노드 찾기 (거리 임계값 200px 이내)
       const nearestNode = findNearestNode(
         { id: node.id, x: node.x, y: node.y },
-        allNodes,
+        allNodes.map((n) => ({
+          id: n.id,
+          x: n.x,
+          y: n.y,
+          parentId: n.parentId ? String(n.parentId) : null,
+        })),
         200
       );
 
