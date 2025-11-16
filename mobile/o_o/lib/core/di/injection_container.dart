@@ -235,36 +235,4 @@ Future<void> init() async {
   sl.registerLazySingleton<MindmapApiDataSource>(
     () => MindmapApiDataSourceImpl(dio: sl()),
   );
-
-  //! Features - Example
-  // Bloc
-  // sl.registerFactory(
-  //   () => ExampleBloc(
-  //     getExample: sl(),
-  //   ),
-  // );
-
-  // Use cases
-  // sl.registerLazySingleton(() => GetExample(sl()));
-
-  // Repository
-  // sl.registerLazySingleton<ExampleRepository>(
-  //   () => ExampleRepositoryImpl(
-  //     remoteDataSource: sl(),
-  //     localDataSource: sl(),
-  //     networkInfo: sl(),
-  //   ),
-  // );
-
-  // Data sources
-  // sl.registerLazySingleton<ExampleRemoteDataSource>(
-  //   () => ExampleRemoteDataSourceImpl(client: sl()),
-  // );
-
-  // sl.registerLazySingleton<ExampleLocalDataSource>(
-  //   () => ExampleLocalDataSourceImpl(),
-  // );
-
-  //! Core
-  // sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 }
