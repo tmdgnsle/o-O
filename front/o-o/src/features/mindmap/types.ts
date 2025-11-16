@@ -63,6 +63,7 @@ export type CytoscapeNodeOverlayProps = {
   isSelected: boolean;
   mode: MindmapMode;
   isAnalyzeSelected: boolean;
+  allNodes?: NodeData[]; // 🔥 force simulation을 위한 전체 노드 정보
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;

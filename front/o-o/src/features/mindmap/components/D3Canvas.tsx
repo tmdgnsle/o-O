@@ -751,6 +751,7 @@ export default function D3Canvas({
                 isSelected={isSelected}
                 mode={mode}
                 isAnalyzeSelected={isAnalyzeSelected}
+                allNodes={nodes} // 🔥 모든 노드 정보 전달 (force simulation용)
                 onSelect={() => {
                   if (mode === "analyze") {
                     // 분석 모드: onAnalyzeNodeToggle 호출

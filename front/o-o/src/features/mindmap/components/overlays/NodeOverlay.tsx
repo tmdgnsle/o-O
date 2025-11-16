@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useEffect } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import RadialToolGroup from "./RadialToolGroup";
 import RecommendNodeOverlay from "./RecommendNodeOverlay";
 import NodeEditForm from "./NodeEditForm";
@@ -17,6 +17,7 @@ import ConfirmDialog from "../../../../shared/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PhotoSizeSelectActualOutlinedIcon from "@mui/icons-material/PhotoSizeSelectActualOutlined";
+import { applyDragForce, findNearestNode, NODE_RADIUS } from "../../utils/d3Utils";
 
 function NodeOverlay({
   node,
@@ -27,6 +28,7 @@ function NodeOverlay({
   mode,
   isSelected,
   isAnalyzeSelected,
+  allNodes = [], // 🔥 force simulation을 위한 전체 노드 정보
   onSelect,
   onDeselect,
   onApplyTheme,
@@ -46,6 +48,7 @@ function NodeOverlay({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [hasMoved, setHasMoved] = useState(false);
+  const dragThrottleRef = useRef<number>(0); // 🔥 드래그 중 force simulation 스로틀링
 
   // Debug: 메모 데이터 확인
   useEffect(() => {
@@ -189,7 +192,7 @@ function NodeOverlay({
       const newX = node.x + dx;
       const newY = node.y + dy;
 
-      // 드래그 중에는 Y.Map을 업데이트하여 화면상 노드는 움직이되, 위치만 변경
+      // 🔥 드래그 중에는 밀어내기 없이 드래그 노드만 업데이트
       onBatchNodePositionChange([{
         id: node.id,
         x: newX,
@@ -206,13 +209,57 @@ function NodeOverlay({
     if (!hasMoved && !isAnalyzeMode) {
       onSelect();
     }
+
+    // 🔥 드래그 종료 시 주변 노드들을 부드럽게 밀어내기
+    if (hasMoved && allNodes.length > 1 && onBatchNodePositionChange) {
+      // Force simulation 적용 (부드럽게 밀어내기)
+      const pushedNodes = applyDragForce(
+        node.id,
+        allNodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
+        NODE_RADIUS * 4 // 거리 임계값 (약 320px)
+      );
+
+      // 밀려난 노드들의 위치만 업데이트
+      const updates = pushedNodes
+        .filter((p) => p.id !== node.id) // 드래그 노드 제외
+        .map((p) => ({ id: p.id, x: p.x, y: p.y }));
+
+      if (updates.length > 0) {
+        onBatchNodePositionChange(updates);
+      }
+
+      // 가까운 노드 찾기 (거리 임계값 200px 이내)
+      const nearestNode = findNearestNode(
+        { id: node.id, x: node.x, y: node.y },
+        allNodes,
+        200
+      );
+
+      // 🔥 가까운 노드가 있고, 현재 부모와 다른 경우 부모 재연결
+      if (nearestNode && nearestNode.id !== node.parentId) {
+        const newParentNode = allNodes.find((n) => n.id === nearestNode.id);
+
+        console.log(
+          `[NodeOverlay] 노드 "${node.keyword}"의 부모를 "${newParentNode?.keyword}"(으)로 변경 (거리: ${nearestNode.distance.toFixed(2)}px)`
+        );
+
+        // 부모 ID 변경 (onEditNode를 통해 Yjs에 반영)
+        onEditNode({
+          nodeId: node.id,
+          newText: node.keyword,
+          newMemo: node.description,
+          newParentId: nearestNode.id,
+        });
+      }
+    }
+
     // 드래그가 끝났을 때는 이미 onEditNode로 Y.Map이 업데이트되어 있음
     // useMindmapSync에서 300ms debounce 후 마지막 업데이트만 서버로 전송됨
 
     setIsDragging(false);
     setDragStart(null);
     setHasMoved(false);
-  }, [hasMoved, isAnalyzeMode, onSelect]);
+  }, [hasMoved, isAnalyzeMode, onSelect, allNodes, node.id, node.x, node.y, node.keyword, node.description, node.parentId, onBatchNodePositionChange, onEditNode]);
 
   // 드래그 이벤트 리스너 등록
   useEffect(() => {

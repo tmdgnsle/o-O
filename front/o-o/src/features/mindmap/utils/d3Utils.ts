@@ -409,3 +409,119 @@ export function applyForceSimulation(
     resolve(result);
   });
 }
+
+/**
+ * 드래그 중인 노드 주변의 노드들을 밀어내는 force simulation
+ * @param draggedNodeId - 드래그 중인 노드의 ID
+ * @param allNodes - 모든 노드 배열
+ * @param distanceThreshold - 밀어내기 적용 거리 임계값
+ * @returns 업데이트된 노드 위치 배열
+ */
+export function applyDragForce(
+  draggedNodeId: string,
+  allNodes: Array<{ id: string; x: number; y: number }>,
+  distanceThreshold: number = NODE_RADIUS * 4
+): Array<{ id: string; x: number; y: number }> {
+  const draggedNode = allNodes.find((n) => n.id === draggedNodeId);
+  if (!draggedNode) return allNodes;
+
+  // D3 simulation 타입을 위한 노드 인터페이스
+  interface SimulationNode extends d3.SimulationNodeDatum {
+    id: string;
+    x: number;
+    y: number;
+    isDragged: boolean;
+  }
+
+  // 노드를 simulation 형식으로 변환
+  const simNodes: SimulationNode[] = allNodes.map((n) => ({
+    id: n.id,
+    x: n.x,
+    y: n.y,
+    isDragged: n.id === draggedNodeId,
+  }));
+
+  // Force simulation 생성 (부드럽게 밀어내기)
+  const simulation = d3
+    .forceSimulation<SimulationNode>(simNodes)
+    // 드래그된 노드를 부드럽게 밀어내는 힘
+    .force(
+      "repel",
+      d3.forceManyBody<SimulationNode>()
+        .strength((d) => d.isDragged ? -800 : -400) // 강도를 낮춰서 부드럽게
+        .distanceMax(distanceThreshold)
+    )
+    // 충돌 회피
+    .force(
+      "collide",
+      d3.forceCollide<SimulationNode>()
+        .radius(NODE_RADIUS * 2)
+        .strength(0.7) // 충돌 강도도 조금 낮춤
+    )
+    // 드래그된 노드의 위치 고정
+    .alphaDecay(0.05) // 더 부드럽게 수렴
+    .velocityDecay(0.3); // 관성을 조금 더 유지
+
+  // 드래그된 노드는 위치 고정
+  simNodes.forEach((n) => {
+    if (n.isDragged) {
+      n.fx = n.x;
+      n.fy = n.y;
+    }
+  });
+
+  // 짧게 시뮬레이션 실행
+  simulation.tick(10);
+  simulation.stop();
+
+  // 결과 반환
+  return simNodes.map((n) => ({
+    id: n.id,
+    x: n.x ?? 0,
+    y: n.y ?? 0,
+  }));
+}
+
+/**
+ * 두 노드 사이의 거리를 계산합니다 (객체 버전)
+ */
+export function calculateDistance(
+  node1: { x: number; y: number },
+  node2: { x: number; y: number }
+): number {
+  const dx = node1.x - node2.x;
+  const dy = node1.y - node2.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * 드래그 종료 시 가장 가까운 노드 찾기
+ * @param draggedNode 드래그된 노드
+ * @param allNodes 모든 노드 배열
+ * @param threshold 거리 임계값 (픽셀)
+ * @returns 가장 가까운 노드 또는 null
+ */
+export function findNearestNode(
+  draggedNode: { id: string; x: number; y: number },
+  allNodes: Array<{ id: string; x: number; y: number; parentId?: string | null }>,
+  threshold: number = 200
+): { id: string; distance: number } | null {
+  let nearestNode: { id: string; distance: number } | null = null;
+  let minDistance = threshold;
+
+  for (const node of allNodes) {
+    // 자기 자신 제외
+    if (node.id === draggedNode.id) {
+      continue;
+    }
+
+    const dist = calculateDistance(draggedNode, node);
+
+    if (dist < minDistance) {
+      minDistance = dist;
+      nearestNode = { id: node.id, distance: dist };
+    }
+  }
+
+  return nearestNode;
+}
