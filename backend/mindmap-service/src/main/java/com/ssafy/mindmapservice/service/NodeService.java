@@ -1,6 +1,7 @@
 package com.ssafy.mindmapservice.service;
 
 import com.ssafy.mindmapservice.client.WorkspaceServiceClientAdapter;
+import com.ssafy.mindmapservice.domain.InitialColor;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.kafka.AiNodeResult;
@@ -218,18 +219,13 @@ public class NodeService {
                 node.setX(position.x());
                 node.setY(position.y());
 
-                // color가 제공된 경우에만 업데이트
-                if (position.color() != null) {
-                    node.setColor(position.color());
-                }
-
                 node.setUpdatedAt(LocalDateTime.now());
 
                 nodeRepository.save(node);
                 updatedCount++;
 
-                log.debug("Updated position for node: nodeId={}, x={}, y={}, color={}",
-                        position.nodeId(), position.x(), position.y(), position.color());
+                log.debug("Updated position for node: nodeId={}, x={}, y={}",
+                        position.nodeId(), position.x(), position.y());
 
             } catch (Exception e) {
                 log.error("Failed to update position for node: nodeId={}", position.nodeId(), e);
@@ -441,6 +437,7 @@ public class NodeService {
                 .keyword(aiNode.keyword())
                 .memo(aiNode.memo())
                 .type("text")
+                .color(InitialColor.getRandomColor())  // PASTEL 테마 랜덤 색상
                 .analysisStatus(MindmapNode.AnalysisStatus.NONE)
                 .build();
 
@@ -521,6 +518,7 @@ public class NodeService {
                 .type("text")  // STT 결과는 텍스트
                 .x(null)  // 모바일에서는 좌표 없음
                 .y(null)
+                .color(InitialColor.getRandomColor())
                 .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                 .build();
 
@@ -612,6 +610,7 @@ public class NodeService {
                     .type("text")
                     .x(null)
                     .y(null)
+                    .color(InitialColor.getRandomColor())
                     .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                     .build();
         } else if (contentType.equals("VIDEO")) {
@@ -622,6 +621,7 @@ public class NodeService {
                     .type("video")
                     .x(null)
                     .y(null)
+                    .color(InitialColor.getRandomColor())
                     .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
                     .build();
         } else {

@@ -718,10 +718,10 @@ public class NodeController {
                             value = """
                                     {
                                       "positions": [
-                                        { "nodeId": 1, "x": 100.0, "y": 200.0, "color": "#3b82f6" },
-                                        { "nodeId": 2, "x": 300.0, "y": 150.0, "color": "#ef4444" },
-                                        { "nodeId": 3, "x": 500.0, "y": 250.0, "color": null },
-                                        { "nodeId": 4, "x": 400.0, "y": 350.0, "color": "#10b981" }
+                                        { "nodeId": 1, "x": 100.0, "y": 200.0 },
+                                        { "nodeId": 2, "x": 300.0, "y": 150.0 },
+                                        { "nodeId": 3, "x": 500.0, "y": 250.0 },
+                                        { "nodeId": 4, "x": 400.0, "y": 350.0 }
                                       ]
                                     }
                                     """
