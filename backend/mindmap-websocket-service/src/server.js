@@ -350,7 +350,12 @@ function handleVoiceConnection(conn, req, url) {
   conn.on('message', (data) => {
     try {
       const message = JSON.parse(data.toString());
-      logger.debug(`[VoiceChat] Message received from user ${userId}:`, message.type);
+      logger.info(`[VoiceChat] Message received from user ${userId}`, {
+        workspaceId,
+        userId,
+        type: message.type,
+        fullMessage: message,
+      });
 
       switch (message.type) {
         case 'offer':
@@ -388,11 +393,34 @@ function handleVoiceConnection(conn, req, url) {
           signalingManager.handleGptStop(workspaceId, userId);
           break;
 
+        case 'role-changed':
+          logger.info(`[VoiceChat] role-changed received on VOICE websocket (should use YJS websocket)`, {
+            workspaceId,
+            userId,
+            targetUserId: message.targetUserId,
+          });
+          // 음성 채팅 WebSocket이 아닌 Y.js WebSocket으로 보내야 함을 알림
+          conn.send(JSON.stringify({
+            type: 'error',
+            message: 'role-changed should be sent to Y.js WebSocket, not voice WebSocket',
+          }));
+          break;
+
         default:
-          logger.warn(`[VoiceChat] Unknown message type: ${message.type}`);
+          logger.warn(`[VoiceChat] Unknown message type: ${message.type}`, {
+            workspaceId,
+            userId,
+            receivedType: message.type,
+            fullMessage: message,
+          });
       }
     } catch (error) {
-      logger.error(`[VoiceChat] Error handling message from user ${userId}:`, error.message);
+      logger.error(`[VoiceChat] Error handling message from user ${userId}`, {
+        workspaceId,
+        userId,
+        error: error.message,
+        stack: error.stack,
+      });
     }
   });
 
