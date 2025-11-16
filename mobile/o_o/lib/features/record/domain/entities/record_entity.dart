@@ -7,12 +7,13 @@ part 'record_entity.freezed.dart';
 @freezed
 class RecordEntity with _$RecordEntity {
   const factory RecordEntity({
-    required String id,
+    required int id,
     required String title,
-    required String content,
+    String? startPrompt,
     required DateTime createdAt,
-    String? audioUrl,
-    String? mindmapId,
+    String? thumbnail,
+    String? visibility,
+    int? mindmapId,
   }) = _RecordEntity;
 
   const RecordEntity._();

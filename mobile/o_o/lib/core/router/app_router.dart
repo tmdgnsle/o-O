@@ -67,8 +67,8 @@ class AppRouter {
         path: '/processing',
         name: 'processing',
         builder: (context, state) {
-          final recordingPath = state.extra as String?;
-          return ProcessingPage(recordingPath: recordingPath);
+          final recordingText = state.extra as String? ?? '';
+          return ProcessingPage(recordingText: recordingText);
         },
       ),
       GoRoute(
@@ -82,10 +82,20 @@ class AppRouter {
         builder: (context, state) {
           // extra로 전달된 Map 데이터를 파싱
           final data = state.extra as Map<String, dynamic>?;
+
+          // mindmapId를 int로 변환 (String으로 전달된 경우 파싱)
+          int? workspaceId;
+          final mindmapIdValue = data?['mindmapId'];
+          if (mindmapIdValue is int) {
+            workspaceId = mindmapIdValue;
+          } else if (mindmapIdValue is String) {
+            workspaceId = int.tryParse(mindmapIdValue);
+          }
+
           return MindmapPage(
             title: data?['title'] as String? ?? '마인드맵',
             imagePath: data?['imagePath'] as String? ?? '',
-            mindmapId: data?['mindmapId'] as String?,
+            workspaceId: workspaceId,
           );
         },
       ),

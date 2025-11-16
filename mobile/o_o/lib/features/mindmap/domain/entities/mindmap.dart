@@ -20,12 +20,16 @@ class Mindmap {
   /// 생성일시
   final DateTime createdAt;
 
+  /// 원래 x, y, color가 null이었던 노드 ID 집합 (String 형식)
+  final Set<String> nullNodeIds;
+
   const Mindmap({
     required this.id,
     required this.title,
     required this.nodes,
     required this.edges,
     required this.createdAt,
+    this.nullNodeIds = const {},
   });
 
   /// ID로 노드를 찾습니다
@@ -52,6 +56,7 @@ class Mindmap {
     List<MindmapNode>? nodes,
     List<MindmapEdge>? edges,
     DateTime? createdAt,
+    Set<String>? nullNodeIds,
   }) {
     return Mindmap(
       id: id ?? this.id,
@@ -59,6 +64,7 @@ class Mindmap {
       nodes: nodes ?? this.nodes,
       edges: edges ?? this.edges,
       createdAt: createdAt ?? this.createdAt,
+      nullNodeIds: nullNodeIds ?? this.nullNodeIds,
     );
   }
 }

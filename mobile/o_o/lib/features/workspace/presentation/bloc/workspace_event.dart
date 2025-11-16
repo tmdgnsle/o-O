@@ -6,4 +6,5 @@ part 'workspace_event.freezed.dart';
 class WorkspaceEvent with _$WorkspaceEvent {
   const factory WorkspaceEvent.load() = WorkspaceLoadEvent;
   const factory WorkspaceEvent.refresh() = WorkspaceRefreshEvent;
+  const factory WorkspaceEvent.loadMore() = WorkspaceLoadMoreEvent;
 }

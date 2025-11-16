@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../domain/entities/dummy_mindmap_data.dart';
+import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/mindmap.dart';
+import '../bloc/mindmap_bloc.dart';
+import '../bloc/mindmap_event.dart';
+import '../bloc/mindmap_state.dart';
 import '../widgets/mindmap_canvas_widget.dart';
 
 /// 점박이 배경 Painter
@@ -50,14 +54,14 @@ class MindmapPage extends StatefulWidget {
   /// 마인드맵 이미지 경로 (assets 또는 네트워크 URL)
   final String imagePath;
 
-  /// 마인드맵 ID (optional, 추후 API 연동 시 사용)
-  final String? mindmapId;
+  /// 워크스페이스 ID (마인드맵 로드용)
+  final int? workspaceId;
 
   const MindmapPage({
     super.key,
     required this.title,
     required this.imagePath,
-    this.mindmapId,
+    this.workspaceId,
   });
 
   @override
@@ -67,8 +71,7 @@ class MindmapPage extends StatefulWidget {
 class _MindmapPageState extends State<MindmapPage> {
   final TransformationController _transformationController =
       TransformationController();
-
-  Mindmap? _mindmap;
+  String? _currentMindmapId;
 
   @override
   void initState() {
@@ -77,8 +80,10 @@ class _MindmapPageState extends State<MindmapPage> {
   }
 
   void _loadMindmap() {
-    if (widget.mindmapId != null) {
-      _mindmap = DummyMindmapData.getMindmapById(widget.mindmapId!);
+    if (widget.workspaceId != null) {
+      context.read<MindmapBloc>().add(
+        MindmapEvent.loadMindmap(workspaceId: widget.workspaceId!),
+      );
     }
   }
 
@@ -90,6 +95,42 @@ class _MindmapPageState extends State<MindmapPage> {
 
   void _resetZoom() {
     _transformationController.value = Matrix4.identity();
+  }
+
+  /// 초기 위치를 루트 노드가 화면 중앙에 오도록 설정
+  /// 마인드맵이 변경될 때마다 실행
+  void _setInitialPosition(BuildContext context, Mindmap mindmap) {
+    // 같은 마인드맵이면 다시 설정하지 않음
+    if (_currentMindmapId == mindmap.id) return;
+    _currentMindmapId = mindmap.id;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+
+      // 루트 노드 찾기 (레벨 0)
+      final rootNode = mindmap.nodes.firstWhere(
+        (node) => node.level == 0,
+        orElse: () => mindmap.nodes.first,
+      );
+
+      // 루트 노드의 좌표를 화면 중앙에 표시
+      final rootX = rootNode.position.dx;
+      final rootY = rootNode.position.dy;
+
+      logger.i('🎯 Initial view: Centering root node at ($rootX, $rootY)');
+
+      // 화면 중앙에 루트 노드가 오도록 변환 행렬 계산
+      final matrix = Matrix4.identity()
+        ..translate(
+          screenWidth / 2 - rootX,
+          screenHeight / 2 - rootY,
+        );
+
+      _transformationController.value = matrix;
+    });
   }
 
   @override
@@ -135,113 +176,97 @@ class _MindmapPageState extends State<MindmapPage> {
               ),
             ),
 
-            // 마인드맵 캔버스 영역 (확대/축소 가능)
+            // 마인드맵 캔버스 영역 (BLoC State 기반)
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Stack(
-                    children: [
-                      // 전체 화면을 덮는 점박이 배경
-                      CustomPaint(
-                        size: Size(constraints.maxWidth, constraints.maxHeight),
-                        painter: _DottedBackgroundPainter(
-                          dotColor: Colors.grey.withOpacity(0.3),
-                          dotRadius: 1.5,
-                          spacing: 20.0,
-                        ),
+              child: BlocBuilder<MindmapBloc, MindmapState>(
+                builder: (context, state) {
+                  return state.when(
+                    initial: () => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.deepBlue,
                       ),
-                      // InteractiveViewer
-                      InteractiveViewer(
-                        transformationController: _transformationController,
-                        minScale: 0.5,
-                        maxScale: 3.0,
-                        boundaryMargin: const EdgeInsets.all(80),
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        constrained: false,
-                        child: Center(
-                          child: _buildMindmapContent(),
-                        ),
+                    ),
+                    loaded: (mindmap) => LayoutBuilder(
+                      builder: (context, constraints) {
+                        // 마인드맵이 로드되면 초기 위치 설정 (루트 노드 중심)
+                        _setInitialPosition(context, mindmap);
+
+                        return Stack(
+                          children: [
+                            // 전체 화면을 덮는 점박이 배경
+                            CustomPaint(
+                              size: Size(constraints.maxWidth, constraints.maxHeight),
+                              painter: _DottedBackgroundPainter(
+                                dotColor: Colors.grey.withOpacity(0.3),
+                                dotRadius: 1.5,
+                                spacing: 20.0,
+                              ),
+                            ),
+                            // InteractiveViewer
+                            InteractiveViewer(
+                              transformationController: _transformationController,
+                              minScale: 0.1,
+                              maxScale: 5.0,
+                              boundaryMargin: const EdgeInsets.all(80),
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              constrained: false,
+                              child: Center(
+                                child: MindmapCanvasWidget(mindmap: mindmap),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    error: (message) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: AppColors.danger,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            message,
+                            style: AppTextStyles.regular16.copyWith(
+                              color: AppColors.danger,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: _loadMindmap,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.deepBlue,
+                              foregroundColor: AppColors.white,
+                            ),
+                            child: const Text('다시 시도'),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                    // 마인드맵 생성 관련 상태들 (이 페이지에서는 사용하지 않음)
+                    creating: () => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
+                    created: (_) => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
+                    createError: (_) => const Center(
+                      child: Text('마인드맵을 불러오는 중...'),
+                    ),
                   );
                 },
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// 마인드맵 컨텐츠를 빌드합니다
-  ///
-  /// mindmapId가 있으면 캔버스로, 없으면 이미지로 표시합니다.
-  Widget _buildMindmapContent() {
-    // 마인드맵 데이터가 있으면 캔버스로 렌더링
-    if (_mindmap != null) {
-      return MindmapCanvasWidget(mindmap: _mindmap!);
-    }
-
-    // 폴백: 이미지로 표시
-    return _buildMindmapImage();
-  }
-
-  /// 마인드맵 이미지를 빌드합니다 (폴백용)
-  ///
-  /// assets 이미지와 네트워크 이미지를 모두 지원합니다.
-  Widget _buildMindmapImage() {
-    if (widget.imagePath.isEmpty) {
-      return _buildErrorWidget();
-    }
-
-    final isNetworkImage = widget.imagePath.startsWith('http://') ||
-        widget.imagePath.startsWith('https://');
-
-    if (isNetworkImage) {
-      return Image.network(
-        widget.imagePath,
-        fit: BoxFit.contain,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
-              color: AppColors.deepBlue,
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return _buildErrorWidget();
-        },
-      );
-    } else {
-      return Image.asset(
-        widget.imagePath,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildErrorWidget();
-        },
-      );
-    }
-  }
-
-  /// 에러 위젯
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            '마인드맵을 불러올 수 없습니다',
-            style: AppTextStyles.regular16.copyWith(color: Colors.grey[600]),
-          ),
-        ],
       ),
     );
   }

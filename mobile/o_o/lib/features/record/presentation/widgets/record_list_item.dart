@@ -60,28 +60,30 @@ class _RecordListItemState extends State<RecordListItem> {
                 color: AppColors.deepBlue,
               ),
             ),
-            const SizedBox(height: 8),
-            // 내용
-            AnimatedCrossFade(
-              firstChild: Text(
-                widget.record.content,
-                style: AppTextStyles.medium14.copyWith(
-                  color: AppColors.semiBlack,
+            // 내용 (startPrompt가 있을 때만 표시)
+            if (widget.record.startPrompt != null) ...[
+              const SizedBox(height: 8),
+              AnimatedCrossFade(
+                firstChild: Text(
+                  widget.record.startPrompt!,
+                  style: AppTextStyles.medium14.copyWith(
+                    color: AppColors.semiBlack,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              secondChild: Text(
-                widget.record.content,
-                style: AppTextStyles.medium14.copyWith(
-                  color: AppColors.semiBlack,
+                secondChild: Text(
+                  widget.record.startPrompt!,
+                  style: AppTextStyles.medium14.copyWith(
+                    color: AppColors.semiBlack,
+                  ),
                 ),
+                crossFadeState: _isExpanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 300),
               ),
-              crossFadeState: _isExpanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 300),
-            ),
+            ],
             // 버튼 (확장되었을 때만 표시)
             if (_isExpanded) ...[
               const SizedBox(height: 16),

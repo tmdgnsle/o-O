@@ -21,32 +21,38 @@ mixin _$WorkspaceEvent {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadMore,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadMore,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadMore,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WorkspaceLoadEvent value) load,
     required TResult Function(WorkspaceRefreshEvent value) refresh,
+    required TResult Function(WorkspaceLoadMoreEvent value) loadMore,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WorkspaceLoadEvent value)? load,
     TResult? Function(WorkspaceRefreshEvent value)? refresh,
+    TResult? Function(WorkspaceLoadMoreEvent value)? loadMore,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WorkspaceLoadEvent value)? load,
     TResult Function(WorkspaceRefreshEvent value)? refresh,
+    TResult Function(WorkspaceLoadMoreEvent value)? loadMore,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -118,6 +124,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadMore,
   }) {
     return load();
   }
@@ -127,6 +134,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadMore,
   }) {
     return load?.call();
   }
@@ -136,6 +144,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadMore,
     required TResult orElse(),
   }) {
     if (load != null) {
@@ -149,6 +158,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(WorkspaceLoadEvent value) load,
     required TResult Function(WorkspaceRefreshEvent value) refresh,
+    required TResult Function(WorkspaceLoadMoreEvent value) loadMore,
   }) {
     return load(this);
   }
@@ -158,6 +168,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WorkspaceLoadEvent value)? load,
     TResult? Function(WorkspaceRefreshEvent value)? refresh,
+    TResult? Function(WorkspaceLoadMoreEvent value)? loadMore,
   }) {
     return load?.call(this);
   }
@@ -167,6 +178,7 @@ class _$WorkspaceLoadEventImpl implements WorkspaceLoadEvent {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WorkspaceLoadEvent value)? load,
     TResult Function(WorkspaceRefreshEvent value)? refresh,
+    TResult Function(WorkspaceLoadMoreEvent value)? loadMore,
     required TResult orElse(),
   }) {
     if (load != null) {
@@ -226,6 +238,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult when<TResult extends Object?>({
     required TResult Function() load,
     required TResult Function() refresh,
+    required TResult Function() loadMore,
   }) {
     return refresh();
   }
@@ -235,6 +248,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? load,
     TResult? Function()? refresh,
+    TResult? Function()? loadMore,
   }) {
     return refresh?.call();
   }
@@ -244,6 +258,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? load,
     TResult Function()? refresh,
+    TResult Function()? loadMore,
     required TResult orElse(),
   }) {
     if (refresh != null) {
@@ -257,6 +272,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult map<TResult extends Object?>({
     required TResult Function(WorkspaceLoadEvent value) load,
     required TResult Function(WorkspaceRefreshEvent value) refresh,
+    required TResult Function(WorkspaceLoadMoreEvent value) loadMore,
   }) {
     return refresh(this);
   }
@@ -266,6 +282,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WorkspaceLoadEvent value)? load,
     TResult? Function(WorkspaceRefreshEvent value)? refresh,
+    TResult? Function(WorkspaceLoadMoreEvent value)? loadMore,
   }) {
     return refresh?.call(this);
   }
@@ -275,6 +292,7 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WorkspaceLoadEvent value)? load,
     TResult Function(WorkspaceRefreshEvent value)? refresh,
+    TResult Function(WorkspaceLoadMoreEvent value)? loadMore,
     required TResult orElse(),
   }) {
     if (refresh != null) {
@@ -286,4 +304,118 @@ class _$WorkspaceRefreshEventImpl implements WorkspaceRefreshEvent {
 
 abstract class WorkspaceRefreshEvent implements WorkspaceEvent {
   const factory WorkspaceRefreshEvent() = _$WorkspaceRefreshEventImpl;
+}
+
+/// @nodoc
+abstract class _$$WorkspaceLoadMoreEventImplCopyWith<$Res> {
+  factory _$$WorkspaceLoadMoreEventImplCopyWith(
+    _$WorkspaceLoadMoreEventImpl value,
+    $Res Function(_$WorkspaceLoadMoreEventImpl) then,
+  ) = __$$WorkspaceLoadMoreEventImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$WorkspaceLoadMoreEventImplCopyWithImpl<$Res>
+    extends _$WorkspaceEventCopyWithImpl<$Res, _$WorkspaceLoadMoreEventImpl>
+    implements _$$WorkspaceLoadMoreEventImplCopyWith<$Res> {
+  __$$WorkspaceLoadMoreEventImplCopyWithImpl(
+    _$WorkspaceLoadMoreEventImpl _value,
+    $Res Function(_$WorkspaceLoadMoreEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of WorkspaceEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$WorkspaceLoadMoreEventImpl implements WorkspaceLoadMoreEvent {
+  const _$WorkspaceLoadMoreEventImpl();
+
+  @override
+  String toString() {
+    return 'WorkspaceEvent.loadMore()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WorkspaceLoadMoreEventImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() load,
+    required TResult Function() refresh,
+    required TResult Function() loadMore,
+  }) {
+    return loadMore();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? load,
+    TResult? Function()? refresh,
+    TResult? Function()? loadMore,
+  }) {
+    return loadMore?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? load,
+    TResult Function()? refresh,
+    TResult Function()? loadMore,
+    required TResult orElse(),
+  }) {
+    if (loadMore != null) {
+      return loadMore();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WorkspaceLoadEvent value) load,
+    required TResult Function(WorkspaceRefreshEvent value) refresh,
+    required TResult Function(WorkspaceLoadMoreEvent value) loadMore,
+  }) {
+    return loadMore(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WorkspaceLoadEvent value)? load,
+    TResult? Function(WorkspaceRefreshEvent value)? refresh,
+    TResult? Function(WorkspaceLoadMoreEvent value)? loadMore,
+  }) {
+    return loadMore?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WorkspaceLoadEvent value)? load,
+    TResult Function(WorkspaceRefreshEvent value)? refresh,
+    TResult Function(WorkspaceLoadMoreEvent value)? loadMore,
+    required TResult orElse(),
+  }) {
+    if (loadMore != null) {
+      return loadMore(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WorkspaceLoadMoreEvent implements WorkspaceEvent {
+  const factory WorkspaceLoadMoreEvent() = _$WorkspaceLoadMoreEventImpl;
 }

@@ -8,7 +8,8 @@ import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/record/data/repositories/record_repository_mock.dart';
+import '../../features/record/data/datasources/record_api_data_source.dart';
+import '../../features/record/data/repositories/record_repository_impl.dart';
 import '../../features/record/domain/repositories/record_repository.dart';
 import '../../features/record/domain/usecases/get_records.dart';
 import '../../features/record/presentation/bloc/record_bloc.dart';
@@ -27,8 +28,16 @@ import '../../features/user/presentation/bloc/user_bloc.dart';
 import '../../features/workspace/data/datasources/workspace_api_data_source.dart';
 import '../../features/workspace/data/repositories/workspace_repository_impl.dart';
 import '../../features/workspace/domain/repositories/workspace_repository.dart';
+import '../../features/workspace/domain/usecases/get_workspace_calendar.dart';
 import '../../features/workspace/domain/usecases/get_workspaces.dart';
 import '../../features/workspace/presentation/bloc/workspace_bloc.dart';
+import '../../features/mindmap/data/datasources/mindmap_api_data_source.dart';
+import '../../features/mindmap/data/repositories/mindmap_repository_impl.dart';
+import '../../features/mindmap/domain/repositories/mindmap_repository.dart';
+import '../../features/mindmap/domain/usecases/create_mindmap_from_text.dart';
+import '../../features/mindmap/domain/usecases/get_mindmap_nodes.dart';
+import '../../features/mindmap/domain/usecases/update_node_positions.dart';
+import '../../features/mindmap/presentation/bloc/mindmap_bloc.dart';
 import '../constants/api_constants.dart';
 import '../network/auth_interceptor.dart';
 
@@ -107,6 +116,7 @@ Future<void> init() async {
   sl.registerFactory(
     () => UserBloc(
       getUserInfo: sl(),
+      getWorkspaceCalendar: sl(),
     ),
   );
 
@@ -160,10 +170,16 @@ Future<void> init() async {
   // Use cases
   sl.registerLazySingleton(() => GetRecords(sl()));
 
-  // Repository (Mock)
-  // TODO: 실제 API 구현 시 RecordRepositoryImpl로 교체
+  // Repository
   sl.registerLazySingleton<RecordRepository>(
-    () => RecordRepositoryMock(),
+    () => RecordRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<RecordApiDataSource>(
+    () => RecordApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Workspace
@@ -176,6 +192,7 @@ Future<void> init() async {
 
   // Use cases
   sl.registerLazySingleton(() => GetWorkspaces(sl()));
+  sl.registerLazySingleton(() => GetWorkspaceCalendar(sl()));
 
   // Repository
   sl.registerLazySingleton<WorkspaceRepository>(
@@ -187,6 +204,33 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<WorkspaceApiDataSource>(
     () => WorkspaceApiDataSourceImpl(dio: sl()),
+  );
+
+  //! Features - Mindmap
+  // Bloc
+  sl.registerFactory(
+    () => MindmapBloc(
+      getMindmapNodes: sl(),
+      createMindmapFromText: sl(),
+      updateNodePositions: sl(),
+    ),
+  );
+
+  // Use cases
+  sl.registerLazySingleton(() => GetMindmapNodes(sl()));
+  sl.registerLazySingleton(() => CreateMindmapFromText(sl()));
+  sl.registerLazySingleton(() => UpdateNodePositions(sl()));
+
+  // Repository
+  sl.registerLazySingleton<MindmapRepository>(
+    () => MindmapRepositoryImpl(
+      apiDataSource: sl(),
+    ),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<MindmapApiDataSource>(
+    () => MindmapApiDataSourceImpl(dio: sl()),
   );
 
   //! Features - Example

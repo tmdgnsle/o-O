@@ -5,8 +5,6 @@ import 'package:o_o/core/constants/app_colors.dart';
 
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/di/injection_container.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../recording/presentation/bloc/recording_bloc.dart';
 import '../../../recording/presentation/bloc/recording_event.dart';
 import '../../../recording/presentation/bloc/recording_state.dart';
@@ -18,8 +16,42 @@ import '../widgets/circular_button.dart';
 import '../widgets/mindmap_card.dart';
 
 /// 홈 페이지
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  late WorkspaceBloc _workspaceBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _workspaceBloc = sl<WorkspaceBloc>();
+    // 초기 로드
+    _workspaceBloc.add(const WorkspaceEvent.load());
+
+    // 앱 라이프사이클 옵저버 등록
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 앱이 다시 활성화될 때 (다른 페이지에서 돌아올 때 포함)
+    if (state == AppLifecycleState.resumed) {
+      _workspaceBloc.add(const WorkspaceEvent.load());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _workspaceBloc.close();
+    super.dispose();
+  }
 
   /// 녹음 중단 확인 다이얼로그
   void _showStopRecordingDialog(BuildContext context) {
@@ -139,21 +171,28 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<WorkspaceBloc>()..add(const WorkspaceEvent.load()),
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/background.png'),
-              fit: BoxFit.cover,
+    return BlocProvider.value(
+      value: _workspaceBloc,
+      child: BlocListener<RecordingBloc, RecordingState>(
+        listener: (context, state) {
+          // 녹음 종료 시 텍스트를 가지고 Processing 페이지로 이동
+          if (state is RecordingStopped) {
+            context.push('/processing', extra: state.recognizedText);
+          }
+        },
+        child: Scaffold(
+          body: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/background.png'),
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          child: BlocBuilder<RecordingBloc, RecordingState>(
-          builder: (context, recordingState) {
-            final isRecording = recordingState is RecordingInProgress ||
-                recordingState is RecordingPaused;
-            final isPaused = recordingState is RecordingPaused;
+            child: BlocBuilder<RecordingBloc, RecordingState>(
+            builder: (context, recordingState) {
+              final isRecording = recordingState is RecordingInProgress ||
+                  recordingState is RecordingPaused;
+              final isPaused = recordingState is RecordingPaused;
 
             return Stack(
               children: [
@@ -223,12 +262,10 @@ class HomePage extends StatelessWidget {
                                   ? AnimatedCircularButton(
                                     key: const ValueKey('recording'),
                                     onTap: () {
-                                      // 녹음 중단 후 Processing 페이지로 이동
+                                      // 녹음 중단 (BlocListener가 자동으로 Processing 페이지로 이동)
                                       context.read<RecordingBloc>().add(
                                         const RecordingEvent.stop(),
                                       );
-                                      // push: 홈을 스택에 유지하면서 processing으로 이동
-                                      context.push('/processing');
                                     },
                                     containerSize: 220,
                                     imageSize: 170,
@@ -380,7 +417,7 @@ class HomePage extends StatelessWidget {
                                             child: CircularProgressIndicator(),
                                           ),
                                         ),
-                                        loaded: (workspaces) {
+                                        loaded: (workspaces, hasNext, nextCursor) {
                                           if (workspaces.isEmpty) {
                                             return Center(
                                               child: Padding(
@@ -395,24 +432,72 @@ class HomePage extends StatelessWidget {
                                             );
                                           }
 
-                                          return Column(
-                                            children: workspaces.map((workspace) {
-                                              return MindmapCard(
-                                                title: workspace.title,
-                                                imagePath: workspace.thumbnail,
-                                                isNetworkImage: true,
-                                                onTap: () {
-                                                  context.push(
-                                                    '/mindmap',
-                                                    extra: {
-                                                      'title': workspace.title,
-                                                      'imagePath': workspace.thumbnail,
-                                                      'mindmapId': workspace.id.toString(),
+                                          return NotificationListener<ScrollNotification>(
+                                            onNotification: (scrollInfo) {
+                                              // 스크롤이 끝에 도달하고 더 불러올 데이터가 있을 때
+                                              // loadingMore 상태가 아닐 때만 추가 로드
+                                              final currentState = context.read<WorkspaceBloc>().state;
+                                              final isLoadingMore = currentState is WorkspaceLoadingMore;
+
+                                              if (!isLoadingMore &&
+                                                  scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200 &&
+                                                  hasNext) {
+                                                context.read<WorkspaceBloc>().add(
+                                                  const WorkspaceEvent.loadMore(),
+                                                );
+                                              }
+                                              return false;
+                                            },
+                                            child: Column(
+                                              children: [
+                                                ...workspaces.map((workspace) {
+                                                  return MindmapCard(
+                                                    title: workspace.title,
+                                                    imagePath: workspace.thumbnail ?? '',
+                                                    isNetworkImage: true,
+                                                    onTap: () {
+                                                      context.push(
+                                                        '/mindmap',
+                                                        extra: {
+                                                          'title': workspace.title,
+                                                          'imagePath': workspace.thumbnail ?? '',
+                                                          'mindmapId': workspace.id.toString(),
+                                                        },
+                                                      );
                                                     },
                                                   );
-                                                },
-                                              );
-                                            }).toList(),
+                                                }).toList(),
+                                                // hasNext가 true여도 loaded 상태에서는 로딩 인디케이터 표시 안 함
+                                                // loadingMore 상태에서만 표시
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        loadingMore: (workspaces) {
+                                          return Column(
+                                            children: [
+                                              ...workspaces.map((workspace) {
+                                                return MindmapCard(
+                                                  title: workspace.title,
+                                                  imagePath: workspace.thumbnail ?? '',
+                                                  isNetworkImage: true,
+                                                  onTap: () {
+                                                    context.push(
+                                                      '/mindmap',
+                                                      extra: {
+                                                        'title': workspace.title,
+                                                        'imagePath': workspace.thumbnail ?? '',
+                                                        'mindmapId': workspace.id.toString(),
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              }).toList(),
+                                              const Padding(
+                                                padding: EdgeInsets.all(16.0),
+                                                child: CircularProgressIndicator(),
+                                              ),
+                                            ],
                                           );
                                         },
                                         error: (message) => Center(
@@ -458,7 +543,8 @@ class HomePage extends StatelessWidget {
             );
           },
         ),
-      ),
+          ),
+        ),
       ),
     );
   }

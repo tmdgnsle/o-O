@@ -11,6 +11,8 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/utils/app_logger.dart';
+import '../../../workspace/domain/entities/workspace_calendar_entity.dart';
 import '../bloc/user_bloc.dart';
 import '../bloc/user_event.dart';
 import '../bloc/user_state.dart';
@@ -19,24 +21,20 @@ import '../bloc/user_state.dart';
 class KeywordMarble {
   final String keyword;
   final int weight;
-  final String? mindmapId;
 
   KeywordMarble({
     required this.keyword,
     required this.weight,
-    this.mindmapId,
   });
 }
 
 /// 구슬 물리 컴포넌트
-class MarbleComponent extends BodyComponent with TapCallbacks {
+class MarbleComponent extends BodyComponent {
   final String keyword;
   final double radius;
   final Color color;
   final Vector2 initialPosition;
   final ui.Image marbleImage;
-  final String? mindmapId;
-  final Function(String?)? onTap;
 
   MarbleComponent({
     required this.keyword,
@@ -44,8 +42,6 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
     required this.initialPosition,
     required this.marbleImage,
     this.color = Colors.white,
-    this.mindmapId,
-    this.onTap,
   }) : super(
           priority: 1,
         );
@@ -118,33 +114,16 @@ class MarbleComponent extends BodyComponent with TapCallbacks {
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
   }
-
-  @override
-  bool containsLocalPoint(Vector2 point) {
-    // 구슬의 원형 영역 내에 있는지 확인
-    return point.length <= radius;
-  }
-
-  @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    // 탭 시 콜백 호출
-    if (onTap != null) {
-      onTap!(mindmapId);
-    }
-  }
 }
 
 /// 구슬 물리 게임
 class MarblePhysicsGame extends Forge2DGame {
   final List<KeywordMarble> marbles;
   final Size screenSize;
-  final Function(String?)? onMarbleTap;
 
   MarblePhysicsGame({
     required this.marbles,
     required this.screenSize,
-    this.onMarbleTap,
   }) : super(
           gravity: Vector2(0, 1000), // 중력 증가 (더 빠르게 떨어지도록)
         );
@@ -194,8 +173,6 @@ class MarblePhysicsGame extends Forge2DGame {
         initialPosition: Vector2(x, y),
         marbleImage: marbleImage,
         color: colors[i % colors.length],
-        mindmapId: marble.mindmapId,
-        onTap: onMarbleTap,
       );
 
       await add(marbleComponent);
@@ -259,36 +236,38 @@ class _MyPageContent extends StatefulWidget {
 }
 
 class _MyPageState extends State<_MyPageContent> {
-  late List<KeywordMarble> marbles;
+  List<KeywordMarble> marbles = [];
   MarblePhysicsGame? game;
   final Random random = Random();
 
   @override
   void initState() {
     super.initState();
-    marbles = _generateDummyData();
+    logger.i('🔵 [MyPage] initState');
+    // 캘린더 API는 BlocListener에서 UserLoaded 상태일 때 호출
   }
 
-  /// 더미 데이터 생성
-  List<KeywordMarble> _generateDummyData() {
-    final keywordsWithMindmap = [
-      {'keyword': '알고리즘', 'mindmapId': '1'},
-      {'keyword': '자료구조', 'mindmapId': '1'},
-      {'keyword': '포포', 'mindmapId': '2'},
-      {'keyword': '프로젝트', 'mindmapId': '2'},
-      {'keyword': '제주여행', 'mindmapId': '3'},
-      {'keyword': '관광지', 'mindmapId': '3'},
-    ];
+  /// API 데이터로 구슬 생성
+  List<KeywordMarble> _generateMarblesFromKeywords(List<String> keywords) {
+    logger.i('🎨 [MyPage] 구슬 생성 시작 - 키워드 개수: ${keywords.length}');
 
-    return keywordsWithMindmap.map((data) {
-      // 가중치 1-10 사이 랜덤
+    if (keywords.isEmpty) {
+      logger.w('⚠️ [MyPage] 키워드가 비어있음 - 구슬 생성 안됨');
+      return [];
+    }
+
+    final marbles = keywords.map((keyword) {
+      // 가중치는 1-10 사이 랜덤
       final weight = random.nextInt(10) + 1;
+      logger.d('  - 구슬: "$keyword" (weight: $weight)');
       return KeywordMarble(
-        keyword: data['keyword']!,
+        keyword: keyword,
         weight: weight,
-        mindmapId: data['mindmapId'],
       );
     }).toList();
+
+    logger.i('✅ [MyPage] 구슬 생성 완료 - 총 ${marbles.length}개');
+    return marbles;
   }
 
   @override
@@ -297,23 +276,47 @@ class _MyPageState extends State<_MyPageContent> {
     final topPadding = mediaQuery.padding.top;
     final screenSize = mediaQuery.size;
 
-    // 게임 인스턴스가 없으면 생성
+    return BlocListener<UserBloc, UserState>(
+      listener: (context, state) {
+        logger.i('🔔 [MyPage] BlocListener - 상태 변경: ${state.runtimeType}');
+
+        // UserLoaded 상태일 때
+        if (state is UserLoaded) {
+          logger.i('📦 [MyPage] UserLoaded 상태 감지 - keywords: ${state.keywords?.length ?? 0}개');
+
+          // keywords가 null이면 캘린더 API 호출
+          if (state.keywords == null) {
+            logger.i('🚀 [MyPage] keywords가 null - 캘린더 API 호출');
+            context.read<UserBloc>().add(const UserEvent.loadCalendar());
+            return; // 여기서 종료 (API 완료 후 다시 listener 호출됨)
+          }
+
+          // keywords가 있으면 구슬 생성
+          if (state.keywords!.isNotEmpty) {
+            logger.i('✨ [MyPage] 키워드 데이터 있음 - 구슬 생성 시작');
+            setState(() {
+              marbles = _generateMarblesFromKeywords(state.keywords!);
+              // 게임 재생성 (구슬이 업데이트되었으므로)
+              game = MarblePhysicsGame(
+                marbles: marbles,
+                screenSize: screenSize,
+              );
+            });
+            logger.i('🎮 [MyPage] 게임 재생성 완료');
+          } else {
+            logger.w('⚠️ [MyPage] 키워드가 비어있음 (빈 리스트)');
+          }
+        }
+      },
+      child: _buildScaffold(screenSize, topPadding),
+    );
+  }
+
+  Widget _buildScaffold(Size screenSize, double topPadding) {
+    // 게임 인스턴스가 없으면 생성 (초기 빈 상태)
     game ??= MarblePhysicsGame(
       marbles: marbles,
       screenSize: screenSize,
-      onMarbleTap: (mindmapId) {
-        if (mindmapId != null) {
-          // 마인드맵 페이지로 이동
-          context.push(
-            '/mindmap',
-            extra: {
-              'title': '마인드맵',
-              'imagePath': '',
-              'mindmapId': mindmapId,
-            },
-          );
-        }
-      },
     );
 
     return Scaffold(
@@ -352,31 +355,44 @@ class _MyPageState extends State<_MyPageContent> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  // 프로필 이미지 (큰 원형)
-                  Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                          offset: const Offset(0, 4),
+                  // 프로필 이미지 (API에서 받은 profileImage 사용)
+                  BlocBuilder<UserBloc, UserState>(
+                    builder: (context, state) {
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Image.asset(
-                          'assets/images/popo4.png',
-                          fit: BoxFit.contain,
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: state is UserLoaded && state.user.profileImage.isNotEmpty
+                                ? Image.asset(
+                                    'assets/images/${state.user.profileImage}.png',
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // 이미지 로드 실패 시 빈 상태 표시
+                                      logger.e('❌ [MyPage] 프로필 이미지 로드 실패: ${state.user.profileImage}.png');
+                                      return const SizedBox.shrink();
+                                    },
+                                  )
+                                : state is UserLoading
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : const SizedBox.shrink(), // 로딩 전이나 에러 시 빈 상태
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                   // 사용자 정보 (API 연동)
@@ -385,7 +401,7 @@ class _MyPageState extends State<_MyPageContent> {
                       return state.when(
                         initial: () => const SizedBox.shrink(),
                         loading: () => const CircularProgressIndicator(),
-                        loaded: (user) => Column(
+                        loaded: (user, keywords) => Column(
                           children: [
                             // 닉네임
                             Text(

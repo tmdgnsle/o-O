@@ -21,13 +21,12 @@ RecordModel _$RecordModelFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$RecordModel {
-  String get id => throw _privateConstructorUsedError;
+  int get id => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
-  String get content => throw _privateConstructorUsedError;
-  @JsonKey(name: 'created_at')
+  String get visibility => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
-  @JsonKey(name: 'audio_url')
-  String? get audioUrl => throw _privateConstructorUsedError;
+  String? get thumbnail => throw _privateConstructorUsedError;
+  String? get startPrompt => throw _privateConstructorUsedError;
 
   /// Serializes this RecordModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,11 +46,12 @@ abstract class $RecordModelCopyWith<$Res> {
   ) = _$RecordModelCopyWithImpl<$Res, RecordModel>;
   @useResult
   $Res call({
-    String id,
+    int id,
     String title,
-    String content,
-    @JsonKey(name: 'created_at') DateTime createdAt,
-    @JsonKey(name: 'audio_url') String? audioUrl,
+    String visibility,
+    DateTime createdAt,
+    String? thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -72,9 +72,10 @@ class _$RecordModelCopyWithImpl<$Res, $Val extends RecordModel>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? content = null,
+    Object? visibility = null,
     Object? createdAt = null,
-    Object? audioUrl = freezed,
+    Object? thumbnail = freezed,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -82,26 +83,31 @@ class _$RecordModelCopyWithImpl<$Res, $Val extends RecordModel>
                 null == id
                     ? _value.id
                     : id // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as int,
             title:
                 null == title
                     ? _value.title
                     : title // ignore: cast_nullable_to_non_nullable
                         as String,
-            content:
-                null == content
-                    ? _value.content
-                    : content // ignore: cast_nullable_to_non_nullable
+            visibility:
+                null == visibility
+                    ? _value.visibility
+                    : visibility // ignore: cast_nullable_to_non_nullable
                         as String,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
                     : createdAt // ignore: cast_nullable_to_non_nullable
                         as DateTime,
-            audioUrl:
-                freezed == audioUrl
-                    ? _value.audioUrl
-                    : audioUrl // ignore: cast_nullable_to_non_nullable
+            thumbnail:
+                freezed == thumbnail
+                    ? _value.thumbnail
+                    : thumbnail // ignore: cast_nullable_to_non_nullable
+                        as String?,
+            startPrompt:
+                freezed == startPrompt
+                    ? _value.startPrompt
+                    : startPrompt // ignore: cast_nullable_to_non_nullable
                         as String?,
           )
           as $Val,
@@ -119,11 +125,12 @@ abstract class _$$RecordModelImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String id,
+    int id,
     String title,
-    String content,
-    @JsonKey(name: 'created_at') DateTime createdAt,
-    @JsonKey(name: 'audio_url') String? audioUrl,
+    String visibility,
+    DateTime createdAt,
+    String? thumbnail,
+    String? startPrompt,
   });
 }
 
@@ -143,9 +150,10 @@ class __$$RecordModelImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? content = null,
+    Object? visibility = null,
     Object? createdAt = null,
-    Object? audioUrl = freezed,
+    Object? thumbnail = freezed,
+    Object? startPrompt = freezed,
   }) {
     return _then(
       _$RecordModelImpl(
@@ -153,26 +161,31 @@ class __$$RecordModelImplCopyWithImpl<$Res>
             null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as int,
         title:
             null == title
                 ? _value.title
                 : title // ignore: cast_nullable_to_non_nullable
                     as String,
-        content:
-            null == content
-                ? _value.content
-                : content // ignore: cast_nullable_to_non_nullable
+        visibility:
+            null == visibility
+                ? _value.visibility
+                : visibility // ignore: cast_nullable_to_non_nullable
                     as String,
         createdAt:
             null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
                     as DateTime,
-        audioUrl:
-            freezed == audioUrl
-                ? _value.audioUrl
-                : audioUrl // ignore: cast_nullable_to_non_nullable
+        thumbnail:
+            freezed == thumbnail
+                ? _value.thumbnail
+                : thumbnail // ignore: cast_nullable_to_non_nullable
+                    as String?,
+        startPrompt:
+            freezed == startPrompt
+                ? _value.startPrompt
+                : startPrompt // ignore: cast_nullable_to_non_nullable
                     as String?,
       ),
     );
@@ -185,30 +198,31 @@ class _$RecordModelImpl extends _RecordModel {
   const _$RecordModelImpl({
     required this.id,
     required this.title,
-    required this.content,
-    @JsonKey(name: 'created_at') required this.createdAt,
-    @JsonKey(name: 'audio_url') this.audioUrl,
+    required this.visibility,
+    required this.createdAt,
+    this.thumbnail,
+    this.startPrompt,
   }) : super._();
 
   factory _$RecordModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$RecordModelImplFromJson(json);
 
   @override
-  final String id;
+  final int id;
   @override
   final String title;
   @override
-  final String content;
+  final String visibility;
   @override
-  @JsonKey(name: 'created_at')
   final DateTime createdAt;
   @override
-  @JsonKey(name: 'audio_url')
-  final String? audioUrl;
+  final String? thumbnail;
+  @override
+  final String? startPrompt;
 
   @override
   String toString() {
-    return 'RecordModel(id: $id, title: $title, content: $content, createdAt: $createdAt, audioUrl: $audioUrl)';
+    return 'RecordModel(id: $id, title: $title, visibility: $visibility, createdAt: $createdAt, thumbnail: $thumbnail, startPrompt: $startPrompt)';
   }
 
   @override
@@ -218,17 +232,27 @@ class _$RecordModelImpl extends _RecordModel {
             other is _$RecordModelImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.title, title) || other.title == title) &&
-            (identical(other.content, content) || other.content == content) &&
+            (identical(other.visibility, visibility) ||
+                other.visibility == visibility) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
-            (identical(other.audioUrl, audioUrl) ||
-                other.audioUrl == audioUrl));
+            (identical(other.thumbnail, thumbnail) ||
+                other.thumbnail == thumbnail) &&
+            (identical(other.startPrompt, startPrompt) ||
+                other.startPrompt == startPrompt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, content, createdAt, audioUrl);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    title,
+    visibility,
+    createdAt,
+    thumbnail,
+    startPrompt,
+  );
 
   /// Create a copy of RecordModel
   /// with the given fields replaced by the non-null parameter values.
@@ -246,11 +270,12 @@ class _$RecordModelImpl extends _RecordModel {
 
 abstract class _RecordModel extends RecordModel {
   const factory _RecordModel({
-    required final String id,
+    required final int id,
     required final String title,
-    required final String content,
-    @JsonKey(name: 'created_at') required final DateTime createdAt,
-    @JsonKey(name: 'audio_url') final String? audioUrl,
+    required final String visibility,
+    required final DateTime createdAt,
+    final String? thumbnail,
+    final String? startPrompt,
   }) = _$RecordModelImpl;
   const _RecordModel._() : super._();
 
@@ -258,17 +283,17 @@ abstract class _RecordModel extends RecordModel {
       _$RecordModelImpl.fromJson;
 
   @override
-  String get id;
+  int get id;
   @override
   String get title;
   @override
-  String get content;
+  String get visibility;
   @override
-  @JsonKey(name: 'created_at')
   DateTime get createdAt;
   @override
-  @JsonKey(name: 'audio_url')
-  String? get audioUrl;
+  String? get thumbnail;
+  @override
+  String? get startPrompt;
 
   /// Create a copy of RecordModel
   /// with the given fields replaced by the non-null parameter values.

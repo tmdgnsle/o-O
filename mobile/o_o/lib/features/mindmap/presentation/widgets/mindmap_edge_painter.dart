@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/mindmap.dart';
 import '../../domain/entities/mindmap_edge.dart';
-import '../../domain/entities/mindmap_node.dart';
 
 /// 마인드맵 엣지(연결선)를 그리는 CustomPainter
 class MindmapEdgePainter extends CustomPainter {

@@ -7,4 +7,5 @@ part 'user_event.freezed.dart';
 class UserEvent with _$UserEvent {
   const factory UserEvent.load() = LoadUserInfo;
   const factory UserEvent.refresh() = RefreshUserInfo;
+  const factory UserEvent.loadCalendar() = LoadCalendar;
 }

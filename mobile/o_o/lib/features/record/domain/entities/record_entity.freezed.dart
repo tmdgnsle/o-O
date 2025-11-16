@@ -17,12 +17,13 @@ final _privateConstructorUsedError = UnsupportedError(
 
 /// @nodoc
 mixin _$RecordEntity {
-  String get id => throw _privateConstructorUsedError;
+  int get id => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
-  String get content => throw _privateConstructorUsedError;
+  String? get startPrompt => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
-  String? get audioUrl => throw _privateConstructorUsedError;
-  String? get mindmapId => throw _privateConstructorUsedError;
+  String? get thumbnail => throw _privateConstructorUsedError;
+  String? get visibility => throw _privateConstructorUsedError;
+  int? get mindmapId => throw _privateConstructorUsedError;
 
   /// Create a copy of RecordEntity
   /// with the given fields replaced by the non-null parameter values.
@@ -39,12 +40,13 @@ abstract class $RecordEntityCopyWith<$Res> {
   ) = _$RecordEntityCopyWithImpl<$Res, RecordEntity>;
   @useResult
   $Res call({
-    String id,
+    int id,
     String title,
-    String content,
+    String? startPrompt,
     DateTime createdAt,
-    String? audioUrl,
-    String? mindmapId,
+    String? thumbnail,
+    String? visibility,
+    int? mindmapId,
   });
 }
 
@@ -65,9 +67,10 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? content = null,
+    Object? startPrompt = freezed,
     Object? createdAt = null,
-    Object? audioUrl = freezed,
+    Object? thumbnail = freezed,
+    Object? visibility = freezed,
     Object? mindmapId = freezed,
   }) {
     return _then(
@@ -76,32 +79,37 @@ class _$RecordEntityCopyWithImpl<$Res, $Val extends RecordEntity>
                 null == id
                     ? _value.id
                     : id // ignore: cast_nullable_to_non_nullable
-                        as String,
+                        as int,
             title:
                 null == title
                     ? _value.title
                     : title // ignore: cast_nullable_to_non_nullable
                         as String,
-            content:
-                null == content
-                    ? _value.content
-                    : content // ignore: cast_nullable_to_non_nullable
-                        as String,
+            startPrompt:
+                freezed == startPrompt
+                    ? _value.startPrompt
+                    : startPrompt // ignore: cast_nullable_to_non_nullable
+                        as String?,
             createdAt:
                 null == createdAt
                     ? _value.createdAt
                     : createdAt // ignore: cast_nullable_to_non_nullable
                         as DateTime,
-            audioUrl:
-                freezed == audioUrl
-                    ? _value.audioUrl
-                    : audioUrl // ignore: cast_nullable_to_non_nullable
+            thumbnail:
+                freezed == thumbnail
+                    ? _value.thumbnail
+                    : thumbnail // ignore: cast_nullable_to_non_nullable
+                        as String?,
+            visibility:
+                freezed == visibility
+                    ? _value.visibility
+                    : visibility // ignore: cast_nullable_to_non_nullable
                         as String?,
             mindmapId:
                 freezed == mindmapId
                     ? _value.mindmapId
                     : mindmapId // ignore: cast_nullable_to_non_nullable
-                        as String?,
+                        as int?,
           )
           as $Val,
     );
@@ -118,12 +126,13 @@ abstract class _$$RecordEntityImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String id,
+    int id,
     String title,
-    String content,
+    String? startPrompt,
     DateTime createdAt,
-    String? audioUrl,
-    String? mindmapId,
+    String? thumbnail,
+    String? visibility,
+    int? mindmapId,
   });
 }
 
@@ -143,9 +152,10 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? title = null,
-    Object? content = null,
+    Object? startPrompt = freezed,
     Object? createdAt = null,
-    Object? audioUrl = freezed,
+    Object? thumbnail = freezed,
+    Object? visibility = freezed,
     Object? mindmapId = freezed,
   }) {
     return _then(
@@ -154,32 +164,37 @@ class __$$RecordEntityImplCopyWithImpl<$Res>
             null == id
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
-                    as String,
+                    as int,
         title:
             null == title
                 ? _value.title
                 : title // ignore: cast_nullable_to_non_nullable
                     as String,
-        content:
-            null == content
-                ? _value.content
-                : content // ignore: cast_nullable_to_non_nullable
-                    as String,
+        startPrompt:
+            freezed == startPrompt
+                ? _value.startPrompt
+                : startPrompt // ignore: cast_nullable_to_non_nullable
+                    as String?,
         createdAt:
             null == createdAt
                 ? _value.createdAt
                 : createdAt // ignore: cast_nullable_to_non_nullable
                     as DateTime,
-        audioUrl:
-            freezed == audioUrl
-                ? _value.audioUrl
-                : audioUrl // ignore: cast_nullable_to_non_nullable
+        thumbnail:
+            freezed == thumbnail
+                ? _value.thumbnail
+                : thumbnail // ignore: cast_nullable_to_non_nullable
+                    as String?,
+        visibility:
+            freezed == visibility
+                ? _value.visibility
+                : visibility // ignore: cast_nullable_to_non_nullable
                     as String?,
         mindmapId:
             freezed == mindmapId
                 ? _value.mindmapId
                 : mindmapId // ignore: cast_nullable_to_non_nullable
-                    as String?,
+                    as int?,
       ),
     );
   }
@@ -191,28 +206,31 @@ class _$RecordEntityImpl extends _RecordEntity {
   const _$RecordEntityImpl({
     required this.id,
     required this.title,
-    required this.content,
+    this.startPrompt,
     required this.createdAt,
-    this.audioUrl,
+    this.thumbnail,
+    this.visibility,
     this.mindmapId,
   }) : super._();
 
   @override
-  final String id;
+  final int id;
   @override
   final String title;
   @override
-  final String content;
+  final String? startPrompt;
   @override
   final DateTime createdAt;
   @override
-  final String? audioUrl;
+  final String? thumbnail;
   @override
-  final String? mindmapId;
+  final String? visibility;
+  @override
+  final int? mindmapId;
 
   @override
   String toString() {
-    return 'RecordEntity(id: $id, title: $title, content: $content, createdAt: $createdAt, audioUrl: $audioUrl, mindmapId: $mindmapId)';
+    return 'RecordEntity(id: $id, title: $title, startPrompt: $startPrompt, createdAt: $createdAt, thumbnail: $thumbnail, visibility: $visibility, mindmapId: $mindmapId)';
   }
 
   @override
@@ -222,11 +240,14 @@ class _$RecordEntityImpl extends _RecordEntity {
             other is _$RecordEntityImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.title, title) || other.title == title) &&
-            (identical(other.content, content) || other.content == content) &&
+            (identical(other.startPrompt, startPrompt) ||
+                other.startPrompt == startPrompt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
-            (identical(other.audioUrl, audioUrl) ||
-                other.audioUrl == audioUrl) &&
+            (identical(other.thumbnail, thumbnail) ||
+                other.thumbnail == thumbnail) &&
+            (identical(other.visibility, visibility) ||
+                other.visibility == visibility) &&
             (identical(other.mindmapId, mindmapId) ||
                 other.mindmapId == mindmapId));
   }
@@ -236,9 +257,10 @@ class _$RecordEntityImpl extends _RecordEntity {
     runtimeType,
     id,
     title,
-    content,
+    startPrompt,
     createdAt,
-    audioUrl,
+    thumbnail,
+    visibility,
     mindmapId,
   );
 
@@ -253,27 +275,30 @@ class _$RecordEntityImpl extends _RecordEntity {
 
 abstract class _RecordEntity extends RecordEntity {
   const factory _RecordEntity({
-    required final String id,
+    required final int id,
     required final String title,
-    required final String content,
+    final String? startPrompt,
     required final DateTime createdAt,
-    final String? audioUrl,
-    final String? mindmapId,
+    final String? thumbnail,
+    final String? visibility,
+    final int? mindmapId,
   }) = _$RecordEntityImpl;
   const _RecordEntity._() : super._();
 
   @override
-  String get id;
+  int get id;
   @override
   String get title;
   @override
-  String get content;
+  String? get startPrompt;
   @override
   DateTime get createdAt;
   @override
-  String? get audioUrl;
+  String? get thumbnail;
   @override
-  String? get mindmapId;
+  String? get visibility;
+  @override
+  int? get mindmapId;
 
   /// Create a copy of RecordEntity
   /// with the given fields replaced by the non-null parameter values.

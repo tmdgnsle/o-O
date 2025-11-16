@@ -21,21 +21,35 @@ mixin _$WorkspaceState {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<Workspace> workspaces) loaded,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
     required TResult Function(String message) error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<Workspace> workspaces)? loaded,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
     TResult? Function(String message)? error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<Workspace> workspaces)? loaded,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
@@ -44,6 +58,7 @@ mixin _$WorkspaceState {
     required TResult Function(WorkspaceInitial value) initial,
     required TResult Function(WorkspaceLoading value) loading,
     required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
     required TResult Function(WorkspaceError value) error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -51,6 +66,7 @@ mixin _$WorkspaceState {
     TResult? Function(WorkspaceInitial value)? initial,
     TResult? Function(WorkspaceLoading value)? loading,
     TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
     TResult? Function(WorkspaceError value)? error,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -58,6 +74,7 @@ mixin _$WorkspaceState {
     TResult Function(WorkspaceInitial value)? initial,
     TResult Function(WorkspaceLoading value)? loading,
     TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
     TResult Function(WorkspaceError value)? error,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
@@ -130,7 +147,13 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<Workspace> workspaces) loaded,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
     required TResult Function(String message) error,
   }) {
     return initial();
@@ -141,7 +164,13 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<Workspace> workspaces)? loaded,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
     TResult? Function(String message)? error,
   }) {
     return initial?.call();
@@ -152,7 +181,9 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<Workspace> workspaces)? loaded,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -168,6 +199,7 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
     required TResult Function(WorkspaceInitial value) initial,
     required TResult Function(WorkspaceLoading value) loading,
     required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
     required TResult Function(WorkspaceError value) error,
   }) {
     return initial(this);
@@ -179,6 +211,7 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
     TResult? Function(WorkspaceInitial value)? initial,
     TResult? Function(WorkspaceLoading value)? loading,
     TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
     TResult? Function(WorkspaceError value)? error,
   }) {
     return initial?.call(this);
@@ -190,6 +223,7 @@ class _$WorkspaceInitialImpl implements WorkspaceInitial {
     TResult Function(WorkspaceInitial value)? initial,
     TResult Function(WorkspaceLoading value)? loading,
     TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
     TResult Function(WorkspaceError value)? error,
     required TResult orElse(),
   }) {
@@ -249,7 +283,13 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<Workspace> workspaces) loaded,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
     required TResult Function(String message) error,
   }) {
     return loading();
@@ -260,7 +300,13 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<Workspace> workspaces)? loaded,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
     TResult? Function(String message)? error,
   }) {
     return loading?.call();
@@ -271,7 +317,9 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<Workspace> workspaces)? loaded,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -287,6 +335,7 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
     required TResult Function(WorkspaceInitial value) initial,
     required TResult Function(WorkspaceLoading value) loading,
     required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
     required TResult Function(WorkspaceError value) error,
   }) {
     return loading(this);
@@ -298,6 +347,7 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
     TResult? Function(WorkspaceInitial value)? initial,
     TResult? Function(WorkspaceLoading value)? loading,
     TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
     TResult? Function(WorkspaceError value)? error,
   }) {
     return loading?.call(this);
@@ -309,6 +359,7 @@ class _$WorkspaceLoadingImpl implements WorkspaceLoading {
     TResult Function(WorkspaceInitial value)? initial,
     TResult Function(WorkspaceLoading value)? loading,
     TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
     TResult Function(WorkspaceError value)? error,
     required TResult orElse(),
   }) {
@@ -330,7 +381,7 @@ abstract class _$$WorkspaceLoadedImplCopyWith<$Res> {
     $Res Function(_$WorkspaceLoadedImpl) then,
   ) = __$$WorkspaceLoadedImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({List<Workspace> workspaces});
+  $Res call({List<Workspace> workspaces, bool hasNext, int? nextCursor});
 }
 
 /// @nodoc
@@ -346,7 +397,11 @@ class __$$WorkspaceLoadedImplCopyWithImpl<$Res>
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? workspaces = null}) {
+  $Res call({
+    Object? workspaces = null,
+    Object? hasNext = null,
+    Object? nextCursor = freezed,
+  }) {
     return _then(
       _$WorkspaceLoadedImpl(
         workspaces:
@@ -354,6 +409,16 @@ class __$$WorkspaceLoadedImplCopyWithImpl<$Res>
                 ? _value._workspaces
                 : workspaces // ignore: cast_nullable_to_non_nullable
                     as List<Workspace>,
+        hasNext:
+            null == hasNext
+                ? _value.hasNext
+                : hasNext // ignore: cast_nullable_to_non_nullable
+                    as bool,
+        nextCursor:
+            freezed == nextCursor
+                ? _value.nextCursor
+                : nextCursor // ignore: cast_nullable_to_non_nullable
+                    as int?,
       ),
     );
   }
@@ -362,8 +427,11 @@ class __$$WorkspaceLoadedImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
-  const _$WorkspaceLoadedImpl({required final List<Workspace> workspaces})
-    : _workspaces = workspaces;
+  const _$WorkspaceLoadedImpl({
+    required final List<Workspace> workspaces,
+    required this.hasNext,
+    this.nextCursor,
+  }) : _workspaces = workspaces;
 
   final List<Workspace> _workspaces;
   @override
@@ -374,8 +442,13 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
   }
 
   @override
+  final bool hasNext;
+  @override
+  final int? nextCursor;
+
+  @override
   String toString() {
-    return 'WorkspaceState.loaded(workspaces: $workspaces)';
+    return 'WorkspaceState.loaded(workspaces: $workspaces, hasNext: $hasNext, nextCursor: $nextCursor)';
   }
 
   @override
@@ -386,13 +459,18 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
             const DeepCollectionEquality().equals(
               other._workspaces,
               _workspaces,
-            ));
+            ) &&
+            (identical(other.hasNext, hasNext) || other.hasNext == hasNext) &&
+            (identical(other.nextCursor, nextCursor) ||
+                other.nextCursor == nextCursor));
   }
 
   @override
   int get hashCode => Object.hash(
     runtimeType,
     const DeepCollectionEquality().hash(_workspaces),
+    hasNext,
+    nextCursor,
   );
 
   /// Create a copy of WorkspaceState
@@ -411,10 +489,16 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<Workspace> workspaces) loaded,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
     required TResult Function(String message) error,
   }) {
-    return loaded(workspaces);
+    return loaded(workspaces, hasNext, nextCursor);
   }
 
   @override
@@ -422,10 +506,16 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<Workspace> workspaces)? loaded,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
     TResult? Function(String message)? error,
   }) {
-    return loaded?.call(workspaces);
+    return loaded?.call(workspaces, hasNext, nextCursor);
   }
 
   @override
@@ -433,12 +523,14 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<Workspace> workspaces)? loaded,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
     if (loaded != null) {
-      return loaded(workspaces);
+      return loaded(workspaces, hasNext, nextCursor);
     }
     return orElse();
   }
@@ -449,6 +541,7 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
     required TResult Function(WorkspaceInitial value) initial,
     required TResult Function(WorkspaceLoading value) loading,
     required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
     required TResult Function(WorkspaceError value) error,
   }) {
     return loaded(this);
@@ -460,6 +553,7 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
     TResult? Function(WorkspaceInitial value)? initial,
     TResult? Function(WorkspaceLoading value)? loading,
     TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
     TResult? Function(WorkspaceError value)? error,
   }) {
     return loaded?.call(this);
@@ -471,6 +565,7 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
     TResult Function(WorkspaceInitial value)? initial,
     TResult Function(WorkspaceLoading value)? loading,
     TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
     TResult Function(WorkspaceError value)? error,
     required TResult orElse(),
   }) {
@@ -482,16 +577,211 @@ class _$WorkspaceLoadedImpl implements WorkspaceLoaded {
 }
 
 abstract class WorkspaceLoaded implements WorkspaceState {
-  const factory WorkspaceLoaded({required final List<Workspace> workspaces}) =
-      _$WorkspaceLoadedImpl;
+  const factory WorkspaceLoaded({
+    required final List<Workspace> workspaces,
+    required final bool hasNext,
+    final int? nextCursor,
+  }) = _$WorkspaceLoadedImpl;
 
   List<Workspace> get workspaces;
+  bool get hasNext;
+  int? get nextCursor;
 
   /// Create a copy of WorkspaceState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$WorkspaceLoadedImplCopyWith<_$WorkspaceLoadedImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WorkspaceLoadingMoreImplCopyWith<$Res> {
+  factory _$$WorkspaceLoadingMoreImplCopyWith(
+    _$WorkspaceLoadingMoreImpl value,
+    $Res Function(_$WorkspaceLoadingMoreImpl) then,
+  ) = __$$WorkspaceLoadingMoreImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({List<Workspace> workspaces});
+}
+
+/// @nodoc
+class __$$WorkspaceLoadingMoreImplCopyWithImpl<$Res>
+    extends _$WorkspaceStateCopyWithImpl<$Res, _$WorkspaceLoadingMoreImpl>
+    implements _$$WorkspaceLoadingMoreImplCopyWith<$Res> {
+  __$$WorkspaceLoadingMoreImplCopyWithImpl(
+    _$WorkspaceLoadingMoreImpl _value,
+    $Res Function(_$WorkspaceLoadingMoreImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of WorkspaceState
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? workspaces = null}) {
+    return _then(
+      _$WorkspaceLoadingMoreImpl(
+        workspaces:
+            null == workspaces
+                ? _value._workspaces
+                : workspaces // ignore: cast_nullable_to_non_nullable
+                    as List<Workspace>,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$WorkspaceLoadingMoreImpl implements WorkspaceLoadingMore {
+  const _$WorkspaceLoadingMoreImpl({required final List<Workspace> workspaces})
+    : _workspaces = workspaces;
+
+  final List<Workspace> _workspaces;
+  @override
+  List<Workspace> get workspaces {
+    if (_workspaces is EqualUnmodifiableListView) return _workspaces;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_workspaces);
+  }
+
+  @override
+  String toString() {
+    return 'WorkspaceState.loadingMore(workspaces: $workspaces)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WorkspaceLoadingMoreImpl &&
+            const DeepCollectionEquality().equals(
+              other._workspaces,
+              _workspaces,
+            ));
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    const DeepCollectionEquality().hash(_workspaces),
+  );
+
+  /// Create a copy of WorkspaceState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WorkspaceLoadingMoreImplCopyWith<_$WorkspaceLoadingMoreImpl>
+  get copyWith =>
+      __$$WorkspaceLoadingMoreImplCopyWithImpl<_$WorkspaceLoadingMoreImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() initial,
+    required TResult Function() loading,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
+    required TResult Function(String message) error,
+  }) {
+    return loadingMore(workspaces);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? initial,
+    TResult? Function()? loading,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
+    TResult? Function(String message)? error,
+  }) {
+    return loadingMore?.call(workspaces);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? initial,
+    TResult Function()? loading,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
+    TResult Function(String message)? error,
+    required TResult orElse(),
+  }) {
+    if (loadingMore != null) {
+      return loadingMore(workspaces);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WorkspaceInitial value) initial,
+    required TResult Function(WorkspaceLoading value) loading,
+    required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
+    required TResult Function(WorkspaceError value) error,
+  }) {
+    return loadingMore(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WorkspaceInitial value)? initial,
+    TResult? Function(WorkspaceLoading value)? loading,
+    TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
+    TResult? Function(WorkspaceError value)? error,
+  }) {
+    return loadingMore?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WorkspaceInitial value)? initial,
+    TResult Function(WorkspaceLoading value)? loading,
+    TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
+    TResult Function(WorkspaceError value)? error,
+    required TResult orElse(),
+  }) {
+    if (loadingMore != null) {
+      return loadingMore(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WorkspaceLoadingMore implements WorkspaceState {
+  const factory WorkspaceLoadingMore({
+    required final List<Workspace> workspaces,
+  }) = _$WorkspaceLoadingMoreImpl;
+
+  List<Workspace> get workspaces;
+
+  /// Create a copy of WorkspaceState
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$WorkspaceLoadingMoreImplCopyWith<_$WorkspaceLoadingMoreImpl>
+  get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -570,7 +860,13 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
   TResult when<TResult extends Object?>({
     required TResult Function() initial,
     required TResult Function() loading,
-    required TResult Function(List<Workspace> workspaces) loaded,
+    required TResult Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )
+    loaded,
+    required TResult Function(List<Workspace> workspaces) loadingMore,
     required TResult Function(String message) error,
   }) {
     return error(message);
@@ -581,7 +877,13 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? initial,
     TResult? Function()? loading,
-    TResult? Function(List<Workspace> workspaces)? loaded,
+    TResult? Function(
+      List<Workspace> workspaces,
+      bool hasNext,
+      int? nextCursor,
+    )?
+    loaded,
+    TResult? Function(List<Workspace> workspaces)? loadingMore,
     TResult? Function(String message)? error,
   }) {
     return error?.call(message);
@@ -592,7 +894,9 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? initial,
     TResult Function()? loading,
-    TResult Function(List<Workspace> workspaces)? loaded,
+    TResult Function(List<Workspace> workspaces, bool hasNext, int? nextCursor)?
+    loaded,
+    TResult Function(List<Workspace> workspaces)? loadingMore,
     TResult Function(String message)? error,
     required TResult orElse(),
   }) {
@@ -608,6 +912,7 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
     required TResult Function(WorkspaceInitial value) initial,
     required TResult Function(WorkspaceLoading value) loading,
     required TResult Function(WorkspaceLoaded value) loaded,
+    required TResult Function(WorkspaceLoadingMore value) loadingMore,
     required TResult Function(WorkspaceError value) error,
   }) {
     return error(this);
@@ -619,6 +924,7 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
     TResult? Function(WorkspaceInitial value)? initial,
     TResult? Function(WorkspaceLoading value)? loading,
     TResult? Function(WorkspaceLoaded value)? loaded,
+    TResult? Function(WorkspaceLoadingMore value)? loadingMore,
     TResult? Function(WorkspaceError value)? error,
   }) {
     return error?.call(this);
@@ -630,6 +936,7 @@ class _$WorkspaceErrorImpl implements WorkspaceError {
     TResult Function(WorkspaceInitial value)? initial,
     TResult Function(WorkspaceLoading value)? loading,
     TResult Function(WorkspaceLoaded value)? loaded,
+    TResult Function(WorkspaceLoadingMore value)? loadingMore,
     TResult Function(WorkspaceError value)? error,
     required TResult orElse(),
   }) {

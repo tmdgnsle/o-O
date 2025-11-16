@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/utils/color_utils.dart';
 import '../../domain/entities/mindmap_node.dart';
 
 /// 마인드맵 노드 위젯
 class MindmapNodeWidget extends StatefulWidget {
   final MindmapNode node;
   final VoidCallback? onTap;
+  final ValueChanged<bool>? onExpansionChanged;
 
-  const MindmapNodeWidget({super.key, required this.node, this.onTap});
+  const MindmapNodeWidget({
+    super.key,
+    required this.node,
+    this.onTap,
+    this.onExpansionChanged,
+  });
 
   @override
   State<MindmapNodeWidget> createState() => _MindmapNodeWidgetState();
@@ -32,7 +39,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
   }
 
   void _initializeYoutubePlayer() {
-    if (widget.node.contentType == NodeContentType.youtube &&
+    if (widget.node.contentType == NodeContentType.video &&
         widget.node.contentUrl != null) {
       final videoId = YoutubePlayer.convertUrlToId(widget.node.contentUrl!);
       if (videoId != null) {
@@ -56,6 +63,8 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     setState(() {
       _isExpanded = !_isExpanded;
     });
+    // 부모 위젯에 확장 상태 변경 알림
+    widget.onExpansionChanged?.call(_isExpanded);
   }
 
   @override
@@ -63,7 +72,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
     switch (widget.node.contentType) {
       case NodeContentType.text:
         return _buildTextNode();
-      case NodeContentType.youtube:
+      case NodeContentType.video:
         return _buildYoutubeNodeStack();
       case NodeContentType.image:
         return _buildImageNodeStack();
@@ -86,7 +95,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Radial gradient
+              // Radial gradient (웹과 동일)
               Container(
                 width: glowSize,
                 height: glowSize,
@@ -94,9 +103,9 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      widget.node.color,
-                      widget.node.color,
-                      widget.node.color.withOpacity(0.0),
+                      widget.node.color.withOpacity(1.0),   // center
+                      widget.node.color.withOpacity(0.5),
+                      widget.node.color.withOpacity(0.0),   // edge
                     ],
                     stops: const [0.0, 0.68, 1.0],
                   ),
@@ -108,7 +117,13 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.node.color,
+                  gradient: RadialGradient(
+                    colors: [
+                      widget.node.color.withOpacity(0.8),   // center
+                      widget.node.color.withOpacity(0.0),
+                    ],
+                    stops: const [0.0, 1.0],
+                  ),
                 ),
                 child: Center(
                   child: Padding(
@@ -155,7 +170,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Radial gradient
+                  // Radial gradient (웹과 동일)
                   Container(
                     width: glowSize,
                     height: glowSize,
@@ -163,9 +178,9 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          widget.node.color,
-                          widget.node.color,
-                          widget.node.color.withOpacity(0.0),
+                          widget.node.color.withOpacity(1.0),   // center
+                          widget.node.color.withOpacity(0.5),
+                          widget.node.color.withOpacity(0.0),   // edge
                         ],
                         stops: const [0.0, 0.68, 1.0],
                       ),
@@ -177,7 +192,13 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                     height: nodeSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: widget.node.color,
+                      gradient: RadialGradient(
+                        colors: [
+                          widget.node.color.withOpacity(0.8),   // center
+                          widget.node.color.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 1.0],
+                      ),
                     ),
                     child: Center(
                       child: Image.asset(
@@ -271,7 +292,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                             Text(
                               '🧩 AI 요약 내용',
                               style: AppTextStyles.semiBold14.copyWith(
-                                color: Colors.black87,
+                                color: ColorUtils.getContrastTextColor(widget.node.color),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -281,7 +302,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                                 child: Text(
                                   widget.node.description ?? widget.node.text,
                                   style: AppTextStyles.regular12.copyWith(
-                                    color: Colors.black87,
+                                    color: ColorUtils.getContrastTextColor(widget.node.color),
                                   ),
                                 ),
                               ),
@@ -324,7 +345,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Radial gradient
+                  // Radial gradient (웹과 동일)
                   Container(
                     width: glowSize,
                     height: glowSize,
@@ -332,9 +353,9 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          widget.node.color,
-                          widget.node.color,
-                          widget.node.color.withOpacity(0.0),
+                          widget.node.color.withOpacity(1.0),   // center
+                          widget.node.color.withOpacity(0.5),
+                          widget.node.color.withOpacity(0.0),   // edge
                         ],
                         stops: const [0.0, 0.68, 1.0],
                       ),
@@ -346,7 +367,13 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                     height: nodeSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: widget.node.color,
+                      gradient: RadialGradient(
+                        colors: [
+                          widget.node.color.withOpacity(0.8),   // center
+                          widget.node.color.withOpacity(0.0),
+                        ],
+                        stops: const [0.0, 1.0],
+                      ),
                     ),
                     child: Center(
                       child: Image.asset(
@@ -435,7 +462,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                             Text(
                               '🧩 AI 요약 내용',
                               style: AppTextStyles.semiBold14.copyWith(
-                                color: Colors.black87,
+                                color: ColorUtils.getContrastTextColor(widget.node.color),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -445,7 +472,7 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
                                 child: Text(
                                   widget.node.description ?? widget.node.text,
                                   style: AppTextStyles.regular12.copyWith(
-                                    color: Colors.black87,
+                                    color: ColorUtils.getContrastTextColor(widget.node.color),
                                   ),
                                 ),
                               ),
@@ -465,19 +492,22 @@ class _MindmapNodeWidgetState extends State<MindmapNodeWidget> {
 
   /// 레벨에 따라 텍스트 스타일 반환
   TextStyle _getTextStyle(int level) {
+    // 배경색에 따라 최적의 텍스트 색상 계산 (WCAG 기준)
+    final textColor = ColorUtils.getContrastTextColor(widget.node.color);
+
     switch (level) {
       case 0:
         // 중심 노드
         return AppTextStyles.semiBold18.copyWith(
-          color: Colors.black87,
+          color: textColor,
           fontWeight: FontWeight.w700,
         );
       case 1:
         // 1차 노드
-        return AppTextStyles.semiBold16.copyWith(color: Colors.black87);
+        return AppTextStyles.semiBold16.copyWith(color: textColor);
       default:
         // 2차 이상 노드
-        return AppTextStyles.medium14.copyWith(color: Colors.black87);
+        return AppTextStyles.medium14.copyWith(color: textColor);
     }
   }
 }
