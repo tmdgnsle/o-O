@@ -70,9 +70,9 @@ class YDocManager {
   setupChangeObserver(workspaceId, ydoc) {
     logger.debug(`[YDocManager] Setting up change observer for workspace ${workspaceId}`);
 
-    // Y.Doc에서 'nodes'라는 이름의 Map 가져오기
+    // Y.Doc에서 'mindmap:nodes'라는 이름의 Map 가져오기
     // Map 구조: { nodeId1: {data...}, nodeId2: {data...}, ... }
-    const nodesMap = ydoc.getMap('nodes');
+    const nodesMap = ydoc.getMap('mindmap:nodes');
 
     // Map이 변경될 때마다 실행되는 콜백 등록
     nodesMap.observe((event) => {
