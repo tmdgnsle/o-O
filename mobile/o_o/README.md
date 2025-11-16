@@ -1,6 +1,6 @@
 # o_o
 
-oO Project
+o-O Project
 
 ## Getting Started
 
