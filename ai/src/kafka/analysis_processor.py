@@ -116,8 +116,49 @@ Be concise. Never repeat yourself. Stop after describing main points."""
             else:
                 raise ValueError(f"알 수 없는 contentType: {content_type}")
 
-            # 마인드맵 생성 프롬프트
-            system_prompt = """You are an expert at analyzing content and generating hierarchical mindmap nodes in JSON format.
+            # 마인드맵 생성 프롬프트 (TEXT 타입일 때만 keyword 필드 추가)
+            if content_type == 'TEXT':
+                # TEXT 타입: keyword 필드 포함
+                system_prompt = """You are an expert at analyzing content and generating hierarchical mindmap nodes in JSON format.
+
+CRITICAL REQUIREMENTS:
+1. Output ONLY valid JSON - No explanations, no markdown, no code blocks
+2. MUST include "title", "keyword", "aiSummary", and "nodes" fields
+3. The root node already exists - DO NOT create a top-level category node
+4. Each field must appear ONLY ONCE per node (no duplicate keys)
+
+Generate nodes with appropriate depth (5-15 nodes recommended):
+- All first-level nodes MUST have parentId={node_id}
+- Create sub-nodes under categories as needed
+- Build a logical hierarchical structure
+
+REQUIRED JSON structure (copy this format exactly):
+{{
+  "title": "Concise mindmap title (3-10 words)",
+  "keyword": "Short root keyword (1-3 words)",
+  "aiSummary": "Brief 1-2 sentence summary of the content",
+  "nodes": [
+    {{"tempId": "temp-1", "parentId": {node_id}, "keyword": "Main Topic 1", "memo": "Detailed description"}},
+    {{"tempId": "temp-2", "parentId": {node_id}, "keyword": "Main Topic 2", "memo": "Detailed description"}},
+    {{"tempId": "temp-3", "parentId": "temp-1", "keyword": "Subtopic 1-1", "memo": "Specific details"}},
+    {{"tempId": "temp-4", "parentId": "temp-1", "keyword": "Subtopic 1-2", "memo": "Specific details"}}
+  ]
+}}
+
+MANDATORY Rules:
+1. "title" field is REQUIRED - a concise title for the entire mindmap (3-10 words)
+2. "keyword" field is REQUIRED - a very short root keyword (1-3 words) representing the main topic
+3. "aiSummary" field is REQUIRED at the top level
+4. tempId: "temp-1", "temp-2", etc (sequential)
+5. parentId: MUST be {node_id} or another tempId (NEVER null, NEVER duplicate)
+6. keyword (in nodes): 2-5 words, concise (NEVER empty)
+7. memo: 10-50 characters, informative (NEVER empty)
+8. Each node must have exactly 4 fields: tempId, parentId, keyword, memo
+9. DO NOT repeat field names within a single node
+""".format(node_id=node_id)
+            else:
+                # VIDEO/IMAGE 타입: keyword 필드 없음 (기존 방식)
+                system_prompt = """You are an expert at analyzing content and generating hierarchical mindmap nodes in JSON format.
 
 CRITICAL REQUIREMENTS:
 1. Output ONLY valid JSON - No explanations, no markdown, no code blocks
@@ -251,6 +292,14 @@ IMPORTANT: keyword와 memo는 반드시 한국어로 작성해주세요. title�
                 logger.warning("⚠️ aiSummary가 없습니다. 기본값을 생성합니다.")
                 result_data['aiSummary'] = f"{content_type} 컨텐츠 분석 결과입니다."
 
+            # TEXT 타입일 때만 keyword 검증 및 기본값 생성
+            if content_type == 'TEXT':
+                if 'keyword' not in result_data or not result_data['keyword']:
+                    logger.warning("⚠️ keyword가 없습니다. title에서 추출합니다.")
+                    # title의 첫 1-3 단어를 keyword로 사용
+                    title_words = result_data['title'].split()[:3]
+                    result_data['keyword'] = ' '.join(title_words)
+
             logger.info(f"✅ 생성된 노드 개수: {len(result_data['nodes'])}개")
 
             # 후처리: parentId가 None/null인 노드를 nodeId로 변경
@@ -265,7 +314,7 @@ IMPORTANT: keyword와 memo는 반드시 한국어로 작성해주세요. title�
                     logger.warning(f"⚠️ 노드 {node.get('tempId')}의 memo가 비어있습니다. 기본값으로 설정: {default_memo}")
                     node['memo'] = default_memo
 
-            # Kafka 응답 형식으로 변환
+            # Kafka 응답 형식으로 변환 (TEXT 타입일 때만 keyword 포함)
             kafka_response = {
                 "workspaceId": workspace_id,
                 "title": result_data['title'],
@@ -273,6 +322,10 @@ IMPORTANT: keyword와 memo는 반드시 한국어로 작성해주세요. title�
                 "status": "SUCCESS",
                 "nodes": result_data['nodes']
             }
+
+            # TEXT 타입일 때만 keyword 추가
+            if content_type == 'TEXT':
+                kafka_response["keyword"] = result_data.get('keyword', result_data['title'].split()[0])
 
             logger.info(f"✅ INITIAL 분석 완료 ({content_type}): {len(result_data['nodes'])}개 노드 생성")
             return kafka_response

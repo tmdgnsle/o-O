@@ -39,6 +39,11 @@ def print_result(message_value: dict):
             title = message_value.get('title', 'N/A')
             print(f"\n📌 마인드맵 제목: {title}")
 
+            # keyword 출력 (TEXT 타입일 때만 존재)
+            if 'keyword' in message_value:
+                keyword = message_value.get('keyword')
+                print(f"🔑 루트 키워드: {keyword}")
+
             print(f"\n📝 AI 요약:")
             print(f"   {message_value['aiSummary']}")
 
