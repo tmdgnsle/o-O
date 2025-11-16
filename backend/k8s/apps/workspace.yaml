@@ -14,6 +14,7 @@ spec:
   template:
     metadata: { labels: { app: workspace } }
     spec:
+      serviceAccountName: workspace-sa
       containers:
         - name: workspace
           image: "559543475782.dkr.ecr.ap-northeast-2.amazonaws.com/o-o-backend:workspace-service-latest"

@@ -5,6 +5,7 @@ import com.ssafy.workspaceservice.dto.response.*;
 import com.ssafy.workspaceservice.enums.WorkspaceRole;
 import com.ssafy.workspaceservice.enums.WorkspaceVisibility;
 import com.ssafy.workspaceservice.service.WorkspaceService;
+import com.ssafy.workspaceservice.service.WorkspaceThumbnailService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -17,9 +18,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -34,6 +37,7 @@ import java.util.Map;
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
+    private final WorkspaceThumbnailService workspaceThumbnailService;
 
     @Operation(
             summary = "워크스페이스 생성",
@@ -347,5 +351,36 @@ public class WorkspaceController {
         log.info("GET /workspace/my/activity - Fetching activity keywords for userId: {}, date: {}", userId, date);
         List<String> keywords = workspaceService.getActivityKeywords(userId, date);
         return ResponseEntity.ok(WorkspaceActivityKeywordsResponse.of(keywords));
+    }
+
+
+    @Operation(
+            summary = "워크스페이스 썸네일 업로드",
+            description = "워크스페이스 ID와 썸네일 이미지를 업로드하면 S3에 저장하고 워크스페이스에 썸네일을 연결합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "업로드 성공"),
+            @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음")
+    })
+    @PostMapping(
+            value = "/{workspaceId}/thumbnail",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Void> uploadThumbnail(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
+            @PathVariable Long workspaceId,
+
+            @Parameter(hidden = true)
+            @RequestHeader("X-USER-ID") Long userId, // 필요 없으면 제거해도 됨
+
+            @Parameter(description = "썸네일 이미지 파일", required = true)
+            @RequestPart("file") MultipartFile file
+    ) {
+        log.info("POST /workspace/{}/thumbnail - Uploading thumbnail for workspaceId: {}, userId: {}",
+                workspaceId, workspaceId, userId);
+
+        // 권한 체크를 하고 싶으면 workspaceService 쪽에 위임해서 한 번 더 검증해도 됨
+        workspaceThumbnailService.uploadThumbnail(workspaceId, file);
+        return ResponseEntity.noContent().build();
     }
 }
