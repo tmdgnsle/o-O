@@ -34,6 +34,7 @@ export type CytoscapeCanvasProps = Readonly<{
   mode: MindmapMode;
   analyzeSelection: string[];
   selectedNodeId: string | null;
+  isReadOnly?: boolean;
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
@@ -63,6 +64,7 @@ export type CytoscapeNodeOverlayProps = {
   isSelected: boolean;
   mode: MindmapMode;
   isAnalyzeSelected: boolean;
+  isReadOnly?: boolean;
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;

@@ -2,6 +2,7 @@ import React, { useRef, useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Core } from "cytoscape";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
+import { useWorkspacePermissions } from "../../workspace/hooks/custom/useWorkspacePermissions";
 import MiniNav from "@/shared/ui/MiniNav";
 import AskPopo from "../components/AskPopoButton";
 import StatusBox from "../../workspace/components/StatusBox";
@@ -41,8 +42,9 @@ const MindmapPageContent: React.FC = () => {
   const navigate = useNavigate();
   const wsUrl = resolveMindmapWsUrl();
 
-  // 2. Get workspace info for role
+  // 2. Get workspace info and permissions
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
+  const { myRole, canEdit, canManage } = useWorkspacePermissions(workspaceId);
 
   // 3. Refs for Cytoscape
   const cyRef = useRef<Core | null>(null);
@@ -110,6 +112,7 @@ const MindmapPageContent: React.FC = () => {
     cyRef,
     mode,
     workspaceId,
+    myRole,
     getRandomThemeColor,
     findNonOverlappingPosition,
     findEmptySpace,
@@ -290,6 +293,7 @@ const MindmapPageContent: React.FC = () => {
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}
             selectedNodeId={selectedNodeId}
+            isReadOnly={!canEdit}
             onNodeSelect={setSelectedNodeId}
             onNodeUnselect={() => setSelectedNodeId(null)}
             onApplyTheme={nodeOperations.handleApplyTheme}

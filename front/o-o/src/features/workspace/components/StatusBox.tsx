@@ -25,6 +25,7 @@ import { useUpdateWorkspaceVisibilityMutation } from "../hooks/mutation/useUpdat
 import type { WorkspaceRole, WorkspaceVisibility } from "@/services/dto/workspace.dto";
 import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
@@ -150,7 +151,7 @@ export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<St
       users.push({
         id: currentUser.email,
         name: currentUser.nickname,
-        avatar: currentUser.profileImage,
+        avatar: getProfileImageUrl(currentUser.profileImage),
         role: roleToDisplay(workspace.myRole),
         permission: workspace.myRole === "MAINTAINER" ? undefined : roleToPermission(workspace.myRole),
         email: currentUser.email,
@@ -166,7 +167,7 @@ export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<St
         users.push({
           id: peer.email,
           name: peer.name || "Anonymous",
-          avatar: peer.profileImage,
+          avatar: getProfileImageUrl(peer.profileImage),
           role: roleToDisplay(peerRole),
           permission: roleToPermission(peerRole),
           email: peer.email,

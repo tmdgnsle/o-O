@@ -29,6 +29,7 @@ export default function D3Canvas({
   mode,
   analyzeSelection,
   selectedNodeId,
+  isReadOnly = false,
   onNodeSelect,
   onNodeUnselect,
   onApplyTheme,
@@ -705,6 +706,7 @@ export default function D3Canvas({
                 isSelected={isSelected}
                 mode={mode}
                 isAnalyzeSelected={isAnalyzeSelected}
+                isReadOnly={isReadOnly}
                 onSelect={() => {
                   if (mode === "analyze") {
                     // 분석 모드: onAnalyzeNodeToggle 호출
