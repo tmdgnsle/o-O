@@ -196,6 +196,52 @@ export default function D3Canvas({
           // D3에서는 zoom transform으로 처리
           return mockCy;
         },
+
+        // 🔥 focusOnNode - 특정 노드로 카메라 이동
+        focusOnNode: (nodeId: string) => {
+          const targetNode = nodes.find((n) => n.id === nodeId);
+          if (!targetNode || targetNode.x === undefined || targetNode.y === undefined) {
+            console.warn("[D3Canvas] focusOnNode: 노드를 찾을 수 없거나 좌표가 없음:", nodeId);
+            return mockCy;
+          }
+
+          if (!svgRef.current || !zoomBehaviorRef.current || !containerRef.current) {
+            console.warn("[D3Canvas] focusOnNode: SVG 또는 zoom behavior가 준비되지 않음");
+            return mockCy;
+          }
+
+          console.log("[D3Canvas] focusOnNode 호출:", {
+            nodeId,
+            keyword: targetNode.keyword,
+            position: { x: targetNode.x, y: targetNode.y }
+          });
+
+          const svg = d3.select(svgRef.current);
+          const zoom = zoomBehaviorRef.current;
+          const containerWidth = containerRef.current.clientWidth;
+          const containerHeight = containerRef.current.clientHeight;
+
+          // 노드가 화면 중앙에 오도록 transform 계산
+          const scale = 1;
+          const translateX = containerWidth / 2 - targetNode.x * scale;
+          const translateY = containerHeight / 2 - targetNode.y * scale;
+
+          const targetTransform = d3.zoomIdentity
+            .translate(translateX, translateY)
+            .scale(scale);
+
+          console.log("[D3Canvas] focusOnNode transform 적용:", {
+            x: targetTransform.x,
+            y: targetTransform.y,
+            k: targetTransform.k
+          });
+
+          svg.transition()
+            .duration(500)
+            .call(zoom.transform as any, targetTransform);
+
+          return mockCy;
+        },
       };
 
       onCyReady(mockCy as any);

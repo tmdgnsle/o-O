@@ -29,6 +29,7 @@ import {
   clearPendingImportKeywords,
   convertTrendKeywordsToNodes,
 } from "../utils/importTrendKeywords";
+import { createMindmapNode, fetchMindmapNodes } from "@/services/mindmapService";
 import {
   DEFAULT_WORKSPACE_ID,
   resolveMindmapWsUrl,
@@ -48,6 +49,7 @@ const MindmapPageContent: React.FC = () => {
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [cyReady, setCyReady] = useState(false);
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
 
 
   // 4. Helper hooks
@@ -79,13 +81,6 @@ const MindmapPageContent: React.FC = () => {
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
-  // 🐛 DEBUG: Expose Yjs map to window for console debugging
-  useEffect(() => {
-    if (collab?.map) {
-      (globalThis as any).yNodes = collab.map;
-      console.log("[MindmapPage] Yjs map exposed to window.yNodes");
-    }
-  }, [collab]);
 
   // 5a. Sync Yjs changes to backend API
   useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
@@ -131,79 +126,176 @@ const MindmapPageContent: React.FC = () => {
 
     console.log("[MindmapPage] 트렌드 키워드 임포트:", pendingKeywords);
 
-    // 사용자가 직접 생성한 노드들만 필터링 (백엔드 자동 생성 기본 노드 제외)
-    // 백엔드 기본 노드 특징: parentId가 null이고 nodeId가 1인 초기 루트 노드
-    const userCreatedNodes = nodes.filter(node => {
-      // 백엔드가 자동 생성한 기본 루트 노드는 제외
-      return !(node.nodeId === 1 && node.parentId === null && nodes.length === 1);
-    });
+    // 🔥 중복 실행 방지: 로컬스토리지에서 즉시 제거
+    clearPendingImportKeywords();
 
-    const isNewMindmap = userCreatedNodes.length === 0;
-
-    // 키워드를 노드로 변환 (사용자가 생성한 노드들만 전달)
-    // 새 마인드맵일 때는 캔버스 중앙(2500, 2500)에 배치
-    const newNodes = convertTrendKeywordsToNodes(
-      pendingKeywords,
-      getRandomThemeColor,
-      userCreatedNodes // 사용자가 생성한 노드들만 전달
-    );
-
-    // Y.Map에 노드 추가 (순차적으로 부모부터 추가하여 백엔드 동기화 보장)
-    // 한 번에 추가하면 부모가 nodeId를 받기 전에 자식이 처리될 수 있음
+    // 백엔드에 직접 순차적으로 노드 생성
     const addNodesSequentially = async () => {
-      for (const node of newNodes) {
-        // 노드 추가
-        crud.transact((map) => {
-          map.set(node.id, node);
+      console.log("[MindmapPage] 🔥 백엔드에 직접 순차적 노드 생성 시작");
+
+      // 백엔드에서 최신 노드 목록 먼저 조회
+      console.log("[MindmapPage] 🔄 기존 노드 목록 조회 중...");
+      const existingNodesFromBackend = await fetchMindmapNodes(workspaceId);
+      console.log("[MindmapPage] ✅ 기존 노드 수:", existingNodesFromBackend.length);
+
+      // 백엔드 자동 생성 기본 노드 제외
+      const existingNodes = existingNodesFromBackend.filter(node => {
+        return !(node.nodeId === 1 && node.parentId === null && existingNodesFromBackend.length === 1);
+      });
+
+      // 키워드를 노드로 변환
+      // 기존 노드가 있으면 오른쪽에 배치, 없으면 중앙(2500, 2500)에 배치
+      const newNodes = convertTrendKeywordsToNodes(
+        pendingKeywords,
+        getRandomThemeColor,
+        existingNodes // 기존 노드 정보 전달하여 겹치지 않게 배치
+      );
+
+      console.log("[MindmapPage] 📍 새 노드 배치 정보:", {
+        firstNodeX: newNodes[0]?.x,
+        firstNodeY: newNodes[0]?.y,
+        existingNodesCount: existingNodes.length,
+        isNewMindmap: existingNodes.length === 0
+      });
+
+      let lastCreatedNodeId: number | null = null;
+      let firstCreatedNodeId: number | null = null; // 🔥 첫 번째 노드 ID 저장
+
+      for (let i = 0; i < newNodes.length; i++) {
+        const node = newNodes[i];
+
+        // parentId 결정: 첫 노드는 null, 이후는 이전 노드의 nodeId
+        const backendParentId = i === 0 ? null : lastCreatedNodeId;
+
+        console.log(`[MindmapPage] [${i + 1}/${newNodes.length}] Creating node:`, {
+          keyword: node.keyword,
+          parentId: backendParentId,
+          x: node.x,
+          y: node.y,
         });
 
-        // 부모 노드인 경우 (parentId가 없는 경우) nodeId를 받을 때까지 대기
-        if (!node.parentId) {
-          // 루트 노드: 백엔드에서 nodeId를 받을 때까지 대기
-          console.log(`[MindmapPage] Waiting for root node ${node.id} to get nodeId...`);
-          await waitForNodeId(node.id, 3000); // 최대 3초 대기
+        try {
+          // 백엔드에 직접 생성 요청
+          const createdNode = await createMindmapNode(workspaceId, {
+            parentId: backendParentId,
+            type: node.type || "text",
+            keyword: node.keyword,
+            memo: node.memo,
+            x: node.x ?? 0,
+            y: node.y ?? 0,
+            color: node.color,
+          });
+
+          console.log(`[MindmapPage] ✅ Node created:`, {
+            keyword: createdNode.keyword,
+            nodeId: createdNode.nodeId,
+            parentId: createdNode.parentId,
+          });
+
+          // 생성된 nodeId를 다음 노드의 parentId로 사용
+          lastCreatedNodeId = createdNode.nodeId as number;
+
+          // 🔥 첫 번째 노드의 ID를 저장 (카메라 포커스용)
+          if (i === 0) {
+            firstCreatedNodeId = createdNode.nodeId as number;
+          }
+
+        } catch (error) {
+          console.error(`[MindmapPage] ❌ Failed to create node:`, error);
+          // 실패 시 중단
+          break;
+        }
+      }
+
+      console.log("[MindmapPage] 🎉 모든 노드 생성 완료", { firstCreatedNodeId });
+
+      // 백엔드에서 모든 노드 다시 조회
+      console.log("[MindmapPage] 🔄 백엔드에서 노드 목록 다시 조회 중...");
+      const allNodes = await fetchMindmapNodes(workspaceId);
+      console.log("[MindmapPage] ✅ 조회된 노드 수:", allNodes.length);
+
+      // Yjs Map에 노드들 반영 (remote origin으로 설정하여 useMindmapSync 트리거 방지)
+      if (collab?.map) {
+        // crud.transact가 아니라 Y.Doc의 transact를 직접 사용 (origin 제어)
+        collab.map.doc?.transact(() => {
+          // 기존 노드 모두 제거
+          collab.map.clear();
+
+          // 백엔드에서 조회한 노드들로 다시 채우기
+          for (const node of allNodes) {
+            collab.map.set(node.id, node);
+          }
+
+          console.log("[MindmapPage] ✅ Yjs Map에 노드 반영 완료");
+        }, "remote");
+      }
+
+      // 🔥 백엔드에서 조회한 노드 중 첫 번째로 생성된 노드 ID로 찾기 (키워드 중복 방지)
+      if (firstCreatedNodeId) {
+        const matchedNode = allNodes.find(node => node.nodeId === firstCreatedNodeId);
+        if (matchedNode) {
+          console.log("[MindmapPage] 📍 포커스할 노드 ID 설정:", {
+            id: matchedNode.id,
+            nodeId: matchedNode.nodeId,
+            keyword: matchedNode.keyword,
+            position: { x: matchedNode.x, y: matchedNode.y }
+          });
+          setFocusNodeId(matchedNode.id);
         } else {
-          // 자식 노드: 짧은 지연만
-          console.log(`[MindmapPage] Adding child node ${node.id} with parent ${node.parentId}`);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          console.warn("[MindmapPage] ⚠️ 매칭되는 노드를 찾을 수 없음 (nodeId):", firstCreatedNodeId);
         }
       }
     };
 
-    // 노드가 백엔드에서 nodeId를 받을 때까지 대기하는 헬퍼 함수
-    const waitForNodeId = (nodeId: string, timeout: number): Promise<void> => {
-      return new Promise((resolve) => {
-        if (!collab?.map) {
-          console.warn(`[MindmapPage] No Y.Map available`);
-          resolve();
-          return;
+    addNodesSequentially()
+      .then(() => {
+        console.log("[MindmapPage] ✅ 트렌드 키워드 임포트 완료");
+      })
+      .catch((error) => {
+        console.error("[MindmapPage] ❌ 트렌드 키워드 임포트 실패:", error);
+      });
+  }, [collab, crud, isBootstrapping, workspaceId, getRandomThemeColor]);
+
+  // 🔥 포커스 노드로 카메라 이동 (cyRef를 통해 focusOnNode 호출)
+  useEffect(() => {
+    if (!focusNodeId) {
+      return;
+    }
+
+    console.log("[MindmapPage] 📍 포커스 노드:", focusNodeId);
+
+    // nodes에서 해당 노드 찾기 (노드가 실제로 존재하는지 확인)
+    const targetNode = nodes.find(n => n.id === focusNodeId);
+
+    if (targetNode && targetNode.x !== undefined && targetNode.y !== undefined) {
+      console.log("[MindmapPage] 📍 카메라 이동 시작:", {
+        id: targetNode.id,
+        keyword: targetNode.keyword,
+        x: targetNode.x,
+        y: targetNode.y
+      });
+
+      // cyRef의 focusOnNode 메서드 사용
+      const timer = setTimeout(() => {
+        if (cyRef.current && typeof (cyRef.current as any).focusOnNode === 'function') {
+          (cyRef.current as any).focusOnNode(focusNodeId);
+          console.log("[MindmapPage] ✅ focusOnNode 호출 완료");
+        } else {
+          console.warn("[MindmapPage] ⚠️ cyRef.current.focusOnNode이 준비되지 않음");
         }
 
-        const startTime = Date.now();
-        const checkInterval = setInterval(() => {
-          const node = collab.map.get(nodeId);
-          if (node?.nodeId) {
-            clearInterval(checkInterval);
-            console.log(`[MindmapPage] Node ${nodeId} received nodeId: ${node.nodeId}`);
-            resolve();
-          } else if (Date.now() - startTime > timeout) {
-            clearInterval(checkInterval);
-            console.warn(`[MindmapPage] Timeout waiting for nodeId for ${nodeId}`);
-            resolve();
-          }
-        }, 50);
+        setFocusNodeId(null);
+      }, 200); // DOM 렌더링 대기
+
+      return () => clearTimeout(timer);
+    } else {
+      console.warn("[MindmapPage] ⚠️ 노드를 찾을 수 없거나 좌표가 없음:", focusNodeId, {
+        nodesLength: nodes.length,
+        hasTargetNode: !!targetNode
       });
-    };
-
-    addNodesSequentially();
-
-    // 로컬스토리지에서 제거
-    clearPendingImportKeywords();
-
-    // D3Canvas가 자동으로 첫 노드로 카메라를 이동시킴 (viewport init effect)
-
-    console.log(`[MindmapPage] ${newNodes.length}개의 트렌드 키워드 노드 생성 완료`);
-  }, [collab, crud, isBootstrapping, getRandomThemeColor, nodes]);
+      // 🔥 노드를 못 찾으면 포커스 유지 (다음 nodes 업데이트 시 재시도)
+    }
+  }, [focusNodeId, nodes]);
 
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {
@@ -223,7 +315,6 @@ const MindmapPageContent: React.FC = () => {
     }
 
     let raf = 0;
-    let lastLog = 0;
 
     const handleMouseMove = (event: cytoscape.EventObject) => {
       if (raf) cancelAnimationFrame(raf);
@@ -241,11 +332,6 @@ const MindmapPageContent: React.FC = () => {
           y: position.y,
           color: cursorColorRef.current,
         };
-
-        if (Date.now() - lastLog > 3000) {
-          console.log("[MindmapPage] set cursor (model coords):", cursorData);
-          lastLog = Date.now();
-        }
 
         awareness.setLocalStateField("cursor", cursorData);
       });
