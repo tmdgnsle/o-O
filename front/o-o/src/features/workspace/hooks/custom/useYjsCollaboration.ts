@@ -9,7 +9,11 @@ import { useAppSelector } from "@/store/hooks";
 import { fetchWebSocketToken } from "@/services/websocketTokenService";
 import type { WorkspaceRole } from "@/services/dto/workspace.dto";
 import { useQueryClient } from "@tanstack/react-query";
-import { isRoleUpdateNotification } from "../../types/websocket.types";
+import { fetchMindmapNodes } from "@/services/mindmapService";
+import {
+  isInitialCreateDoneNotification,
+  isRoleUpdateNotification,
+} from "../../types/websocket.types";
 
 type UseYjsCollaborationOptions = {
   /** 이 훅을 활성화할지 여부 (페이지에 따라 on/off 가능) */
@@ -186,11 +190,49 @@ export function useYjsCollaboration(
       };
     };
 
+    // 커스텀 메시지 리스너 등록
     const attachCustomMessageListener = (client: YClient) => {
       if (customMessageCleanupRef.current) {
         customMessageCleanupRef.current();
         customMessageCleanupRef.current = null;
       }
+
+      let isHydratingInitialNodes = false;
+
+      // initial-create-done 알림 수신 시 REST API로 노드 동기화
+      const hydrateMindmapNodesFromRest = async () => {
+        if (isHydratingInitialNodes || !mountedRef.current || !enabledRef.current) {
+          return;
+        }
+
+        isHydratingInitialNodes = true;
+        try {
+          console.log("[useYjsCollaboration] initial-create-done: fetching nodes from REST");
+          const restNodes = await fetchMindmapNodes(roomId);
+          console.log("[useYjsCollaboration] initial-create-done: fetched", restNodes.length, "nodes");
+
+          if (!mountedRef.current || !enabledRef.current || restNodes.length === 0) {
+            return;
+          }
+
+          const nodesMap = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
+
+          client.doc.transact(() => {
+            restNodes.forEach((node) => {
+              if (!nodesMap.has(node.id)) {
+                nodesMap.set(node.id, node);
+              }
+            });
+          }, "initial-create-done");
+        } catch (error) {
+          console.error(
+            "[useYjsCollaboration] failed to hydrate nodes after initial-create-done:",
+            error
+          );
+        } finally {
+          isHydratingInitialNodes = false;
+        }
+      };
 
       const cleanup = client.onCustomMessage((message) => {
         console.log("[useYjsCollaboration] received custom message:", message);
@@ -203,6 +245,11 @@ export function useYjsCollaboration(
           // 이것이 자동으로 isReadOnly, canEdit 등을 재계산하여 UI 업데이트 트리거
           // roomId는 workspaceId와 동일
           queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
+        }
+
+        if (isInitialCreateDoneNotification(message)) {
+          console.log("[useYjsCollaboration] initial-create-done notification received, syncing nodes");
+          void hydrateMindmapNodesFromRest();
         }
       });
 
