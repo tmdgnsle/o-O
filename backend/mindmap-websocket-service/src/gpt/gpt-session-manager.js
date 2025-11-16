@@ -98,7 +98,7 @@ class GptSessionManager {
             }
           ],
           stream: true,
-          temperature: 0.7,
+          // temperature 제거: gpt-5-mini 모델은 기본값 1만 지원
         }),
       });
 
