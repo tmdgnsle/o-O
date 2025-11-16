@@ -17,6 +17,9 @@ class ApiConstants {
   static const String getRecentWorkspaces = '/workspace/my/recent';
   static const String getDailyActivity = '/workspace/my/activity/daily';
 
+  /// 워크스페이스 썸네일 업로드
+  static String uploadWorkspaceThumbnail(int workspaceId) => '/workspace/$workspaceId/thumbnail';
+
   /// User Endpoints
   static const String getUsers = '/users';
 

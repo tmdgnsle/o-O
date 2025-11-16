@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -43,6 +45,30 @@ class WorkspaceRepositoryImpl implements WorkspaceRepository {
     } catch (e) {
       logger.e('❌ Unexpected error in repository: $e');
       return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> uploadWorkspaceThumbnail({
+    required int workspaceId,
+    required Uint8List imageBytes,
+  }) async {
+    try {
+      logger.i('🔄 WorkspaceRepositoryImpl: Uploading thumbnail for workspace $workspaceId');
+
+      await apiDataSource.uploadWorkspaceThumbnail(
+        workspaceId: workspaceId,
+        imageBytes: imageBytes,
+      );
+
+      logger.i('✅ WorkspaceRepositoryImpl: Thumbnail uploaded successfully');
+      return const Right(null);
+    } on ServerException catch (e) {
+      logger.e('❌ ServerException in repository: ${e.message}');
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      logger.e('❌ Unexpected error in repository: $e');
+      return Left(ServerFailure('Thumbnail upload failed: $e'));
     }
   }
 }

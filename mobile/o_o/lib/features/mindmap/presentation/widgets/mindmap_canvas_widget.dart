@@ -10,9 +10,13 @@ import 'mindmap_node_widget.dart';
 class MindmapCanvasWidget extends StatefulWidget {
   final Mindmap mindmap;
 
+  /// 캔버스를 이미지로 캡쳐하기 위한 GlobalKey (선택사항)
+  final GlobalKey? repaintKey;
+
   const MindmapCanvasWidget({
     super.key,
     required this.mindmap,
+    this.repaintKey,
   });
 
   @override
@@ -39,7 +43,7 @@ class _MindmapCanvasWidgetState extends State<MindmapCanvasWidget> {
           )
         : null;
 
-    return SizedBox(
+    final canvasWidget = SizedBox(
       width: canvasSize.width,
       height: canvasSize.height,
       child: Stack(
@@ -81,12 +85,20 @@ class _MindmapCanvasWidgetState extends State<MindmapCanvasWidget> {
         ],
       ),
     );
+
+    // repaintKey가 있으면 RepaintBoundary로 래핑하여 캡쳐 가능하게 함
+    return widget.repaintKey != null
+        ? RepaintBoundary(
+            key: widget.repaintKey,
+            child: canvasWidget,
+          )
+        : canvasWidget;
   }
 
   /// 캔버스 크기 계산
   Size _calculateCanvasSize(BuildContext context) {
     if (widget.mindmap.nodes.isEmpty) {
-      return const Size(10000, 10000);
+      return const Size(5000, 5000);
     }
 
     // 모든 노드를 포함하는 bounding box 계산
@@ -108,12 +120,12 @@ class _MindmapCanvasWidgetState extends State<MindmapCanvasWidget> {
     }
 
     // 여유 공간 추가
-    final padding = 2000.0;
+    final padding = 1000.0;
     final width = maxX - minX + padding * 2;
     final height = maxY - minY + padding * 2;
 
-    // 최소 크기 보장 (자동 배치는 (5000, 5000) 중심이므로 최소 10000x10000 필요)
-    final minSize = 10000.0;
+    // 최소 크기 보장 (자동 배치는 (2500, 2500) 중심이므로 최소 5000x5000 필요)
+    final minSize = 5000.0;
     return Size(
       width < minSize ? minSize : width,
       height < minSize ? minSize : height,

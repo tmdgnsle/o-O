@@ -115,13 +115,13 @@ class _ProcessingPageState extends State<ProcessingPage>
             // 로딩 중 - 아무것도 하지 않음 (애니메이션 계속 표시)
           },
           created: (response) {
-            // 마인드맵 생성 완료 - 워크스페이스 목록 새로고침 후 최소 8초 보장하고 이동
+            // 마인드맵 생성 완료 - 워크스페이스 목록 새로고침 후 최소 12초 보장하고 이동
             if (mounted) {
               // 홈 화면의 워크스페이스 목록 새로고침 (새로 생성된 마인드맵 반영)
               sl<WorkspaceBloc>().add(const WorkspaceEvent.load());
 
               final elapsed = DateTime.now().difference(_startTime);
-              const minDuration = Duration(seconds: 8);
+              const minDuration = Duration(seconds: 12);
 
               if (elapsed < minDuration) {
                 // 8초가 안 지났으면 남은 시간만큼 대기

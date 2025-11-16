@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/utils/app_logger.dart';
+import '../../../workspace/domain/usecases/upload_workspace_thumbnail.dart';
+import '../../domain/entities/mindmap.dart';
 import '../../domain/usecases/create_mindmap_from_text.dart';
 import '../../domain/usecases/get_mindmap_nodes.dart';
 import '../../domain/usecases/update_node_positions.dart';
@@ -12,11 +16,13 @@ class MindmapBloc extends Bloc<MindmapEvent, MindmapState> {
   final GetMindmapNodes getMindmapNodes;
   final CreateMindmapFromText createMindmapFromText;
   final UpdateNodePositions updateNodePositions;
+  final UploadWorkspaceThumbnail uploadWorkspaceThumbnail;
 
   MindmapBloc({
     required this.getMindmapNodes,
     required this.createMindmapFromText,
     required this.updateNodePositions,
+    required this.uploadWorkspaceThumbnail,
   }) : super(const MindmapState.initial()) {
     logger.i('📦 MindmapBloc initialized');
 
@@ -66,7 +72,7 @@ class MindmapBloc extends Bloc<MindmapEvent, MindmapState> {
   }
 
   /// 원래 null이었던 노드들의 위치를 서버에 업데이트 (백그라운드)
-  void _updateNullNodesToServer(int workspaceId, mindmap) {
+  void _updateNullNodesToServer(int workspaceId, Mindmap mindmap) {
     if (mindmap.nullNodeIds.isEmpty) {
       logger.d('🔍 No null nodes to update');
       return;
@@ -131,6 +137,28 @@ class MindmapBloc extends Bloc<MindmapEvent, MindmapState> {
         logger.d('  💬 Message: ${response.message}');
         emit(MindmapState.created(response: response));
       },
+    );
+  }
+
+  /// 워크스페이스 썸네일 업로드 (공개 메서드)
+  ///
+  /// MindmapPage에서 캡쳐한 이미지를 업로드할 때 호출합니다.
+  Future<void> uploadThumbnail({
+    required int workspaceId,
+    required Uint8List imageBytes,
+  }) async {
+    logger.i('📸 MindmapBloc: Uploading thumbnail for workspace $workspaceId');
+
+    final result = await uploadWorkspaceThumbnail(
+      UploadWorkspaceThumbnailParams(
+        workspaceId: workspaceId,
+        imageBytes: imageBytes,
+      ),
+    );
+
+    result.fold(
+      (failure) => logger.w('⚠️ Thumbnail upload failed: ${failure.message}'),
+      (_) => logger.i('✅ Thumbnail uploaded successfully'),
     );
   }
 }
