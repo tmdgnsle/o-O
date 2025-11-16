@@ -8,6 +8,8 @@ import type { NodeData } from "../../../mindmap/types";
 import { useAppSelector } from "@/store/hooks";
 import { fetchWebSocketToken } from "@/services/websocketTokenService";
 import type { WorkspaceRole } from "@/services/dto/workspace.dto";
+import { useQueryClient } from "@tanstack/react-query";
+import { isRoleUpdateNotification } from "../../types/websocket.types";
 
 type UseYjsCollaborationOptions = {
   /** 이 훅을 활성화할지 여부 (페이지에 따라 on/off 가능) */
@@ -39,6 +41,7 @@ export function useYjsCollaboration(
   const [crud, setCrud] = useState<YMapCrud<NodeData> | null>(null);
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const currentUser = useAppSelector((state) => state.user.user);
+  const queryClient = useQueryClient();
 
   // refs
   const currentClientRef = useRef<YClient | null>(null);
@@ -46,6 +49,7 @@ export function useYjsCollaboration(
   const reconnectingRef = useRef<boolean>(false);
   const statusCleanupRef = useRef<(() => void) | null>(null);
   const connectionCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customMessageCleanupRef = useRef<(() => void) | null>(null);
   const enabledRef = useRef<boolean>(enabled);
   const onAuthErrorRef = useRef<(() => void) | undefined>(onAuthError);
 
@@ -73,6 +77,10 @@ export function useYjsCollaboration(
       if (statusCleanupRef.current) {
         statusCleanupRef.current();
         statusCleanupRef.current = null;
+      }
+      if (customMessageCleanupRef.current) {
+        customMessageCleanupRef.current();
+        customMessageCleanupRef.current = null;
       }
       clearConnectionCheckTimeout();
 
@@ -178,6 +186,29 @@ export function useYjsCollaboration(
       };
     };
 
+    const attachCustomMessageListener = (client: YClient) => {
+      if (customMessageCleanupRef.current) {
+        customMessageCleanupRef.current();
+        customMessageCleanupRef.current = null;
+      }
+
+      const cleanup = client.onCustomMessage((message) => {
+        console.log("[useYjsCollaboration] received custom message:", message);
+
+        // 역할 변경 알림 처리 (최소 정보만 확인)
+        if (isRoleUpdateNotification(message)) {
+          console.log("[useYjsCollaboration] role-update notification received, refetching workspace data");
+
+          // workspace 데이터 재조회하여 myRole 갱신
+          // 이것이 자동으로 isReadOnly, canEdit 등을 재계산하여 UI 업데이트 트리거
+          // roomId는 workspaceId와 동일
+          queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
+        }
+      });
+
+      customMessageCleanupRef.current = cleanup;
+    };
+
     const initializeClient = async () => {
       if (!enabled) {
         console.log("[useYjsCollaboration] not enabled, skip initialize");
@@ -206,6 +237,8 @@ export function useYjsCollaboration(
         setConnectionError(false);
 
         attachStatusListener(client);
+        attachCustomMessageListener(client);
+        console.log("[useYjsCollaboration] Custom message listener attached, ws readyState:", client.provider.ws?.readyState);
 
         client.provider.on("connection-close", (event: any) => {
           console.log(

@@ -26,10 +26,12 @@ import type { WorkspaceRole, WorkspaceVisibility } from "@/services/dto/workspac
 import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
+import type { YClient } from "../hooks/custom/yjsClient";
 
 type StatusBoxProps = {
   onStartVoiceChat?: () => void;
   workspaceId: string;
+  yclient?: YClient | null;
 };
 
 // UI Permission type
@@ -67,13 +69,13 @@ const roleToPermission = (role: WorkspaceRole): Permission => {
   return role === "EDIT" ? "can Edit" : "can View";
 };
 
-export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<StatusBoxProps>) {
+export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Readonly<StatusBoxProps>) {
   // Fetch workspace data
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
   const queryClient = useQueryClient();
-  const { mutate: updateRole } = useUpdateMemberRoleMutation();
+  const { mutate: updateRole } = useUpdateMemberRoleMutation(yclient);
   const { mutate: updateVisibility } = useUpdateWorkspaceVisibilityMutation();
 
   // 로컬 상태로 멤버 역할 관리 (userId → WorkspaceRole)
@@ -112,13 +114,28 @@ export default function StatusBox({ onStartVoiceChat, workspaceId }: Readonly<St
 
     // Find the user's numeric userId from peers
     const targetPeer = peers.find((p) => p.email === userEmail);
+
+    console.log("[StatusBox] Permission change requested:", {
+      userEmail,
+      newPermission,
+      targetPeer,
+      allPeers: peers.map(p => ({ email: p.email, userId: p.userId, name: p.name })),
+    });
+
     if (!targetPeer?.userId) {
-      console.error("Cannot find userId for user:", userEmail);
+      console.error("[StatusBox] Cannot find userId for user:", userEmail);
       return;
     }
 
     // Convert Permission to WorkspaceRole
     const newRole: WorkspaceRole = permissionToRole(newPermission);
+
+    console.log("[StatusBox] Updating role:", {
+      workspaceId,
+      targetUserId: targetPeer.userId,
+      targetEmail: userEmail,
+      newRole,
+    });
 
     // 낙관적 업데이트: 즉시 로컬 상태 업데이트
     setMemberRoles((prev) => {

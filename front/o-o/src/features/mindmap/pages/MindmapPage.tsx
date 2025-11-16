@@ -261,6 +261,7 @@ const MindmapPageContent: React.FC = () => {
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
               workspaceId={workspaceId}
+              yclient={collab?.client}
             />
           </div>
         )}
