@@ -17,7 +17,11 @@ import ConfirmDialog from "../../../../shared/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import YouTubeIcon from "@mui/icons-material/YouTube";
 import PhotoSizeSelectActualOutlinedIcon from "@mui/icons-material/PhotoSizeSelectActualOutlined";
-import { applyDragForce, findNearestNode, NODE_RADIUS } from "../../utils/d3Utils";
+import {
+  applyDragForce,
+  findNearestNode,
+  NODE_RADIUS,
+} from "../../utils/d3Utils";
 
 function NodeOverlay({
   node,
@@ -46,13 +50,17 @@ function NodeOverlay({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
+    null
+  );
   const [hasMoved, setHasMoved] = useState(false);
   const dragThrottleRef = useRef<number>(0); // 🔥 드래그 중 force simulation 스로틀링
 
   // Debug: 메모 데이터 확인
   useEffect(() => {
-    console.log(`[NodeOverlay ${node.id}] keyword: "${keyword}", memo: "${memo}", has memo: ${!!memo}`);
+    console.log(
+      `[NodeOverlay ${node.id}] keyword: "${keyword}", memo: "${memo}", has memo: ${!!memo}`
+    );
   }, [node.id, keyword, memo]);
 
   const {
@@ -193,15 +201,25 @@ function NodeOverlay({
       const newY = node.y + dy;
 
       // 🔥 드래그 중에는 밀어내기 없이 드래그 노드만 업데이트
-      onBatchNodePositionChange([{
-        id: node.id,
-        x: newX,
-        y: newY,
-      }]);
+      onBatchNodePositionChange([
+        {
+          id: node.id,
+          x: newX,
+          y: newY,
+        },
+      ]);
 
       setDragStart({ x: e.clientX, y: e.clientY });
     },
-    [isDragging, dragStart, zoom, node.x, node.y, node.id, onBatchNodePositionChange]
+    [
+      isDragging,
+      dragStart,
+      zoom,
+      node.x,
+      node.y,
+      node.id,
+      onBatchNodePositionChange,
+    ]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -237,19 +255,36 @@ function NodeOverlay({
 
       // 🔥 가까운 노드가 있고, 현재 부모와 다른 경우 부모 재연결
       if (nearestNode && nearestNode.id !== node.parentId) {
-        const newParentNode = allNodes.find((n) => n.id === nearestNode.id);
+        const targetNode = allNodes.find((n) => n.id === nearestNode.id);
 
-        console.log(
-          `[NodeOverlay] 노드 "${node.keyword}"의 부모를 "${newParentNode?.keyword}"(으)로 변경 (거리: ${nearestNode.distance.toFixed(2)}px)`
-        );
+        // 루트 노드(parentId가 null)를 드래그한 경우
+        if (!node.parentId || node.parentId === "0") {
+          // 루트 노드는 부모가 변경되지 않고, 대상 노드의 부모를 루트로 변경
+          console.log(
+            `[NodeOverlay] 루트 노드 "${node.keyword}"에 "${targetNode?.keyword}"를 연결 - "${targetNode?.keyword}"의 부모를 루트로 변경`,
+            { nodeId: nearestNode.id, newParentId: node.id }
+          );
 
-        // 부모 ID 변경 (onEditNode를 통해 Yjs에 반영)
-        onEditNode({
-          nodeId: node.id,
-          newText: node.keyword,
-          newMemo: node.description,
-          newParentId: nearestNode.id,
-        });
+          onEditNode({
+            nodeId: nearestNode.id,
+            newText: targetNode?.keyword,
+            newMemo: targetNode?.memo,
+            newParentId: node.id, // 대상 노드의 부모를 루트로 변경
+          });
+        } else {
+          // 일반 노드를 드래그한 경우: 기존처럼 드래그한 노드의 부모 변경
+          console.log(
+            `[NodeOverlay] 노드 "${node.keyword}"의 부모를 "${targetNode?.keyword}"(으)로 변경 (거리: ${nearestNode.distance.toFixed(2)}px)`,
+            { nodeId: node.id, newParentId: nearestNode.id }
+          );
+
+          onEditNode({
+            nodeId: node.id,
+            newText: node.keyword,
+            newMemo: node.memo,
+            newParentId: nearestNode.id,
+          });
+        }
       }
     }
 
@@ -259,7 +294,20 @@ function NodeOverlay({
     setIsDragging(false);
     setDragStart(null);
     setHasMoved(false);
-  }, [hasMoved, isAnalyzeMode, onSelect, allNodes, node.id, node.x, node.y, node.keyword, node.description, node.parentId, onBatchNodePositionChange, onEditNode]);
+  }, [
+    hasMoved,
+    isAnalyzeMode,
+    onSelect,
+    allNodes,
+    node.id,
+    node.x,
+    node.y,
+    node.keyword,
+    node.description,
+    node.parentId,
+    onBatchNodePositionChange,
+    onEditNode,
+  ]);
 
   // 드래그 이벤트 리스너 등록
   useEffect(() => {
@@ -299,7 +347,7 @@ function NodeOverlay({
         }}
       >
         <div
-          className={`w-40 h-40 rounded-full flex flex-col items-center justify-center ${selectionRingClass}`}
+          className={`w-48 h-48 rounded-full flex flex-col items-center justify-center ${selectionRingClass}`}
           style={{
             background: createRadialGradient(initialColor),
             pointerEvents: "auto", // 노드 원형은 클릭 가능

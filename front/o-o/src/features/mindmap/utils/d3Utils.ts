@@ -144,7 +144,7 @@ export function distance(
 ): number {
   const dx = x2 - x1;
   const dy = y2 - y1;
-  return Math.sqrt(dx * dx + dy * dy);
+  return Math.hypot(dx * dx + dy * dy);
 }
 
 /**
@@ -163,7 +163,6 @@ export interface PositionedNode {
   x: number;
   y: number;
 }
-
 
 /**
  * 두 노드가 겹치는지 확인
@@ -300,7 +299,8 @@ export function calculateRadialLayout(
   const nodeWidth = NODE_RADIUS * 4; // 노드 간 최소 수평 거리
   const nodeHeight = baseRadius; // 레벨 간 수직 거리
 
-  const treeLayout = d3.tree<HierarchyNode>()
+  const treeLayout = d3
+    .tree<HierarchyNode>()
     .nodeSize([nodeWidth, nodeHeight])
     .separation((a, b) => {
       // 서브트리 간 간격을 충분히 확보하여 선 교차 방지
@@ -312,7 +312,8 @@ export function calculateRadialLayout(
   const treeRoot = treeLayout(hierarchy);
 
   // 좌표 범위 계산 (정규화를 위해)
-  let minX = Infinity, maxX = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity;
 
   treeRoot.each((node) => {
     if (node.x < minX) minX = node.x;
@@ -387,7 +388,10 @@ export function applyForceSimulation(
       // 노드끼리 밀어내는 힘 (반지름 = NODE_RADIUS * 2.5로 충분한 간격 확보)
       .force(
         "collide",
-        d3.forceCollide<SimulationNode>().radius(NODE_RADIUS * 2.5).strength(0.9)
+        d3
+          .forceCollide<SimulationNode>()
+          .radius(NODE_RADIUS * 2.5)
+          .strength(0.9)
       )
       // 중심으로 살짝 당기는 힘 (너무 멀리 흩어지지 않도록)
       .force("x", d3.forceX<SimulationNode>(centerX).strength(0.05))
@@ -447,14 +451,16 @@ export function applyDragForce(
     // 드래그된 노드를 부드럽게 밀어내는 힘
     .force(
       "repel",
-      d3.forceManyBody<SimulationNode>()
-        .strength((d) => d.isDragged ? -800 : -400) // 강도를 낮춰서 부드럽게
+      d3
+        .forceManyBody<SimulationNode>()
+        .strength((d) => (d.isDragged ? -800 : -400)) // 강도를 낮춰서 부드럽게
         .distanceMax(distanceThreshold)
     )
     // 충돌 회피
     .force(
       "collide",
-      d3.forceCollide<SimulationNode>()
+      d3
+        .forceCollide<SimulationNode>()
         .radius(NODE_RADIUS * 2)
         .strength(0.7) // 충돌 강도도 조금 낮춤
     )
@@ -503,7 +509,12 @@ export function calculateDistance(
  */
 export function findNearestNode(
   draggedNode: { id: string; x: number; y: number },
-  allNodes: Array<{ id: string; x: number; y: number; parentId?: string | null }>,
+  allNodes: Array<{
+    id: string;
+    x: number;
+    y: number;
+    parentId?: string | null;
+  }>,
   threshold: number = 200
 ): { id: string; distance: number } | null {
   let nearestNode: { id: string; distance: number } | null = null;

@@ -267,13 +267,33 @@ export function useMindmapSync(
               return;
             }
 
+            // parentId 변환: 문자열 ID인 경우 해당 노드의 nodeId를 찾아서 사용
+            let backendParentId: number | null = null;
+            if (latestNodeData.parentId) {
+              // parentId가 숫자면 그대로 사용 (이미 백엔드 nodeId)
+              if (typeof latestNodeData.parentId === 'number') {
+                backendParentId = latestNodeData.parentId;
+              } else {
+                // parentId가 문자열이면 Y.Map에서 해당 노드를 찾아 nodeId 사용
+                const parentNode = yMap.get(latestNodeData.parentId as string);
+                if (parentNode?.nodeId) {
+                  backendParentId = parentNode.nodeId as number;
+                  console.log(`[useMindmapSync UPDATE] resolved parent ID: ${latestNodeData.parentId} -> ${backendParentId}`);
+                } else {
+                  console.warn(`[useMindmapSync UPDATE] parent node not found: ${latestNodeData.parentId}`);
+                  // 부모를 찾을 수 없으면 null로 설정 (루트로 변경)
+                  backendParentId = null;
+                }
+              }
+            }
+
             updateMindmapNode(workspaceId, latestNodeData.nodeId as number, {
               keyword: latestNodeData.keyword,
               memo: latestNodeData.memo,
               x: latestNodeData.x,
               y: latestNodeData.y,
               color: latestNodeData.color,
-              parentId: latestNodeData.parentId ? Number(latestNodeData.parentId) : null,
+              parentId: backendParentId,
               type: latestNodeData.type,
               analysisStatus: latestNodeData.analysisStatus,
             })
