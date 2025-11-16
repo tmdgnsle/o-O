@@ -142,6 +142,7 @@ export function useVoiceChat({ workspaceId, userId, enabled = false }: UseVoiceC
     // State
     isInVoice,
     isConnected,
+    connectionState,
     participants,
     isMuted,
     isSpeaking,
@@ -156,5 +157,6 @@ export function useVoiceChat({ workspaceId, userId, enabled = false }: UseVoiceC
     joinVoice,
     leaveVoice,
     toggleMute,
+    sendMessage,
   };
 }

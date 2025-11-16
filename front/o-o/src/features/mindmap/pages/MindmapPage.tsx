@@ -266,6 +266,7 @@ const MindmapPageContent: React.FC = () => {
           <div className="fixed top-1 md:top-4 left-1/2 -translate-x-1/2 z-50">
             <VoiceChat
               workspaceId={workspaceId}
+              crud={crud}
               onCallEnd={() => setVoiceChatVisible(false)}
               onOrganize={() => console.log("Organize clicked")}
               onShare={() => console.log("Share clicked")}

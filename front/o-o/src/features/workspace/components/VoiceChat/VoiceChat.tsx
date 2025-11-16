@@ -3,11 +3,20 @@ import React, { useMemo, useEffect } from "react";
 import VoiceAvatar from "./VoiceAvatar";
 import VoiceControls from "./VoiceContols";
 import { useVoiceChat } from "../../hooks/custom/useVoiceChat";
+import { useVoiceGpt } from "../../hooks/custom/useVoiceGpt";
+import { useGptNodeCreator } from "../../../mindmap/hooks/custom/useGptNodeCreator";
 import { usePeerCursors } from "../PeerCursorProvider";
 import { useAppSelector } from "@/store/hooks";
+import type { NodeData } from "../../../mindmap/types";
+
+interface YjsCRUD {
+  create: (node: NodeData) => void;
+  read: (id: string) => NodeData | undefined;
+}
 
 interface VoiceChatProps {
   workspaceId: string;
+  crud: YjsCRUD | null;
   onCallEnd?: () => void;
   onOrganize?: () => void;
   onShare?: () => void;
@@ -15,6 +24,7 @@ interface VoiceChatProps {
 
 const VoiceChat: React.FC<VoiceChatProps> = ({
   workspaceId,
+  crud,
   onCallEnd,
   onOrganize,
   onShare,
@@ -32,10 +42,49 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     joinVoice,
     leaveVoice,
     toggleMute,
+    sendMessage,
+    connectionState,
   } = useVoiceChat({
     workspaceId,
     userId: currentUser?.id.toString(),
     enabled: false, // Manual join via button
+  });
+
+  // GPT Node Creator
+  const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId);
+
+  // GPT Hook
+  const gpt = useVoiceGpt({
+    sendMessage,
+    isConnected: connectionState === 'connected',
+    onGptDone: (message) => {
+      console.log('[VoiceChat] ===== GPT Processing Complete =====');
+      console.log('[VoiceChat] 📊 Received GPT response:', {
+        nodeCount: message.nodes.length,
+        timestamp: new Date(message.timestamp).toISOString(),
+      });
+      console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
+      console.log('[VoiceChat] 🚀 Creating nodes in mindmap...');
+
+      createNodesFromGpt(message.nodes);
+
+      console.log('[VoiceChat] ✅ GPT node creation triggered');
+    },
+    onGptError: (error, rawText) => {
+      console.error('[VoiceChat] ===== GPT Error =====');
+      console.error('[VoiceChat] ❌ Error message:', error);
+
+      if (rawText) {
+        console.error('[VoiceChat] 📄 Raw GPT response (failed to parse):');
+        console.error(rawText);
+        console.error('[VoiceChat] Response length:', rawText.length, 'characters');
+      } else {
+        console.error('[VoiceChat] ⚠️ No raw response available');
+      }
+
+      // TODO: 사용자에게 에러 알림 표시
+      console.log('[VoiceChat] 💡 TODO: Display error notification to user');
+    },
   });
 
   // Join voice chat on mount
@@ -140,9 +189,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       <VoiceControls
         isMuted={isMuted}
         isCallActive={isInVoice}
+        isGptRecording={gpt.isRecording}
         onMicToggle={toggleMute}
         onCallToggle={handleCallToggle}
-        onOrganize={onOrganize}
+        onOrganize={gpt.toggleRecording}
         onShare={onShare}
       />
     </div>

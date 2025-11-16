@@ -10,6 +10,7 @@ import organizePopo from "@/shared/assets/images/organize_popo.webp";
 interface VoiceControlsProps {
   isMuted: boolean;
   isCallActive: boolean;
+  isGptRecording?: boolean;
   onMicToggle: () => void;
   onCallToggle: () => void;
   onOrganize?: () => void;
@@ -19,6 +20,7 @@ interface VoiceControlsProps {
 const VoiceControls: React.FC<VoiceControlsProps> = ({
   isMuted,
   isCallActive,
+  isGptRecording = false,
   onMicToggle,
   onCallToggle,
   onOrganize,
@@ -68,11 +70,11 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
         )}
       </button>
 
-      {/* Organize Button with Tooltip */}
+      {/* Organize Button with Tooltip (GPT Toggle) */}
       <CustomTooltip
         content={
           <p className="text-sm leading-relaxed">
-            <div>아이디어를 놓치지 않게</div>
+            <div>{isGptRecording ? 'GPT 녹음 중...' : '아이디어를 놓치지 않게'}</div>
             <div>
               <span className="font-bold">Popo</span>가 정리해드려요.
             </div>
@@ -81,8 +83,14 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
       >
         <button
           onClick={onOrganize}
-          className="w-14 h-14 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center shadow-md transition-all duration-200"
-          aria-label="정리하기"
+          className={`
+            w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-200
+            ${isGptRecording
+              ? 'bg-danger/10 hover:bg-danger/20 ring-2 ring-danger animate-pulse'
+              : 'bg-white hover:bg-gray-100'
+            }
+          `}
+          aria-label={isGptRecording ? "녹음 중지" : "녹음 시작"}
         >
           <img
             src={organizePopo}

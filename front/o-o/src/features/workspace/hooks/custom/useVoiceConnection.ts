@@ -11,6 +11,10 @@ import type {
   AnswerMessage,
   IceMessage,
   VoiceStateMessage,
+  PeerTranscriptMessage,
+  GptChunkMessage,
+  GptDoneMessage,
+  GptErrorMessage,
 } from '../../types/voice.types';
 
 type UseVoiceConnectionOptions = {
@@ -23,6 +27,10 @@ type MessageHandlers = {
   onAnswer?: (fromUserId: string, answer: RTCSessionDescriptionInit) => void;
   onIce?: (fromUserId: string, candidate: RTCIceCandidateInit) => void;
   onVoiceState?: (userId: string, muted: boolean, speaking: boolean) => void;
+  onPeerTranscript?: (userId: string, userName: string, text: string, timestamp: number) => void;
+  onGptChunk?: (content: string) => void;
+  onGptDone?: (message: GptDoneMessage) => void;
+  onGptError?: (message: GptErrorMessage) => void;
 };
 
 export function useVoiceConnection(
@@ -56,9 +64,13 @@ export function useVoiceConnection(
   // Send message to server
   const sendMessage = useCallback((message: ClientMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('[useVoiceConnection] 📤 Sending message:', message.type, message);
       wsRef.current.send(JSON.stringify(message));
     } else {
-      console.warn('[useVoiceConnection] Cannot send message: WebSocket not open');
+      console.warn('[useVoiceConnection] ❌ Cannot send message: WebSocket not open', {
+        readyState: wsRef.current?.readyState,
+        message: message.type,
+      });
     }
   }, []);
 
@@ -144,6 +156,51 @@ export function useVoiceConnection(
                 message.voiceState.muted,
                 message.voiceState.speaking
               );
+              break;
+
+            case 'peer-transcript':
+              console.log('[useVoiceConnection] 📝 Peer transcript received:', {
+                userId: message.userId,
+                userName: message.userName,
+                text: message.text.substring(0, 50) + '...',
+                timestamp: new Date(message.timestamp).toISOString(),
+              });
+              handlersRef.current.onPeerTranscript?.(
+                message.userId,
+                message.userName,
+                message.text,
+                message.timestamp
+              );
+              break;
+
+            case 'gpt-chunk':
+              console.log('[useVoiceConnection] 📦 GPT chunk received:', {
+                content: message.content.substring(0, 100) + '...',
+                length: message.content.length,
+                timestamp: new Date(message.timestamp).toISOString(),
+              });
+              handlersRef.current.onGptChunk?.(message.content);
+              break;
+
+            case 'gpt-done':
+              console.log('[useVoiceConnection] ✅ GPT done received:', {
+                nodeCount: message.nodes.length,
+                timestamp: new Date(message.timestamp).toISOString(),
+              });
+              console.log('[useVoiceConnection] GPT nodes:', message.nodes);
+              handlersRef.current.onGptDone?.(message);
+              break;
+
+            case 'gpt-error':
+              console.error('[useVoiceConnection] ❌ GPT error received:', {
+                error: message.error,
+                hasRawText: !!message.rawText,
+                timestamp: new Date(message.timestamp).toISOString(),
+              });
+              if (message.rawText) {
+                console.error('[useVoiceConnection] Raw text:', message.rawText);
+              }
+              handlersRef.current.onGptError?.(message);
               break;
 
             case 'server-shutdown':
