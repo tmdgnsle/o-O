@@ -64,6 +64,13 @@ function NodeOverlay({
     );
   }, [node.id, keyword, memo]);
 
+  // 노드 선택 해제 시 모달 닫기
+  useEffect(() => {
+    if (!isSelected) {
+      setDetailModalOpen(false);
+    }
+  }, [isSelected]);
+
   const {
     isEditing,
     editValue,
@@ -236,13 +243,24 @@ function NodeOverlay({
       if (canvasApi && canvasApi.focusOnNode) {
         canvasApi.focusOnNode(node.id);
 
-        // 애니메이션 완료 후(500ms) 버튼 표시
+        // 이미 최대 확대 상태(zoom >= 1.2)라면 짧은 시간(100ms) 후 표시
+        // 그렇지 않으면 애니메이션 완료 후(500ms) 표시
+        const delay = zoom >= 1.2 ? 100 : 500;
+
         setTimeout(() => {
           onSelect();
-        }, 500);
+          // 이미지 또는 비디오 노드인 경우 모달 자동 열기
+          if (node.type === "image" || node.type === "video") {
+            setDetailModalOpen(true);
+          }
+        }, delay);
       } else {
         // canvasApi가 없으면 즉시 선택
         onSelect();
+        // 이미지 또는 비디오 노드인 경우 모달 자동 열기
+        if (node.type === "image" || node.type === "video") {
+          setDetailModalOpen(true);
+        }
       }
     }
 
@@ -325,6 +343,8 @@ function NodeOverlay({
     node.memo,
     node.nodeId,
     node.parentId,
+    node.type,
+    zoom,
     onBatchNodePositionChange,
     onEditNode,
   ]);
@@ -403,7 +423,6 @@ function NodeOverlay({
                 <>
                   <div
                     className="rounded-lg mb-1 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ pointerEvents: "auto" }}
                     onClick={handleIconClick}
                   >
                     <PhotoSizeSelectActualOutlinedIcon
@@ -423,7 +442,6 @@ function NodeOverlay({
                 <>
                   <div
                     className="rounded-lg mb-1 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                    style={{ pointerEvents: "auto" }}
                     onClick={handleIconClick}
                   >
                     <YouTubeIcon sx={{ fontSize: 60, color: textColor }} />
@@ -461,7 +479,12 @@ function NodeOverlay({
 
         {!isAnalyzeMode && (
           <RadialToolGroup
-            open={isSelected && !isEditing && focusedButton !== "recommend" && zoom >= 1.2}
+            open={
+              isSelected &&
+              !isEditing &&
+              focusedButton !== "recommend" &&
+              zoom >= 1.2
+            }
             paletteOpen={paletteOpen}
             addInputOpen={showAddInput}
             currentColor={initialColor}
