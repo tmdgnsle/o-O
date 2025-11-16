@@ -33,6 +33,7 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     private final MindmapClient mindmapClient;
     private final UserServiceClient userServiceClient;
+    private final WorkspaceThumbnailService workspaceThumbnailService;
 
     private static final int MAX_MEMBERS = 6;
     private static final int DEFAULT_PAGE_SIZE = 20;
@@ -65,7 +66,7 @@ public class WorkspaceService {
     // 요청자 멤버 여부/역할 조회
     // 멤버 수 집계
     // WorkspaceDetailResponse 반환
-     @Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public WorkspaceDetailResponse getDetail(Long workspaceId, Long requesterUserId) {
         // 1. 워크스페이스 존재 확인
         Workspace w = workspaceRepository.findById(workspaceId)
@@ -79,17 +80,25 @@ public class WorkspaceService {
 
         boolean isMember = mine.isPresent();
 
-        // 3. 접근 권한 확인: 비공개 워크스페이스는 멤버만 조회 가능
+        // 3. 접근 권한 확인 (비공개 & 비회원이면 403)
         if (w.getVisibility() == WorkspaceVisibility.PRIVATE && !isMember) {
             throw new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MEMBER);
         }
 
-        // 4. 응답 생성
+        // 4. 썸네일 presigned URL 생성 (DB엔 key, 응답엔 URL)
+        String thumbnailUrl = workspaceThumbnailService.generateThumbnailPresignedUrl(
+                w.getThumbnail(),          // DB에 들어있는 S3 key
+                java.time.Duration.ofMinutes(10)
+        );
+
+        // 5. 응답 생성
         String myRole = String.valueOf(mine.map(WorkspaceMember::getRole).orElse(null));
         Long memberCount = workspaceMemberRepository.countByWorkspaceId(workspaceId);
 
-        return WorkspaceDetailResponse.of(w, isMember, myRole, memberCount);
+        return WorkspaceDetailResponse.of(w, thumbnailUrl, isMember, myRole, memberCount);
     }
+
+
 
     // 멤버 권한 변경
     public void changeMemberRole(Long workspaceId, Long requestUserId, Long targetUserId, WorkspaceRole newRole) {
@@ -216,7 +225,13 @@ public class WorkspaceService {
                             .map(uid -> profileImageMap.getOrDefault(uid, "popo1"))
                             .toList();
 
-                    return WorkspaceSimpleResponse.from(w, profiles);
+                    // 🔹 썸네일 presigned URL 생성 (DB에는 key, 응답에는 URL)
+                    String thumbnailUrl = workspaceThumbnailService.generateThumbnailPresignedUrl(
+                            w.getThumbnail(),
+                            java.time.Duration.ofMinutes(10)
+                    );
+
+                    return WorkspaceSimpleResponse.fromWithThumbnailUrl(w, profiles, thumbnailUrl);
                 })
                 .toList();
 
@@ -291,10 +306,22 @@ public class WorkspaceService {
 
     public List<WorkspaceSimpleResponse> getAllMyWorkspacesForMobile(Long userId) {
         List<Workspace> workspaces = workspaceRepository.findAllMyRecentWorkspaces(userId);
+
         return workspaces.stream()
-                .map(WorkspaceSimpleResponse::from)
+                .map(w -> {
+                    // 모바일은 profiles 사용 안하니까 그냥 빈 리스트 또는 기본값
+                    List<String> profiles = List.of();
+
+                    String thumbnailUrl = workspaceThumbnailService.generateThumbnailPresignedUrl(
+                            w.getThumbnail(),
+                            java.time.Duration.ofMinutes(10)
+                    );
+
+                    return WorkspaceSimpleResponse.fromWithThumbnailUrl(w, profiles, thumbnailUrl);
+                })
                 .toList();
     }
+
 
     /**
      * Public 워크스페이스 ID 목록 조회

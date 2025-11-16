@@ -11,18 +11,33 @@ public record WorkspaceDetailResponse(
         WorkspaceType type,
         WorkspaceVisibility visibility,
         String title,
-        String thumbnail,
+        String thumbnail,      // 여기에 presigned URL을 넣을 거임
         LocalDateTime createdAt,
-        boolean isMember,     // 요청자 기준 입장 여부
-        String myRole,        // OWNER/ADMIN/... (비회원이면 null)
+        boolean isMember,
+        String myRole,
         String token,
         Long memberCount
 ) {
-    public static WorkspaceDetailResponse of(Workspace w, boolean isMember, String myRole, Long memberCount) {
+    public static WorkspaceDetailResponse of(
+            Workspace w,
+            String thumbnailUrl,   // 🔹 추가
+            boolean isMember,
+            String myRole,
+            Long memberCount
+    ) {
         return new WorkspaceDetailResponse(
-                w.getId(), w.getType(), w.getVisibility(), w.getTitle(),
-                w.getThumbnail(), w.getCreatedAt(), isMember, myRole, w.getToken(), memberCount
+                w.getId(),
+                w.getType(),
+                w.getVisibility(),
+                w.getTitle(),
+                thumbnailUrl,         // 🔹 여기 URL 넣기
+                w.getCreatedAt(),
+                isMember,
+                myRole,
+                w.getToken(),
+                memberCount
         );
     }
 }
+
 // 입장 판단 및 내 역할 표시까지 포함한 상세 응답
