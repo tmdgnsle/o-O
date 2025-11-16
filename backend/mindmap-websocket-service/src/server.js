@@ -505,41 +505,23 @@ function handleYjsConnection(conn, req, url) {
 
   // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {
-    // 메시지 타입 확인 로그 추가
-    const msgType = msg instanceof Buffer ? 'Buffer' :
-                    msg instanceof ArrayBuffer ? 'ArrayBuffer' :
-                    typeof msg === 'string' ? 'String' :
-                    typeof msg;
-
-    logger.info(`[YJS] Message received (type: ${msgType})`, {
-      workspaceId,
-      userId: userId || 'anonymous',
-      length: msg.length || msg.byteLength || 0,
-      preview: msgType === 'String' || msgType === 'Buffer' ?
-               (msg.toString().substring(0, 100)) : 'binary',
-    });
-
-    // 바이너리 메시지는 Y.js가 처리 (setupWSConnection이 자동 처리)
-    if (msg instanceof Buffer || msg instanceof ArrayBuffer) {
+    // Buffer/ArrayBuffer를 문자열로 변환
+    let msgString;
+    try {
+      msgString = msg.toString();
+    } catch (e) {
+      // toString 실패 시 바이너리로 간주 (Y.js 메시지)
       return;
     }
 
-    // 텍스트 메시지는 커스텀 이벤트로 처리
+    // JSON으로 파싱 시도
     try {
-      const msgString = msg.toString();
-      logger.info(`[YJS] Attempting to parse JSON`, {
-        workspaceId,
-        userId: userId || 'anonymous',
-        rawMessage: msgString,
-      });
-
       const data = JSON.parse(msgString);
 
-      logger.info(`[YJS] JSON parsed successfully`, {
+      logger.info(`[YJS] Custom JSON message received`, {
         workspaceId,
         userId: userId || 'anonymous',
         type: data.type,
-        keys: Object.keys(data),
         fullData: data,
       });
 
@@ -562,14 +544,8 @@ function handleYjsConnection(conn, req, url) {
           });
       }
     } catch (error) {
-      // JSON 파싱 실패 시 Y.js 메시지로 간주
-      logger.info(`[YJS] JSON parse failed, treating as Y.js protocol message`, {
-        workspaceId,
-        userId: userId || 'anonymous',
-        error: error.message,
-        messageLength: msg.length,
-        messagePreview: msg.toString().substring(0, 50),
-      });
+      // JSON 파싱 실패 시 Y.js 바이너리 메시지로 간주 (로그 없이 무시)
+      return;
     }
   });
   const t3 = Date.now();
