@@ -131,41 +131,79 @@ const MindmapPageContent: React.FC = () => {
 
     console.log("[MindmapPage] 트렌드 키워드 임포트:", pendingKeywords);
 
-    // viewport 중심 좌표 계산
-    let startX = 0;
-    let startY = 0;
-    if (cyRef.current) {
-      const pan = cyRef.current.pan();
-      const zoom = cyRef.current.zoom();
-      const container = cyRef.current.container();
-      if (container) {
-        const centerX = container.clientWidth / 2;
-        const centerY = container.clientHeight / 2;
-        startX = (centerX - pan.x) / zoom;
-        startY = (centerY - pan.y) / zoom;
-      }
-    }
+    // 사용자가 직접 생성한 노드들만 필터링 (백엔드 자동 생성 기본 노드 제외)
+    // 백엔드 기본 노드 특징: parentId가 null이고 nodeId가 1인 초기 루트 노드
+    const userCreatedNodes = nodes.filter(node => {
+      // 백엔드가 자동 생성한 기본 루트 노드는 제외
+      return !(node.nodeId === 1 && node.parentId === null && nodes.length === 1);
+    });
 
-    // 키워드를 노드로 변환
+    const isNewMindmap = userCreatedNodes.length === 0;
+
+    // 키워드를 노드로 변환 (사용자가 생성한 노드들만 전달)
+    // 새 마인드맵일 때는 캔버스 중앙(2500, 2500)에 배치
     const newNodes = convertTrendKeywordsToNodes(
       pendingKeywords,
       getRandomThemeColor,
-      startX,
-      startY
+      userCreatedNodes // 사용자가 생성한 노드들만 전달
     );
 
-    // Y.Map에 노드 추가 (transaction으로 한 번에)
-    crud.transact((map) => {
+    // Y.Map에 노드 추가 (순차적으로 부모부터 추가하여 백엔드 동기화 보장)
+    // 한 번에 추가하면 부모가 nodeId를 받기 전에 자식이 처리될 수 있음
+    const addNodesSequentially = async () => {
       for (const node of newNodes) {
-        map.set(node.id, node);
+        // 노드 추가
+        crud.transact((map) => {
+          map.set(node.id, node);
+        });
+
+        // 부모 노드인 경우 (parentId가 없는 경우) nodeId를 받을 때까지 대기
+        if (!node.parentId) {
+          // 루트 노드: 백엔드에서 nodeId를 받을 때까지 대기
+          console.log(`[MindmapPage] Waiting for root node ${node.id} to get nodeId...`);
+          await waitForNodeId(node.id, 3000); // 최대 3초 대기
+        } else {
+          // 자식 노드: 짧은 지연만
+          console.log(`[MindmapPage] Adding child node ${node.id} with parent ${node.parentId}`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
-    });
+    };
+
+    // 노드가 백엔드에서 nodeId를 받을 때까지 대기하는 헬퍼 함수
+    const waitForNodeId = (nodeId: string, timeout: number): Promise<void> => {
+      return new Promise((resolve) => {
+        if (!collab?.map) {
+          console.warn(`[MindmapPage] No Y.Map available`);
+          resolve();
+          return;
+        }
+
+        const startTime = Date.now();
+        const checkInterval = setInterval(() => {
+          const node = collab.map.get(nodeId);
+          if (node?.nodeId) {
+            clearInterval(checkInterval);
+            console.log(`[MindmapPage] Node ${nodeId} received nodeId: ${node.nodeId}`);
+            resolve();
+          } else if (Date.now() - startTime > timeout) {
+            clearInterval(checkInterval);
+            console.warn(`[MindmapPage] Timeout waiting for nodeId for ${nodeId}`);
+            resolve();
+          }
+        }, 50);
+      });
+    };
+
+    addNodesSequentially();
 
     // 로컬스토리지에서 제거
     clearPendingImportKeywords();
 
+    // D3Canvas가 자동으로 첫 노드로 카메라를 이동시킴 (viewport init effect)
+
     console.log(`[MindmapPage] ${newNodes.length}개의 트렌드 키워드 노드 생성 완료`);
-  }, [collab, crud, isBootstrapping, getRandomThemeColor]);
+  }, [collab, crud, isBootstrapping, getRandomThemeColor, nodes]);
 
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {
