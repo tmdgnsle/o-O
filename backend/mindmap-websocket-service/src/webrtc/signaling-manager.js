@@ -13,6 +13,7 @@
  */
 
 import { logger } from '../utils/logger.js';
+import { gptSessionManager } from '../gpt/gpt-session-manager.js';
 
 const MAX_PARTICIPANTS = 6;
 
@@ -309,6 +310,49 @@ class SignalingManager {
     }, userId);
 
     logger.info(`[SignalingManager] Voice state broadcasted for user ${userId}:`, voiceState);
+  }
+
+  /**
+   * GPT 녹음 시작
+   */
+  handleGptStart(workspaceId, userId, conn) {
+    logger.info(`[SignalingManager] GPT recording started by user ${userId} in workspace ${workspaceId}`);
+
+    const room = this.voiceRooms.get(workspaceId);
+    if (!room) {
+      logger.warn(`[SignalingManager] Room not found for workspace ${workspaceId}`);
+      return;
+    }
+
+    // GPT 세션 시작
+    gptSessionManager.startSession(workspaceId);
+    gptSessionManager.addConnection(workspaceId, conn);
+
+    // 모든 참가자에게 알림
+    room.broadcast({
+      type: 'gpt-recording-started',
+      workspaceId,
+      startedBy: userId,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * GPT Transcript 처리
+   */
+  handleGptTranscript(workspaceId, userId, userName, text, timestamp) {
+    logger.debug(`[SignalingManager] GPT transcript from ${userName} in workspace ${workspaceId}`);
+
+    gptSessionManager.addTranscript(workspaceId, userId, userName, text, timestamp);
+  }
+
+  /**
+   * GPT 녹음 종료
+   */
+  handleGptStop(workspaceId, userId) {
+    logger.info(`[SignalingManager] GPT recording stopped by user ${userId} in workspace ${workspaceId}`);
+
+    gptSessionManager.stopSession(workspaceId);
   }
 
   /**

@@ -188,6 +188,25 @@ function handleVoiceConnection(conn, req, url) {
           signalingManager.handleVoiceState(workspaceId, userId, message.voiceState);
           break;
 
+        // GPT 관련 메시지
+        case 'gpt-start-recording':
+          signalingManager.handleGptStart(workspaceId, userId, conn);
+          break;
+
+        case 'gpt-transcript':
+          signalingManager.handleGptTranscript(
+            workspaceId,
+            userId,
+            message.userName,
+            message.text,
+            message.timestamp
+          );
+          break;
+
+        case 'gpt-stop-recording':
+          signalingManager.handleGptStop(workspaceId, userId);
+          break;
+
         default:
           logger.warn(`[VoiceChat] Unknown message type: ${message.type}`);
       }
