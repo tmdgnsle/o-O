@@ -1,7 +1,5 @@
 package com.ssafy.trendservice.service;
 
-import com.ssafy.trendservice.client.MindmapPublicSearchClient;
-import com.ssafy.trendservice.dto.response.KeywordNodeSearchResponse;
 import com.ssafy.trendservice.dto.response.TrendItem;
 import com.ssafy.trendservice.dto.response.TrendResponse;
 import com.ssafy.trendservice.repository.TrendDbRepository;
