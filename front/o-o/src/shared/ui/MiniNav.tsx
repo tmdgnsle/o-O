@@ -1,15 +1,20 @@
 // MiniNav.tsx
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Menu, Home, Compass, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PATHS } from "@/constants/paths";
+import { PATHS, getMindmapPath } from "@/constants/paths";
+import { useCreateWorkspaceMutation } from "@/features/workspace/hooks/mutation/useCreateWorkspaceMutation";
+import { useToast } from "@/shared/ui/ToastProvider";
 import type { RootState } from "@/store/store";
 
 export default function MiniNav() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { mutateAsync: createWorkspaceMutation, isPending } =
+    useCreateWorkspaceMutation();
+  const { showToast } = useToast();
 
   // Redux에서 로그인 상태 가져오기
   const isLoggedIn = useSelector(
@@ -26,6 +31,22 @@ export default function MiniNav() {
       setOpen(false);
     }, 50);
   };
+
+  const handleClickNewProject = useCallback(async () => {
+    if (isPending) return;
+
+    try {
+      const workspace = await createWorkspaceMutation(undefined);
+      setOpen(false);
+      navigate(getMindmapPath(workspace.id));
+    } catch (error) {
+      console.error("Failed to create workspace", error);
+      showToast(
+        "워크스페이스 생성에 실패했어요. 잠시 후 다시 시도해주세요.",
+        "error"
+      );
+    }
+  }, [createWorkspaceMutation, isPending, navigate, showToast]);
 
   const baseItems = [
     {
@@ -47,7 +68,7 @@ export default function MiniNav() {
         {
           key: "add",
           icon: <Plus className="w-6 h-6 text-primary" />,
-          onClick: () => handleNavigate("/mindmap"),
+          onClick: handleClickNewProject,
         },
       ]
     : baseItems;
