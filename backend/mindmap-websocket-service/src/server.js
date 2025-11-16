@@ -37,6 +37,116 @@ import { signalingManager } from './webrtc/signaling-manager.js';
 const app = express();
 const PORT = process.env.PORT || 8084;  // 기본 포트 8084
 
+// ===== workspace별 사용자 연결 추적 =====
+// Map<workspaceId, Map<userId(Number), WebSocket>>
+const workspaceConnections = new Map();
+
+/**
+ * workspace의 특정 사용자에게 메시지 전송
+ * @param {string} workspaceId - workspace ID
+ * @param {number} userId - 사용자 ID (Number)
+ * @param {object} message - 전송할 메시지 객체
+ */
+function sendToUser(workspaceId, userId, message) {
+  logger.info(`[sendToUser] Attempting to send message`, {
+    workspaceId,
+    userId,
+    messageType: message.type,
+  });
+
+  const users = workspaceConnections.get(workspaceId);
+  if (!users) {
+    logger.warn(`[sendToUser] Workspace ${workspaceId} not found in connections map`);
+    return false;
+  }
+
+  const conn = users.get(userId);
+  if (!conn) {
+    logger.warn(`[sendToUser] User ${userId} not found in workspace ${workspaceId}`, {
+      availableUsers: Array.from(users.keys()),
+    });
+    return false;
+  }
+
+  try {
+    const messageStr = JSON.stringify(message);
+    conn.send(messageStr);
+    logger.info(`[sendToUser] Message sent successfully`, {
+      workspaceId,
+      userId,
+      messageType: message.type,
+      messageSize: messageStr.length,
+    });
+    return true;
+  } catch (error) {
+    logger.error(`[sendToUser] Failed to send message`, {
+      workspaceId,
+      userId,
+      messageType: message.type,
+      error: error.message,
+      stack: error.stack,
+    });
+    return false;
+  }
+}
+
+/**
+ * workspace에 사용자 연결 추가
+ * @param {string} workspaceId - workspace ID
+ * @param {number} userId - 사용자 ID (Number)
+ * @param {WebSocket} conn - WebSocket 연결
+ */
+function addUserConnection(workspaceId, userId, conn) {
+  if (!workspaceConnections.has(workspaceId)) {
+    workspaceConnections.set(workspaceId, new Map());
+    logger.info(`[Connections] New workspace created in connections map`, { workspaceId });
+  }
+
+  const users = workspaceConnections.get(workspaceId);
+  users.set(userId, conn);
+
+  logger.info(`[Connections] User connected`, {
+    workspaceId,
+    userId,
+    totalUsersInWorkspace: users.size,
+    totalWorkspaces: workspaceConnections.size,
+  });
+}
+
+/**
+ * workspace에서 사용자 연결 제거
+ * @param {string} workspaceId - workspace ID
+ * @param {number} userId - 사용자 ID (Number)
+ */
+function removeUserConnection(workspaceId, userId) {
+  const users = workspaceConnections.get(workspaceId);
+  if (!users) {
+    logger.warn(`[Connections] Cannot remove user: workspace ${workspaceId} not found`, { userId });
+    return;
+  }
+
+  const existed = users.delete(userId);
+  if (!existed) {
+    logger.warn(`[Connections] User ${userId} was not in workspace ${workspaceId}`);
+    return;
+  }
+
+  logger.info(`[Connections] User disconnected`, {
+    workspaceId,
+    userId,
+    remainingUsersInWorkspace: users.size,
+  });
+
+  // workspace에 사용자가 없으면 Map에서 제거
+  if (users.size === 0) {
+    workspaceConnections.delete(workspaceId);
+    logger.info(`[Connections] Workspace removed from connections map (no users left)`, {
+      workspaceId,
+      remainingWorkspaces: workspaceConnections.size,
+    });
+  }
+}
+
 // ===== HTTP 엔드포인트 =====
 
 /**
@@ -126,6 +236,77 @@ wss.on('connection', (conn, req) => {
   // 기본: Y.js 연결 처리
   handleYjsConnection(conn, req, url);
 });
+
+/**
+ * ============================================
+ * 역할 변경 이벤트 핸들러
+ * ============================================
+ *
+ * 클라이언트가 다른 사용자의 역할을 변경하면 호출됨
+ * 해당 사용자에게만 role-update 이벤트를 전송
+ *
+ * @param {string} workspaceId - workspace ID
+ * @param {number|null} senderId - 이벤트를 보낸 사용자 ID
+ * @param {object} data - 메시지 데이터
+ * @param {number} data.targetUserId - 역할이 변경된 사용자 ID (Number)
+ */
+function handleRoleChanged(workspaceId, senderId, data) {
+  logger.info(`[RoleChanged] Role change event received`, {
+    workspaceId,
+    senderId: senderId || 'anonymous',
+    rawData: data,
+  });
+
+  const { targetUserId } = data;
+
+  // targetUserId 검증
+  if (typeof targetUserId !== 'number') {
+    logger.warn(`[RoleChanged] Invalid targetUserId type`, {
+      workspaceId,
+      senderId: senderId || 'anonymous',
+      targetUserId,
+      actualType: typeof targetUserId,
+      expectedType: 'number',
+    });
+    return;
+  }
+
+  // NaN 체크
+  if (isNaN(targetUserId)) {
+    logger.warn(`[RoleChanged] targetUserId is NaN`, {
+      workspaceId,
+      senderId: senderId || 'anonymous',
+      targetUserId,
+    });
+    return;
+  }
+
+  logger.info(`[RoleChanged] Processing role change`, {
+    workspaceId,
+    senderId: senderId || 'anonymous',
+    targetUserId,
+  });
+
+  // 역할이 변경된 사용자에게만 role-update 이벤트 전송
+  const sent = sendToUser(workspaceId, targetUserId, {
+    type: 'role-update',
+  });
+
+  if (sent) {
+    logger.info(`[RoleChanged] Role update notification sent successfully`, {
+      workspaceId,
+      senderId: senderId || 'anonymous',
+      targetUserId,
+    });
+  } else {
+    logger.warn(`[RoleChanged] Role update notification failed - user not connected`, {
+      workspaceId,
+      senderId: senderId || 'anonymous',
+      targetUserId,
+      reason: 'User not found in workspace connections',
+    });
+  }
+}
 
 /**
  * ============================================
@@ -240,8 +421,9 @@ function handleYjsConnection(conn, req, url) {
   const urlStr = req.url;
   const workspaceId = req.headers['x-workspace-id'] || url.searchParams.get('workspace');
 
-  // user ID 추출 (Gateway의 JWT 검증 결과)
-  const userId = req.headers['x-user-id'];
+  // user ID 추출 (Gateway의 JWT 검증 결과) - Number로 변환
+  const userIdStr = req.headers['x-user-id'];
+  const userId = userIdStr ? Number(userIdStr) : null;
 
   const t1 = Date.now();
 
@@ -252,10 +434,25 @@ function handleYjsConnection(conn, req, url) {
     return;
   }
 
-  logger.info(`New connection to workspace ${workspaceId}`, {
+  logger.info(`New Y.js connection to workspace ${workspaceId}`, {
     userId: userId || 'anonymous',
-    source: req.headers['x-workspace-id'] ? 'gateway-header' : 'query-param'
+    hasUserId: userId !== null,
+    source: req.headers['x-workspace-id'] ? 'gateway-header' : 'query-param',
+    userIdSource: userIdStr ? (req.headers['x-user-id'] ? 'gateway-header' : 'query-param') : 'none',
   });
+
+  // userId가 있으면 연결 추적 Map에 저장
+  if (userId !== null) {
+    logger.info(`[YJS] Registering user connection for role-change events`, {
+      workspaceId,
+      userId,
+    });
+    addUserConnection(workspaceId, userId, conn);
+  } else {
+    logger.warn(`[YJS] User connected without userId - role-change events will not work for this connection`, {
+      workspaceId,
+    });
+  }
 
   // 해당 워크스페이스의 Y.Doc 가져오기 또는 생성
   // Y.Doc: 실제 마인드맵 데이터를 저장하는 CRDT 문서
@@ -278,8 +475,48 @@ function handleYjsConnection(conn, req, url) {
     gc: process.env.YDOC_GC_ENABLED === 'true',    // 가비지 컬렉션 활성화 여부
   }, ydoc, awareness);  // ydoc과 awareness 명시적으로 전달
 
+  // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {
-    logger.debug(`[WS] Raw message received (${msg.length} bytes) workspace=${workspaceId}`);
+    // 바이너리 메시지는 Y.js가 처리 (setupWSConnection이 자동 처리)
+    if (msg instanceof Buffer || msg instanceof ArrayBuffer) {
+      logger.info(`[YJS] Binary message received`, {
+        workspaceId,
+        userId: userId || 'anonymous',
+        sizeBytes: msg.length,
+      });
+      return;
+    }
+
+    // 텍스트 메시지는 커스텀 이벤트로 처리
+    try {
+      const data = JSON.parse(msg.toString());
+      logger.info(`[YJS] Custom JSON message received`, {
+        type: data.type,
+        workspaceId,
+        userId: userId || 'anonymous',
+        messageSize: msg.length,
+      });
+
+      switch (data.type) {
+        case 'role-changed':
+          handleRoleChanged(workspaceId, userId, data);
+          break;
+
+        default:
+          logger.warn(`[YJS] Unknown custom message type: ${data.type}`, {
+            workspaceId,
+            userId: userId || 'anonymous',
+            availableTypes: ['role-changed'],
+          });
+      }
+    } catch (error) {
+      // JSON 파싱 실패 시 Y.js 메시지로 간주
+      logger.info(`[YJS] Non-JSON text message received, treating as Y.js protocol message`, {
+        workspaceId,
+        userId: userId || 'anonymous',
+        messageLength: msg.length,
+      });
+    }
   });
   const t3 = Date.now();
 
@@ -298,7 +535,20 @@ function handleYjsConnection(conn, req, url) {
    * 사용자가 브라우저를 닫거나 네트워크가 끊겼을 때 실행
    */
   conn.on('close', () => {
-    logger.info(`Connection closed for workspace ${workspaceId}`, { connectionId });
+    logger.info(`[YJS] Connection closed for workspace ${workspaceId}`, {
+      connectionId,
+      userId: userId || 'anonymous',
+      hasUserId: userId !== null,
+    });
+
+    // userId가 있으면 연결 추적 Map에서 제거
+    if (userId !== null) {
+      logger.info(`[YJS] Removing user from connections map`, {
+        workspaceId,
+        userId,
+      });
+      removeUserConnection(workspaceId, userId);
+    }
 
     // 현재 워크스페이스 통계 확인
     const stats = ydocManager.getStats();
