@@ -31,6 +31,7 @@ public class TrendQueryService {
     private final TrendRedisRepository redisRepository;
     private final TrendDbRepository dbRepository;
     private final PublicNodeSearchService publicNodeSearchService;
+    private static final int MIN_TREND_COUNT = 5;
 
     @Value("${trend.query.default-limit}")
     private int defaultLimit;
@@ -50,22 +51,27 @@ public class TrendQueryService {
         int actualLimit = validateLimit(limit);
         String key = RedisKeyUtil.zsetGlobalKey(period);
 
+        List<TrendItem> items;
+
         // 1. 캐시 조회
         if (redisRepository.zsetExists(key)) {
-            List<TrendItem> items = queryFromZset(key, actualLimit);
-            return buildResponse(period, null, items);
+            items = queryFromZset(key, actualLimit);
+        } else {
+            // 2. 캐시 미스: DB 조회 후 캐시 구성
+            Map<String, Double> dbResults = "7d".equals(period)
+                    ? dbRepository.getGlobalTrend7d(actualLimit)
+                    : dbRepository.getGlobalTrend30d(actualLimit);
+
+            redisRepository.zsetRebuild(key, dbResults, zsetCacheTtl);
+            items = convertMapToItems(dbResults);
         }
 
-        // 2. 캐시 미스: DB 조회 후 캐시 구성
-        Map<String, Double> dbResults = "7d".equals(period)
-                ? dbRepository.getGlobalTrend7d(actualLimit)
-                : dbRepository.getGlobalTrend30d(actualLimit);
+        // 🔥 최소 5개는 보장 (부족하면 랜덤 키워드 추가)
+        items = ensureMinSize(items, MIN_TREND_COUNT);
 
-        redisRepository.zsetRebuild(key, dbResults, zsetCacheTtl);
-
-        List<TrendItem> items = convertMapToItems(dbResults);
         return buildResponse(period, null, items);
     }
+
 
     // ================== 부모별 트렌드 조회 ==================
 
@@ -288,5 +294,50 @@ public class TrendQueryService {
     private String sanitizeKeyword(String keyword) {
         if (keyword == null) return "";
         return keyword.trim().toLowerCase();
+    }
+
+
+    /**
+     * 결과가 minSize 미만이면 랜덤 키워드로 채워서 개수를 맞춘다.
+     * - 기존 키워드는 그대로 유지
+     * - 랜덤 키워드는 score = 0 으로 넣음
+     */
+    private List<TrendItem> ensureMinSize(List<TrendItem> items, int minSize) {
+        if (items.size() >= minSize) {
+            return items;
+        }
+
+        int need = minSize - items.size();
+
+        // 이미 들어간 키워드들 중복 방지
+        Set<String> existing = items.stream()
+                .map(TrendItem::getKeyword)
+                .collect(Collectors.toSet());
+
+        // 여유 있게 2배 정도 뽑아서 겹치는 거 걸러냄
+        List<String> randomKeywords = dbRepository.getRandomKeywords(need * 2);
+
+        List<TrendItem> extra = new ArrayList<>();
+        for (String kw : randomKeywords) {
+            if (existing.contains(kw)) continue;
+
+            extra.add(TrendItem.builder()
+                    .keyword(kw)
+                    .score(0L)   // 랜덤 추천이니 점수 0
+                    .build());
+
+            existing.add(kw);
+            if (extra.size() >= need) break;
+        }
+
+        List<TrendItem> merged = new ArrayList<>();
+        merged.addAll(items);
+        merged.addAll(extra);
+
+        // rank 다시 1부터 매기기
+        AtomicInteger rank = new AtomicInteger(1);
+        merged.forEach(i -> i.setRank(rank.getAndIncrement()));
+
+        return merged;
     }
 }
