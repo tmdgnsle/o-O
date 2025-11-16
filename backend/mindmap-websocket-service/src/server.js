@@ -477,6 +477,20 @@ function handleYjsConnection(conn, req, url) {
 
   // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {
+    // 메시지 타입 확인 로그 추가
+    const msgType = msg instanceof Buffer ? 'Buffer' :
+                    msg instanceof ArrayBuffer ? 'ArrayBuffer' :
+                    typeof msg === 'string' ? 'String' :
+                    typeof msg;
+
+    logger.info(`[YJS] Message received (type: ${msgType})`, {
+      workspaceId,
+      userId: userId || 'anonymous',
+      length: msg.length || msg.byteLength || 0,
+      preview: msgType === 'String' || msgType === 'Buffer' ?
+               (msg.toString().substring(0, 100)) : 'binary',
+    });
+
     // 바이너리 메시지는 Y.js가 처리 (setupWSConnection이 자동 처리)
     if (msg instanceof Buffer || msg instanceof ArrayBuffer) {
       return;
@@ -484,16 +498,30 @@ function handleYjsConnection(conn, req, url) {
 
     // 텍스트 메시지는 커스텀 이벤트로 처리
     try {
-      const data = JSON.parse(msg.toString());
-      logger.info(`[YJS] Custom JSON message received`, {
-        type: data.type,
+      const msgString = msg.toString();
+      logger.info(`[YJS] Attempting to parse JSON`, {
         workspaceId,
         userId: userId || 'anonymous',
-        messageSize: msg.length,
+        rawMessage: msgString,
+      });
+
+      const data = JSON.parse(msgString);
+
+      logger.info(`[YJS] JSON parsed successfully`, {
+        workspaceId,
+        userId: userId || 'anonymous',
+        type: data.type,
+        keys: Object.keys(data),
+        fullData: data,
       });
 
       switch (data.type) {
         case 'role-changed':
+          logger.info(`[YJS] Routing to handleRoleChanged`, {
+            workspaceId,
+            userId,
+            targetUserId: data.targetUserId,
+          });
           handleRoleChanged(workspaceId, userId, data);
           break;
 
@@ -502,14 +530,17 @@ function handleYjsConnection(conn, req, url) {
             workspaceId,
             userId: userId || 'anonymous',
             availableTypes: ['role-changed'],
+            receivedData: data,
           });
       }
     } catch (error) {
       // JSON 파싱 실패 시 Y.js 메시지로 간주
-      logger.info(`[YJS] Non-JSON text message received, treating as Y.js protocol message`, {
+      logger.info(`[YJS] JSON parse failed, treating as Y.js protocol message`, {
         workspaceId,
         userId: userId || 'anonymous',
+        error: error.message,
         messageLength: msg.length,
+        messagePreview: msg.toString().substring(0, 50),
       });
     }
   });
