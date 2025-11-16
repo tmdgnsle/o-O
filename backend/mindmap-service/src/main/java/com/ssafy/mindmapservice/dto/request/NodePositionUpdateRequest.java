@@ -3,7 +3,7 @@ package com.ssafy.mindmapservice.dto.request;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * 단일 노드의 좌표 업데이트 요청
+ * 단일 노드의 좌표 및 색상 업데이트 요청
  */
 public record NodePositionUpdateRequest(
         @NotNull(message = "nodeId는 필수입니다")
@@ -13,6 +13,9 @@ public record NodePositionUpdateRequest(
         Double x,
 
         @NotNull(message = "y 좌표는 필수입니다")
-        Double y
+        Double y,
+
+        // color는 optional (null 가능)
+        String color
 ) {
 }

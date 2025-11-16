@@ -597,7 +597,7 @@ public class NodeController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
             @RequestBody VoiceIdeaRequest request) {
-        log.info("POST /mindmap/voice-idea - text={}", request.text());
+        log.info("POST /mindmap/stt-idea - text={}", request.text());
 
         InitialMindmapResponse response = nodeService.createVoiceIdeaNode(request.text(), userId);
 
@@ -605,26 +605,17 @@ public class NodeController {
     }
 
     @Operation(
-            summary = "노드 좌표 일괄 업데이트 (모바일)",
+            summary = "노드 좌표 및 색상 일괄 업데이트 (모바일)",
             description = """
-                    ## 여러 노드의 좌표를 한 번에 업데이트
+                    ## 여러 노드의 좌표와 색상을 한 번에 업데이트
 
                     모바일에서 STT 아이디어 확장 후 레이아웃을 계산한 결과를 반영할 때 사용합니다.
-                    여러 노드의 x, y 좌표를 한 번의 요청으로 업데이트할 수 있습니다.
+                    여러 노드의 x, y 좌표 및 색상을 한 번의 요청으로 업데이트할 수 있습니다.
 
                     ### 📌 사용 시나리오
-                    1. STT로 아이디어 생성 → AI가 여러 노드 확장 → 좌표는 null
+                    1. STT로 아이디어 생성 → AI가 여러 노드 확장 → 좌표, 색상은 null
                     2. 모바일에서 전체 노드 레이아웃 계산
-                    3. 이 API로 모든 노드의 좌표를 한 번에 업데이트
-
-                    ### ⚡ 트랜잭션 처리
-                    - 모든 노드가 성공적으로 업데이트되거나, 전부 실패합니다
-                    - 일부 노드가 실패하면 전체 롤백됩니다
-
-                    ### 📝 응답
-                    - 204 No Content: 성공 (응답 바디 없음)
-                    - 400 Bad Request: 잘못된 요청 (유효성 검증 실패)
-                    - 404 Not Found: 존재하지 않는 노드 ID 포함
+                    3. 이 API로 모든 노드의 좌표 및 색상을 한 번에 업데이트
                     """
     )
     @ApiResponses({
@@ -651,15 +642,15 @@ public class NodeController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = BatchPositionUpdateRequest.class),
                     examples = @ExampleObject(
-                            name = "좌표 일괄 업데이트 예시",
-                            summary = "여러 노드의 좌표를 한 번에 업데이트",
+                            name = "좌표 및 색상 일괄 업데이트 예시",
+                            summary = "여러 노드의 좌표와 색상을 한 번에 업데이트",
                             value = """
                                     {
                                       "positions": [
-                                        { "nodeId": 1, "x": 100.0, "y": 200.0 },
-                                        { "nodeId": 2, "x": 300.0, "y": 150.0 },
-                                        { "nodeId": 3, "x": 500.0, "y": 250.0 },
-                                        { "nodeId": 4, "x": 400.0, "y": 350.0 }
+                                        { "nodeId": 1, "x": 100.0, "y": 200.0, "color": "#3b82f6" },
+                                        { "nodeId": 2, "x": 300.0, "y": 150.0, "color": "#ef4444" },
+                                        { "nodeId": 3, "x": 500.0, "y": 250.0, "color": null },
+                                        { "nodeId": 4, "x": 400.0, "y": 350.0, "color": "#10b981" }
                                       ]
                                     }
                                     """

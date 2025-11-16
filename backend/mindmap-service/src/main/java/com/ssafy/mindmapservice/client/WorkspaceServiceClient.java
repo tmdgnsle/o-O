@@ -47,7 +47,7 @@ public interface WorkspaceServiceClient {
      * 워크스페이스 제목 업데이트 (내부용 - userId 불필요)
      * AI가 생성한 제목으로 업데이트할 때 사용
      */
-    @PatchMapping("/workspace/internal/{workspaceId}/title")
+    @PutMapping("/workspace/internal/{workspaceId}/title")
     void updateWorkspaceTitleInternal(
             @PathVariable("workspaceId") Long workspaceId,
             @RequestBody String title
