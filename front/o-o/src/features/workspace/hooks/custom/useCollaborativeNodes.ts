@@ -148,15 +148,29 @@ export function useCollaborativeNodes(
         const processedNodes = await calculateNodePositions(restNodes);
         console.timeEnd('[useCollaborativeNodes] calculateNodePositions');
 
-        // 자동 계산된 좌표를 추적 (서버에 저장하기 위해)
-        const autoCalculatedNodes = processedNodes.filter((processed, index) => {
+        // 🔥 좌표가 정규화된 노드들과 자동 계산된 노드들을 추적 (서버에 저장하기 위해)
+        const nodesToUpdate = processedNodes.filter((processed, index) => {
           const original = restNodes[index];
-          return (original && (original.x == null || original.y == null)) &&
-                 processed.x != null && processed.y != null &&
-                 processed.nodeId != null;
+          if (!original || processed.nodeId == null || processed.x == null || processed.y == null) {
+            return false;
+          }
+
+          // 1. null 좌표가 자동 계산된 경우
+          if ((original.x == null || original.y == null)) {
+            console.log(`[useCollaborativeNodes] Node ${processed.id} has auto-calculated position`);
+            return true;
+          }
+
+          // 2. 좌표가 0~5000 범위로 정규화된 경우 (_wasClamped 플래그)
+          const wasClamped = (processed as any)._wasClamped === true;
+          if (wasClamped) {
+            console.log(`[useCollaborativeNodes] Node ${processed.id} (${processed.keyword}) was clamped`);
+          }
+
+          return wasClamped;
         });
 
-        console.log(`[useCollaborativeNodes] Auto-calculated positions for ${autoCalculatedNodes.length} nodes`);
+        console.log(`[useCollaborativeNodes] Nodes to update: ${nodesToUpdate.length} (auto-calculated + normalized)`);
 
         // Use transaction to batch all insertions for performance
         console.time('[useCollaborativeNodes] Y.Map transaction');
@@ -187,8 +201,10 @@ export function useCollaborativeNodes(
             }
 
             if (!collab.map.has(node.id)) {
-              console.log(`[useCollaborativeNodes] Setting node ${node.id}:`, { keyword: node.keyword, memo: node.memo, x: node.x, y: node.y });
-              collab.map.set(node.id, node);
+              // _wasClamped 플래그 제거
+              const { _wasClamped, ...cleanNode } = node as any;
+              console.log(`[useCollaborativeNodes] Setting node ${cleanNode.id}:`, { keyword: cleanNode.keyword, memo: cleanNode.memo, x: cleanNode.x, y: cleanNode.y });
+              collab.map.set(cleanNode.id, cleanNode);
             }
           }
         }, "mindmap-bootstrap");
@@ -196,10 +212,10 @@ export function useCollaborativeNodes(
 
         console.log(`✅ [useCollaborativeNodes] Bootstrapped ${restNodes.length} nodes`);
 
-        // 자동 계산된 좌표를 서버에 저장
-        if (autoCalculatedNodes.length > 0) {
-          console.log(`[useCollaborativeNodes] Saving ${autoCalculatedNodes.length} auto-calculated positions to server...`);
-          const positionUpdates = autoCalculatedNodes.map(node => ({
+        // 정규화/자동 계산된 좌표를 서버에 저장
+        if (nodesToUpdate.length > 0) {
+          console.log(`[useCollaborativeNodes] Saving ${nodesToUpdate.length} position updates to server (normalized + auto-calculated)...`);
+          const positionUpdates = nodesToUpdate.map((node: NodeData) => ({
             nodeId: node.nodeId as number,
             x: node.x,
             y: node.y,

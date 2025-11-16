@@ -268,6 +268,8 @@ export default function D3Canvas({
     const viewportWidth = container.clientWidth;
     const viewportHeight = container.clientHeight;
 
+    const PADDING = 300; // 캔버스 경계에 여유 공간 추가 (노드가 잘 보이도록)
+
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 1.5]) // 최소 0.3배(축소), 최대 1.5배(확대)
@@ -276,8 +278,8 @@ export default function D3Canvas({
         [viewportWidth, viewportHeight],
       ]) // 뷰포트 크기
       .translateExtent([
-        [-CANVAS_WIDTH * 0.5, -CANVAS_HEIGHT * 0.5], // 캔버스 왼쪽 위 모서리
-        [CANVAS_WIDTH * 1.5, CANVAS_HEIGHT * 1.5], // 캔버스 오른쪽 아래 모서리
+        [-PADDING, -PADDING], // 캔버스 왼쪽 위에 여유 공간
+        [CANVAS_WIDTH + PADDING, CANVAS_HEIGHT + PADDING], // 캔버스 오른쪽 아래에 여유 공간
       ])
       .filter((event) => {
         // 노드 클릭 이벤트는 zoom에서 제외

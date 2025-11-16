@@ -214,12 +214,18 @@ function NodeOverlay({
       const newX = node.x + dx;
       const newY = node.y + dy;
 
+      // 좌표를 0~5000 범위로 제한
+      const CANVAS_MIN = 0;
+      const CANVAS_MAX = 5000;
+      const clampedX = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, newX));
+      const clampedY = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, newY));
+
       // 🔥 드래그 중에는 밀어내기 없이 드래그 노드만 업데이트
       onBatchNodePositionChange([
         {
           id: node.id,
-          x: newX,
-          y: newY,
+          x: clampedX,
+          y: clampedY,
         },
       ]);
 

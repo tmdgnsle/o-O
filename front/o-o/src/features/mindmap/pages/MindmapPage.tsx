@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import type { Core } from "cytoscape";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
 import MiniNav from "@/shared/ui/MiniNav";
@@ -34,12 +34,15 @@ import {
   DEFAULT_WORKSPACE_ID,
   resolveMindmapWsUrl,
 } from "@/constants/mindmapCollaboration";
+import { captureThumbnailAsFile } from "../utils/canvasCapture";
+import { mindmapApi } from "../api/mindmapApi";
 
 const MindmapPageContent: React.FC = () => {
   // 1. Routing & workspace params
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const navigate = useNavigate();
+  const location = useLocation();
   const wsUrl = resolveMindmapWsUrl();
 
   // 2. Get workspace info for role
@@ -115,6 +118,148 @@ const MindmapPageContent: React.FC = () => {
 
   // 9. Detached selection hook
   const detachedSelection = useDetachedSelection(nodes, nodeOperations.handleEditNode);
+
+  // 10. 썸네일 캡처 (페이지 언마운트 시 + 브라우저 탭 닫을 때)
+  const thumbnailCapturedRef = useRef(false);
+  const thumbnailCapturePromiseRef = useRef<Promise<void> | null>(null);
+  // 🔥 캔버스 요소를 미리 저장 (popstate 시점에 ref가 null이 되는 문제 해결)
+  const savedCanvasElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    // 🔥 뒤로가기 차단 플래그
+    const shouldBlockBackRef = { current: true };
+
+    // 썸네일 캡처 함수 (Promise 저장하여 중복 실행 방지)
+    const captureThumbnail = async () => {
+      // 이미 캡처 중이거나 완료했으면 스킵
+      if (thumbnailCapturedRef.current || thumbnailCapturePromiseRef.current) {
+        console.log('[MindmapPage] Thumbnail capture already in progress or completed');
+        return;
+      }
+
+      // 현재 ref 사용 (저장된 요소는 DOM에서 분리되어 html2canvas 실패)
+      const targetElement = canvasContainerRef.current;
+      if (!targetElement) {
+        console.log('[MindmapPage] No canvas element available for capture');
+        return;
+      }
+
+      console.log('📸 [MindmapPage] Starting thumbnail capture...');
+
+      // 캡처 Promise 저장 (중복 실행 방지)
+      thumbnailCapturePromiseRef.current = (async () => {
+        try {
+          const thumbnailFile = await captureThumbnailAsFile(targetElement, {
+            filename: `mindmap-${workspaceId}-thumbnail.png`,
+            maxWidth: 1200,
+            maxHeight: 800,
+          });
+
+          // 서버로 전송
+          await mindmapApi.uploadThumbnail(workspaceId, thumbnailFile);
+          thumbnailCapturedRef.current = true;
+          console.log('✅ [MindmapPage] Thumbnail captured and uploaded successfully');
+        } catch (error) {
+          console.error('❌ [MindmapPage] Thumbnail capture/upload failed:', error);
+          // 실패 시 다시 시도할 수 있도록 Promise 초기화
+          thumbnailCapturePromiseRef.current = null;
+        }
+      })();
+
+      return thumbnailCapturePromiseRef.current;
+    };
+
+    // 🔥 브라우저 뒤로가기 감지 - 캡처 후 실제 뒤로 가기
+    const handlePopState = async (e: PopStateEvent) => {
+      console.log('🔔🔔🔔 [MindmapPage] popstate event FIRED', {
+        shouldBlock: shouldBlockBackRef.current,
+        captured: thumbnailCapturedRef.current,
+        hasCanvas: !!canvasContainerRef.current,
+      });
+
+      // 첫 번째 popstate (진짜 사용자 뒤로가기)
+      if (shouldBlockBackRef.current && !thumbnailCapturedRef.current) {
+        // 뒤로가기 취소하고 원래 위치로 복귀
+        e.preventDefault?.(); // 표준 preventDefault (효과 없을 수 있음)
+        history.pushState(null, '', location.pathname);
+
+        console.log('🚫 [MindmapPage] Back navigation intercepted, capturing thumbnail...');
+
+        // 차단 플래그 해제 (다음 뒤로가기는 허용)
+        shouldBlockBackRef.current = false;
+
+        try {
+          // 캡처 시도 (완료 대기)
+          await captureThumbnail();
+          console.log('✅ [MindmapPage] Capture complete, navigation allowed');
+        } catch (error) {
+          console.error('❌ [MindmapPage] Capture failed, but navigation allowed:', error);
+        }
+
+        // 🔥 캡처 완료 후 자동으로 뒤로가기 (두 번 back - 우리가 추가한 state 제거 + 실제 뒤로가기)
+        setTimeout(() => {
+          history.go(-2); // 우리가 추가한 state + 실제 이전 페이지
+        }, 100);
+      }
+    };
+
+    // 페이지 숨김 이벤트 (브라우저 탭 닫기, 다른 탭으로 이동 등)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('🔔 [MindmapPage] visibilitychange to hidden');
+        if (!thumbnailCapturedRef.current) {
+          captureThumbnail();
+        }
+      }
+    };
+
+    // 브라우저 탭 닫기 전 이벤트
+    const handleBeforeUnload = () => {
+      console.log('🔔 [MindmapPage] beforeunload event');
+      if (!thumbnailCapturedRef.current) {
+        captureThumbnail();
+      }
+    };
+
+    // 🔥 MiniNav에서 발생시키는 커스텀 이벤트 감지
+    const handleMindmapNavigation = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      console.log('🔔 [MindmapPage] mindmap-navigation event detected:', customEvent.detail);
+      if (!thumbnailCapturedRef.current) {
+        // 캡처 시작 (비동기지만 완료를 기다리지 않음)
+        captureThumbnail();
+      }
+    };
+
+    // 🔥 뒤로가기 차단을 위한 히스토리 state 추가
+    history.pushState(null, '', location.pathname);
+    console.log('🔒 [MindmapPage] Added history state to catch back button');
+
+    // 이벤트 리스너 등록
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('mindmap-navigation', handleMindmapNavigation);
+
+    console.log('🔔 [MindmapPage] Thumbnail capture listeners registered');
+
+    // Cleanup
+    return () => {
+      console.log('🔔 [MindmapPage] Component unmounting, removing listeners', {
+        thumbnailCaptured: thumbnailCapturedRef.current,
+        hasCanvasRef: !!canvasContainerRef.current,
+        hasSavedCanvas: !!savedCanvasElementRef.current,
+      });
+
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('mindmap-navigation', handleMindmapNavigation);
+
+      // cleanup에서는 캡처하지 않음 (이미 DOM이 제거 중이라 html2canvas 실패)
+      console.log('⏭️ [MindmapPage] Cleanup complete (thumbnail capture handled by events)');
+    };
+  }, [workspaceId]);
 
   // 🔥 트렌드 키워드 임포트 (로컬스토리지에서 감지)
   useEffect(() => {

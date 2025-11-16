@@ -2,12 +2,46 @@ import type { NodeData } from "@/features/mindmap/types";
 import { mapDtoToNodeData, type NodeDTO } from "./dto/mindmap.dto";
 import { apiClient } from "@/lib/axios";
 
+const CANVAS_MIN = 0;
+const CANVAS_MAX = 5000;
+
+/**
+ * 노드 좌표를 0~5000 범위로 정규화하고, 변경 여부를 표시
+ */
+function clampNodePosition(node: NodeData): NodeData & { _wasClamped?: boolean } {
+  if (node.x == null || node.y == null) {
+    return node;
+  }
+
+  const clampedX = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, node.x));
+  const clampedY = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, node.y));
+
+  const wasClamped = clampedX !== node.x || clampedY !== node.y;
+
+  if (wasClamped) {
+    console.log(`[clampNodePosition] Clamping node ${node.id} (${node.keyword}):`, {
+      from: { x: node.x, y: node.y },
+      to: { x: clampedX, y: clampedY }
+    });
+  }
+
+  return {
+    ...node,
+    x: clampedX,
+    y: clampedY,
+    _wasClamped: wasClamped,
+  };
+}
+
 // Loads the initial node list so we can seed the collaborative Y.Map
 export const fetchMindmapNodes = async (
   workspaceId: string
 ): Promise<NodeData[]> => {
   const { data } = await apiClient.get<NodeDTO[]>(`/mindmap/${workspaceId}/nodes`);
-  return data.filter((dto) => !dto.deleted).map(mapDtoToNodeData);
+  return data
+    .filter((dto) => !dto.deleted)
+    .map(mapDtoToNodeData)
+    .map(clampNodePosition);
 };
 
 // Creates a new mindmap node

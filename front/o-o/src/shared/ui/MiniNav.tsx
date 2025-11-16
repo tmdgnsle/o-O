@@ -16,22 +16,27 @@ export default function MiniNav() {
     (state: RootState) => state.auth?.isLoggedIn || false
   );
 
+  const handleNavigate = (path: string) => {
+    // 🔥 페이지 이동 전 커스텀 이벤트 발생 (썸네일 캡처 트리거)
+    window.dispatchEvent(new CustomEvent('mindmap-navigation', { detail: { path } }));
+
+    // 약간의 지연 후 navigate (캡처 시작 대기)
+    setTimeout(() => {
+      navigate(path);
+      setOpen(false);
+    }, 50);
+  };
+
   const baseItems = [
     {
       key: "home",
       icon: <Home className="w-6 h-6 text-primary" />,
-      onClick: () => {
-        navigate(PATHS.HOME);
-        setOpen(false);
-      },
+      onClick: () => handleNavigate(PATHS.HOME),
     },
     {
       key: "explore",
       icon: <Compass className="w-6 h-6 text-primary" />,
-      onClick: () => {
-        navigate(PATHS.TREND);
-        setOpen(false);
-      },
+      onClick: () => handleNavigate(PATHS.TREND),
     },
   ];
 
@@ -42,10 +47,7 @@ export default function MiniNav() {
         {
           key: "add",
           icon: <Plus className="w-6 h-6 text-primary" />,
-          onClick: () => {
-            navigate("/mindmap");
-            setOpen(false);
-          },
+          onClick: () => handleNavigate("/mindmap"),
         },
       ]
     : baseItems;
