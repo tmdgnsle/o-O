@@ -33,7 +33,7 @@ export function useNodePositioning() {
       };
 
       // 1단계: 선호 위치 주변 근거리 후보들 (부모 노드 근처 우선)
-      const nearbyDistances = [0, 50, 100, 150, 200];
+      const nearbyDistances = [0, 30, 60, 90, 120, 150];
       const angles = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
 
       for (const distance of nearbyDistances) {
@@ -49,8 +49,8 @@ export function useNodePositioning() {
       }
 
       // 2단계: 나선형 탐색 (부모 근처에서 점진적으로 멀어짐)
-      const radiusStep = 50;
-      const maxRadius = 600; // 부모에서 너무 멀어지지 않게 제한
+      const radiusStep = 40;
+      const maxRadius = 400; // 부모에서 너무 멀어지지 않게 제한
 
       for (let radius = minDistance; radius <= maxRadius; radius += radiusStep) {
         const numAngles = Math.max(16, Math.floor((2 * Math.PI * radius) / 80));

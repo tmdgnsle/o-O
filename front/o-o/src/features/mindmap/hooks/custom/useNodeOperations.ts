@@ -109,12 +109,12 @@ export function useNodeOperations(params: {
       return;
     }
 
-    // 선호 위치: 부모 노드 오른쪽
-    const preferredX = parentX + 250;
+    // 선호 위치: 부모 노드 오른쪽 가까이
+    const preferredX = parentX + 200;
     const preferredY = parentY;
 
-    // 캔버스 전체에서 가장 빈 공간 찾기
-    const { x, y } = findEmptySpace(nodes, preferredX, preferredY, 180);
+    // 캔버스 전체에서 가장 빈 공간 찾기 (최소 거리 160px)
+    const { x, y } = findEmptySpace(nodes, preferredX, preferredY, 160);
 
     const newNode: NodeData = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,

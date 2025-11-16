@@ -1,24 +1,18 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as d3 from "d3";
 import { cn } from "@/lib/utils";
-import type { CytoscapeCanvasProps } from "../types";
-import type { NodeData } from "../types";
+import type { CytoscapeCanvasProps, NodeData } from "../types";
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   CANVAS_CENTER_X,
   CANVAS_CENTER_Y,
-  NODE_RADIUS,
-  PAN_LIMIT,
   createStraightPath,
   findParentNode,
-  clampPan,
 } from "../utils/d3Utils";
 import {
   createAllGradients,
   clearAllGradients,
-  getGradientUrl,
-  getShadowUrl,
 } from "../utils/d3GradientUtils";
 import NodeOverlay from "./overlays/NodeOverlay";
 
@@ -54,7 +48,10 @@ export default function D3Canvas({
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const transformRef = useRef({ x: 0, y: 0, k: 1 });
   const [d3Ready, setD3Ready] = useState(false);
-  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<
+    SVGSVGElement,
+    unknown
+  > | null>(null);
   const mouseMoveHandlersRef = useRef<Set<Function>>(new Set());
 
   // 엣지 생성
@@ -185,7 +182,7 @@ export default function D3Canvas({
 
         // getElementById (노드 선택용)
         getElementById: (id: string) => {
-          const node = nodes.find(n => n.id === id);
+          const node = nodes.find((n) => n.id === id);
           if (!node) return { empty: () => true };
 
           return {
@@ -225,20 +222,23 @@ export default function D3Canvas({
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 1.5]) // 최소 0.3배(축소), 최대 1.5배(확대)
-      .extent([[0, 0], [viewportWidth, viewportHeight]]) // 뷰포트 크기
+      .extent([
+        [0, 0],
+        [viewportWidth, viewportHeight],
+      ]) // 뷰포트 크기
       .translateExtent([
         [-CANVAS_WIDTH * 0.5, -CANVAS_HEIGHT * 0.5], // 캔버스 왼쪽 위 모서리
-        [CANVAS_WIDTH * 1.5, CANVAS_HEIGHT * 1.5],   // 캔버스 오른쪽 아래 모서리
+        [CANVAS_WIDTH * 1.5, CANVAS_HEIGHT * 1.5], // 캔버스 오른쪽 아래 모서리
       ])
       .filter((event) => {
         // 노드 클릭 이벤트는 zoom에서 제외
         const target = event.target as HTMLElement;
-        if (target.closest('[data-node-id]')) {
-          console.log('[D3Canvas] Zoom filter: ignoring node click');
+        if (target.closest("[data-node-id]")) {
+          console.log("[D3Canvas] Zoom filter: ignoring node click");
           return false;
         }
         // 마우스 왼쪽 버튼 드래그와 휠 이벤트만 허용
-        return !event.button || event.type === 'wheel';
+        return !event.button || event.type === "wheel";
       })
       .on("start", () => {
         if (svgRef.current) {
@@ -252,7 +252,11 @@ export default function D3Canvas({
         g.attr("transform", newTransform.toString());
 
         // transform 업데이트
-        const transformData = { x: newTransform.x, y: newTransform.y, k: newTransform.k };
+        const transformData = {
+          x: newTransform.x,
+          y: newTransform.y,
+          k: newTransform.k,
+        };
         transformRef.current = transformData;
         setTransform(transformData);
       })
@@ -260,7 +264,10 @@ export default function D3Canvas({
         if (svgRef.current) {
           svgRef.current.style.cursor = "grab";
         }
-        console.log("[D3Canvas] Zoom/pan ended, final transform:", transformRef.current);
+        console.log(
+          "[D3Canvas] Zoom/pan ended, final transform:",
+          transformRef.current
+        );
       });
 
     console.log("[D3Canvas] Attaching zoom behavior to SVG");
@@ -277,7 +284,9 @@ export default function D3Canvas({
     };
 
     const svgElement = svgRef.current;
-    svgElement.addEventListener("wheel", preventBrowserZoom, { passive: false });
+    svgElement.addEventListener("wheel", preventBrowserZoom, {
+      passive: false,
+    });
 
     return () => {
       svg.on(".zoom", null);
@@ -355,7 +364,10 @@ export default function D3Canvas({
 
       // 검증: 실제로 적용되었는지 확인
       setTimeout(() => {
-        console.log(`[D3Canvas] 🎯 Viewport initialized. Current transform:`, transformRef.current);
+        console.log(
+          `[D3Canvas] 🎯 Viewport initialized. Current transform:`,
+          transformRef.current
+        );
       }, 100);
     }, 150);
 
@@ -479,7 +491,17 @@ export default function D3Canvas({
     //   // 분석 모드에서는 드래그 비활성화
     //   nodeUpdate.on(".drag", null);
     // }
-  }, [d3Ready, nodes, mode, selectedNodeId, onNodeSelect, onNodeUnselect, onAnalyzeNodeToggle, onBatchNodePositionChange, edges]);
+  }, [
+    d3Ready,
+    nodes,
+    mode,
+    selectedNodeId,
+    onNodeSelect,
+    onNodeUnselect,
+    onAnalyzeNodeToggle,
+    onBatchNodePositionChange,
+    edges,
+  ]);
 
   // 배경 클릭 시 선택 해제 + 좌표 로그
   useEffect(() => {
@@ -491,7 +513,7 @@ export default function D3Canvas({
       const target = event.target as HTMLElement;
 
       // 노드를 클릭한 경우가 아니면 선택 해제
-      if (!target.closest('[data-node-id]')) {
+      if (!target.closest("[data-node-id]")) {
         // 스크린 좌표
         const rect = svgRef.current!.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
@@ -593,7 +615,10 @@ export default function D3Canvas({
   }, []);
 
   return (
-    <div className={cn("relative h-full w-full overflow-hidden", className)} ref={containerRef}>
+    <div
+      className={cn("relative h-full w-full overflow-hidden", className)}
+      ref={containerRef}
+    >
       {/* SVG 캔버스 - 배경색만 (엣지는 위에서 렌더링) */}
       <svg
         ref={svgRef}
@@ -612,12 +637,21 @@ export default function D3Canvas({
           className="absolute inset-0 w-full h-full pointer-events-none"
           style={{ zIndex: 5 }}
         >
-          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}>
+          <g
+            transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
+          >
             {edges.map((edge) => {
               const source = nodes.find((n) => n.id === edge.source);
               const target = nodes.find((n) => n.id === edge.target);
 
-              if (!source || !target || source.x == null || source.y == null || target.x == null || target.y == null) {
+              if (
+                !source ||
+                !target ||
+                source.x == null ||
+                source.y == null ||
+                target.x == null ||
+                target.y == null
+              ) {
                 return null;
               }
 
@@ -641,7 +675,10 @@ export default function D3Canvas({
 
       {/* HTML 오버레이 (노드 UI) - pointer-events는 none (자식에서 개별 설정) */}
       {d3Ready && (
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ zIndex: 10 }}
+        >
           {nodes.map((node) => {
             const hasChildren = nodes.some((n) => n.parentId === node.id);
             const isSelected = selectedNodeId === node.id;
@@ -685,6 +722,7 @@ export default function D3Canvas({
                 onApplyTheme={onApplyTheme}
                 onDeleteNode={onDeleteNode}
                 onEditNode={onEditNode}
+                onBatchNodePositionChange={onBatchNodePositionChange}
                 onCreateChildNode={onCreateChildNode}
                 detachedSelection={detachedSelectionMap?.[node.id]}
                 onKeepChildrenDelete={onKeepChildrenDelete}

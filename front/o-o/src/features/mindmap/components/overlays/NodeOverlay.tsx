@@ -82,8 +82,8 @@ function NodeOverlay({
     handleRecommendSelect,
   } = useNodeHandlers({
     id: node.id,
-    x,
-    y,
+    x: node.x,
+    y: node.y,
     initialColor,
     isSelected,
     onSelect,
