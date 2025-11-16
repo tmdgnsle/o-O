@@ -35,15 +35,18 @@ public class NodeController {
     private final NodeService nodeService;
 
     @Operation(
-            summary = "초기 마인드맵 생성 (홈 화면)",
+            summary = "초기 마인드맵 생성",
             description = """
-                    ## 홈 화면에서 새 마인드맵 생성
+                    ## 콘텐츠 기반 마인드맵 자동 생성
 
-                    워크스페이스 생성 + 첫 노드 생성 + INITIAL AI 분석 요청을 한 번에 처리합니다.
+                    콘텐츠(텍스트/이미지/영상)를 분석하여 워크스페이스와 루트 노드를 생성하고 AI 분석을 요청합니다.
 
                     ### 📌 처리 흐름
                     1. **워크스페이스 생성**: workspace-service를 호출하여 새 워크스페이스 생성
-                    2. **첫 노드 생성**: 루트 노드(parentId = null) 생성
+                    2. **루트 노드 생성**: contentType에 따라 적절한 루트 노드 생성
+                       - TEXT: keyword = "분석 중인 노드입니다.", type = "text"
+                       - IMAGE: keyword = contentUrl, type = "image"
+                       - VIDEO: keyword = contentUrl, type = "video"
                     3. **AI 분석 요청**: INITIAL 타입으로 Kafka에 분석 요청 전송
                     4. **즉시 응답**: 생성된 워크스페이스 및 노드 정보 반환
 
@@ -51,10 +54,11 @@ public class NodeController {
                     - AI 분석 결과는 Kafka Consumer를 통해 비동기로 처리됩니다
                     - 실시간 결과는 WebSocket을 통해 클라이언트에 전달됩니다
                     - 생성된 노드의 `analysisStatus`는 `PENDING` 상태로 반환됩니다
+                    - x, y 좌표는 null로 생성됩니다
 
                     ### 📝 INITIAL 분석 결과
                     - AI 요약이 원본 노드의 `memo`에 저장됩니다
-                    - 6개의 키워드 노드가 2단계 계층 구조로 생성됩니다
+                    - AI가 생성한 키워드 노드들이 계층 구조로 추가됩니다
                     """
     )
     @ApiResponses({
@@ -85,16 +89,24 @@ public class NodeController {
                     schema = @Schema(implementation = InitialMindmapRequest.class),
                     examples = {
                             @ExampleObject(
+                                    name = "텍스트 프롬프트 예시",
+                                    summary = "텍스트로 마인드맵 생성",
+                                    value = """
+                                            {
+                                              "contentUrl": null,
+                                              "contentType": "TEXT",
+                                              "startPrompt": "고기랑 관련된 아이디어 없을까?"
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
                                     name = "영상 콘텐츠 예시",
                                     summary = "유튜브 영상으로 마인드맵 생성",
                                     value = """
                                             {
-                                              "workspaceName": "고기 요리 아이디어",
-                                              "workspaceDescription": "다양한 고기 요리 레시피 정리",
-                                              "keyword": "고기 요리",
                                               "contentUrl": "https://youtu.be/qDG3auuSb1E",
                                               "contentType": "VIDEO",
-                                              "prompt": "고기랑 관련된 아이디어 없을까?"
+                                              "startPrompt": "이 영상에서 아이디어를 찾아줘"
                                             }
                                             """
                             ),
@@ -103,12 +115,9 @@ public class NodeController {
                                     summary = "이미지로 마인드맵 생성",
                                     value = """
                                             {
-                                              "workspaceName": "여행 계획",
-                                              "workspaceDescription": "여름 휴가 여행 계획",
-                                              "keyword": null,
                                               "contentUrl": "https://example.com/image.jpg",
                                               "contentType": "IMAGE",
-                                              "prompt": "이 사진을 보고 여행 아이디어를 제안해줘"
+                                              "startPrompt": "이 사진을 보고 여행 아이디어를 제안해줘"
                                             }
                                             """
                             )
@@ -120,7 +129,8 @@ public class NodeController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
             @RequestBody InitialMindmapRequest request) {
-        log.info("POST /mindmap/create-initial - userId={}, startPrompt={}", userId, request.startPrompt());
+        log.info("POST /mindmap/initial - userId={}, contentType={}, startPrompt={}",
+                userId, request.contentType(), request.startPrompt());
 
         InitialMindmapResponse response = nodeService.createInitialMindmap(Long.parseLong(userId), request);
 
