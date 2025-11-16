@@ -4,7 +4,7 @@ import { fetchMindmapNodes, batchUpdateNodePositions } from "@/services/mindmapS
 import { useYMapState } from "./useYMapState";
 import type { NodeData } from "../../../mindmap/types";
 import type { YClient } from "./yjsClient";
-import { CANVAS_CENTER_X, CANVAS_CENTER_Y } from "../../../mindmap/utils/d3Utils";
+import { CANVAS_CENTER_X, CANVAS_CENTER_Y, clampNodePosition } from "../../../mindmap/utils/d3Utils";
 import { calculateRadialLayoutWithForces } from "../../../mindmap/utils/radialLayoutWithForces";
 
 /**
@@ -63,20 +63,23 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   const positions = await calculateRadialLayoutWithForces(nodesForLayout, CANVAS_CENTER_X, CANVAS_CENTER_Y, 350);
   console.log(`[calculateNodePositions] Calculated ${positions.length} radial positions with BFS`);
 
-  // 계산된 좌표를 노드에 적용
+  // 계산된 좌표를 노드에 적용 (100px 마진으로 제한)
   const processedNodes = nodes.map(node => {
     const position = positions.find(p => p.id === node.id);
 
     if (position && (node.x == null || node.y == null)) {
+      // 좌표를 100~4900 범위로 제한 (노드가 경계에서 잘리지 않도록)
+      const clamped = clampNodePosition(position.x, position.y);
+
       console.log(`[calculateNodePositions] Applying position to ${node.id}:`, {
         keyword: node.keyword,
         from: { x: node.x, y: node.y },
-        to: { x: position.x, y: position.y },
+        to: { x: clamped.x, y: clamped.y },
       });
       return {
         ...node,
-        x: position.x,
-        y: position.y,
+        x: clamped.x,
+        y: clamped.y,
       };
     }
 

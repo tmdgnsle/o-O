@@ -214,9 +214,10 @@ function NodeOverlay({
       const newX = node.x + dx;
       const newY = node.y + dy;
 
-      // 좌표를 0~5000 범위로 제한
-      const CANVAS_MIN = 0;
-      const CANVAS_MAX = 5000;
+      // 좌표를 100~4900 범위로 제한 (100px 마진으로 노드가 경계에서 잘리지 않도록)
+      const MARGIN = 100;
+      const CANVAS_MIN = MARGIN;
+      const CANVAS_MAX = 5000 - MARGIN;
       const clampedX = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, newX));
       const clampedY = Math.max(CANVAS_MIN, Math.min(CANVAS_MAX, newY));
 

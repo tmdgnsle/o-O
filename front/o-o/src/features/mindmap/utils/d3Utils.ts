@@ -129,6 +129,30 @@ export function clampPan(
 }
 
 /**
+ * 노드 좌표를 캔버스 경계 내로 제한합니다 (100px 마진 적용)
+ * 노드가 경계에 너무 가까우면 잘려보일 수 있으므로 여유 공간 확보
+ *
+ * @param x - 노드 X 좌표
+ * @param y - 노드 Y 좌표
+ * @param margin - 경계로부터의 최소 거리 (기본 100px)
+ * @returns 제한이 적용된 좌표
+ */
+export function clampNodePosition(
+  x: number,
+  y: number,
+  margin: number = 100
+): { x: number; y: number } {
+  const minBound = margin;
+  const maxBoundX = CANVAS_WIDTH - margin;
+  const maxBoundY = CANVAS_HEIGHT - margin;
+
+  return {
+    x: Math.max(minBound, Math.min(maxBoundX, x)),
+    y: Math.max(minBound, Math.min(maxBoundY, y)),
+  };
+}
+
+/**
  * 두 좌표 사이의 거리를 계산합니다
  * @param x1 - 첫 번째 점의 X 좌표
  * @param y1 - 첫 번째 점의 Y 좌표
