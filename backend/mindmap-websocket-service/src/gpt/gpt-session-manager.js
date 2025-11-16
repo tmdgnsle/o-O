@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger.js';
-import { getYDoc } from '../yjs/ydoc-manager.js';
+import { ydocManager } from '../yjs/ydoc-manager.js';
 
 const GMS_API_URL = 'https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions';
 const GMS_KEY = process.env.GMS_KEY;
@@ -226,10 +226,10 @@ class GptSessionManager {
   // 현재 마인드맵 정보 가져오기
   getMindmapContext(workspaceId) {
     try {
-      const ydoc = getYDoc(`workspace:${workspaceId}`);
+      const ydoc = ydocManager.getDoc(workspaceId);
       if (!ydoc) return null;
 
-      const nodesMap = ydoc.getMap('nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
       const nodes = [];
 
       nodesMap.forEach((node, id) => {
