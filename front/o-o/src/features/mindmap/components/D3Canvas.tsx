@@ -88,15 +88,16 @@ export default function D3Canvas({
       });
   }, [nodes]);
 
-  // 부모 노드 위치 확인 로그만 (이동은 하지 않음 - 뷰포트로 해결)
+  // 루트 노드(nodeId === 1) 위치 확인 로그만 (이동은 하지 않음 - 뷰포트로 해결)
   useEffect(() => {
     if (nodes.length === 0) return;
 
-    const parentNode = findParentNode(nodes);
-    if (parentNode) {
-      console.log(`[D3Canvas] Parent node position:`, {
-        id: parentNode.id,
-        position: { x: parentNode.x, y: parentNode.y },
+    const rootNode = findParentNode(nodes);
+    if (rootNode) {
+      console.log(`[D3Canvas] Root node position:`, {
+        id: rootNode.id,
+        nodeId: rootNode.nodeId,
+        position: { x: rootNode.x, y: rootNode.y },
       });
     }
   }, [nodes.length]);

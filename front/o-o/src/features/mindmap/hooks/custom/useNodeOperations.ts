@@ -148,6 +148,13 @@ export function useNodeOperations(params: {
   const handleDeleteNode = useCallback(({ nodeId, deleteDescendants }: DeleteNodePayload) => {
     if (!crud) return;
 
+    // 루트 노드(nodeId === 1) 삭제 방지
+    const targetNode = nodes.find(n => n.id === nodeId);
+    if (targetNode?.nodeId === 1) {
+      console.warn("[useNodeOperations] 루트 노드는 삭제할 수 없습니다.");
+      return;
+    }
+
     const idsToDelete = new Set<string>([nodeId]);
 
     if (deleteDescendants) {

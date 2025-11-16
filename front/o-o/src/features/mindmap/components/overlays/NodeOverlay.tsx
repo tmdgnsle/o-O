@@ -114,13 +114,19 @@ function NodeOverlay({
   });
 
   const handleDeleteRequest = useCallback(() => {
+    // 루트 노드(nodeId === 1)는 삭제 불가
+    if (node.nodeId === 1) {
+      console.log("[NodeOverlay] 루트 노드는 삭제할 수 없습니다.");
+      return;
+    }
+
     if (hasChildren) {
       setFocusedButton(null);
       setDeleteDialogOpen(true);
       return;
     }
     handleDelete();
-  }, [hasChildren, handleDelete, setFocusedButton]);
+  }, [node.nodeId, hasChildren, handleDelete, setFocusedButton]);
 
   const handleDeleteDialogClose = useCallback(() => {
     setDeleteDialogOpen(false);
@@ -257,8 +263,8 @@ function NodeOverlay({
       if (nearestNode && nearestNode.id !== node.parentId) {
         const targetNode = allNodes.find((n) => n.id === nearestNode.id);
 
-        // 루트 노드(parentId가 null)를 드래그한 경우
-        if (!node.parentId || node.parentId === "0") {
+        // 루트 노드(nodeId가 1)를 드래그한 경우
+        if (node.nodeId === 1) {
           // 루트 노드는 부모가 변경되지 않고, 대상 노드의 부모를 루트로 변경
           console.log(
             `[NodeOverlay] 루트 노드 "${node.keyword}"에 "${targetNode?.keyword}"를 연결 - "${targetNode?.keyword}"의 부모를 루트로 변경`,
@@ -448,7 +454,7 @@ function NodeOverlay({
             focusedButton={focusedButton}
             centerX={x}
             centerY={y}
-            onDelete={handleDeleteRequest}
+            onDelete={node.nodeId === 1 ? undefined : handleDeleteRequest}
             onEdit={handleEdit}
             onAdd={handleAdd}
             onAddConfirm={handleAddConfirm}

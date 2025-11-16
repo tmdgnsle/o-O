@@ -54,15 +54,17 @@ export function buildNodeTree(selectedNodes: NodeData[]): TreeNode[] {
     }
 
 
-    // 부모가 없거나, 부모가 선택되지 않은 경우 → 루트 노드
-    if (!actualParentId || !nodeMap.has(actualParentId)) {
+    // nodeId가 1인 노드만 루트로 판단
+    const isRootNode = (node as any).nodeId === 1;
+    if (isRootNode) {
       roots.push(treeNode);
-    } else {
+    } else if (actualParentId && nodeMap.has(actualParentId)) {
       // 부모가 선택된 경우 → 자식 노드로 추가
       const parent = nodeMap.get(actualParentId)!;
       treeNode.depth = parent.depth + 1;
       parent.children.push(treeNode);
     }
+    // nodeId !== 1이면서 부모가 없으면 orphan 노드 (트리에 포함되지 않음)
   });
 
   // 3단계: 각 레벨에서 자식들을 정렬 (선택 순서 유지 또는 텍스트 기준)

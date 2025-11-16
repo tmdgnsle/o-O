@@ -102,12 +102,12 @@ export function getViewportCenter(
 }
 
 /**
- * 부모 노드를 찾습니다 (parentId가 null인 노드)
+ * 루트 노드를 찾습니다 (nodeId가 1인 노드)
  * @param nodes - 노드 배열
- * @returns 부모 노드 또는 undefined
+ * @returns 루트 노드 또는 undefined
  */
 export function findParentNode(nodes: NodeData[]): NodeData | undefined {
-  return nodes.find((node) => !node.parentId || node.parentId === "0");
+  return nodes.find((node) => node.nodeId === 1);
 }
 
 /**
@@ -263,7 +263,8 @@ export function calculateRadialLayout(
   // 노드 맵 생성
   for (const node of nodes) {
     nodeMap.set(node.id, { id: node.id, children: [] });
-    if (!node.parentId || node.parentId === "0") {
+    // nodeId가 1인 노드를 루트로 판단
+    if ("nodeId" in node && (node as any).nodeId === 1) {
       rootId = node.id;
     }
   }

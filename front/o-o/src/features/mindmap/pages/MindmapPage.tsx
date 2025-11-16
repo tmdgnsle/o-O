@@ -138,9 +138,9 @@ const MindmapPageContent: React.FC = () => {
       const existingNodesFromBackend = await fetchMindmapNodes(workspaceId);
       console.log("[MindmapPage] ✅ 기존 노드 수:", existingNodesFromBackend.length);
 
-      // 백엔드 자동 생성 기본 노드 제외
+      // 백엔드 자동 생성 기본 루트 노드(nodeId === 1) 제외
       const existingNodes = existingNodesFromBackend.filter(node => {
-        return !(node.nodeId === 1 && node.parentId === null && existingNodesFromBackend.length === 1);
+        return !(node.nodeId === 1 && existingNodesFromBackend.length === 1);
       });
 
       // 키워드를 노드로 변환
