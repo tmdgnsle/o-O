@@ -115,16 +115,14 @@ public class NodeController {
                     }
             )
     )
-    @PostMapping("/create-initial")
+    @PostMapping("/initial")
     public ResponseEntity<InitialMindmapResponse> createInitialMindmap(
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
             @RequestBody InitialMindmapRequest request) {
-        log.info("POST /mindmap/create-initial - userId={}, workspaceName={}, contentType={}",
-                userId, request.workspaceName(), request.contentType());
+        log.info("POST /mindmap/create-initial - userId={}, startPrompt={}", userId, request.startPrompt());
 
-        Long userIdLong = Long.parseLong(userId);
-        InitialMindmapResponse response = nodeService.createInitialMindmap(userIdLong, request);
+        InitialMindmapResponse response = nodeService.createInitialMindmap(Long.parseLong(userId), request);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }

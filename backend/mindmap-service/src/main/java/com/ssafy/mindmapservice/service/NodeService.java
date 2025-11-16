@@ -592,31 +592,56 @@ public class NodeService {
      */
     @Transactional
     public InitialMindmapResponse createInitialMindmap(Long userId, InitialMindmapRequest request) {
-        log.info("Creating initial mindmap: userId={}, workspaceName={}, contentType={}",
-                userId, request.workspaceName(), request.contentType());
+        log.info("Creating initial mindmap");
 
         // 1. 워크스페이스 생성 (workspace-service 호출)
         Long workspaceId = workspaceServiceClientAdapter.createWorkspace(
                 userId,
-                request.workspaceName()
+                request.startPrompt()
         );
         log.info("Workspace created: workspaceId={}", workspaceId);
 
-        // 2. 첫 번째 노드 생성
-        String nodeKeyword = request.keyword() != null && !request.keyword().isBlank()
-                ? request.keyword()
-                : request.workspaceName(); // keyword가 없으면 워크스페이스 이름 사용
+        String contentType = request.contentType();
+        MindmapNode rootNode = new MindmapNode();
 
-        MindmapNode firstNode = MindmapNode.builder()
-                .workspaceId(workspaceId)
-                .parentId(null) // 루트 노드
-                .type("text")
-                .keyword(nodeKeyword)
-                .memo("")
-                .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
-                .build();
+        if(contentType.equals("TEXT")){
+            rootNode = MindmapNode.builder()
+                    .workspaceId(workspaceId)
+                    .parentId(null)  // 루트 노드
+                    .keyword("분석 중인 노드입니다.")
+                    .type("text")  // STT 결과는 텍스트
+                    .x(null)  // 모바일에서는 좌표 없음
+                    .y(null)
+                    .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                    .build();
 
-        MindmapNode createdNode = createNode(firstNode);
+        }
+        else if(contentType.equals("IMAGE")){
+            rootNode = MindmapNode.builder()
+                    .workspaceId(workspaceId)
+                    .parentId(null)  // 루트 노드
+                    .keyword(request.contentUrl())
+                    .type("image")  // STT 결과는 텍스트
+                    .x(null)  // 모바일에서는 좌표 없음
+                    .y(null)
+                    .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                    .build();
+
+        }
+        else if(contentType.equals("VIDEO")){
+            rootNode = MindmapNode.builder()
+                    .workspaceId(workspaceId)
+                    .parentId(null)  // 루트 노드
+                    .keyword(request.contentUrl())
+                    .type("video")  // STT 결과는 텍스트
+                    .x(null)  // 모바일에서는 좌표 없음
+                    .y(null)
+                    .analysisStatus(MindmapNode.AnalysisStatus.PENDING)
+                    .build();
+
+        }
+
+        MindmapNode createdNode = createNode(rootNode);
         log.info("First node created: workspaceId={}, nodeId={}", workspaceId, createdNode.getNodeId());
 
         // 3. INITIAL AI 분석 요청 (Kafka)
@@ -625,7 +650,7 @@ public class NodeService {
                 createdNode.getNodeId(),
                 request.contentUrl(),
                 request.contentType(),
-                request.prompt(),
+                request.startPrompt(),
                 "INITIAL",
                 null // INITIAL 요청에서는 nodes = null
         );
