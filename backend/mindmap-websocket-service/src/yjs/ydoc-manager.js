@@ -210,7 +210,7 @@ class YDocManager {
     };
 
     for (const [workspaceId, ydoc] of this.docs.entries()) {
-      const nodesMap = ydoc.getMap('nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
       stats.workspaces.push({
         workspaceId,
         nodeCount: nodesMap.size,  // 해당 워크스페이스의 노드 수
