@@ -1,6 +1,11 @@
 package com.ssafy.userservice.util;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseCookie;
+import org.springframework.web.util.WebUtils;
+
+import java.util.Optional;
 
 public class CookieUtil {
 
@@ -30,5 +35,16 @@ public class CookieUtil {
 
     public static ResponseCookie deleteRefreshTokenCookie() {
         return createRefreshTokenCookie("", 0);
+    }
+
+    /**
+     * 특정 이름의 쿠키 값을 Optional로 반환
+     */
+    public static Optional<String> getCookie(HttpServletRequest request, String name) {
+        Cookie cookie = WebUtils.getCookie(request, name);
+        if (cookie != null) {
+            return Optional.of(cookie.getValue());
+        }
+        return Optional.empty();
     }
 }

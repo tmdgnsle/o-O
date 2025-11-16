@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
     @Value("${jwt.access-token-expiration}")
     private Long accessTokenExpiration;
@@ -34,6 +37,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${oauth2.redirect.frontend-url}")
     private String frontendRedirectUrl;
+
+    // 허용된 redirect URI 목록 (보안을 위한 화이트리스트)
+    private static final List<String> ALLOWED_REDIRECT_URIS = List.of(
+            "http://localhost:5173",
+            "https://www.o-o.io.kr"
+    );
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -62,30 +71,47 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         ResponseCookie refreshCookie = CookieUtil.createRefreshTokenCookie(refreshToken);
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        String origin = request.getHeader("Origin");
-        String referer = request.getHeader("Referer");
-        log.info("OAuth2 request origin: {}, referer: {}", origin, referer);
+        // 쿠키에서 redirect_uri 읽기 (OAuth2 로그인 시작 시 저장된 값)
+        String targetUrl = determineTargetUrl(request, response, accessToken, userId);
 
-        String redirectBaseUrl;
+        log.info("Redirecting to frontend with JWT tokens for userId: {}", userId);
 
-        if (origin != null && origin.contains("localhost")) {
-            redirectBaseUrl = "http://localhost:5173/callback";
-        } else if (referer != null && referer.contains("localhost")) {
-            redirectBaseUrl = "http://localhost:5173/callback";
+        // 임시 쿠키 정리
+        authorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
+
+        // 리다이렉트 수행
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String determineTargetUrl(HttpServletRequest request, HttpServletResponse response,
+                                       String accessToken, Long userId) {
+        Optional<String> redirectUri = CookieUtil.getCookie(request,
+                HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME);
+
+        String baseUrl;
+        if (redirectUri.isPresent() && isAuthorizedRedirectUri(redirectUri.get())) {
+            baseUrl = redirectUri.get();
+            log.info("Using redirect_uri from cookie: {}", baseUrl);
         } else {
-            redirectBaseUrl = frontendRedirectUrl;
+            baseUrl = frontendRedirectUrl;
+            log.info("Using default frontend redirect URL: {}", baseUrl);
         }
 
-        // 프론트엔드로 리다이렉트 (URL에 accessToken과 userId 포함)
-        String redirectUrl = UriComponentsBuilder.fromUriString(redirectBaseUrl)
+        // /callback 경로 추가
+        if (!baseUrl.endsWith("/callback")) {
+            baseUrl = baseUrl + "/callback";
+        }
+
+        return UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("token", accessToken)
                 .queryParam("userId", userId)
                 .build()
                 .toUriString();
+    }
 
-        log.info("Redirecting to frontend with JWT tokens for userId: {}", userId);
-
-        // 리다이렉트 수행
-        response.sendRedirect(redirectUrl);
+    private boolean isAuthorizedRedirectUri(String uri) {
+        // 허용된 URI 목록과 비교 (보안 검증)
+        return ALLOWED_REDIRECT_URIS.stream()
+                .anyMatch(uri::startsWith);
     }
 }

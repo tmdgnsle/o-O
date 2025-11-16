@@ -2,6 +2,7 @@ package com.ssafy.userservice.config;
 
 import com.ssafy.userservice.service.CustomOAuth2UserService;
 import com.ssafy.userservice.security.OAuth2SuccessHandler;
+import com.ssafy.userservice.security.HttpCookieOAuth2AuthorizationRequestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -44,6 +46,9 @@ public class SecurityConfig {
 
         // OAuth2 로그인 설정
         http.oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                        .authorizationRequestRepository(cookieAuthorizationRequestRepository)
+                )
                 .userInfoEndpoint(userInfo -> userInfo
                         .userService(customOAuth2UserService)
                 )
