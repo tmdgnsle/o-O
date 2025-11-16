@@ -163,31 +163,73 @@ public class TrendDbRepository {
      * 글로벌 트렌드 조회 (7일 기준)
      */
     public Map<String, Double> getGlobalTrend7d(int limit) {
+        LocalDate today = LocalDate.now();
+        LocalDate date7d = today.minusDays(6); // 오늘 포함 7일
+
         String sql = """
-            SELECT child_kw, SUM(score_7d) as total_score
+        WITH base AS (
+            -- 기존 글로벌 점수: child_kw 기준 합산
+            SELECT child_kw, SUM(score_7d) AS base_score
             FROM trend_edge_score
             GROUP BY child_kw
-            ORDER BY total_score DESC
-            LIMIT ?
+        ),
+        child_stats AS (
+            -- 최근 7일 동안 parent로 쓰인 키워드의 자식 개수
+            SELECT parent_kw AS kw,
+                   COUNT(DISTINCT child_kw) AS child_cnt
+            FROM trend_edge_daily
+            WHERE d >= ?
+            GROUP BY parent_kw
+        )
+        SELECT
+            b.child_kw,
+            -- 자식 수에 따른 가중치 적용
+            b.base_score * (1 + LN(1 + COALESCE(c.child_cnt, 0))) AS final_score
+        FROM base b
+        LEFT JOIN child_stats c ON c.kw = b.child_kw
+        -- 자식 없는 키워드 아예 빼고 싶으면 아래 주석 풀기
+        -- WHERE COALESCE(c.child_cnt, 0) > 0
+        ORDER BY final_score DESC
+        LIMIT ?
         """;
 
-        return queryToMap(sql, limit);
+        return queryToMap(sql, date7d, limit);
     }
+
 
     /**
      * 글로벌 트렌드 조회 (30일 기준)
      */
     public Map<String, Double> getGlobalTrend30d(int limit) {
+        LocalDate today = LocalDate.now();
+        LocalDate date30d = today.minusDays(29); // 오늘 포함 30일
+
         String sql = """
-            SELECT child_kw, SUM(score_30d) as total_score
+        WITH base AS (
+            SELECT child_kw, SUM(score_30d) AS base_score
             FROM trend_edge_score
             GROUP BY child_kw
-            ORDER BY total_score DESC
-            LIMIT ?
+        ),
+        child_stats AS (
+            SELECT parent_kw AS kw,
+                   COUNT(DISTINCT child_kw) AS child_cnt
+            FROM trend_edge_daily
+            WHERE d >= ?
+            GROUP BY parent_kw
+        )
+        SELECT
+            b.child_kw,
+            b.base_score * (1 + LN(1 + COALESCE(c.child_cnt, 0))) AS final_score
+        FROM base b
+        LEFT JOIN child_stats c ON c.kw = b.child_kw
+        -- WHERE COALESCE(c.child_cnt, 0) > 0
+        ORDER BY final_score DESC
+        LIMIT ?
         """;
 
-        return queryToMap(sql, limit);
+        return queryToMap(sql, date30d, limit);
     }
+
 
     /**
      * 키워드 검색 (LIKE 검색)
@@ -251,5 +293,17 @@ public class TrendDbRepository {
         }, args);
 
         return result;
+    }
+
+
+    public List<String> getRandomKeywords(int limit) {
+        String sql = """
+        SELECT child_kw
+        FROM trend_edge_score
+        ORDER BY random()
+        LIMIT ?
+        """;
+
+        return jdbcTemplate.queryForList(sql, String.class, limit);
     }
 }
