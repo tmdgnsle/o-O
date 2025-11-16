@@ -13,8 +13,13 @@ class GptSessionManager {
   // 세션 시작
   startSession(workspaceId) {
     if (this.sessions.has(workspaceId)) {
-      logger.warn(`[GPT] Session already exists for workspace ${workspaceId}`);
-      return this.sessions.get(workspaceId);
+      const session = this.sessions.get(workspaceId);
+      logger.warn(`[GPT] Session already exists`, {
+        workspaceId,
+        transcriptCount: session.transcripts.length,
+        connectionCount: session.connections.size,
+      });
+      return session;
     }
 
     const session = {
@@ -31,18 +36,35 @@ class GptSessionManager {
     }, 2000);
 
     this.sessions.set(workspaceId, session);
-    logger.info(`[GPT] Session started for workspace ${workspaceId}`);
+    logger.info(`[GPT] Session started`, {
+      workspaceId,
+      processingInterval: '2000ms',
+      totalSessions: this.sessions.size,
+    });
     return session;
   }
 
   // Transcript 추가
   addTranscript(workspaceId, userId, userName, text, timestamp) {
     const session = this.sessions.get(workspaceId);
-    if (!session) return;
+    if (!session) {
+      logger.warn(`[GPT] Cannot add transcript: session not found`, { workspaceId, userId });
+      return;
+    }
 
     session.transcripts.push({ userId, userName, text, timestamp });
 
-    // 모든 참가자에게 브로드캐스트
+    logger.info(`[GPT] STT transcript received`, {
+      workspaceId,
+      userId,
+      userName,
+      textLength: text.length,
+      textPreview: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+      totalTranscripts: session.transcripts.length,
+      timestamp: new Date(timestamp).toISOString(),
+    });
+
+    // 모든 참가자에게 브로드캐스트 (broadcast 함수가 로그를 남김)
     this.broadcast(workspaceId, {
       type: 'peer-transcript',
       userId,
@@ -50,8 +72,6 @@ class GptSessionManager {
       text,
       timestamp,
     });
-
-    logger.debug(`[GPT] Added transcript from ${userName} in workspace ${workspaceId}`);
   }
 
   // GPT 처리
@@ -67,44 +87,77 @@ class GptSessionManager {
       // 1. 현재 마인드맵 노드 정보 가져오기
       const mindmapContext = this.getMindmapContext(workspaceId);
 
+      logger.info(`[GPT] Mindmap context loaded`, {
+        workspaceId,
+        nodeCount: mindmapContext?.nodeCount || 0,
+        providedNodes: mindmapContext?.nodes?.length || 0,
+      });
+
       // 2. 대화 내역 포맷팅
       const conversation = session.transcripts
         .sort((a, b) => a.timestamp - b.timestamp)
         .map(t => `${t.userName}: ${t.text}`)
         .join('\n');
 
+      logger.info(`[GPT] Conversation formatted`, {
+        workspaceId,
+        transcriptCount: session.transcripts.length,
+        conversationLength: conversation.length,
+        conversationPreview: conversation.substring(0, 100) + (conversation.length > 100 ? '...' : ''),
+      });
+
       // 3. GPT 프롬프트 생성
       const prompt = this.buildPrompt(mindmapContext, conversation);
 
-      logger.info(`[GPT] Processing ${session.transcripts.length} transcripts for workspace ${workspaceId}`);
+      logger.info(`[GPT] Starting GPT API request`, {
+        workspaceId,
+        model: GPT_MODEL,
+        promptLength: prompt.length,
+        transcripts: session.transcripts.length,
+        mindmapNodes: mindmapContext?.nodeCount || 0,
+      });
 
       // 4. GMS API 호출 (스트리밍)
+      const requestBody = {
+        model: GPT_MODEL,
+        messages: [
+          {
+            role: 'developer',
+            content: '당신은 마인드맵 노드를 제안하는 AI입니다. 사용자 대화에서 키워드를 추출하고, 반드시 JSON 배열 형식으로만 답변하세요. 마크다운 코드블록(```)이나 설명 텍스트는 포함하지 마세요. 순수 JSON만 출력하세요. 한국어로 답변하세요.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        stream: true,
+        // temperature 제거: gpt-5-mini 모델은 기본값 1만 지원
+      };
+
+      logger.info(`[GPT] Sending request to GMS API`, {
+        url: GMS_API_URL,
+        model: GPT_MODEL,
+        messageCount: requestBody.messages.length,
+        stream: true,
+      });
+
       const response = await fetch(GMS_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GMS_KEY}`,
         },
-        body: JSON.stringify({
-          model: GPT_MODEL,
-          messages: [
-            {
-              role: 'developer',
-              content: '당신은 마인드맵 노드를 제안하는 AI입니다. 사용자 대화에서 키워드를 추출하고, 반드시 JSON 배열 형식으로만 답변하세요. 마크다운 코드블록(```)이나 설명 텍스트는 포함하지 마세요. 순수 JSON만 출력하세요. 한국어로 답변하세요.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          stream: true,
-          // temperature 제거: gpt-5-mini 모델은 기본값 1만 지원
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        logger.error(`[GPT] GMS API error: ${response.status}`, errorText);
+        logger.error(`[GPT] GMS API error`, {
+          workspaceId,
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+        });
 
         this.broadcast(workspaceId, {
           type: 'gpt-error',
@@ -117,6 +170,12 @@ class GptSessionManager {
       if (!response.body) {
         throw new Error('No response body from GMS API');
       }
+
+      logger.info(`[GPT] GMS API response received`, {
+        workspaceId,
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+      });
 
       // 5. 스트리밍 응답 처리
       await this.handleStreamResponse(workspaceId, response.body);
@@ -139,6 +198,10 @@ class GptSessionManager {
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
     let fullResponse = '';
+    let chunkCount = 0;
+    let firstChunkReceived = false;
+
+    logger.info(`[GPT] Starting stream response processing`, { workspaceId });
 
     for await (const chunk of stream) {
       buffer += decoder.decode(chunk, { stream: true });
@@ -149,7 +212,12 @@ class GptSessionManager {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed === 'data: [DONE]') continue;
+        if (!trimmed || trimmed === 'data: [DONE]') {
+          if (trimmed === 'data: [DONE]') {
+            logger.info(`[GPT] Stream finished (DONE signal received)`, { workspaceId, totalChunks: chunkCount });
+          }
+          continue;
+        }
 
         if (trimmed.startsWith('data: ')) {
           try {
@@ -158,6 +226,26 @@ class GptSessionManager {
 
             if (delta) {
               fullResponse += delta;
+              chunkCount++;
+
+              // 첫 청크 수신 로그
+              if (!firstChunkReceived) {
+                firstChunkReceived = true;
+                logger.info(`[GPT] First chunk received`, {
+                  workspaceId,
+                  firstChunkLength: delta.length,
+                  firstChunkPreview: delta.substring(0, 30) + (delta.length > 30 ? '...' : ''),
+                });
+              }
+
+              // 10개마다 진행 상황 로그
+              if (chunkCount % 10 === 0) {
+                logger.info(`[GPT] Stream progress`, {
+                  workspaceId,
+                  chunksReceived: chunkCount,
+                  currentResponseLength: fullResponse.length,
+                });
+              }
 
               // 클라이언트에 청크 전송 (실시간 피드백)
               this.broadcast(workspaceId, {
@@ -167,19 +255,50 @@ class GptSessionManager {
               });
             }
           } catch (e) {
-            logger.warn('[GPT] Failed to parse SSE line:', trimmed);
+            logger.warn(`[GPT] Failed to parse SSE line`, {
+              workspaceId,
+              error: e.message,
+              line: trimmed.substring(0, 100),
+            });
           }
         }
       }
     }
 
+    logger.info(`[GPT] Stream processing completed`, {
+      workspaceId,
+      totalChunks: chunkCount,
+      fullResponseLength: fullResponse.length,
+      responsePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+    });
+
     // JSON 파싱 및 검증
     try {
+      logger.info(`[GPT] Starting JSON parsing`, {
+        workspaceId,
+        rawResponseLength: fullResponse.length,
+      });
+
       // 1. 마크다운 코드블록 제거 (GPT가 실수로 넣을 수 있음)
       let jsonText = fullResponse.trim();
+      const originalText = jsonText;
       jsonText = jsonText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '');
 
+      if (originalText !== jsonText) {
+        logger.info(`[GPT] Removed markdown code blocks from response`, {
+          workspaceId,
+          before: originalText.substring(0, 50),
+          after: jsonText.substring(0, 50),
+        });
+      }
+
       // 2. JSON 파싱
+      logger.info(`[GPT] Parsing JSON`, {
+        workspaceId,
+        jsonLength: jsonText.length,
+        jsonPreview: jsonText.substring(0, 200) + (jsonText.length > 200 ? '...' : ''),
+      });
+
       const nodes = JSON.parse(jsonText);
 
       // 3. 배열인지 확인
@@ -187,20 +306,40 @@ class GptSessionManager {
         throw new Error('Response is not an array');
       }
 
+      logger.info(`[GPT] JSON parsed successfully`, {
+        workspaceId,
+        nodeCount: nodes.length,
+        isArray: true,
+      });
+
       // 4. 각 노드 검증
       const validatedNodes = nodes.map((node, index) => {
         if (!node.keyword || typeof node.keyword !== 'string') {
           throw new Error(`Node ${index}: missing or invalid keyword`);
         }
 
-        return {
+        const validated = {
           parentId: node.parentId || null,
           keyword: node.keyword.trim(),
           memo: node.memo?.trim() || '',
         };
+
+        logger.info(`[GPT] Node validated`, {
+          workspaceId,
+          index,
+          parentId: validated.parentId,
+          keyword: validated.keyword,
+          memoLength: validated.memo.length,
+        });
+
+        return validated;
       });
 
-      logger.info(`[GPT] Parsed ${validatedNodes.length} nodes for workspace ${workspaceId}`);
+      logger.info(`[GPT] All nodes validated successfully`, {
+        workspaceId,
+        totalNodes: validatedNodes.length,
+        nodes: validatedNodes.map(n => ({ keyword: n.keyword, parentId: n.parentId })),
+      });
 
       // 5. 클라이언트에 전송
       this.broadcast(workspaceId, {
@@ -209,9 +348,19 @@ class GptSessionManager {
         timestamp: Date.now(),
       });
 
+      logger.info(`[GPT] Results broadcasted to clients`, {
+        workspaceId,
+        nodeCount: validatedNodes.length,
+      });
+
     } catch (error) {
-      logger.error('[GPT] Failed to parse JSON:', error.message);
-      logger.debug('[GPT] Raw response:', fullResponse);
+      logger.error(`[GPT] Failed to parse JSON`, {
+        workspaceId,
+        error: error.message,
+        errorStack: error.stack,
+        rawResponseLength: fullResponse.length,
+        rawResponsePreview: fullResponse.substring(0, 500) + (fullResponse.length > 500 ? '...' : ''),
+      });
 
       // 파싱 실패 시
       this.broadcast(workspaceId, {
@@ -291,13 +440,31 @@ class GptSessionManager {
   // 브로드캐스트
   broadcast(workspaceId, message) {
     const session = this.sessions.get(workspaceId);
-    if (!session) return;
+    if (!session) {
+      logger.warn(`[GPT] Cannot broadcast: session not found`, { workspaceId, messageType: message.type });
+      return;
+    }
 
     const data = JSON.stringify(message);
+    let sentCount = 0;
+    let closedCount = 0;
+
     session.connections.forEach(conn => {
       if (conn.readyState === 1) { // OPEN
         conn.send(data);
+        sentCount++;
+      } else {
+        closedCount++;
       }
+    });
+
+    logger.info(`[GPT] Message broadcasted`, {
+      workspaceId,
+      messageType: message.type,
+      messageSize: data.length,
+      totalConnections: session.connections.size,
+      sentTo: sentCount,
+      closedConnections: closedCount,
     });
   }
 
@@ -306,7 +473,12 @@ class GptSessionManager {
     const session = this.sessions.get(workspaceId);
     if (session) {
       session.connections.add(conn);
-      logger.debug(`[GPT] Added connection to workspace ${workspaceId}`);
+      logger.info(`[GPT] Connection added`, {
+        workspaceId,
+        totalConnections: session.connections.size,
+      });
+    } else {
+      logger.warn(`[GPT] Cannot add connection: session not found`, { workspaceId });
     }
   }
 
@@ -315,14 +487,28 @@ class GptSessionManager {
     const session = this.sessions.get(workspaceId);
     if (session) {
       session.connections.delete(conn);
-      logger.debug(`[GPT] Removed connection from workspace ${workspaceId}`);
+      logger.info(`[GPT] Connection removed`, {
+        workspaceId,
+        remainingConnections: session.connections.size,
+      });
+    } else {
+      logger.warn(`[GPT] Cannot remove connection: session not found`, { workspaceId });
     }
   }
 
   // 세션 종료
   stopSession(workspaceId) {
     const session = this.sessions.get(workspaceId);
-    if (!session) return;
+    if (!session) {
+      logger.warn(`[GPT] Cannot stop session: session not found`, { workspaceId });
+      return;
+    }
+
+    logger.info(`[GPT] Stopping session`, {
+      workspaceId,
+      transcriptCount: session.transcripts.length,
+      connectionCount: session.connections.size,
+    });
 
     if (session.updateTimer) {
       clearInterval(session.updateTimer);
@@ -335,7 +521,10 @@ class GptSessionManager {
     });
 
     this.sessions.delete(workspaceId);
-    logger.info(`[GPT] Session stopped for workspace ${workspaceId}`);
+    logger.info(`[GPT] Session stopped`, {
+      workspaceId,
+      remainingSessions: this.sessions.size,
+    });
   }
 }
 
