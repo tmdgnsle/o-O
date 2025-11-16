@@ -259,9 +259,6 @@ function handleYjsConnection(conn, req, url) {
     gc: process.env.YDOC_GC_ENABLED === 'true',    // 가비지 컬렉션 활성화 여부
   }, ydoc, awareness);  // ydoc과 awareness 명시적으로 전달
 
-  conn.on('message', (msg) => {
-    logger.debug(`[WS] Raw message received (${msg.length} bytes) workspace=${workspaceId}`);
-  });
   const t3 = Date.now();
 
   logger.info(`[PROFILE][YJS] workspace=${workspaceId} timings(ms)`, {
