@@ -5,8 +5,9 @@ import type { ClientMessage, GptNodeSuggestion } from '../../types/voice.types';
 interface UseVoiceGptOptions {
   sendMessage: (message: ClientMessage) => void;
   isConnected: boolean;
-  onGptDone: (nodes: GptNodeSuggestion[]) => void;
+  onGptDone: (message: { nodes: GptNodeSuggestion[]; timestamp: number }) => void;
   onGptError?: (error: string, rawText?: string) => void;
+  onGptChunk?: (content: string) => void;
 }
 
 interface TranscriptItem {
@@ -21,6 +22,7 @@ export function useVoiceGpt({
   isConnected,
   onGptDone,
   onGptError,
+  onGptChunk,
 }: UseVoiceGptOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>([]);
@@ -31,6 +33,7 @@ export function useVoiceGpt({
   const sendMessageRef = useRef(sendMessage);
   const currentUserRef = useRef(currentUser);
   const onGptErrorRef = useRef(onGptError);
+  const onGptChunkRef = useRef(onGptChunk);
 
   // Refs 동기화
   useEffect(() => {
@@ -48,6 +51,10 @@ export function useVoiceGpt({
   useEffect(() => {
     onGptErrorRef.current = onGptError;
   }, [onGptError]);
+
+  useEffect(() => {
+    onGptChunkRef.current = onGptChunk;
+  }, [onGptChunk]);
 
   // Web Speech API 초기화 (한 번만 실행)
   useEffect(() => {
@@ -95,8 +102,8 @@ export function useVoiceGpt({
           console.log('[VoiceGpt] ✅ Final transcript confirmed:', transcript);
           console.log('[VoiceGpt] 👤 Speaker:', currentUserRef.current?.nickname, `(ID: ${currentUserRef.current?.id})`);
 
-          const message = {
-            type: 'gpt-transcript',
+          const message: ClientMessage = {
+            type: 'gpt-transcript' as const,
             userId: currentUserRef.current?.id.toString() || '',
             userName: currentUserRef.current?.nickname || '',
             text: transcript,
@@ -192,8 +199,8 @@ export function useVoiceGpt({
     }
 
     // 서버에 시작 신호
-    const startMessage = {
-      type: 'gpt-start-recording',
+    const startMessage: ClientMessage = {
+      type: 'gpt-start-recording' as const,
       userId: currentUser?.id.toString() || '',
     };
     console.log('[VoiceGpt] 📤 Sending start message to server:', startMessage);
@@ -218,8 +225,8 @@ export function useVoiceGpt({
     console.log('[VoiceGpt] Current user:', currentUser?.nickname, `(ID: ${currentUser?.id})`);
 
     // 서버에 종료 신호
-    const stopMessage = {
-      type: 'gpt-stop-recording',
+    const stopMessage: ClientMessage = {
+      type: 'gpt-stop-recording' as const,
       userId: currentUser?.id.toString() || '',
     };
     console.log('[VoiceGpt] 📤 Sending stop message to server:', stopMessage);
@@ -256,6 +263,16 @@ export function useVoiceGpt({
     []
   );
 
+  // GPT 청크 핸들러
+  const handleGptChunk = useCallback((content: string) => {
+    console.log('[VoiceGpt] 📦 ===== GPT CHUNK RECEIVED =====');
+    console.log('[VoiceGpt] 📦 Chunk content length:', content.length);
+    console.log('[VoiceGpt] 📦 Chunk content:', content);
+    console.log('[VoiceGpt] 📦 ================================');
+
+    onGptChunkRef.current?.(content);
+  }, []);
+
   // 녹음 토글
   const toggleRecording = useCallback(() => {
     if (isRecording) {
@@ -272,5 +289,6 @@ export function useVoiceGpt({
     stopRecording,
     toggleRecording,
     addPeerTranscript,
+    handleGptChunk,
   };
 }

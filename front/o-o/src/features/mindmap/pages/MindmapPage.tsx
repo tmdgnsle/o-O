@@ -70,7 +70,6 @@ const MindmapPageContent: React.FC = () => {
     {
       enabled: true, // Mindmap 페이지에서는 항상 활성화
       onAuthError: () => {
-        console.warn("[MindmapPage] auth error in collaboration, navigate to home");
         navigate("/"); // 인증 실패 시 홈으로 리다이렉트
       },
       myRole: workspace?.myRole, // 워크스페이스 역할 전달
@@ -83,7 +82,6 @@ const MindmapPageContent: React.FC = () => {
   useEffect(() => {
     if (collab?.map) {
       (globalThis as any).yNodes = collab.map;
-      console.log("[MindmapPage] Yjs map exposed to window.yNodes");
     }
   }, [collab]);
 
@@ -129,8 +127,6 @@ const MindmapPageContent: React.FC = () => {
     const pendingKeywords = getPendingImportKeywords();
     if (!pendingKeywords || pendingKeywords.length === 0) return;
 
-    console.log("[MindmapPage] 트렌드 키워드 임포트:", pendingKeywords);
-
     // viewport 중심 좌표 계산
     let startX = 0;
     let startY = 0;
@@ -163,8 +159,6 @@ const MindmapPageContent: React.FC = () => {
 
     // 로컬스토리지에서 제거
     clearPendingImportKeywords();
-
-    console.log(`[MindmapPage] ${newNodes.length}개의 트렌드 키워드 노드 생성 완료`);
   }, [collab, crud, isBootstrapping, getRandomThemeColor]);
 
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
@@ -174,18 +168,15 @@ const MindmapPageContent: React.FC = () => {
 
     const cy = cyRef.current;
     if (!cy) {
-      console.log("[MindmapPage] cyRef.current is null, skip cursor binding");
       return;
     }
 
     const awareness = collab.client.provider.awareness;
     if (!awareness) {
-      console.log("[MindmapPage] provider.awareness is null");
       return;
     }
 
     let raf = 0;
-    let lastLog = 0;
 
     const handleMouseMove = (event: cytoscape.EventObject) => {
       if (raf) cancelAnimationFrame(raf);
@@ -204,16 +195,10 @@ const MindmapPageContent: React.FC = () => {
           color: cursorColorRef.current,
         };
 
-        if (Date.now() - lastLog > 3000) {
-          console.log("[MindmapPage] set cursor (model coords):", cursorData);
-          lastLog = Date.now();
-        }
-
         awareness.setLocalStateField("cursor", cursorData);
       });
     };
 
-    console.log("[MindmapPage] attach mousemove for awareness cursor + chatInput");
     cy.on("mousemove", handleMouseMove);
 
     return () => {

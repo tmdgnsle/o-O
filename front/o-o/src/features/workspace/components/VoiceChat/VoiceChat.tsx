@@ -1,5 +1,5 @@
 // components/VoiceChat/VoiceChat.tsx
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useCallback, useRef } from "react";
 import VoiceAvatar from "./VoiceAvatar";
 import VoiceControls from "./VoiceContols";
 import { useVoiceChat } from "../../hooks/custom/useVoiceChat";
@@ -32,6 +32,22 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
 
+  // GPT Node Creator
+  const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId);
+
+  // Ref to store handleGptChunk function
+  const handleGptChunkRef = useRef<((content: string) => void) | null>(null);
+
+  // GPT 청크 핸들러
+  const onGptChunkReceived = useCallback((content: string) => {
+    console.log('[VoiceChat] 📦 GPT chunk received in VoiceChat component');
+    console.log('[VoiceChat] 📦 Chunk length:', content.length);
+    console.log('[VoiceChat] 📦 Chunk preview:', content.substring(0, 100) + '...');
+
+    // useVoiceGpt의 handleGptChunk 호출
+    handleGptChunkRef.current?.(content);
+  }, []);
+
   // Use the voice chat hook
   const {
     isInVoice,
@@ -48,15 +64,18 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     workspaceId,
     userId: currentUser?.id.toString(),
     enabled: false, // Manual join via button
+    onGptChunk: onGptChunkReceived,
   });
-
-  // GPT Node Creator
-  const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId);
 
   // GPT Hook
   const gpt = useVoiceGpt({
     sendMessage,
     isConnected: connectionState === 'connected',
+    onGptChunk: (content) => {
+      console.log('[VoiceChat] 📦 GPT chunk passed to onGptChunk callback');
+      console.log('[VoiceChat] 📦 Chunk length:', content.length);
+      // TODO: 스트림 청크를 UI에 표시
+    },
     onGptDone: (message) => {
       console.log('[VoiceChat] ===== GPT Processing Complete =====');
       console.log('[VoiceChat] 📊 Received GPT response:', {
@@ -86,6 +105,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       console.log('[VoiceChat] 💡 TODO: Display error notification to user');
     },
   });
+
+  // handleGptChunk를 ref에 저장
+  useEffect(() => {
+    handleGptChunkRef.current = gpt.handleGptChunk;
+  }, [gpt.handleGptChunk]);
 
   // Join voice chat on mount
   useEffect(() => {

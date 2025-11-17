@@ -8,9 +8,10 @@ interface UseVoiceChatOptions {
   workspaceId: string;
   userId: string | undefined;
   enabled?: boolean; // Whether to auto-join voice chat
+  onGptChunk?: (content: string) => void;
 }
 
-export function useVoiceChat({ workspaceId, userId, enabled = false }: UseVoiceChatOptions) {
+export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk }: UseVoiceChatOptions) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isInVoice, setIsInVoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function useVoiceChat({ workspaceId, userId, enabled = false }: UseVoiceC
       onOffer: (fromUserId, offer) => handleOfferRef.current?.(fromUserId, offer),
       onAnswer: (fromUserId, answer) => handleAnswerRef.current?.(fromUserId, answer),
       onIce: (fromUserId, candidate) => handleIceRef.current?.(fromUserId, candidate),
+      onGptChunk: onGptChunk,
     }
   );
 
