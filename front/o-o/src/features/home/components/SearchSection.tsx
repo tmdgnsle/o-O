@@ -8,7 +8,10 @@ import popo from "@/shared/assets/images/popo_chu.webp";
 import { useAppSelector } from "@/store/hooks";
 import type { TrendKeywordItem } from "@/features/trend/types/trend";
 import { useMediaUpload } from "../hooks/custom/useMediaUpload";
-import { useCreateInitialMindmapMutation } from "@/features/mindmap/hooks/mutation/useCreateInitialMindmapMutation";
+import {
+  useCreateInitialMindmapMutation,
+  useCreateInitialMindmapFromImageMutation,
+} from "@/features/mindmap/hooks/mutation/useCreateInitialMindmapMutation";
 import type { InitialMindmapRequestDTO } from "@/services/dto/mindmap.dto";
 
 interface SearchSectionProps {
@@ -40,6 +43,8 @@ export function SearchSection({
   } = useMediaUpload();
 
   const { mutateAsync: createInitialMindmap, isPending } = useCreateInitialMindmapMutation();
+  const { mutateAsync: createInitialMindmapFromImage, isPending: isImagePending } =
+    useCreateInitialMindmapFromImageMutation();
 
   useEffect(() => {
     if (isLoginModalOpen && globalThis.google?.accounts?.id) {
@@ -69,15 +74,23 @@ export function SearchSection({
     }
 
     try {
-      // 요청 데이터 구성
-      const request: InitialMindmapRequestDTO = {
-        contentUrl: mediaData.type === "youtube" ? mediaData.youtubeUrl ?? null : null,
-        contentType: mediaData.type === "youtube" ? "VIDEO" : "TEXT",
-        startPrompt: searchValue || null,
-      };
+      let response;
 
-      // API 호출
-      const response = await createInitialMindmap(request);
+      // 이미지 파일이 있는 경우
+      if (mediaData.type === "image" && mediaData.imageFile) {
+        response = await createInitialMindmapFromImage({
+          file: mediaData.imageFile,
+          startPrompt: searchValue || null,
+        });
+      } else {
+        // 텍스트 또는 비디오 URL인 경우
+        const request: InitialMindmapRequestDTO = {
+          contentUrl: mediaData.type === "youtube" ? mediaData.youtubeUrl ?? null : null,
+          contentType: mediaData.type === "youtube" ? "VIDEO" : "TEXT",
+          startPrompt: searchValue || null,
+        };
+        response = await createInitialMindmap(request);
+      }
 
       // 성공 시 마인드맵 페이지로 이동
       navigate(`/mindmap/${response.workspaceId}`);
@@ -118,8 +131,13 @@ export function SearchSection({
             selectedKeyword={selectedKeyword}
           />
         </div>
-        <Button onClick={handleCreateClick} variant="primary" size="responsive" disabled={isPending}>
-          {isPending ? "마인드맵을 생성 중입니다..." : "생성하기"}
+        <Button
+          onClick={handleCreateClick}
+          variant="primary"
+          size="responsive"
+          disabled={isPending || isImagePending}
+        >
+          {isPending || isImagePending ? "마인드맵을 생성 중입니다..." : "생성하기"}
         </Button>
       </div>
 

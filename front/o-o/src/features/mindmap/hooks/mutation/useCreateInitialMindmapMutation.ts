@@ -3,7 +3,7 @@ import {
   type InitialMindmapRequestDTO,
   type InitialMindmapResponseDTO,
 } from "@/services/dto/mindmap.dto";
-import { createInitialMindmap } from "@/services/mindmapService";
+import { createInitialMindmap, createInitialMindmapFromImage } from "@/services/mindmapService";
 
 export const useCreateInitialMindmapMutation = () =>
   useMutation<
@@ -13,4 +13,14 @@ export const useCreateInitialMindmapMutation = () =>
   >({
     mutationKey: ["mindmap", "createInitial"],
     mutationFn: (request) => createInitialMindmap(request),
+  });
+
+export const useCreateInitialMindmapFromImageMutation = () =>
+  useMutation<
+    InitialMindmapResponseDTO,
+    unknown,
+    { file: File; startPrompt: string | null }
+  >({
+    mutationKey: ["mindmap", "createInitialFromImage"],
+    mutationFn: ({ file, startPrompt }) => createInitialMindmapFromImage(file, startPrompt),
   });

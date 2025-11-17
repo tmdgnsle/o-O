@@ -86,3 +86,28 @@ export const createInitialMindmap = async (
   );
   return data;
 };
+
+// Creates initial mindmap from image file
+export const createInitialMindmapFromImage = async (
+  file: File,
+  startPrompt: string | null
+): Promise<InitialMindmapResponseDTO> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const params = new URLSearchParams();
+  if (startPrompt) {
+    params.append("startPrompt", startPrompt);
+  }
+
+  const { data } = await apiClient.post<InitialMindmapResponseDTO>(
+    `/mindmap/initial/image?${params.toString()}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return data;
+};

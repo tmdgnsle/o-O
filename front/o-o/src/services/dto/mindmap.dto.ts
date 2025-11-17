@@ -46,7 +46,7 @@ export interface UpdateMindmapNodeRequest {
 // Initial Mindmap Creation
 export interface InitialMindmapRequestDTO {
   contentUrl: string | null;
-  contentType: "TEXT" | "VIDEO";
+  contentType: "TEXT" | "VIDEO" | "IMAGE";
   startPrompt: string | null;
 }
 

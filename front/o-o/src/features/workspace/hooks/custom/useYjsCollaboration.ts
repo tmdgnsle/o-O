@@ -219,9 +219,9 @@ export function useYjsCollaboration(
 
           client.doc.transact(() => {
             restNodes.forEach((node) => {
-              if (!nodesMap.has(node.id)) {
-                nodesMap.set(node.id, node);
-              }
+              const existingNode = nodesMap.get(node.id);
+              const nextNode = existingNode ? { ...existingNode, ...node } : node;
+              nodesMap.set(node.id, nextNode);
             });
           }, "initial-create-done");
         } catch (error) {
