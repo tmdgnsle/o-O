@@ -170,21 +170,24 @@ public class NodeAiService {
 
         for (ExtractedKeywordNode extracted : extractedKeywords) {
             // parentId 유효성 검증
-            Long parentId = extracted.getParentId();
+            final Long parentIdFromGpt = extracted.getParentId();
             boolean parentExists = existingNodes.stream()
-                    .anyMatch(node -> node.getNodeId().equals(parentId));
+                    .anyMatch(node -> node.getNodeId().equals(parentIdFromGpt));
 
+            Long actualParentId;
             if (!parentExists) {
                 log.warn("Invalid parentId {} for keyword '{}'. Using root node instead.",
-                        parentId, extracted.getKeyword());
+                        parentIdFromGpt, extracted.getKeyword());
                 // 첫 번째 노드를 루트로 사용
-                parentId = existingNodes.get(0).getNodeId();
+                actualParentId = existingNodes.get(0).getNodeId();
+            } else {
+                actualParentId = parentIdFromGpt;
             }
 
             // 새 노드 생성
             MindmapNode newNode = MindmapNode.builder()
                     .workspaceId(workspaceId)
-                    .parentId(parentId)
+                    .parentId(actualParentId)
                     .type("text")
                     .keyword(extracted.getKeyword())
                     .memo(extracted.getMemo())
