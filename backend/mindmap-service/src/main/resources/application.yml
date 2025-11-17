@@ -67,3 +67,10 @@ feign:
     enabled: false
   okhttp:
     enabled: true
+
+cloud:
+  aws:
+    s3:
+      region: ap-northeast-2
+      thumbnail-bucket: o-o-bucket
+      thumbnail-prefix: mindmap/image
