@@ -27,7 +27,7 @@ export function useVoiceGpt({
   const [isRecording, setIsRecording] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptItem[]>([]);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const currentUser = useAppSelector((state) => state.user.user);
   const isRecordingRef = useRef(isRecording);
   const sendMessageRef = useRef(sendMessage);
@@ -83,7 +83,7 @@ export function useVoiceGpt({
       maxAlternatives: recognition.maxAlternatives,
     });
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       console.log('[VoiceGpt] 📝 Speech recognition result event (resultIndex:', event.resultIndex, ', total results:', event.results.length, ')');
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -121,7 +121,7 @@ export function useVoiceGpt({
       }
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       console.error('[VoiceGpt] ❌ Speech recognition error:', event.error);
       console.error('[VoiceGpt] Error details:', {
         error: event.error,
