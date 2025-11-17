@@ -43,8 +43,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: mindmap-spring-config
-#            - secretRef:
-#                name: mindmap-secret
+            - secretRef:
+                name: mindmap-spring-secret
 ---
 apiVersion: v1
 kind: Service
