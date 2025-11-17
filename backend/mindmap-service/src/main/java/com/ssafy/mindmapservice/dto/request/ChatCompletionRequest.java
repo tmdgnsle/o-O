@@ -1,5 +1,6 @@
 package com.ssafy.mindmapservice.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,7 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatCompletionRequest {
-    private String model;              // "gpt-5" 등
+    private String model;
     private List<ChatMessage> messages;
-    // 필요하면 temperature, max_tokens 등 나중에 추가
+    private Double temperature;
+    @JsonProperty("max_tokens")
+    private Integer maxTokens;
 }

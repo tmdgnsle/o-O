@@ -57,7 +57,9 @@ public class NodeAiService {
                                 "You are an expert product planner who analyzes mindmap structures " +
                                         "and extracts insights for service planning."),
                         new ChatMessage("user", prompt)
-                )
+                ),
+                0.3,
+                800
         );
 
         ChatCompletionResponse gmsResponse = callGms(gmsRequest, "분석");
@@ -86,7 +88,9 @@ public class NodeAiService {
                                 "You are a senior product manager who writes real-world service planning documents " +
                                         "based on analysis summaries."),
                         new ChatMessage("user", prompt)
-                )
+                ),
+                0.3,
+                800
         );
 
         ChatCompletionResponse gmsResponse = callGms(gmsRequest, "기획안 생성");
