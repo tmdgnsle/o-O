@@ -639,9 +639,9 @@ public class NodeController {
         nodeService.requestAiAnalysis(
                 workspaceId,
                 nodeId,
-                null,   // contentUrl 사용 안 함
-                null,   // contentType 사용 안 함
-                null    // prompt 사용 안 함
+                request.contentUrl(),   // contentUrl 사용 안 함
+                request.contentType(),   // contentType 사용 안 함
+                request.prompt()    // prompt 사용 안 함
         );
 
         return ResponseEntity.accepted().build();
