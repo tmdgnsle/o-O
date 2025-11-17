@@ -83,3 +83,7 @@ cloud:
 gms:
   base-url: https://gms.ssafy.io/gmsapi
   api-key: ${GMS_KEY}
+
+service:
+  trend:
+    url: ${TREND_SERVICE_URL:http://trend-svc:8085}
