@@ -192,13 +192,11 @@ const MindmapPageContent: React.FC = () => {
     const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
 
     // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
-    if (updateGptState) {
+    if (updateGptState && gptState) {
       console.log('[MindmapPage] 📡 Awareness에 키워드 추가');
       updateGptState({
-        isRecording: gptState?.isRecording ?? true,
-        keywords: [...(gptState?.keywords ?? []), ...newKeywords],
-        startedBy: gptState?.startedBy ?? currentUser?.id.toString() ?? '',
-        timestamp: Date.now(),
+        ...gptState, // 기존 상태 유지 (isRecording, startedBy, timestamp 등)
+        keywords: [...(gptState.keywords ?? []), ...newKeywords], // 키워드만 추가
       });
     }
   }, [updateGptState, gptState, currentUser]);
