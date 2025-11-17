@@ -89,7 +89,7 @@ class KafkaConsumerService {
       });
 
 
-      logger.info(`Kafka consumer subscribed to ${topic}`, { brokers });
+      logger.info(`Kafka consumer subscribed to topics: [${this.nodeUpdateTopic}, ${this.aiSuggestionTopic}]`, { brokers });
     } catch (error) {
       // 연결 실패 시 비활성화 (서비스 중단 방지)
       logger.error('Failed to initialize Kafka consumer', {
