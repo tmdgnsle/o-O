@@ -65,6 +65,8 @@ export type CytoscapeNodeOverlayProps = {
   isAnalyzeSelected: boolean;
   allNodes?: NodeData[]; // 🔥 force simulation을 위한 전체 노드 정보
   canvasApi?: any; // D3Canvas mockCy 객체 (focusOnNode 등의 API)
+  aiRecommendations?: RecommendNodeData[]; // AI 추천 노드 목록
+  workspaceId?: string; // 워크스페이스 ID (AI 분석 요청에 필요)
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
@@ -119,6 +121,7 @@ export type RecommendNodeOverlayProps = Readonly<{
   selectedNodeX: number;
   selectedNodeY: number;
   trendRecommendations?: RecommendNodeData[];
+  aiRecommendations?: RecommendNodeData[];
 }>;
 
 // Textbox.tsx

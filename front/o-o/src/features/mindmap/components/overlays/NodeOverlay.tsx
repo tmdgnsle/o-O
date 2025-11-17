@@ -35,6 +35,8 @@ function NodeOverlay({
   isAnalyzeSelected,
   allNodes = [], // 🔥 force simulation을 위한 전체 노드 정보
   canvasApi, // 🔥 D3Canvas API (focusOnNode 등)
+  aiRecommendations = [], // AI 추천 노드 목록
+  workspaceId,
   onSelect,
   onDeselect,
   onApplyTheme,
@@ -130,6 +132,9 @@ function NodeOverlay({
     y: node.y,
     initialColor,
     isSelected,
+    nodeId: node.nodeId,
+    workspaceId,
+    allNodes,
     onSelect,
     onDeselect,
     setFocusedButton,
@@ -209,23 +214,17 @@ function NodeOverlay({
     (e: React.MouseEvent) => {
       e.stopPropagation();
 
-      if (isAnalyzeMode) {
-        // analyze 모드에서는 클릭만 처리
-        onSelect();
-        return;
-      }
-
       // edit 모드: 드래그 시작
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
       setHasMoved(false);
     },
-    [isAnalyzeMode, onSelect]
+    []
   );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !dragStart || !onBatchNodePositionChange) return;
+      if (!isDragging || !dragStart || !onBatchNodePositionChange || isAnalyzeMode) return;
 
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
@@ -264,39 +263,46 @@ function NodeOverlay({
       node.y,
       node.id,
       onBatchNodePositionChange,
+      isAnalyzeMode,
     ]
   );
 
   const handleMouseUp = useCallback(() => {
-    // 드래그하지 않고 클릭만 한 경우 노드 중앙 포커스 후 onSelect 호출
-    if (!hasMoved && !isAnalyzeMode) {
-      // 🔥 노드를 화면 중앙으로 이동하고 최대 줌 레벨로 확대
-      if (canvasApi && canvasApi.focusOnNode) {
-        canvasApi.focusOnNode(node.id);
+    // 드래그하지 않고 클릭만 한 경우
+    if (!hasMoved) {
+      if (isAnalyzeMode) {
+        // 분석 모드: 즉시 onSelect 호출 (토글 동작)
+        onSelect();
+      } else {
+        // 편집 모드: 노드 중앙 포커스 후 onSelect 호출
+        // 🔥 노드를 화면 중앙으로 이동하고 최대 줌 레벨로 확대
+        if (canvasApi && canvasApi.focusOnNode) {
+          canvasApi.focusOnNode(node.id);
 
-        // 이미 최대 확대 상태(zoom >= 1.2)라면 짧은 시간(100ms) 후 표시
-        // 그렇지 않으면 애니메이션 완료 후(500ms) 표시
-        const delay = zoom >= 1.2 ? 100 : 500;
+          // 이미 최대 확대 상태(zoom >= 1.2)라면 짧은 시간(100ms) 후 표시
+          // 그렇지 않으면 애니메이션 완료 후(500ms) 표시
+          const delay = zoom >= 1.2 ? 100 : 500;
 
-        setTimeout(() => {
+          setTimeout(() => {
+            onSelect();
+            // 이미지 또는 비디오 노드인 경우 모달 자동 열기
+            if (node.type === "image" || node.type === "video") {
+              setDetailModalOpen(true);
+            }
+          }, delay);
+        } else {
+          // canvasApi가 없으면 즉시 선택
           onSelect();
           // 이미지 또는 비디오 노드인 경우 모달 자동 열기
           if (node.type === "image" || node.type === "video") {
             setDetailModalOpen(true);
           }
-        }, delay);
-      } else {
-        // canvasApi가 없으면 즉시 선택
-        onSelect();
-        // 이미지 또는 비디오 노드인 경우 모달 자동 열기
-        if (node.type === "image" || node.type === "video") {
-          setDetailModalOpen(true);
         }
       }
     }
 
-    // 🔥 드래그 종료 시 주변 노드들을 부드럽게 밀어내기
-    if (hasMoved && allNodes.length > 1 && onBatchNodePositionChange) {
+    // 🔥 드래그 종료 시 주변 노드들을 부드럽게 밀어내기 (편집 모드에서만)
+    if (hasMoved && !isAnalyzeMode && allNodes.length > 1 && onBatchNodePositionChange) {
       // Force simulation 적용 (부드럽게 밀어내기)
       const pushedNodes = applyDragForce(
         node.id,
@@ -538,6 +544,7 @@ function NodeOverlay({
             selectedNodeX={x}
             selectedNodeY={y}
             trendRecommendations={trendRecommendations}
+            aiRecommendations={aiRecommendations}
           />
         )}
 
@@ -612,9 +619,5 @@ export default memo(
     prev.hasChildren === next.hasChildren &&
     prev.isSelected === next.isSelected &&
     prev.isAnalyzeSelected === next.isAnalyzeSelected &&
-    prev.detachedSelection?.id === next.detachedSelection?.id &&
-    prev.onCreateChildNode === next.onCreateChildNode &&
-    prev.onKeepChildrenDelete === next.onKeepChildrenDelete &&
-    prev.onConnectDetachedSelection === next.onConnectDetachedSelection &&
-    prev.onDismissDetachedSelection === next.onDismissDetachedSelection
+    prev.detachedSelection?.id === next.detachedSelection?.id
 );

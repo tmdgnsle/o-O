@@ -1,4 +1,5 @@
-import React, { useRef, useMemo, useEffect, useState } from "react";
+import React, { useRef, useMemo, useEffect, useState, useCallback } from "react";
+import type { RecommendNodeData } from "../types";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import type { Core } from "cytoscape";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
@@ -67,6 +68,32 @@ const MindmapPageContent: React.FC = () => {
     cursorColorRef.current = CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
   }
 
+  // AI 추천 데이터 저장 (nodeId -> 추천 목록)
+  const [aiRecommendationsMap, setAiRecommendationsMap] = useState<Map<number, RecommendNodeData[]>>(new Map());
+
+  // AI 추천 데이터 처리 콜백
+  const handleAiRecommendations = useCallback((data: {
+    nodeId: number;
+    nodes: Array<{ keyword: string; memo: string }>;
+  }) => {
+    console.log("[MindmapPage] 🤖 Received AI recommendations for node:", data.nodeId);
+
+    // AI 추천을 RecommendNodeData 형식으로 변환
+    const recommendations: RecommendNodeData[] = data.nodes.map((node, index) => ({
+      id: `ai-${data.nodeId}-${index}`,
+      keyword: node.keyword,
+      memo: node.memo,
+      type: "ai" as const,
+    }));
+
+    // Map에 저장
+    setAiRecommendationsMap(prev => {
+      const newMap = new Map(prev);
+      newMap.set(data.nodeId, recommendations);
+      return newMap;
+    });
+  }, []);
+
   // 6. Collaboration hooks
   const { collab, crud, updateChatState } = useYjsCollaboration(
     wsUrl,
@@ -78,11 +105,11 @@ const MindmapPageContent: React.FC = () => {
         navigate("/"); // 인증 실패 시 홈으로 리다이렉트
       },
       myRole: workspace?.myRole, // 워크스페이스 역할 전달
+      onAiRecommendation: handleAiRecommendations, // AI 추천 데이터 처리
     }
   );
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
-
 
   // 5a. Sync Yjs changes to backend API
   useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
@@ -181,9 +208,9 @@ const MindmapPageContent: React.FC = () => {
           console.error('❌ [MindmapPage] Capture failed, but navigation allowed:', error);
         }
 
-        // 🔥 캡처 완료 후 자동으로 뒤로가기 (두 번 back - 우리가 추가한 state 제거 + 실제 뒤로가기)
+        // 🔥 캡처 완료 후 /mypage로 라우팅
         setTimeout(() => {
-          history.go(-2); // 우리가 추가한 state + 실제 이전 페이지
+          navigate('/mypage');
         }, 100);
       }
     };
@@ -470,6 +497,8 @@ const MindmapPageContent: React.FC = () => {
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}
             selectedNodeId={selectedNodeId}
+            aiRecommendationsMap={aiRecommendationsMap}
+            workspaceId={workspaceId}
             onNodeSelect={setSelectedNodeId}
             onNodeUnselect={() => setSelectedNodeId(null)}
             onApplyTheme={nodeOperations.handleApplyTheme}

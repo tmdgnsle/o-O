@@ -16,15 +16,9 @@ export default function RecommendNodeOverlay({
   selectedNodeX,
   selectedNodeY,
   trendRecommendations = [],
+  aiRecommendations = [],
 }: RecommendNodeOverlayProps) {
   if (!open) return null;
-
-  // Dummy 추천 노드 데이터
-  const aiRecommendations: RecommendNodeData[] = [
-    { id: "ai-1", keyword: "AI 추천 아이디어 1", type: "ai" },
-    { id: "ai-2", keyword: "AI 추천 아이디어 2", type: "ai" },
-    { id: "ai-3", keyword: "AI 추천 아이디어 3", type: "ai" },
-  ];
 
   // 각도와 반지름으로 위치 계산
   const getPosition = (angle: number, r: number = RECOMMENDATION_LAYOUT_CONFIG.radius) => {

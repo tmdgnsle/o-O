@@ -11,6 +11,8 @@ export type YClient = {
   connect: () => void;
   disconnect: () => void;
   destroy: () => void;
+  /** JSON 메시지 핸들러 등록 */
+  onJsonMessage: (handler: (data: any) => void) => void;
 };
 
 /**
@@ -41,7 +43,8 @@ export const createYClient = (
   // y-websocket이 path에 붙일 room 이름 → backend 요구사항에 맞게 "workspace:3"
   const roomName = `workspace:${numericWorkspaceId}`;
 
-  const wsStartTime = performance.now();
+  // JSON 메시지 핸들러들을 저장할 배열
+  const jsonMessageHandlers: Array<(data: any) => void> = [];
 
   // 최종 URL:
   //   ${wsUrl}/${roomName}?token=...
@@ -59,11 +62,68 @@ export const createYClient = (
   );
 
   provider.on("status", (event: { status: "connected" | "disconnected" | "connecting" }) => {
-    // Status changed
+    console.log("[WebSocket] Status changed:", event.status);
   });
 
   provider.on("sync", (isSynced: boolean) => {
-    // Sync status changed
+    console.log("[WebSocket] Sync status changed:", isSynced);
+  });
+
+  // WebSocket 원시 메시지 감지 및 JSON 메시지 처리
+  if (provider.ws) {
+    const originalOnMessage = provider.ws.onmessage;
+    provider.ws.onmessage = (event) => {
+      console.log("🔴 [RAW WebSocket] Message received:", {
+        data: event.data,
+        type: typeof event.data,
+        timestamp: new Date().toISOString()
+      });
+
+      // 텍스트 메시지인 경우 JSON 파싱 후 처리
+      if (typeof event.data === 'string') {
+        try {
+          const parsed = JSON.parse(event.data);
+          console.log("📨 [RAW WebSocket] Parsed JSON:", parsed);
+
+          // 등록된 모든 JSON 메시지 핸들러 호출
+          jsonMessageHandlers.forEach(handler => {
+            try {
+              handler(parsed);
+            } catch (err) {
+              console.error("Error in JSON message handler:", err);
+            }
+          });
+
+          // JSON 메시지는 Yjs 핸들러로 보내지 않고 여기서 처리
+          // (Yjs는 바이너리만 처리 가능하므로 에러 방지)
+          return;
+        } catch (e) {
+          console.log("📨 [RAW WebSocket] Text message:", event.data);
+        }
+      }
+
+      // 바이너리 메시지만 원래 Yjs 핸들러로 전달
+      if (originalOnMessage) {
+        originalOnMessage.call(provider.ws, event);
+      }
+    };
+  }
+
+  // Y.Doc 업데이트 감지 (실제 WebSocket으로 데이터가 올 때)
+  doc.on("update", (update: Uint8Array, origin: any) => {
+    console.log("🔥 [WebSocket] Y.Doc Update received!", {
+      updateSize: update.length,
+      origin: origin,
+      isFromWebSocket: origin === provider,
+      timestamp: new Date().toISOString()
+    });
+
+    // WebSocket에서 온 업데이트인 경우 Y.Map 내용 확인
+    if (origin === provider) {
+      const mindmapNodes = doc.getMap("mindmap:nodes");
+      console.log("📊 [WebSocket] Current Y.Map size:", mindmapNodes.size);
+      console.log("📊 [WebSocket] All nodes in Y.Map:", mindmapNodes.toJSON());
+    }
   });
 
   const connect = () => provider.connect();
@@ -71,6 +131,10 @@ export const createYClient = (
   const destroy = () => {
     provider.destroy();
     doc.destroy();
+  };
+
+  const onJsonMessage = (handler: (data: any) => void) => {
+    jsonMessageHandlers.push(handler);
   };
 
   return {
@@ -81,5 +145,6 @@ export const createYClient = (
     connect,
     disconnect,
     destroy,
+    onJsonMessage,
   };
 };

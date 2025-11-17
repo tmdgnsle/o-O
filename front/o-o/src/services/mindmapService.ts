@@ -102,3 +102,20 @@ export const batchUpdateNodePositions = async (
     )
   );
 };
+
+// AI 분석 요청 (CONTEXTUAL - 맥락 기반 확장)
+export const requestNodeAnalysis = async (
+  workspaceId: string,
+  nodeId: number,
+  ancestorNodes: Array<{ nodeId: number; parentId: number | null; keyword: string; memo: string }>
+): Promise<void> => {
+  await apiClient.post(`/mindmap/${workspaceId}/node/${nodeId}/analyze`, {
+    workspaceId: Number(workspaceId),
+    nodeId,
+    contentUrl: null,
+    contentType: "TEXT",
+    prompt: null,
+    analysisType: "CONTEXTUAL",
+    nodes: ancestorNodes,
+  });
+};

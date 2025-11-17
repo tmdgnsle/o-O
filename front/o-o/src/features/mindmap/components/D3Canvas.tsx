@@ -29,6 +29,8 @@ export default function D3Canvas({
   mode,
   analyzeSelection,
   selectedNodeId,
+  aiRecommendationsMap,
+  workspaceId,
   onNodeSelect,
   onNodeUnselect,
   onApplyTheme,
@@ -42,7 +44,7 @@ export default function D3Canvas({
   onKeepChildrenDelete,
   onConnectDetachedSelection,
   onDismissDetachedSelection,
-}: CytoscapeCanvasProps) {
+}: CytoscapeCanvasProps & { aiRecommendationsMap?: Map<number, any[]>; workspaceId?: string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
@@ -687,6 +689,8 @@ export default function D3Canvas({
                 isAnalyzeSelected={isAnalyzeSelected}
                 allNodes={nodes} // 🔥 모든 노드 정보 전달 (force simulation용)
                 canvasApi={canvasApi} // 🔥 D3Canvas API 전달 (focusOnNode 등)
+                aiRecommendations={node.nodeId && aiRecommendationsMap ? aiRecommendationsMap.get(node.nodeId) || [] : []}
+                workspaceId={workspaceId}
                 onSelect={() => {
                   if (mode === "analyze") {
                     // 분석 모드: onAnalyzeNodeToggle 호출
