@@ -154,25 +154,19 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     handleGptChunkRef.current = gpt.handleGptChunk;
   }, [gpt.handleGptChunk]);
 
-  // GPT 녹음 상태 변경 시 부모에게 알림 + Awareness 업데이트
+  // GPT 녹음 시작 시 Awareness 업데이트
   useEffect(() => {
     onGptRecordingChange?.(gpt.isRecording);
 
-    // Awareness에 GPT 상태 동기화
-    if (updateGptState && currentUser) {
-      if (gpt.isRecording) {
-        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 시작');
-        updateGptState({
-          isRecording: true,
-          keywords: [], // 초기 상태
-          startedBy: currentUser.id.toString(),
-          timestamp: Date.now(),
-        });
-      } else {
-        // 녹음 종료 시 Awareness 상태 유지 (키워드 보존)
-        // null로 설정하지 않음 - MindmapPage에서 관리
-        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 종료 (상태 유지)');
-      }
+    // Awareness에 GPT 상태 동기화 (녹음 시작 시에만)
+    if (gpt.isRecording && updateGptState && currentUser) {
+      console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 시작');
+      updateGptState({
+        isRecording: true,
+        keywords: [], // 초기 상태
+        startedBy: currentUser.id.toString(),
+        timestamp: Date.now(),
+      });
     }
   }, [gpt.isRecording, onGptRecordingChange, updateGptState, currentUser]);
 
