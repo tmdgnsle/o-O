@@ -204,6 +204,16 @@ class GptSessionManager {
     logger.info(`[GPT] Starting stream response processing`, { workspaceId });
 
     for await (const chunk of stream) {
+      // 세션이 중간에 종료되었는지 확인
+      if (!this.sessions.has(workspaceId)) {
+        logger.warn(`[GPT] Session ended during streaming, aborting`, {
+          workspaceId,
+          chunksReceived: chunkCount,
+          partialResponseLength: fullResponse.length,
+        });
+        return; // 스트리밍 중단
+      }
+
       buffer += decoder.decode(chunk, { stream: true });
 
       // SSE 형식: "data: {...}\n\n"
@@ -271,6 +281,16 @@ class GptSessionManager {
       fullResponseLength: fullResponse.length,
       responsePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
     });
+
+    // 최종 JSON 파싱 전에도 세션 확인
+    if (!this.sessions.has(workspaceId)) {
+      logger.warn(`[GPT] Session ended before JSON parsing, skipping`, {
+        workspaceId,
+        totalChunks: chunkCount,
+        fullResponseLength: fullResponse.length,
+      });
+      return;
+    }
 
     // JSON 파싱 및 검증
     try {
