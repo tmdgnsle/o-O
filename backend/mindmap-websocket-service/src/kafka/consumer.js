@@ -26,6 +26,16 @@ class KafkaConsumerService {
     this.consumer = null;        // Kafka Consumer 인스턴스
     this.isEnabled = false;      // Kafka 사용 여부 (환경변수로 제어)
     this.isConnected = false;    // Kafka 연결 상태
+    this.onInitialCreateDone = null;  // 초기 노드 생성 완료 이벤트 핸들러
+  }
+
+  /**
+   * 초기 노드 생성 완료 이벤트 핸들러 등록
+   * @param {function} handler - workspaceId를 받는 콜백 함수
+   */
+  setInitialCreateDoneHandler(handler) {
+    this.onInitialCreateDone = handler;
+    logger.info('Initial create done handler registered');
   }
 
   /**
@@ -123,9 +133,9 @@ class KafkaConsumerService {
   }
 
   /**
-   * Spring이 보낸 노드 업데이트를 Y.Doc에 반영
+   * Spring이 보낸 노드 업데이트를 처리
    *
-   * 메시지 형식 예시:
+   * 메시지 형식 예시 (기존 방식 - nodeId, updates 포함):
    * {
    *   workspaceId: 123,
    *   nodeId: 'n5',
@@ -137,14 +147,42 @@ class KafkaConsumerService {
    *   }
    * }
    *
+   * 메시지 형식 예시 (초기 노드 생성 완료):
+   * {
+   *   message: '노드 분석 후 업데이트를 완료했습니다.',
+   *   workspaceId: 197
+   * }
+   *
    * @param {object} data - Kafka 메시지 데이터
    */
   handleNodeUpdate(data) {
-    const { workspaceId, nodeId, updates } = data;
+    const { workspaceId, nodeId, updates, message } = data;
 
-    // 필수 필드 검증
-    if (!workspaceId || !nodeId || !updates) {
-      logger.warn('Invalid node update message', { data });
+    // 필수 필드 검증: workspaceId는 항상 필요
+    if (!workspaceId) {
+      logger.warn('Invalid node update message: missing workspaceId', { data });
+      return;
+    }
+
+    // 초기 노드 생성 완료 메시지 처리 (message 필드가 있고 nodeId가 없는 경우)
+    if (message && !nodeId) {
+      logger.info(`Received initial create done message from Kafka`, {
+        workspaceId,
+        message,
+      });
+
+      // 등록된 핸들러 호출
+      if (this.onInitialCreateDone) {
+        this.onInitialCreateDone(workspaceId);
+      } else {
+        logger.warn('No initial create done handler registered');
+      }
+      return;
+    }
+
+    // 기존 노드 업데이트 로직 (nodeId와 updates가 있는 경우)
+    if (!nodeId || !updates) {
+      logger.warn('Invalid node update message: missing nodeId or updates', { data });
       return;
     }
 

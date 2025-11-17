@@ -147,6 +147,54 @@ function removeUserConnection(workspaceId, userId) {
   }
 }
 
+/**
+ * workspace의 모든 사용자에게 메시지 전송
+ * @param {string} workspaceId - workspace ID
+ * @param {object} message - 전송할 메시지 객체
+ * @returns {number} 메시지를 성공적으로 보낸 사용자 수
+ */
+function sendToWorkspace(workspaceId, message) {
+  logger.info(`[sendToWorkspace] Attempting to send message to all users`, {
+    workspaceId,
+    messageType: message.type,
+  });
+
+  const users = workspaceConnections.get(workspaceId);
+  if (!users) {
+    logger.warn(`[sendToWorkspace] Workspace ${workspaceId} not found in connections map`);
+    return 0;
+  }
+
+  let sentCount = 0;
+  const messageStr = JSON.stringify(message);
+
+  for (const [userId, conn] of users) {
+    try {
+      conn.send(messageStr);
+      sentCount++;
+      logger.debug(`[sendToWorkspace] Message sent to user ${userId}`, {
+        workspaceId,
+        messageType: message.type,
+      });
+    } catch (error) {
+      logger.error(`[sendToWorkspace] Failed to send message to user ${userId}`, {
+        workspaceId,
+        messageType: message.type,
+        error: error.message,
+      });
+    }
+  }
+
+  logger.info(`[sendToWorkspace] Message sent successfully`, {
+    workspaceId,
+    messageType: message.type,
+    totalUsers: users.size,
+    sentCount,
+  });
+
+  return sentCount;
+}
+
 // ===== HTTP 엔드포인트 =====
 
 /**
@@ -236,6 +284,42 @@ wss.on('connection', (conn, req) => {
   // 기본: Y.js 연결 처리
   handleYjsConnection(conn, req, url);
 });
+
+/**
+ * ============================================
+ * 초기 노드 생성 완료 이벤트 핸들러
+ * ============================================
+ *
+ * Kafka에서 mindmap.node.update 토픽을 수신하면 호출됨
+ * 해당 workspace의 모든 사용자에게 initial-create-done 이벤트를 전송
+ * 클라이언트는 이 메시지를 받고 workspace 데이터를 다시 조회함
+ *
+ * @param {string|number} workspaceId - workspace ID
+ */
+function handleInitialCreateDone(workspaceId) {
+  const workspaceIdStr = workspaceId.toString();
+
+  logger.info(`[InitialCreateDone] Initial node creation completed`, {
+    workspaceId: workspaceIdStr,
+  });
+
+  // workspace의 모든 사용자에게 initial-create-done 이벤트 전송
+  const sentCount = sendToWorkspace(workspaceIdStr, {
+    type: 'initial-create-done',
+    workspaceId: workspaceIdStr,
+  });
+
+  if (sentCount > 0) {
+    logger.info(`[InitialCreateDone] Notification sent successfully`, {
+      workspaceId: workspaceIdStr,
+      sentCount,
+    });
+  } else {
+    logger.warn(`[InitialCreateDone] No users connected to workspace`, {
+      workspaceId: workspaceIdStr,
+    });
+  }
+}
 
 /**
  * ============================================
@@ -644,6 +728,8 @@ async function startServer() {
 
     // 2. Kafka consumer 초기화 및 시작 (AI 업데이트 수신용)
     await kafkaConsumer.initialize();
+    // 초기 노드 생성 완료 이벤트 핸들러 등록
+    kafkaConsumer.setInitialCreateDoneHandler(handleInitialCreateDone);
     await kafkaConsumer.start();
 
     // 3. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)
@@ -728,3 +814,6 @@ async function startServer() {
 
 // ===== 서버 시작 =====
 startServer();
+
+// Export functions for external modules (e.g., Kafka consumer)
+export { handleInitialCreateDone };
