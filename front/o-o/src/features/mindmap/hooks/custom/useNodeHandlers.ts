@@ -173,7 +173,7 @@ export const useNodeHandlers = ({
           // 부모 노드 찾기
           if (!node.parentId) break;
 
-          const parentIdNum = typeof node.parentId === 'number'
+          const parentIdNum: number = typeof node.parentId === 'number'
             ? node.parentId
             : Number(node.parentId);
 
