@@ -5,7 +5,7 @@ import type {
   EditNodePayload,
   NodeData,
 } from "../../types";
-import type { FocusedButton } from './useNodeFocus';
+import type { FocusedButton } from "./useNodeFocus";
 import { requestNodeAnalysis } from "@/services/mindmapService";
 
 type UseNodeHandlersParams = {
@@ -81,7 +81,7 @@ export const useNodeHandlers = ({
 
   const handleEdit = useCallback(() => {
     startEdit();
-    setFocusedButton('edit');
+    setFocusedButton("edit");
   }, [startEdit, setFocusedButton]);
 
   const handleEditCancel = useCallback(() => {
@@ -99,7 +99,7 @@ export const useNodeHandlers = ({
 
   const handleAdd = useCallback(() => {
     openAddInput();
-    setFocusedButton('add');
+    setFocusedButton("add");
   }, [openAddInput, setFocusedButton]);
 
   const handleAddCancel = useCallback(() => {
@@ -127,7 +127,7 @@ export const useNodeHandlers = ({
   const handlePalette = useCallback(() => {
     const willBeOpen = !paletteOpen;
     togglePalette();
-    setFocusedButton(willBeOpen ? 'palette' : null);
+    setFocusedButton(willBeOpen ? "palette" : null);
   }, [paletteOpen, togglePalette, setFocusedButton]);
 
   const handleColorChange = useCallback(
@@ -147,12 +147,15 @@ export const useNodeHandlers = ({
 
   const handleRecommend = useCallback(async () => {
     // UI 열기
-    setFocusedButton('recommend');
+    setFocusedButton("recommend");
 
     // AI + 트렌드 통합 추천 요청
     if (nodeId && workspaceId) {
       try {
-        console.log("[handleRecommend] Requesting AI+Trend analysis for nodeId:", nodeId);
+        console.log(
+          "[handleRecommend] Requesting AI+Trend analysis for nodeId:",
+          nodeId
+        );
 
         // 로딩 시작
         setIsLoadingRecommendation?.(true);
@@ -160,9 +163,14 @@ export const useNodeHandlers = ({
         // AI + 트렌드 통합 분석 요청 (서버에서 맥락을 자동으로 수집)
         await requestNodeAnalysis(workspaceId, nodeId);
 
-        console.log("[handleRecommend] ✅ AI+Trend analysis request sent successfully");
+        console.log(
+          "[handleRecommend] ✅ AI+Trend analysis request sent successfully"
+        );
       } catch (error) {
-        console.error("[handleRecommend] Failed to request AI+Trend analysis:", error);
+        console.error(
+          "[handleRecommend] Failed to request AI+Trend analysis:",
+          error
+        );
         // 에러 발생 시 로딩 종료
         setIsLoadingRecommendation?.(false);
       }
