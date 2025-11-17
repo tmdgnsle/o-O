@@ -729,13 +729,18 @@ async function startServer() {
     // 2. Kafka consumer 초기화 및 시작 (AI 업데이트 수신용)
     await kafkaConsumer.initialize();
     // 초기 노드 생성 완료 이벤트 핸들러 등록
-    kafkaConsumer.setInitialCreateDoneHandler(handleInitialCreateDone);
 
-    // ✅ CONTEXTUAL AI 추천 핸들러 등록
+// ✅ CONTEXTUAL AI + Trend 추천 핸들러 등록 (워크스페이스 전체 브로드캐스트 버전)
     kafkaConsumer.setAiSuggestionHandler((data) => {
-        const { workspaceId, targetNodeId, suggestions } = data;
+        const {
+            workspaceId,
+            targetNodeId,
+            aiList,
+            trendList,
+        } = data;
 
-        if (!workspaceId || !targetNodeId || !Array.isArray(suggestions)) {
+      // 기본 검증
+        if (!workspaceId || !targetNodeId || !Array.isArray(aiList)) {
             logger.warn('[AiSuggestion] Invalid suggestion payload', { data });
             return;
         }
@@ -743,21 +748,25 @@ async function startServer() {
         const workspaceIdStr = workspaceId.toString();
 
         const payload = {
-            type: 'ai_suggestion',
+            type: 'ai_suggestion',     // 프론트에서 이 타입으로 구분해서 쓰면 됨
             workspaceId: workspaceIdStr,
             targetNodeId,
-            suggestions,
+            aiList,                          // List<AiSuggestionNode>
+            trendList: Array.isArray(trendList) ? trendList : [],  // List<TrendItem>
         };
 
+      // 🔥 워크스페이스 전체 브로드캐스트
         const sentCount = sendToWorkspace(workspaceIdStr, payload);
 
-        logger.info('[AiSuggestion] Broadcasted suggestions', {
+        logger.info('[AiSuggestion] Broadcasted AI+Trend suggestions', {
             workspaceId: workspaceIdStr,
             targetNodeId,
-            suggestionCount: suggestions.length,
+            aiCount: aiList.length,
+            trendCount: payload.trendList.length,
             sentCount,
         });
     });
+
     await kafkaConsumer.start();
 
     // 3. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)
