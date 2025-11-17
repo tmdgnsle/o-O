@@ -4,11 +4,11 @@ import { fetchMindmapNodes, batchUpdateNodePositions } from "@/services/mindmapS
 import { useYMapState } from "./useYMapState";
 import type { NodeData } from "../../../mindmap/types";
 import type { YClient } from "./yjsClient";
-import { CANVAS_CENTER_X, CANVAS_CENTER_Y, clampNodePosition } from "../../../mindmap/utils/d3Utils";
+import { CANVAS_CENTER_X, CANVAS_CENTER_Y } from "../../../mindmap/utils/d3Utils";
 
 /**
  * x, y가 null인 노드들에게 자동으로 위치를 할당
- * - 기존 노드들의 가장 오른쪽에 배치하여 겹치지 않도록 함
+ * - 방사형 레이아웃을 사용하여 부모 주위로 배치
  */
 async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   if (nodes.length === 0) return nodes;
@@ -21,50 +21,33 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
     return nodes;
   }
 
-  // 좌표가 있는 노드들만 모아서 경계 박스 계산
-  const nodesWithPosition = nodes.filter(n => n.x != null && n.y != null);
+  // 방사형 레이아웃 적용을 위한 노드 준비
+  const nodesForLayout = nodes.map(node => ({
+    ...node,
+    // parentId를 문자열로 변환 (radialLayoutWithForces가 string을 기대)
+    parentId: node.parentId === null || node.parentId === undefined ? null : String(node.parentId),
+  }));
 
-  let startX: number;
-  let startY: number;
+  // 방사형 레이아웃 적용 (applyRadialLayoutWithForcesToNodes 사용)
+  const { applyRadialLayoutWithForcesToNodes } = await import("../../../mindmap/utils/radialLayoutWithForces");
 
-  if (nodesWithPosition.length === 0) {
-    // 모든 노드가 null 좌표인 경우 (새 마인드맵) - 캔버스 중심에서 시작
-    startX = CANVAS_CENTER_X;
-    startY = CANVAS_CENTER_Y;
-  } else {
-    // 기존 노드들의 경계 박스 계산
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
+  const layoutedNodes = await applyRadialLayoutWithForcesToNodes(
+    nodesForLayout,
+    CANVAS_CENTER_X,
+    CANVAS_CENTER_Y,
+    350 // baseRadius
+  );
 
-    nodesWithPosition.forEach(node => {
-      if (node.x! > maxX) maxX = node.x!;
-      if (node.y! < minY) minY = node.y!;
-      if (node.y! > maxY) maxY = node.y!;
-    });
+  // 원래 노드 데이터와 병합 (x, y만 업데이트)
+  const processedNodes = nodes.map((node, index) => {
+    const layoutedNode = layoutedNodes[index];
 
-    // 가장 오른쪽 + 여유 공간(500px)에서 시작
-    startX = maxX + 500;
-    // Y는 기존 노드들의 중간 높이에서 시작
-    startY = (minY + maxY) / 2;
-  }
-
-  // null 좌표 노드들을 아래쪽으로 배치 (150px 간격)
-  const verticalSpacing = 150;
-  let currentY = startY;
-
-  const processedNodes = nodes.map(node => {
+    // null 좌표였던 노드만 업데이트
     if (node.x == null || node.y == null) {
-      // 좌표를 100~4900 범위로 제한 (노드가 경계에서 잘리지 않도록)
-      const clamped = clampNodePosition(startX, currentY);
-
-      // 다음 노드를 위해 Y 좌표 증가
-      currentY += verticalSpacing;
-
       return {
         ...node,
-        x: clamped.x,
-        y: clamped.y,
+        x: layoutedNode.x,
+        y: layoutedNode.y,
       };
     }
 
@@ -219,15 +202,12 @@ export function useCollaborativeNodes(
 
   // Sync Y.Map state to React state
   const nodesState = useYMapState<NodeData>(collab?.map);
-  const nodes = useMemo<NodeData[]>(() => Object.values(nodesState), [nodesState]);
 
-  // 🔍 디버깅: Y.Map 크기와 노드 개수 로그
-  useEffect(() => {
-    if (collab) {
-      console.log(`[useCollaborativeNodes] 🔍 Y.Map size: ${collab.map.size}, React nodes count: ${nodes.length}`);
-      console.log(`[useCollaborativeNodes] 🔍 Nodes:`, nodes.map(n => ({ id: n.id, nodeId: n.nodeId, keyword: n.keyword })));
-    }
-  }, [collab, nodes]);
+  // 🔧 노드 배열 참조 안정화: nodesState의 키 목록이 변경되지 않으면 같은 배열 참조 유지
+  const nodes = useMemo<NodeData[]>(() => {
+    const nodeArray = Object.values(nodesState);
+    return nodeArray;
+  }, [nodesState]);
 
   // 🔥 좌표가 null인 노드들을 자동으로 재계산하여 업데이트
   useEffect(() => {
