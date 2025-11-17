@@ -63,6 +63,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   // Ref to prevent duplicate GPT processing
   const processedGptTimestamps = useRef(new Set<number>());
 
+  // Refs for GPT control functions (will be set after gpt is initialized)
+  const gptStartRecordingRef = useRef<(() => void) | null>(null);
+  const gptStopRecordingRef = useRef<(() => void) | null>(null);
+  const gptIsRecordingRef = useRef<boolean>(false);
+
   // GPT 청크 핸들러
   const onGptChunkReceived = useCallback((content: string) => {
     // useVoiceGpt의 handleGptChunk 호출
@@ -111,33 +116,37 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     console.log('[VoiceChat] 💡 TODO: Display error notification to user');
   }, []);
 
-  // GPT Recording Started 핸들러 (useCallback으로 memoization)
+  // GPT Recording Started 핸들러 (ref 사용)
   const handleGptRecordingStarted = useCallback((startedBy: string, timestamp: number) => {
     console.log('[VoiceChat] ===== GPT 녹음 시작됨 =====');
     console.log('[VoiceChat] 👤 Started by:', startedBy);
     console.log('[VoiceChat] 🕐 Timestamp:', new Date(timestamp).toISOString());
+    console.log('[VoiceChat] 📊 Current user:', currentUser?.id.toString());
 
-    // 이미 녹음 중이 아니면 자동 시작 (중복 방지)
-    if (!gpt.isRecording) {
-      console.log('[VoiceChat] 🎤 자동으로 STT 시작...');
-      gpt.startRecording();
+    // 다른 사람이 녹음을 시작한 경우, 자동으로 STT 시작
+    if (startedBy !== currentUser?.id.toString()) {
+      console.log('[VoiceChat] 🎤 다른 사용자가 녹음 시작 → 자동으로 STT 시작');
+      if (!gptIsRecordingRef.current) {
+        gptStartRecordingRef.current?.();
+      } else {
+        console.log('[VoiceChat] ⚠️ 이미 녹음 중, 스킵');
+      }
     } else {
-      console.log('[VoiceChat] ⚠️ 이미 녹음 중, 스킵');
+      console.log('[VoiceChat] ℹ️ 본인이 시작한 녹음, STT는 이미 시작됨');
     }
-  }, [gpt]);
+  }, [currentUser]);
 
-  // GPT Session Ended 핸들러 (useCallback으로 memoization)
+  // GPT Session Ended 핸들러 (ref 사용)
   const handleGptSessionEnded = useCallback(() => {
     console.log('[VoiceChat] ===== GPT 세션 종료됨 =====');
 
-    // 녹음 중이면 자동 종료
-    if (gpt.isRecording) {
+    if (gptIsRecordingRef.current) {
       console.log('[VoiceChat] 🛑 자동으로 STT 종료...');
-      gpt.stopRecording();
+      gptStopRecordingRef.current?.();
     } else {
       console.log('[VoiceChat] ⚠️ 녹음 중이 아님, 스킵');
     }
-  }, [gpt]);
+  }, []);
 
   // Use the voice chat hook
   const {
@@ -175,6 +184,13 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   useEffect(() => {
     handleGptChunkRef.current = gpt.handleGptChunk;
   }, [gpt.handleGptChunk]);
+
+  // GPT control functions를 ref에 저장
+  useEffect(() => {
+    gptStartRecordingRef.current = gpt.startRecording;
+    gptStopRecordingRef.current = gpt.stopRecording;
+    gptIsRecordingRef.current = gpt.isRecording;
+  }, [gpt.startRecording, gpt.stopRecording, gpt.isRecording]);
 
   // GPT 녹음 시작 시 Awareness 업데이트
   useEffect(() => {
