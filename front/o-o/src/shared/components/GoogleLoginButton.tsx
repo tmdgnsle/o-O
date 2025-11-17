@@ -7,7 +7,6 @@ export function GoogleLoginButton() {
   const handleLogin = () => {
     // 현재 경로 저장
     const currentPath = globalThis.location.pathname;
-    console.log("🔐 로그인 버튼 클릭 - 현재 경로 저장");
     dispatch(setRedirectPath(currentPath));
     localStorage.setItem("redirectPath", currentPath);
 

@@ -75,12 +75,7 @@ export const useMypage = (): UseMypageReturn => {
   // 월별 활성 날짜 조회
   const fetchActiveDaysList = useCallback(
     (params: ActiveDaysQueryParams = DEFAULT_MONTH_PARAMS) => {
-      console.log("🔥 fetchActiveDaysList 호출됨, params:", params);
-      console.log("🔥 DEFAULT_MONTH_PARAMS:", DEFAULT_MONTH_PARAMS);
-
       const action = dispatch(fetchActiveDays(params));
-      console.log("🔥 dispatch 완료, action:", action);
-
       return action;
     },
     [dispatch]

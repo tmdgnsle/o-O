@@ -83,11 +83,6 @@ export function useMindmapSync(
         return;
       }
 
-      console.log("[useMindmapSync] Y.Map changed:", {
-        added: Array.from(event.keysChanged),
-        origin: transaction.origin,
-      });
-
       // 변경된 각 노드에 대해 백엔드 동기화
       event.keysChanged.forEach((key) => {
         const action = event.changes.keys.get(key);
@@ -95,7 +90,6 @@ export function useMindmapSync(
 
         // 중복 요청 방지
         if (syncInProgressRef.current.has(key)) {
-          console.log("[useMindmapSync] sync already in progress for", key);
           return;
         }
 
@@ -111,17 +105,9 @@ export function useMindmapSync(
 
           // 이미 nodeId가 있으면 서버에 이미 생성된 노드 (중복 생성 방지)
           if (nodeData.nodeId) {
-            console.log("[useMindmapSync] skip create - node already has nodeId", key, nodeData.nodeId);
             syncInProgressRef.current.delete(key);
             return;
           }
-
-          console.log("[useMindmapSync] creating node", key, nodeData);
-          console.time(`[useMindmapSync] API createNode ${key}`);
-
-          // WebSocket 연결 상태 확인
-          const wsConnected = yMap.doc?.getMap('__meta__')?.get('wsConnected') || 'unknown';
-          console.log(`[useMindmapSync] WebSocket connected: ${wsConnected}`);
 
           // parentId 변환: 문자열 ID인 경우 해당 노드의 nodeId를 찾아서 사용
           let backendParentId: number | null = null;
@@ -134,15 +120,12 @@ export function useMindmapSync(
               const parentNode = yMap.get(nodeData.parentId as string);
               if (parentNode?.nodeId) {
                 backendParentId = parentNode.nodeId as number;
-                console.log(`[useMindmapSync] resolved parent ID: ${nodeData.parentId} -> ${backendParentId}`);
               } else {
-                console.warn(`[useMindmapSync] parent node not found or not synced yet: ${nodeData.parentId}`);
                 // 부모가 아직 백엔드에 동기화되지 않은 경우, 재시도 로직
 
                 // 재시도 함수 정의
                 const retryCreateNode = (attempt: number = 0) => {
                   if (attempt >= 10) {
-                    console.error(`[useMindmapSync] Max retry attempts reached for ${key}`);
                     syncInProgressRef.current.delete(key);
                     return;
                   }
@@ -152,7 +135,6 @@ export function useMindmapSync(
                     if (retryParentNode?.nodeId) {
                       // 부모 nodeId를 찾았으면 직접 백엔드 API 호출
                       const backendParentId = retryParentNode.nodeId as number;
-                      console.log(`[useMindmapSync] Retry - resolved parent ID: ${nodeData.parentId} -> ${backendParentId}`);
 
                       createMindmapNode(workspaceId, {
                         parentId: backendParentId,
@@ -164,8 +146,6 @@ export function useMindmapSync(
                         color: nodeData.color,
                       })
                         .then((createdNode) => {
-                          console.log("[useMindmapSync] Retry - node created:", createdNode);
-
                           // 백엔드에서 받은 nodeId를 로컬 노드에 반영
                           yMap.doc?.transact(() => {
                             const current = yMap.get(key);
@@ -182,7 +162,6 @@ export function useMindmapSync(
                         });
                     } else {
                       // 아직 부모가 동기화되지 않았으면 다시 재시도
-                      console.log(`[useMindmapSync] Retry attempt ${attempt + 1} - parent still not synced`);
                       retryCreateNode(attempt + 1);
                     }
                   }, 300);
@@ -204,9 +183,6 @@ export function useMindmapSync(
             color: nodeData.color,
           })
             .then((createdNode) => {
-              console.timeEnd(`[useMindmapSync] API createNode ${key}`);
-              console.log("[useMindmapSync] node created:", createdNode);
-
               // 백엔드에서 받은 nodeId를 로컬 노드에 반영 (조용히)
               yMap.doc?.transact(() => {
                 const current = yMap.get(key);
@@ -232,7 +208,6 @@ export function useMindmapSync(
 
           // nodeId가 없으면 아직 백엔드에 생성되지 않은 노드
           if (!nodeData.nodeId) {
-            console.log("[useMindmapSync] skip update - no nodeId yet", key);
             syncInProgressRef.current.delete(key);
             return;
           }
@@ -240,15 +215,9 @@ export function useMindmapSync(
           // 이전 값과 비교하여 실제 변경사항이 있는지 확인
           const oldNodeData = action.oldValue as NodeData | undefined;
           if (oldNodeData && !hasSignificantChanges(oldNodeData, nodeData)) {
-            console.log("[useMindmapSync] skip update - no significant changes", key, {
-              old: { x: oldNodeData.x, y: oldNodeData.y, keyword: oldNodeData.keyword },
-              new: { x: nodeData.x, y: nodeData.y, keyword: nodeData.keyword },
-            });
             syncInProgressRef.current.delete(key);
             return;
           }
-
-          console.log("[useMindmapSync] scheduling node update", nodeData.nodeId, nodeData);
 
           // 기존 대기 중인 업데이트 취소
           const existingTimeout = updateTimeoutsRef.current.get(key);
@@ -261,7 +230,6 @@ export function useMindmapSync(
             // Y.Map에서 최신 데이터 다시 가져오기 (setTimeout 동안 변경되었을 수 있음)
             const latestNodeData = yMap.get(key);
             if (!latestNodeData || !latestNodeData.nodeId) {
-              console.log("[useMindmapSync] node disappeared during timeout", key);
               syncInProgressRef.current.delete(key);
               updateTimeoutsRef.current.delete(key);
               return;
@@ -278,9 +246,7 @@ export function useMindmapSync(
                 const parentNode = yMap.get(latestNodeData.parentId as string);
                 if (parentNode?.nodeId) {
                   backendParentId = parentNode.nodeId as number;
-                  console.log(`[useMindmapSync UPDATE] resolved parent ID: ${latestNodeData.parentId} -> ${backendParentId}`);
                 } else {
-                  console.warn(`[useMindmapSync UPDATE] parent node not found: ${latestNodeData.parentId}`);
                   // 부모를 찾을 수 없으면 null로 설정 (루트로 변경)
                   backendParentId = null;
                 }
@@ -297,8 +263,8 @@ export function useMindmapSync(
               type: latestNodeData.type,
               analysisStatus: latestNodeData.analysisStatus,
             })
-              .then((updatedNode) => {
-                console.log("[useMindmapSync] node updated:", updatedNode);
+              .then(() => {
+                // Node updated
               })
               .catch((error) => {
                 console.error("[useMindmapSync] failed to update node:", error);
@@ -314,16 +280,13 @@ export function useMindmapSync(
           // 노드 삭제
           const oldNodeData = action.oldValue as NodeData | undefined;
           if (!oldNodeData?.nodeId) {
-            console.log("[useMindmapSync] skip delete - no nodeId", key);
             syncInProgressRef.current.delete(key);
             return;
           }
 
-          console.log("[useMindmapSync] deleting node", oldNodeData.nodeId);
-
           deleteMindmapNode(workspaceId, oldNodeData.nodeId)
             .then(() => {
-              console.log("[useMindmapSync] node deleted:", oldNodeData.nodeId);
+              // Node deleted
             })
             .catch((error) => {
               console.error("[useMindmapSync] failed to delete node:", error);
@@ -335,11 +298,9 @@ export function useMindmapSync(
       });
     };
 
-    console.log("[useMindmapSync] attaching observer to Y.Map");
     yMap.observe(handleYMapChange);
 
     return () => {
-      console.log("[useMindmapSync] detaching observer from Y.Map");
       yMap.unobserve(handleYMapChange);
 
       // 대기 중인 모든 업데이트 타임아웃 취소

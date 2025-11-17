@@ -41,14 +41,7 @@ export const createYClient = (
   // y-websocket이 path에 붙일 room 이름 → backend 요구사항에 맞게 "workspace:3"
   const roomName = `workspace:${numericWorkspaceId}`;
 
-  // 디버그용 로그
   const wsStartTime = performance.now();
-  console.log("🔧 [createYClient] Debug info:", {
-    wsUrl,
-    numericWorkspaceId,
-    roomName,
-    tokenPrefix: wsToken.substring(0, 20) + "...",
-  });
 
   // 최종 URL:
   //   ${wsUrl}/${roomName}?token=...
@@ -66,32 +59,11 @@ export const createYClient = (
   );
 
   provider.on("status", (event: { status: "connected" | "disconnected" | "connecting" }) => {
-    let emoji = "❌";
-    const elapsed = performance.now() - wsStartTime;
-
-    if (event.status === "connected") {
-      emoji = "✅";
-      console.log(`${emoji} [y-websocket] status: ${event.status} (${elapsed.toFixed(2)}ms from creation)`);
-    } else if (event.status === "connecting") {
-      emoji = "🔄";
-      console.log(`${emoji} [y-websocket] status: ${event.status}`);
-    } else {
-      console.log(`${emoji} [y-websocket] status: ${event.status}`);
-    }
+    // Status changed
   });
 
   provider.on("sync", (isSynced: boolean) => {
-    const elapsed = performance.now() - wsStartTime;
-    console.log(`🔄 [y-websocket] document sync: ${isSynced ? "synced" : "syncing..."} (${elapsed.toFixed(2)}ms from creation)`);
-  });
-
-  // WebSocket low-level close 로그 (있으면 도움 됨)
-  provider.ws?.addEventListener("close", (evt) => {
-    console.log(
-      "🧯 [y-websocket] WS closed:",
-      "code =", evt.code,
-      "reason =", evt.reason
-    );
+    // Sync status changed
   });
 
   const connect = () => provider.connect();

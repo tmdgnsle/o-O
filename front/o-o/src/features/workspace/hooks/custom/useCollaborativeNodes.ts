@@ -15,11 +15,8 @@ import { calculateRadialLayoutWithForces } from "../../../mindmap/utils/radialLa
 async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   if (nodes.length === 0) return nodes;
 
-  console.log(`[calculateNodePositions] Processing ${nodes.length} nodes`);
-
   // x, y가 null인 노드 확인
   const nullPositionNodes = nodes.filter(n => n.x == null || n.y == null);
-  console.log(`[calculateNodePositions] Nodes with null positions: ${nullPositionNodes.length}`);
 
   if (nullPositionNodes.length === 0) {
     // 모든 노드에 이미 좌표가 있음
@@ -36,8 +33,6 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
     }
   }
 
-  console.log(`[calculateNodePositions] nodeId -> id mapping:`, Object.fromEntries(nodeIdToIdMap));
-
   // parentId를 id로 변환
   const nodesForLayout = nodes.map(n => {
     let parentIdAsId: string | null = null;
@@ -51,8 +46,6 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
       }
     }
 
-    console.log(`[calculateNodePositions] Node ${n.id} (${n.keyword}): parentId=${n.parentId} -> parentIdAsId=${parentIdAsId}`);
-
     return {
       id: n.id,
       parentId: parentIdAsId,
@@ -61,7 +54,6 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
 
   // 방사형 레이아웃 계산 (BFS 기반 빈 자리 찾기로 노드 겹침 방지)
   const positions = await calculateRadialLayoutWithForces(nodesForLayout, CANVAS_CENTER_X, CANVAS_CENTER_Y, 350);
-  console.log(`[calculateNodePositions] Calculated ${positions.length} radial positions with BFS`);
 
   // 계산된 좌표를 노드에 적용 (100px 마진으로 제한)
   const processedNodes = nodes.map(node => {
@@ -71,11 +63,6 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
       // 좌표를 100~4900 범위로 제한 (노드가 경계에서 잘리지 않도록)
       const clamped = clampNodePosition(position.x, position.y);
 
-      console.log(`[calculateNodePositions] Applying position to ${node.id}:`, {
-        keyword: node.keyword,
-        from: { x: node.x, y: node.y },
-        to: { x: clamped.x, y: clamped.y },
-      });
       return {
         ...node,
         x: clamped.x,
@@ -137,9 +124,7 @@ export function useCollaborativeNodes(
 
     const run = async () => {
       try {
-        console.time('[useCollaborativeNodes] fetchMindmapNodes');
         const restNodes = await fetchMindmapNodes(workspaceId);
-        console.timeEnd('[useCollaborativeNodes] fetchMindmapNodes');
 
         if (cancelled || restNodes.length === 0) {
           setIsBootstrapping(false);
@@ -147,9 +132,7 @@ export function useCollaborativeNodes(
         }
 
         // Calculate positions for nodes with null x/y
-        console.time('[useCollaborativeNodes] calculateNodePositions');
         const processedNodes = await calculateNodePositions(restNodes);
-        console.timeEnd('[useCollaborativeNodes] calculateNodePositions');
 
         // 🔥 좌표가 정규화된 노드들과 자동 계산된 노드들을 추적 (서버에 저장하기 위해)
         const nodesToUpdate = processedNodes.filter((processed, index) => {
@@ -160,31 +143,16 @@ export function useCollaborativeNodes(
 
           // 1. null 좌표가 자동 계산된 경우
           if ((original.x == null || original.y == null)) {
-            console.log(`[useCollaborativeNodes] Node ${processed.id} has auto-calculated position`);
             return true;
           }
 
           // 2. 좌표가 0~5000 범위로 정규화된 경우 (_wasClamped 플래그)
           const wasClamped = (processed as any)._wasClamped === true;
-          if (wasClamped) {
-            console.log(`[useCollaborativeNodes] Node ${processed.id} (${processed.keyword}) was clamped`);
-          }
 
           return wasClamped;
         });
 
-        console.log(`[useCollaborativeNodes] Nodes to update: ${nodesToUpdate.length} (auto-calculated + normalized)`);
-
         // Use transaction to batch all insertions for performance
-        console.time('[useCollaborativeNodes] Y.Map transaction');
-        console.log('[useCollaborativeNodes] First 3 REST nodes:', processedNodes.slice(0, 3).map(n => ({
-          id: n.id,
-          keyword: n.keyword,
-          memo: n.memo,
-          type: n.type,
-          x: n.x,
-          y: n.y,
-        })));
 
         // 중복 제거: 같은 nodeId를 가진 노드가 이미 있으면 제거
         const existingNodeIds = new Map<number, string>();
@@ -198,26 +166,19 @@ export function useCollaborativeNodes(
           for (const node of processedNodes) {
             // 이미 같은 nodeId를 가진 노드가 Y.Map에 있는지 확인
             if (node.nodeId && existingNodeIds.has(node.nodeId as number)) {
-              const existingId = existingNodeIds.get(node.nodeId as number)!;
-              console.log(`[useCollaborativeNodes] Duplicate nodeId ${node.nodeId} - keeping existing ${existingId}, skipping ${node.id}`);
               continue;
             }
 
             if (!collab.map.has(node.id)) {
               // _wasClamped 플래그 제거
               const { _wasClamped, ...cleanNode } = node as any;
-              console.log(`[useCollaborativeNodes] Setting node ${cleanNode.id}:`, { keyword: cleanNode.keyword, memo: cleanNode.memo, x: cleanNode.x, y: cleanNode.y });
               collab.map.set(cleanNode.id, cleanNode);
             }
           }
         }, "mindmap-bootstrap");
-        console.timeEnd('[useCollaborativeNodes] Y.Map transaction');
-
-        console.log(`✅ [useCollaborativeNodes] Bootstrapped ${restNodes.length} nodes`);
 
         // 정규화/자동 계산된 좌표를 서버에 저장
         if (nodesToUpdate.length > 0) {
-          console.log(`[useCollaborativeNodes] Saving ${nodesToUpdate.length} position updates to server (normalized + auto-calculated)...`);
           const positionUpdates = nodesToUpdate.map((node: NodeData) => ({
             nodeId: node.nodeId as number,
             x: node.x,
@@ -226,7 +187,6 @@ export function useCollaborativeNodes(
 
           try {
             await batchUpdateNodePositions(workspaceId, positionUpdates);
-            console.log(`✅ [useCollaborativeNodes] Saved ${positionUpdates.length} position updates to server`);
           } catch (error) {
             console.error(`[useCollaborativeNodes] Failed to save position updates:`, error);
           }
@@ -264,19 +224,9 @@ export function useCollaborativeNodes(
       return;
     }
 
-    console.log(`[useCollaborativeNodes] 🔧 Found ${nullPositionNodes.length} nodes with null positions, recalculating...`);
-    console.log(`[useCollaborativeNodes] 🔧 Sample null node:`, nullPositionNodes[0]);
-
     // 전체 노드에 대해 좌표 재계산 (async)
     const updatePositions = async () => {
       const processedNodes = await calculateNodePositions(nodes);
-
-      console.log(`[useCollaborativeNodes] 🔧 Processed nodes sample:`, processedNodes.slice(0, 3).map(n => ({
-        id: n.id,
-        keyword: n.keyword,
-        x: n.x,
-        y: n.y,
-      })));
 
       // 자동 계산된 좌표를 추적 (서버에 저장하기 위해)
       const updatedNodesForServer: Array<{ nodeId: number; x: number; y: number }> = [];
@@ -287,11 +237,6 @@ export function useCollaborativeNodes(
           if (node.x != null && node.y != null) {
             const existingNode = collab.map.get(node.id);
             if (existingNode && (existingNode.x == null || existingNode.y == null)) {
-              console.log(`[useCollaborativeNodes] 🔧 Updating position for ${node.id}:`, {
-                keyword: node.keyword,
-                x: node.x,
-                y: node.y,
-              });
               collab.map.set(node.id, { ...existingNode, x: node.x, y: node.y });
 
               // nodeId가 있으면 서버 업데이트 목록에 추가
@@ -307,14 +252,10 @@ export function useCollaborativeNodes(
         }
       }, "position-update");
 
-      console.log(`[useCollaborativeNodes] 🔧 Position update complete`);
-
       // 자동 계산된 좌표를 서버에 저장
       if (updatedNodesForServer.length > 0) {
-        console.log(`[useCollaborativeNodes] 🔧 Saving ${updatedNodesForServer.length} auto-calculated positions to server...`);
         try {
           await batchUpdateNodePositions(workspaceId, updatedNodesForServer);
-          console.log(`✅ [useCollaborativeNodes] 🔧 Saved ${updatedNodesForServer.length} position updates to server`);
         } catch (error) {
           console.error(`[useCollaborativeNodes] 🔧 Failed to save position updates:`, error);
         }

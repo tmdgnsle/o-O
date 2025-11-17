@@ -11,7 +11,7 @@ import { useNodeZIndex } from "../../hooks/custom/useNodeZIndex";
 import { useNodeHandlers } from "../../hooks/custom/useNodeHandlers";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
 import { createRadialGradient } from "@/shared/utils/gradientUtils";
-import type { CytoscapeNodeOverlayProps } from "../../types";
+import type { CytoscapeNodeOverlayProps, RecommendNodeData } from "../../types";
 import warningPopoImage from "@/shared/assets/images/warning_popo.webp";
 import ConfirmDialog from "../../../../shared/ui/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   findNearestNode,
   NODE_RADIUS,
 } from "../../utils/d3Utils";
+import { trendApi } from "@/features/trend/api/trendApi";
 
 function NodeOverlay({
   node,
@@ -56,13 +57,8 @@ function NodeOverlay({
   );
   const [hasMoved, setHasMoved] = useState(false);
   const dragThrottleRef = useRef<number>(0); // 🔥 드래그 중 force simulation 스로틀링
+  const [trendRecommendations, setTrendRecommendations] = useState<RecommendNodeData[]>([]);
 
-  // Debug: 메모 데이터 확인
-  useEffect(() => {
-    console.log(
-      `[NodeOverlay ${node.id}] keyword: "${keyword}", memo: "${memo}", has memo: ${!!memo}`
-    );
-  }, [node.id, keyword, memo]);
 
   // 노드 선택 해제 시 모달 닫기
   useEffect(() => {
@@ -70,6 +66,28 @@ function NodeOverlay({
       setDetailModalOpen(false);
     }
   }, [isSelected]);
+
+  // Fetch trend recommendations when recommend button is clicked
+  const fetchTrendRecommendations = useCallback(async () => {
+    try {
+      const response = await trendApi.getChildTrend(keyword);
+
+      // API 응답에서 상위 3개 키워드를 추출하여 RecommendNodeData 형식으로 변환
+      const recommendations: RecommendNodeData[] = response.items
+        .slice(0, 3)
+        .map((item, index) => ({
+          id: `trend-${index + 1}`,
+          keyword: item.keyword,
+          type: "trend" as const,
+        }));
+
+      setTrendRecommendations(recommendations);
+    } catch (error) {
+      console.error("Failed to fetch trend recommendations:", error);
+      // 에러 발생 시 빈 배열로 설정
+      setTrendRecommendations([]);
+    }
+  }, [keyword]);
 
   const {
     isEditing,
@@ -85,6 +103,13 @@ function NodeOverlay({
   const { paletteOpen, togglePalette, closePalette } =
     useNodeColorEdit(initialColor);
   const { focusedButton, setFocusedButton } = useNodeFocus();
+
+  // Fetch trend recommendations when recommend overlay opens
+  useEffect(() => {
+    if (focusedButton === "recommend") {
+      fetchTrendRecommendations();
+    }
+  }, [focusedButton, fetchTrendRecommendations]);
 
   const {
     handleDelete,
@@ -124,7 +149,6 @@ function NodeOverlay({
   const handleDeleteRequest = useCallback(() => {
     // 루트 노드(nodeId === 1)는 삭제 불가
     if (node.nodeId === 1) {
-      console.log("[NodeOverlay] 루트 노드는 삭제할 수 없습니다.");
       return;
     }
 
@@ -308,11 +332,6 @@ function NodeOverlay({
         // 루트 노드(nodeId가 1)를 드래그한 경우
         if (node.nodeId === 1) {
           // 루트 노드는 부모가 변경되지 않고, 대상 노드의 부모를 루트로 변경
-          console.log(
-            `[NodeOverlay] 루트 노드 "${node.keyword}"에 "${targetNode?.keyword}"를 연결 - "${targetNode?.keyword}"의 부모를 루트로 변경`,
-            { nodeId: nearestNode.id, newParentId: node.id }
-          );
-
           onEditNode({
             nodeId: nearestNode.id,
             newText: targetNode?.keyword,
@@ -321,11 +340,6 @@ function NodeOverlay({
           });
         } else {
           // 일반 노드를 드래그한 경우: 기존처럼 드래그한 노드의 부모 변경
-          console.log(
-            `[NodeOverlay] 노드 "${node.keyword}"의 부모를 "${targetNode?.keyword}"(으)로 변경 (거리: ${nearestNode.distance.toFixed(2)}px)`,
-            { nodeId: node.id, newParentId: nearestNode.id }
-          );
-
           onEditNode({
             nodeId: node.id,
             newText: node.keyword,
@@ -523,6 +537,7 @@ function NodeOverlay({
             onSelectRecommendation={handleRecommendSelect}
             selectedNodeX={x}
             selectedNodeY={y}
+            trendRecommendations={trendRecommendations}
           />
         )}
 

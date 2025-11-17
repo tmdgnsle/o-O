@@ -89,19 +89,6 @@ export default function D3Canvas({
       });
   }, [nodes]);
 
-  // 루트 노드(nodeId === 1) 위치 확인 로그만 (이동은 하지 않음 - 뷰포트로 해결)
-  useEffect(() => {
-    if (nodes.length === 0) return;
-
-    const rootNode = findParentNode(nodes);
-    if (rootNode) {
-      console.log(`[D3Canvas] Root node position:`, {
-        id: rootNode.id,
-        nodeId: rootNode.nodeId,
-        position: { x: rootNode.x, y: rootNode.y },
-      });
-    }
-  }, [nodes.length]);
 
   // SVG 초기화
   useEffect(() => {
@@ -285,7 +272,6 @@ export default function D3Canvas({
         // 노드 클릭 이벤트는 zoom에서 제외
         const target = event.target as HTMLElement;
         if (target.closest("[data-node-id]")) {
-          console.log("[D3Canvas] Zoom filter: ignoring node click");
           return false;
         }
         // 마우스 왼쪽 버튼 드래그와 휠 이벤트만 허용
@@ -295,7 +281,6 @@ export default function D3Canvas({
         if (svgRef.current) {
           svgRef.current.style.cursor = "grabbing";
         }
-        console.log("[D3Canvas] Zoom/pan started");
       })
       .on("zoom", (event) => {
         const newTransform = event.transform;
@@ -315,16 +300,10 @@ export default function D3Canvas({
         if (svgRef.current) {
           svgRef.current.style.cursor = "grab";
         }
-        console.log(
-          "[D3Canvas] Zoom/pan ended, final transform:",
-          transformRef.current
-        );
       });
 
-    console.log("[D3Canvas] Attaching zoom behavior to SVG");
     svg.call(zoom);
     zoomBehaviorRef.current = zoom;
-    console.log("[D3Canvas] Zoom behavior attached successfully");
 
     // 브라우저 기본 줌 차단 (트랙패드 핀치 포함)
     const preventBrowserZoom = (e: WheelEvent) => {
@@ -348,34 +327,20 @@ export default function D3Canvas({
   // 초기 뷰포트 설정 - 부모 노드를 화면 중앙에 배치
   const hasInitializedViewportRef = useRef(false);
   useEffect(() => {
-    console.log(`[D3Canvas] 🔍 Viewport init effect called:`, {
-      svgReady: !!svgRef.current,
-      d3Ready,
-      zoomReady: !!zoomBehaviorRef.current,
-      hasInitialized: hasInitializedViewportRef.current,
-      nodesLength: nodes.length,
-      containerReady: !!containerRef.current,
-    });
-
     if (!svgRef.current || !d3Ready || !zoomBehaviorRef.current) {
-      console.log(`[D3Canvas] 🔍 Skipping: not ready`);
       return;
     }
     if (hasInitializedViewportRef.current) {
-      console.log(`[D3Canvas] 🔍 Skipping: already initialized`);
       return;
     }
     if (nodes.length === 0) {
-      console.log(`[D3Canvas] 🔍 Skipping: no nodes`);
       return;
     }
     if (!containerRef.current) {
-      console.log(`[D3Canvas] 🔍 Skipping: no container`);
       return;
     }
 
     const parentNode = findParentNode(nodes);
-    console.log(`[D3Canvas] 🔍 Parent node found:`, parentNode);
     if (!parentNode) return;
 
     // 약간 지연 후 실행 (DOM 렌더링 대기)
@@ -390,11 +355,6 @@ export default function D3Canvas({
       const parentX = parentNode.x;
       const parentY = parentNode.y;
 
-      console.log(`[D3Canvas] 🎯 Setting initial viewport:`, {
-        parentActualPos: { x: parentX, y: parentY },
-        screenCenter: { x: centerX, y: centerY },
-      });
-
       const svg = d3.select(svgRef.current);
       const zoom = zoomBehaviorRef.current;
 
@@ -404,22 +364,8 @@ export default function D3Canvas({
         .scale(1)
         .translate(-parentX, -parentY);
 
-      console.log(`[D3Canvas] 🎯 Applying initial transform:`, {
-        x: initialTransform.x,
-        y: initialTransform.y,
-        k: initialTransform.k,
-      });
-
       svg.call(zoom.transform, initialTransform);
       hasInitializedViewportRef.current = true;
-
-      // 검증: 실제로 적용되었는지 확인
-      setTimeout(() => {
-        console.log(
-          `[D3Canvas] 🎯 Viewport initialized. Current transform:`,
-          transformRef.current
-        );
-      }, 100);
     }, 150);
 
     return () => clearTimeout(timer);
@@ -575,14 +521,6 @@ export default function D3Canvas({
         const modelX = (screenX - t.x) / t.k;
         const modelY = (screenY - t.y) / t.k;
 
-        console.log(`[D3Canvas] 🖱️ Click position:`, {
-          screen: { x: screenX, y: screenY },
-          model: { x: modelX.toFixed(2), y: modelY.toFixed(2) },
-          canvasCenter: { x: CANVAS_CENTER_X, y: CANVAS_CENTER_Y },
-          viewportCenter: { x: rect.width / 2, y: rect.height / 2 },
-          transform: t,
-        });
-
         onNodeUnselect();
       }
     };
@@ -735,15 +673,6 @@ export default function D3Canvas({
             const isSelected = selectedNodeId === node.id;
             const isAnalyzeSelected = analyzeSelection.includes(node.id);
             const screenPos = getNodeScreenPosition(node);
-
-            // 디버깅: 첫 번째 노드의 위치만 로그
-            if (node.id === nodes[0]?.id) {
-              console.log(`[D3Canvas] NodeOverlay position for ${node.id}:`, {
-                modelPos: { x: node.x, y: node.y },
-                screenPos,
-                transform,
-              });
-            }
 
             return (
               <NodeOverlay

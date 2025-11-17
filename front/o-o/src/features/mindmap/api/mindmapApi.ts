@@ -26,14 +26,6 @@ export const uploadThumbnail = async (
         'Content-Type': 'multipart/form-data',
       },
     });
-
-    if (import.meta.env.DEV) {
-      console.log('✅ [Thumbnail Upload] Successfully uploaded:', {
-        workspaceId,
-        filename: thumbnailFile.name,
-        size: `${(thumbnailFile.size / 1024).toFixed(2)} KB`,
-      });
-    }
   } catch (error) {
     console.error('❌ [Thumbnail Upload] Failed to upload thumbnail:', error);
     // 에러를 던지지 않고 로그만 남김 (썸네일 업로드 실패가 사용자 경험을 방해하지 않도록)

@@ -118,6 +118,7 @@ export type RecommendNodeOverlayProps = Readonly<{
   onSelectRecommendation: (text: string) => void;
   selectedNodeX: number;
   selectedNodeY: number;
+  trendRecommendations?: RecommendNodeData[];
 }>;
 
 // Textbox.tsx

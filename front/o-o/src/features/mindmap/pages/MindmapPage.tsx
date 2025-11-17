@@ -75,7 +75,6 @@ const MindmapPageContent: React.FC = () => {
     {
       enabled: true, // Mindmap 페이지에서는 항상 활성화
       onAuthError: () => {
-        console.warn("[MindmapPage] auth error in collaboration, navigate to home");
         navigate("/"); // 인증 실패 시 홈으로 리다이렉트
       },
       myRole: workspace?.myRole, // 워크스페이스 역할 전달
@@ -133,18 +132,14 @@ const MindmapPageContent: React.FC = () => {
     const captureThumbnail = async () => {
       // 이미 캡처 중이거나 완료했으면 스킵
       if (thumbnailCapturedRef.current || thumbnailCapturePromiseRef.current) {
-        console.log('[MindmapPage] Thumbnail capture already in progress or completed');
         return;
       }
 
       // 현재 ref 사용 (저장된 요소는 DOM에서 분리되어 html2canvas 실패)
       const targetElement = canvasContainerRef.current;
       if (!targetElement) {
-        console.log('[MindmapPage] No canvas element available for capture');
         return;
       }
-
-      console.log('📸 [MindmapPage] Starting thumbnail capture...');
 
       // 캡처 Promise 저장 (중복 실행 방지)
       thumbnailCapturePromiseRef.current = (async () => {
@@ -158,7 +153,6 @@ const MindmapPageContent: React.FC = () => {
           // 서버로 전송
           await mindmapApi.uploadThumbnail(workspaceId, thumbnailFile);
           thumbnailCapturedRef.current = true;
-          console.log('✅ [MindmapPage] Thumbnail captured and uploaded successfully');
         } catch (error) {
           console.error('❌ [MindmapPage] Thumbnail capture/upload failed:', error);
           // 실패 시 다시 시도할 수 있도록 Promise 초기화
@@ -171,19 +165,11 @@ const MindmapPageContent: React.FC = () => {
 
     // 🔥 브라우저 뒤로가기 감지 - 캡처 후 실제 뒤로 가기
     const handlePopState = async (e: PopStateEvent) => {
-      console.log('🔔🔔🔔 [MindmapPage] popstate event FIRED', {
-        shouldBlock: shouldBlockBackRef.current,
-        captured: thumbnailCapturedRef.current,
-        hasCanvas: !!canvasContainerRef.current,
-      });
-
       // 첫 번째 popstate (진짜 사용자 뒤로가기)
       if (shouldBlockBackRef.current && !thumbnailCapturedRef.current) {
         // 뒤로가기 취소하고 원래 위치로 복귀
         e.preventDefault?.(); // 표준 preventDefault (효과 없을 수 있음)
         history.pushState(null, '', location.pathname);
-
-        console.log('🚫 [MindmapPage] Back navigation intercepted, capturing thumbnail...');
 
         // 차단 플래그 해제 (다음 뒤로가기는 허용)
         shouldBlockBackRef.current = false;
@@ -191,7 +177,6 @@ const MindmapPageContent: React.FC = () => {
         try {
           // 캡처 시도 (완료 대기)
           await captureThumbnail();
-          console.log('✅ [MindmapPage] Capture complete, navigation allowed');
         } catch (error) {
           console.error('❌ [MindmapPage] Capture failed, but navigation allowed:', error);
         }
@@ -206,7 +191,6 @@ const MindmapPageContent: React.FC = () => {
     // 페이지 숨김 이벤트 (브라우저 탭 닫기, 다른 탭으로 이동 등)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        console.log('🔔 [MindmapPage] visibilitychange to hidden');
         if (!thumbnailCapturedRef.current) {
           captureThumbnail();
         }
@@ -215,7 +199,6 @@ const MindmapPageContent: React.FC = () => {
 
     // 브라우저 탭 닫기 전 이벤트
     const handleBeforeUnload = () => {
-      console.log('🔔 [MindmapPage] beforeunload event');
       if (!thumbnailCapturedRef.current) {
         captureThumbnail();
       }
@@ -223,8 +206,6 @@ const MindmapPageContent: React.FC = () => {
 
     // 🔥 MiniNav에서 발생시키는 커스텀 이벤트 감지
     const handleMindmapNavigation = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      console.log('🔔 [MindmapPage] mindmap-navigation event detected:', customEvent.detail);
       if (!thumbnailCapturedRef.current) {
         // 캡처 시작 (비동기지만 완료를 기다리지 않음)
         captureThumbnail();
@@ -233,7 +214,6 @@ const MindmapPageContent: React.FC = () => {
 
     // 🔥 뒤로가기 차단을 위한 히스토리 state 추가
     history.pushState(null, '', location.pathname);
-    console.log('🔒 [MindmapPage] Added history state to catch back button');
 
     // 이벤트 리스너 등록
     window.addEventListener('popstate', handlePopState);
@@ -241,15 +221,8 @@ const MindmapPageContent: React.FC = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('mindmap-navigation', handleMindmapNavigation);
 
-    console.log('🔔 [MindmapPage] Thumbnail capture listeners registered');
-
     // Cleanup
     return () => {
-      console.log('🔔 [MindmapPage] Component unmounting, removing listeners', {
-        thumbnailCaptured: thumbnailCapturedRef.current,
-        hasCanvasRef: !!canvasContainerRef.current,
-        hasSavedCanvas: !!savedCanvasElementRef.current,
-      });
 
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -257,7 +230,6 @@ const MindmapPageContent: React.FC = () => {
       window.removeEventListener('mindmap-navigation', handleMindmapNavigation);
 
       // cleanup에서는 캡처하지 않음 (이미 DOM이 제거 중이라 html2canvas 실패)
-      console.log('⏭️ [MindmapPage] Cleanup complete (thumbnail capture handled by events)');
     };
   }, [workspaceId]);
 
@@ -269,19 +241,13 @@ const MindmapPageContent: React.FC = () => {
     const pendingKeywords = getPendingImportKeywords();
     if (!pendingKeywords || pendingKeywords.length === 0) return;
 
-    console.log("[MindmapPage] 트렌드 키워드 임포트:", pendingKeywords);
-
     // 🔥 중복 실행 방지: 로컬스토리지에서 즉시 제거
     clearPendingImportKeywords();
 
     // 백엔드에 직접 순차적으로 노드 생성
     const addNodesSequentially = async () => {
-      console.log("[MindmapPage] 🔥 백엔드에 직접 순차적 노드 생성 시작");
-
       // 백엔드에서 최신 노드 목록 먼저 조회
-      console.log("[MindmapPage] 🔄 기존 노드 목록 조회 중...");
       const existingNodesFromBackend = await fetchMindmapNodes(workspaceId);
-      console.log("[MindmapPage] ✅ 기존 노드 수:", existingNodesFromBackend.length);
 
       // 백엔드 자동 생성 기본 루트 노드(nodeId === 1) 제외
       const existingNodes = existingNodesFromBackend.filter(node => {
@@ -296,13 +262,6 @@ const MindmapPageContent: React.FC = () => {
         existingNodes // 기존 노드 정보 전달하여 겹치지 않게 배치
       );
 
-      console.log("[MindmapPage] 📍 새 노드 배치 정보:", {
-        firstNodeX: newNodes[0]?.x,
-        firstNodeY: newNodes[0]?.y,
-        existingNodesCount: existingNodes.length,
-        isNewMindmap: existingNodes.length === 0
-      });
-
       let lastCreatedNodeId: number | null = null;
       let firstCreatedNodeId: number | null = null; // 🔥 첫 번째 노드 ID 저장
 
@@ -312,14 +271,7 @@ const MindmapPageContent: React.FC = () => {
         // parentId 결정: 첫 노드는 null, 이후는 이전 노드의 nodeId
         const backendParentId = i === 0 ? null : lastCreatedNodeId;
 
-        console.log(`[MindmapPage] [${i + 1}/${newNodes.length}] Creating node:`, {
-          keyword: node.keyword,
-          parentId: backendParentId,
-          x: node.x,
-          y: node.y,
-        });
-
-        try {
+        try{
           // 백엔드에 직접 생성 요청
           const createdNode = await createMindmapNode(workspaceId, {
             parentId: backendParentId,
@@ -329,12 +281,6 @@ const MindmapPageContent: React.FC = () => {
             x: node.x ?? 0,
             y: node.y ?? 0,
             color: node.color,
-          });
-
-          console.log(`[MindmapPage] ✅ Node created:`, {
-            keyword: createdNode.keyword,
-            nodeId: createdNode.nodeId,
-            parentId: createdNode.parentId,
           });
 
           // 생성된 nodeId를 다음 노드의 parentId로 사용
@@ -352,12 +298,8 @@ const MindmapPageContent: React.FC = () => {
         }
       }
 
-      console.log("[MindmapPage] 🎉 모든 노드 생성 완료", { firstCreatedNodeId });
-
       // 백엔드에서 모든 노드 다시 조회
-      console.log("[MindmapPage] 🔄 백엔드에서 노드 목록 다시 조회 중...");
       const allNodes = await fetchMindmapNodes(workspaceId);
-      console.log("[MindmapPage] ✅ 조회된 노드 수:", allNodes.length);
 
       // Yjs Map에 노드들 반영 (remote origin으로 설정하여 useMindmapSync 트리거 방지)
       if (collab?.map) {
@@ -370,8 +312,6 @@ const MindmapPageContent: React.FC = () => {
           for (const node of allNodes) {
             collab.map.set(node.id, node);
           }
-
-          console.log("[MindmapPage] ✅ Yjs Map에 노드 반영 완료");
         }, "remote");
       }
 
@@ -379,22 +319,14 @@ const MindmapPageContent: React.FC = () => {
       if (firstCreatedNodeId) {
         const matchedNode = allNodes.find(node => node.nodeId === firstCreatedNodeId);
         if (matchedNode) {
-          console.log("[MindmapPage] 📍 포커스할 노드 ID 설정:", {
-            id: matchedNode.id,
-            nodeId: matchedNode.nodeId,
-            keyword: matchedNode.keyword,
-            position: { x: matchedNode.x, y: matchedNode.y }
-          });
           setFocusNodeId(matchedNode.id);
-        } else {
-          console.warn("[MindmapPage] ⚠️ 매칭되는 노드를 찾을 수 없음 (nodeId):", firstCreatedNodeId);
         }
       }
     };
 
     addNodesSequentially()
       .then(() => {
-        console.log("[MindmapPage] ✅ 트렌드 키워드 임포트 완료");
+        // 임포트 완료
       })
       .catch((error) => {
         console.error("[MindmapPage] ❌ 트렌드 키워드 임포트 실패:", error);
@@ -407,38 +339,20 @@ const MindmapPageContent: React.FC = () => {
       return;
     }
 
-    console.log("[MindmapPage] 📍 포커스 노드:", focusNodeId);
-
     // nodes에서 해당 노드 찾기 (노드가 실제로 존재하는지 확인)
     const targetNode = nodes.find(n => n.id === focusNodeId);
 
     if (targetNode && targetNode.x !== undefined && targetNode.y !== undefined) {
-      console.log("[MindmapPage] 📍 카메라 이동 시작:", {
-        id: targetNode.id,
-        keyword: targetNode.keyword,
-        x: targetNode.x,
-        y: targetNode.y
-      });
-
       // cyRef의 focusOnNode 메서드 사용
       const timer = setTimeout(() => {
         if (cyRef.current && typeof (cyRef.current as any).focusOnNode === 'function') {
           (cyRef.current as any).focusOnNode(focusNodeId);
-          console.log("[MindmapPage] ✅ focusOnNode 호출 완료");
-        } else {
-          console.warn("[MindmapPage] ⚠️ cyRef.current.focusOnNode이 준비되지 않음");
         }
 
         setFocusNodeId(null);
       }, 200); // DOM 렌더링 대기
 
       return () => clearTimeout(timer);
-    } else {
-      console.warn("[MindmapPage] ⚠️ 노드를 찾을 수 없거나 좌표가 없음:", focusNodeId, {
-        nodesLength: nodes.length,
-        hasTargetNode: !!targetNode
-      });
-      // 🔥 노드를 못 찾으면 포커스 유지 (다음 nodes 업데이트 시 재시도)
     }
   }, [focusNodeId, nodes]);
 
@@ -449,13 +363,11 @@ const MindmapPageContent: React.FC = () => {
 
     const cy = cyRef.current;
     if (!cy) {
-      console.log("[MindmapPage] cyRef.current is null, skip cursor binding");
       return;
     }
 
     const awareness = collab.client.provider.awareness;
     if (!awareness) {
-      console.log("[MindmapPage] provider.awareness is null");
       return;
     }
 
@@ -482,7 +394,6 @@ const MindmapPageContent: React.FC = () => {
       });
     };
 
-    console.log("[MindmapPage] attach mousemove for awareness cursor + chatInput");
     cy.on("mousemove", handleMouseMove);
 
     return () => {
@@ -536,8 +447,8 @@ const MindmapPageContent: React.FC = () => {
             <VoiceChat
               workspaceId={workspaceId}
               onCallEnd={() => setVoiceChatVisible(false)}
-              onOrganize={() => console.log("Organize clicked")}
-              onShare={() => console.log("Share clicked")}
+              onOrganize={() => {}}
+              onShare={() => {}}
             />
           </div>
         ) : (

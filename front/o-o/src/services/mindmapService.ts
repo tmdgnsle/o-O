@@ -18,13 +18,6 @@ function clampNodePosition(node: NodeData): NodeData & { _wasClamped?: boolean }
 
   const wasClamped = clampedX !== node.x || clampedY !== node.y;
 
-  if (wasClamped) {
-    console.log(`[clampNodePosition] Clamping node ${node.id} (${node.keyword}):`, {
-      from: { x: node.x, y: node.y },
-      to: { x: clampedX, y: clampedY }
-    });
-  }
-
   return {
     ...node,
     x: clampedX,
