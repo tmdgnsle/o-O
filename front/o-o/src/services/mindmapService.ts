@@ -188,7 +188,20 @@ export const analyzeSelectedNodes = async (
     `/mindmap/${workspaceId}/ai/analyze-nodes`,
     {
       nodeIds,
-    } as AnalyzeNodesRequestDTO
+    } as AnalyzeNodesRequestDTO,
+    {
+      timeout: 50000  // 50초 timeout (AI 분석은 시간이 오래 걸릴 수 있음)
+    }
+  );
+  return data;
+};
+
+// 기획안 생성
+export const createPlan = async (workspaceId: string) => {
+  const { data } = await apiClient.post(
+    `/mindmap/${workspaceId}/ai/create-plan`,
+    {},
+    { timeout: 60000 }
   );
   return data;
 };

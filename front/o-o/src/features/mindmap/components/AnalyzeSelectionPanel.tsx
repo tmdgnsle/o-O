@@ -7,7 +7,7 @@ import planningPopoImage from "@/shared/assets/images/planning_popo.webp";
 import type { NodeData } from "../types";
 import { buildNodeTree } from "../utils/buildNodeTree";
 import AnalyzeTreeNode from "./AnalyzeTreeNode";
-import { analyzeSelectedNodes } from "@/services/mindmapService";
+import { analyzeSelectedNodes, createPlan } from "@/services/mindmapService";
 import { useToast } from "@/shared/ui/ToastProvider";
 
 export default function AnalyzeSelectionPanel({
@@ -29,6 +29,7 @@ export default function AnalyzeSelectionPanel({
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [apiAnalysisResult, setApiAnalysisResult] = useState<string | null>(null);
+  const [apiPlan, setApiPlan] = useState<{ title: string; content: string } | null>(null);
 
   // 선택된 노드들을 계층 구조로 변환
   const treeRoots = useMemo(() => buildNodeTree(selectedNodes), [selectedNodes]);
@@ -82,14 +83,23 @@ export default function AnalyzeSelectionPanel({
     }
   };
 
-  const handlePlanOpen = () => {
+  const handlePlanOpen = async () => {
     setAnalysisDialogOpen(false);
-    setPlanDialogOpen(true);
+
+    try {
+      const result = await createPlan(workspaceId);
+      setApiPlan(result);
+      setPlanDialogOpen(true);
+    } catch (error) {
+      console.error("[AnalyzeSelectionPanel] 기획안 생성 실패:", error);
+      showToast("기획안 생성에 실패했습니다.", "error");
+    }
   };
 
   const handlePlanCopy = () => {
     if (navigator?.clipboard) {
-      navigator.clipboard.writeText(planContent).catch(() => {
+      const content = apiPlan?.content || planContent;
+      navigator.clipboard.writeText(content).catch(() => {
         console.warn("Failed to copy plan content");
       });
     }
@@ -171,8 +181,8 @@ export default function AnalyzeSelectionPanel({
       {planDialogOpen && (
         <ContentDialog
           characterImage={planningPopoImage}
-          title="알고리즘 기반 AI 학습·서비스 플랫폼 기획안"
-          content={planContent}
+          title={apiPlan?.title || "기획안"}
+          content={apiPlan?.content || planContent}
           onClose={() => setPlanDialogOpen(false)}
           buttons={[
             {
