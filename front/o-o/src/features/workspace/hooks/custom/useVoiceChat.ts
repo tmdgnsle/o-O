@@ -141,12 +141,17 @@ export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk,
     }
 
     return () => {
-      // Cleanup on unmount
-      if (isInVoice) {
-        leaveVoice();
+      // Cleanup on unmount - stop all tracks
+      console.log('[useVoiceChat] 🧹 Cleanup: Stopping local stream tracks...');
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          console.log('[useVoiceChat] 🛑 Stopping track:', track.kind, track.label);
+          track.stop();
+        });
+        localStreamRef.current = null;
       }
     };
-  }, [enabled]); // Only run on mount/unmount or when enabled changes
+  }, [enabled, isInVoice, userId, joinVoice]); // Include dependencies for proper cleanup
 
   return {
     // State

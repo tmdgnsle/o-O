@@ -43,8 +43,10 @@ import {
 } from "@/constants/mindmapCollaboration";
 import { captureThumbnailAsFile } from "../utils/canvasCapture";
 import { mindmapApi } from "../api/mindmapApi";
+import { useAppSelector } from "@/store/hooks";
 
 const MindmapPageContent: React.FC = () => {
+  const currentUser = useAppSelector((state) => state.user.user);
   // 1. Routing & workspace params
   const params = useParams<{ workspaceId?: string }>();
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
@@ -179,12 +181,13 @@ const MindmapPageContent: React.FC = () => {
 
     const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
 
-    // Awareness 업데이트 (모든 참여자에게 동기화)
-    if (updateGptState && gptState) {
+    // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
+    if (updateGptState) {
       console.log('[MindmapPage] 📡 Awareness에 키워드 추가');
       updateGptState({
-        ...gptState,
-        keywords: [...gptState.keywords, ...newKeywords],
+        isRecording: gptState?.isRecording ?? true,
+        keywords: [...(gptState?.keywords ?? []), ...newKeywords],
+        startedBy: gptState?.startedBy ?? currentUser?.id.toString() ?? '',
         timestamp: Date.now(),
       });
     }

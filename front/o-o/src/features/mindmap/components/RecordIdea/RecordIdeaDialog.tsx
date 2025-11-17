@@ -31,7 +31,7 @@ export function RecordIdeaDialog({ keywords, onDelete, onNodeClick, myRole, onCl
       {isMaintainer ? (
         <Button className="bg-primary mb-4 mx-4 shadow-md">입력하기</Button>
       ) : (
-        <Button className="bg-gray-500 mb-4 mx-4 shadow-md" onClick={onClose}>
+        <Button className="bg-primary mb-4 mx-4 shadow-md" onClick={onClose}>
           닫기
         </Button>
       )}

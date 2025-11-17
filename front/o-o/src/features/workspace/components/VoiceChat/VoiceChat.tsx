@@ -186,10 +186,33 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     if (!isInVoice) {
       joinVoice();
     }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[VoiceChat] 🧹 Component unmounting, cleaning up...');
+
+      // Stop GPT recording if active
+      if (gpt.isRecording) {
+        console.log('[VoiceChat] 🛑 Stopping GPT recording on unmount...');
+        gpt.stopRecording();
+      }
+
+      // Leave voice chat if active
+      if (isInVoice) {
+        console.log('[VoiceChat] 📞 Leaving voice chat on unmount...');
+        leaveVoice();
+      }
+    };
   }, []); // Only run on mount
 
   const handleCallToggle = () => {
     if (isInVoice) {
+      // Stop GPT recording FIRST if active (to stop Web Speech API)
+      if (gpt.isRecording) {
+        console.log('[VoiceChat] 🛑 Stopping GPT recording before leaving voice...');
+        gpt.stopRecording();
+      }
+
       leaveVoice();
       onCallEnd?.();
     }
