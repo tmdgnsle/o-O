@@ -29,8 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -130,14 +130,18 @@ public class NodeAiService {
         // 1. 기존 워크스페이스의 모든 노드 조회
         List<MindmapNode> existingNodes = nodeRepository.findByWorkspaceId(workspaceId);
 
-        if (existingNodes.isEmpty()) {
-            throw new IllegalArgumentException("워크스페이스에 노드가 하나도 없습니다. workspaceId=" + workspaceId);
+        boolean isEmptyWorkspace = existingNodes.isEmpty();
+
+        if (isEmptyWorkspace) {
+            log.info("Empty workspace detected: workspaceId={}. Will create root node from first keyword.", workspaceId);
+        } else {
+            log.info("Found {} existing nodes in workspace {}", existingNodes.size(), workspaceId);
         }
 
-        log.info("Found {} existing nodes in workspace {}", existingNodes.size(), workspaceId);
-
         // 2. GPT 프롬프트 생성
-        String prompt = buildAddIdeaPrompt(existingNodes, request.idea());
+        String prompt = isEmptyWorkspace
+                ? buildAddIdeaPromptForEmpty(request.idea())
+                : buildAddIdeaPrompt(existingNodes, request.idea());
 
         // 3. GPT API 호출
         ChatCompletionRequest gmsRequest = new ChatCompletionRequest(
@@ -170,45 +174,94 @@ public class NodeAiService {
         log.info("Extracted {} keywords from GPT", extractedKeywords.size());
 
         // 5. 추출된 키워드로 새 노드 생성
-        List<Long> createdNodeIds = new ArrayList<>();
+        List<MindmapNode> createdNodes = new ArrayList<>();
 
-        for (ExtractedKeywordNode extracted : extractedKeywords) {
-            // parentId 유효성 검증
-            final Long parentIdFromGpt = extracted.getParentId();
-            boolean parentExists = existingNodes.stream()
-                    .anyMatch(node -> node.getNodeId().equals(parentIdFromGpt));
+        if (isEmptyWorkspace) {
+            // 빈 워크스페이스: 첫 번째 키워드를 루트로, 나머지는 자식으로
+            log.info("Creating nodes for empty workspace: first as root, rest as children");
 
-            Long actualParentId;
-            if (!parentExists) {
-                log.warn("Invalid parentId {} for keyword '{}'. Using root node instead.",
-                        parentIdFromGpt, extracted.getKeyword());
-                // 첫 번째 노드를 루트로 사용
-                actualParentId = existingNodes.get(0).getNodeId();
-            } else {
-                actualParentId = parentIdFromGpt;
+            for (int i = 0; i < extractedKeywords.size(); i++) {
+                ExtractedKeywordNode extracted = extractedKeywords.get(i);
+
+                Long parentId;
+                if (i == 0) {
+                    // 첫 번째 키워드: 루트 노드 (parentId = null)
+                    parentId = null;
+                } else {
+                    // 나머지: 첫 번째 노드의 자식
+                    parentId = createdNodes.get(0).getNodeId();
+                }
+
+                MindmapNode newNode = MindmapNode.builder()
+                        .workspaceId(workspaceId)
+                        .parentId(parentId)
+                        .type("text")
+                        .keyword(extracted.getKeyword())
+                        .memo(extracted.getMemo())
+                        .color(InitialColor.getRandomColor())
+                        .analysisStatus(MindmapNode.AnalysisStatus.NONE)
+                        .build();
+
+                MindmapNode created = nodeService.createNode(newNode);
+                createdNodes.add(created);
+
+                log.info("Created node: nodeId={}, keyword={}, parentId={}, isRoot={}",
+                        created.getNodeId(), created.getKeyword(), created.getParentId(), i == 0);
             }
+        } else {
+            // 기존 노드가 있는 경우: GPT가 지정한 parentId 사용
+            for (ExtractedKeywordNode extracted : extractedKeywords) {
+                // parentId 유효성 검증
+                final Long parentIdFromGpt = extracted.getParentId();
 
-            // 새 노드 생성
-            MindmapNode newNode = MindmapNode.builder()
-                    .workspaceId(workspaceId)
-                    .parentId(actualParentId)
-                    .type("text")
-                    .keyword(extracted.getKeyword())
-                    .memo(extracted.getMemo())
-                    .color(InitialColor.getRandomColor())
-                    .analysisStatus(MindmapNode.AnalysisStatus.NONE)
-                    .build();
+                Long actualParentId;
+                if (parentIdFromGpt == null) {
+                    log.warn("GPT returned null parentId for keyword '{}'. Using root node instead.",
+                            extracted.getKeyword());
+                    // 첫 번째 노드를 루트로 사용
+                    actualParentId = existingNodes.get(0).getNodeId();
+                } else {
+                    boolean parentExists = existingNodes.stream()
+                            .anyMatch(node -> node.getNodeId().equals(parentIdFromGpt));
 
-            MindmapNode created = nodeService.createNode(newNode);
-            createdNodeIds.add(created.getNodeId());
+                    if (!parentExists) {
+                        log.warn("Invalid parentId {} for keyword '{}'. Using root node instead.",
+                                parentIdFromGpt, extracted.getKeyword());
+                        // 첫 번째 노드를 루트로 사용
+                        actualParentId = existingNodes.get(0).getNodeId();
+                    } else {
+                        actualParentId = parentIdFromGpt;
+                    }
+                }
 
-            log.info("Created node: nodeId={}, keyword={}, parentId={}",
-                    created.getNodeId(), created.getKeyword(), created.getParentId());
+                // 새 노드 생성
+                MindmapNode newNode = MindmapNode.builder()
+                        .workspaceId(workspaceId)
+                        .parentId(actualParentId)
+                        .type("text")
+                        .keyword(extracted.getKeyword())
+                        .memo(extracted.getMemo())
+                        .color(InitialColor.getRandomColor())
+                        .analysisStatus(MindmapNode.AnalysisStatus.NONE)
+                        .build();
+
+                MindmapNode created = nodeService.createNode(newNode);
+                createdNodes.add(created);
+
+                log.info("Created node: nodeId={}, keyword={}, parentId={}",
+                        created.getNodeId(), created.getKeyword(), created.getParentId());
+            }
         }
 
-        // 6. WebSocket으로 변경사항 전송 (Kafka 이벤트 발행)
-        nodeUpdateProducer.sendNodeUpdate(workspaceId);
-        log.info("Published node update event for workspace {}", workspaceId);
+        // 6. WebSocket으로 변경사항 전송 (Kafka 이벤트 발행 - 전체 노드 정보 포함)
+        nodeUpdateProducer.sendNodeUpdateWithNodes(workspaceId, createdNodes);
+        log.info("Published node update event with {} created nodes for workspace {}",
+                createdNodes.size(), workspaceId);
+
+        // HTTP 응답용 노드 ID 리스트 추출
+        List<Long> createdNodeIds = createdNodes.stream()
+                .map(MindmapNode::getNodeId)
+                .collect(Collectors.toList());
 
         return new AddIdeaResponse(
                 workspaceId,
@@ -289,6 +342,56 @@ public class NodeAiService {
     }
 
     // ===================== 프롬프트 템플릿 =====================
+
+    /**
+     * 빈 워크스페이스용 아이디어 추가 프롬프트
+     * 기존 노드 정보 없이 새 아이디어만으로 키워드 추출
+     */
+    private String buildAddIdeaPromptForEmpty(String newIdea) {
+        return """
+            You are an AI assistant helping to create a mindmap from a new idea.
+
+            ## Your Task
+            1. Analyze the user's idea
+            2. Extract 1-10 key concepts/keywords from the idea
+            3. Create a brief description (memo) for each keyword in Korean
+
+            ## Important Rules
+            - Extract between 1 and 10 keywords (no more, no less)
+            - Keywords and memos must be in Korean
+            - The first keyword will be the root node (most important concept)
+            - Other keywords will be child nodes of the first keyword
+            - DO NOT include parentId in the response (it will be assigned automatically)
+
+            ## New Idea to Process
+            """ + "\"" + escape(newIdea) + "\"" + """
+
+
+            ## Required Response Format
+            Respond with ONLY a JSON array containing the extracted keywords. No explanations, no markdown code blocks.
+            Each object must have exactly these fields:
+            - keyword: string (the extracted keyword in Korean)
+            - memo: string (brief description in Korean, 1-2 sentences)
+
+            Example response format:
+            [
+              {
+                "keyword": "맛집 추천 앱",
+                "memo": "사용자 위치 기반으로 주변 맛집을 찾고 추천해주는 모바일 애플리케이션"
+              },
+              {
+                "keyword": "맛집 검색",
+                "memo": "사용자가 원하는 조건으로 맛집을 검색하는 기능"
+              },
+              {
+                "keyword": "리뷰 시스템",
+                "memo": "사용자들이 맛집에 대한 리뷰를 작성하고 공유하는 기능"
+              }
+            ]
+
+            Now extract keywords from the new idea and respond with JSON only.
+            """;
+    }
 
     /**
      * 아이디어 추가용 GPT 프롬프트 생성

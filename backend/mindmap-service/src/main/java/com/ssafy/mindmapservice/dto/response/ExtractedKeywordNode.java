@@ -24,7 +24,7 @@ public class ExtractedKeywordNode {
     @JsonProperty("memo")
     private String memo;
 
-    @Schema(description = "기존 마인드맵에서 연결될 부모 노드 ID", example = "3")
+    @Schema(description = "기존 마인드맵에서 연결될 부모 노드 ID (빈 워크스페이스에서는 null 가능)", example = "3", nullable = true)
     @JsonProperty("parentId")
     private Long parentId;
 }
