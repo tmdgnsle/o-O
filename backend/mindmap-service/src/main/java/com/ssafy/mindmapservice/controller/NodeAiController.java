@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/workspaces/{workspaceId}/ai")
+@RequestMapping("/mindmap/{workspaceId}/ai")
 @Tag(name = "Node AI", description = "마인드맵 노드 AI 분석/기획안 관련 API")
 public class NodeAiController {
 
