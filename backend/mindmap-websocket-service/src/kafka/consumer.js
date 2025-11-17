@@ -29,6 +29,7 @@ class KafkaConsumerService {
     this.onInitialCreateDone = null;  // 초기 노드 생성 완료 이벤트 핸들러
     this.nodeUpdateTopic = process.env.KAFKA_TOPIC_NODE_UPDATE || 'mindmap.node.update';
     this.aiSuggestionTopic = process.env.KAFKA_TOPIC_AI_SUGGESTION || 'mindmap.ai.suggestion';
+    this.onAiSuggestion = null;
   }
 
   /**
@@ -38,6 +39,11 @@ class KafkaConsumerService {
   setInitialCreateDoneHandler(handler) {
     this.onInitialCreateDone = handler;
     logger.info('Initial create done handler registered');
+  }
+
+  setAiSuggestionHandler(handler) {
+      this.onAiSuggestion = handler;
+      logger.info('AI suggestion handler registered');
   }
 
   /**
@@ -239,6 +245,14 @@ class KafkaConsumerService {
         nodeId,
       });
     }
+  }
+
+  handleAiSuggestion(data) {
+      if (this.onAiSuggestion) {
+          this.onAiSuggestion(data);
+      } else {
+          logger.warn('AI suggestion received but no handler registered', { data });
+      }
   }
 
   /**
