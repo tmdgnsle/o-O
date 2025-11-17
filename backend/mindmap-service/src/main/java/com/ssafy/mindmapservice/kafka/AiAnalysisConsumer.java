@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.kafka.AiAnalysisResult;
+import com.ssafy.mindmapservice.dto.kafka.AiContextualSuggestion;
+import com.ssafy.mindmapservice.dto.kafka.AiSuggestionNode;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import com.ssafy.mindmapservice.service.NodeService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class AiAnalysisConsumer {
     private final NodeService nodeService;
     private final ObjectMapper objectMapper;
     private final WorkspaceServiceClient workspaceServiceClient;
+    private final AiSuggestionProducer aiSuggestionProducer;
 
     /**
      * AI 서버로부터 분석 결과를 받아서 처리합니다.
@@ -95,12 +98,11 @@ public class AiAnalysisConsumer {
                 }
             }
 
-            // 3. AI가 생성한 노드들 처리
+// 3. AI가 생성한 노드들 처리
             if (result.nodes() != null && !result.nodes().isEmpty()) {
                 log.info("🔥 [AI Node Creation START] workspaceId={}, originalNodeId={}, analysisType={}, nodeCount={}",
                         result.workspaceId(), originalNodeId, analysisType, result.nodes().size());
 
-                // 받은 노드 데이터 로그
                 for (int i = 0; i < result.nodes().size(); i++) {
                     var aiNode = result.nodes().get(i);
                     log.info("  📝 AI Node #{}: tempId={}, parentId={}, keyword={}, memo={}",
@@ -108,25 +110,51 @@ public class AiAnalysisConsumer {
                             aiNode.memo() != null ? aiNode.memo().substring(0, Math.min(50, aiNode.memo().length())) + "..." : "null");
                 }
 
-                List<MindmapNode> createdNodes = nodeService.createNodesFromAiResult(
-                        result.workspaceId(),
-                        result.nodes(),
-                        originalNodeId,
-                        analysisType
-                );
+                if (isInitial) {
+                    // ✅ INITIAL: 실제 노드 생성 + MongoDB 저장
+                    List<MindmapNode> createdNodes = nodeService.createNodesFromAiResult(
+                            result.workspaceId(),
+                            result.nodes(),
+                            originalNodeId,
+                            analysisType
+                    );
 
-                log.info("✅ [AI Node Creation SUCCESS] Created {} nodes from AI result: workspaceId={}, type={}",
-                        createdNodes.size(), result.workspaceId(), analysisType);
+                    log.info("✅ [AI Node Creation SUCCESS] Created {} nodes from AI result: workspaceId={}, type={}",
+                            createdNodes.size(), result.workspaceId(), analysisType);
 
-                // 생성된 노드 확인 로그
-                for (MindmapNode node : createdNodes) {
-                    log.info("  ✨ Created Node: nodeId={}, parentId={}, keyword={}, type={}, x={}, y={}",
-                            node.getNodeId(), node.getParentId(), node.getKeyword(), node.getType(), node.getX(), node.getY());
+                    for (MindmapNode node : createdNodes) {
+                        log.info("  ✨ Created Node: nodeId={}, parentId={}, keyword={}, type={}, x={}, y={}",
+                                node.getNodeId(), node.getParentId(), node.getKeyword(),
+                                node.getType(), node.getX(), node.getY());
+                    }
+
+                } else {
+                    // ✅ CONTEXTUAL: MongoDB에 새 노드 안 만들고, 추천 이벤트만 발행
+                    log.info("🧪 [CONTEXTUAL RESULT] Skip MongoDB node creation. Sending suggestions only.");
+
+                    var suggestionNodes = result.nodes().stream()
+                            .map(n -> new AiSuggestionNode(
+                                    n.tempId(),
+                                    parseLongSafe(n.parentId()),   // parentId 문자열이면 Long으로 파싱
+                                    n.keyword(),
+                                    n.memo()
+                            ))
+                            .toList();
+
+                    AiContextualSuggestion suggestion = new AiContextualSuggestion(
+                            result.workspaceId(),
+                            originalNodeId,      // 사용자가 확장 눌렀던 기준 노드
+                            suggestionNodes
+                    );
+
+                    aiSuggestionProducer.sendContextualSuggestion(suggestion);
                 }
             } else {
                 log.warn("⚠️ [NO NODES] AI result has no nodes to create: workspaceId={}, nodes={}",
                         result.workspaceId(), result.nodes());
             }
+
+
 
             // 5. 원본 노드의 분석 상태를 DONE으로 변경
             updateNodeAnalysisStatus(result.workspaceId(), originalNodeId,
@@ -185,4 +213,14 @@ public class AiAnalysisConsumer {
                     workspaceId, nodeId, status, e);
         }
     }
+
+    private Long parseLongSafe(String value) {
+        try {
+            return value != null ? Long.parseLong(value) : null;
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse long from value='{}'", value);
+            return null;
+        }
+    }
+
 }

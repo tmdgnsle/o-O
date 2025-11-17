@@ -48,6 +48,7 @@ kafka:
     node-events: ${KAFKA_TOPIC_NODE_EVENTS:mindmap.node.events} # 벌크 CRUD
     node-update: ${KAFKA_TOPIC_NODE_UPDATE:mindmap.node.update} # AI 분석 결과에 따른 노드 업데이트를 알리는 토픽
     ai-analysis-request: ${KAFKA_TOPIC_AI_REQUEST:ai.analysis.request} # AI 분석 요청 토픽
+    ai-suggestion: ${KAFKA_TOPIC_SUGGESTION_REQUEST:mindmap.ai.suggestion}
     ai-analysis-result: ${KAFKA_TOPIC_AI_RESULT:ai.analysis.result} # AI 분석 결과 토픽
 
 # 로깅 설정
