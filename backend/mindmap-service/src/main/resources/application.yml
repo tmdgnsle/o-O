@@ -74,3 +74,7 @@ cloud:
       region: ap-northeast-2
       thumbnail-bucket: o-o-bucket
       thumbnail-prefix: mindmap/image
+
+gms:
+  base-url: https://gms.ssafy.io/gmsapi
+  api-key: ${GMS_KEY}
