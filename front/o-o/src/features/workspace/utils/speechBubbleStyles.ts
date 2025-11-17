@@ -9,20 +9,30 @@ export const BUBBLE_STYLES = {
   borderRadius: 12,
   padding: "8px 12px",
   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  minWidth: 200,
+  maxWidth: 250,
 
   // Tail (triangle pointer)
   tailSize: 6,
   tailBottom: -6,
+  tailLeftPercent: "10%",
 
   // Typography
   fontSize: 14,
   lineHeight: "1.4",
+
+  // Positioning
+  anchorTransform: "translate(-10%, calc(-100% - 14px))",
+  offScreenTransform: "translate(-50%, -50%)",
 } as const;
 
 /**
  * Creates speech bubble tail style (triangle pointing down)
  */
-export function createBubbleTailStyle(color: string, leftPosition: string = "10%") {
+export function createBubbleTailStyle(
+  color: string,
+  leftPosition: string = BUBBLE_STYLES.tailLeftPercent
+) {
   return {
     position: "absolute" as const,
     bottom: BUBBLE_STYLES.tailBottom,

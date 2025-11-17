@@ -35,6 +35,12 @@ export function ChatInputBubble({
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const rafRef = useRef<number>(0);
+  const onUpdateChatRef = useRef(onUpdateChat);
+
+  // Keep onUpdateChat ref current to avoid timer resets
+  useEffect(() => {
+    onUpdateChatRef.current = onUpdateChat;
+  }, [onUpdateChat]);
 
   // Calculate text color based on background for readability
   const textColor = getContrastTextColor(color);
@@ -59,13 +65,13 @@ export function ChatInputBubble({
 
     rafRef.current = requestAnimationFrame(() => {
       if (text.length > 0) {
-        onUpdateChat({
+        onUpdateChatRef.current?.({
           isTyping: true,
           currentText: text,
           timestamp: Date.now(),
         });
       } else {
-        onUpdateChat(null);
+        onUpdateChatRef.current?.(null);
       }
     });
 
@@ -74,30 +80,30 @@ export function ChatInputBubble({
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [text, onUpdateChat]);
+  }, [text]);
 
   // Auto-close: 3 seconds if empty, 6 seconds after last input if has text
   useEffect(() => {
     const timer = text.length === 0
       ? setTimeout(() => {
           // Empty text: close after 3 seconds
-          onUpdateChat(null);
+          onUpdateChatRef.current?.(null);
           onClose();
         }, 3000)
       : setTimeout(() => {
           // Has text: close after 6 seconds of last input
-          onUpdateChat(null);
+          onUpdateChatRef.current?.(null);
           onClose();
         }, 6000);
 
     return () => clearTimeout(timer);
-  }, [text, onClose, onUpdateChat]);
+  }, [text, onClose]);
 
   // Keyboard event handler
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      onUpdateChat(null);
+      onUpdateChatRef.current?.(null);
       onClose();
     }
   };
@@ -108,7 +114,7 @@ export function ChatInputBubble({
         position: "absolute",
         left: screenPosition.x,
         top: screenPosition.y,
-        transform: "translate(-10%, -140%)",
+        transform: BUBBLE_STYLES.anchorTransform,
         zIndex: 100,
         pointerEvents: "auto",
       }}
@@ -121,7 +127,8 @@ export function ChatInputBubble({
           borderRadius: BUBBLE_STYLES.borderRadius,
           padding: BUBBLE_STYLES.padding,
           boxShadow: BUBBLE_STYLES.boxShadow,
-          minWidth: 200,
+          minWidth: BUBBLE_STYLES.minWidth,
+          maxWidth: BUBBLE_STYLES.maxWidth,
           marginBottom: 8,
         }}
       >
@@ -144,12 +151,12 @@ export function ChatInputBubble({
             wordWrap: "break-word",
             overflow: "hidden",
           }}
-          maxLength={30}
+          maxLength={60}
           rows={2}
         />
 
         {/* Speech bubble tail */}
-        <div style={createBubbleTailStyle(color, "10%")} />
+        <div style={createBubbleTailStyle(color)} />
       </div>
     </div>
   );
