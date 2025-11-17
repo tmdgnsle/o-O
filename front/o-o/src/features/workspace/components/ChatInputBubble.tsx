@@ -16,7 +16,7 @@ type ChatInputBubbleProps = {
  * **Features:**
  * - Appears at cursor position
  * - Auto-focuses on mount
- * - Broadcasts each keystroke in real-time (Figma-style)
+ * - Broadcasts each keystroke in real-time
  * - ESC to cancel, Enter to confirm and close
  * - Speech bubble style matching cursor color
  */

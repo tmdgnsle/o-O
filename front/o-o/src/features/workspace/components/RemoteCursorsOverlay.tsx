@@ -28,10 +28,10 @@ export function RemoteCursorsOverlay({
     };
   }, [cy]);
 
-  console.log("🎯 [RemoteCursorsOverlay] Viewport:", viewport);
+  // console.log("🎯 [RemoteCursorsOverlay] Viewport:", viewport);
 
-  console.log("🎯 [RemoteCursorsOverlay] Rendering with peers:", peers);
-  console.log("🎯 [RemoteCursorsOverlay] Cytoscape instance:", cy);
+  // console.log("🎯 [RemoteCursorsOverlay] Rendering with peers:", peers);
+  // console.log("🎯 [RemoteCursorsOverlay] Cytoscape instance:", cy);
 
   if (!cy) {
     return null;
@@ -55,7 +55,7 @@ export function RemoteCursorsOverlay({
         const x = peer.x * zoom + renderedPos.x;
         const y = peer.y * zoom + renderedPos.y;
 
-        console.log(`🎯 [RemoteCursorsOverlay] Peer ${peer.id} model:(${peer.x}, ${peer.y}) → rendered:(${x}, ${y})`);
+        // console.log(`🎯 [RemoteCursorsOverlay] Peer ${peer.id} model:(${peer.x}, ${peer.y}) → rendered:(${x}, ${y})`);
 
         return (
           <div

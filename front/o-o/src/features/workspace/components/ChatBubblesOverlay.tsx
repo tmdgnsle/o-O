@@ -88,8 +88,8 @@ export function ChatBubblesOverlay({
         // Only show chat if there's a cursor and chat data
         if (!cursor || !chat || !chat.currentText) continue;
 
-        // Filter out messages older than 8 seconds
-        if (now - chat.timestamp > 8000) continue;
+        // Filter out messages older than 6 seconds
+        if (now - chat.timestamp > 6000) continue;
 
         next.push({
           id,
@@ -122,8 +122,8 @@ export function ChatBubblesOverlay({
   const calculateOpacity = (timestamp: number) => {
     const age = Date.now() - timestamp;
     if (age < 6000) return 1; // Full opacity for first 6 seconds
-    if (age >= 8000) return 0; // Fully transparent after 8 seconds
-    return 1 - (age - 6000) / 2000; // Fade from 1 to 0 over last 2 seconds
+    if (age >= 7000) return 0; // Fully transparent after 7 seconds
+    return 1 - (age - 6000) / 1000; // Fade from 1 to 0 over last 1 second
   };
 
   if (!cy) {

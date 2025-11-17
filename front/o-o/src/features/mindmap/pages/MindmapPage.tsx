@@ -272,7 +272,8 @@ const MindmapPageContent: React.FC = () => {
               workspaceId={workspaceId}
               onCallEnd={() => setVoiceChatVisible(false)}
               onOrganize={() => console.log("Organize clicked")}
-              onShare={() => console.log("Share clicked")}
+              yclient={collab?.client}
+              cursorColor={cursorColorRef.current ?? undefined}
             />
           </div>
         ) : (
