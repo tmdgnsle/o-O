@@ -151,7 +151,7 @@ export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk,
         localStreamRef.current = null;
       }
     };
-  }, [enabled, isInVoice, userId, joinVoice]); // Include dependencies for proper cleanup
+  }, [enabled]); // Only run on mount/unmount or when enabled changes
 
   return {
     // State
