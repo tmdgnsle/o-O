@@ -728,7 +728,9 @@ async function startServer() {
 
     // 2. Kafka consumer 초기화 및 시작 (AI 업데이트 수신용)
     await kafkaConsumer.initialize();
+
     // 초기 노드 생성 완료 이벤트 핸들러 등록
+    kafkaConsumer.setInitialCreateDoneHandler(handleInitialCreateDone);
 
 // ✅ CONTEXTUAL AI + Trend 추천 핸들러 등록 (워크스페이스 전체 브로드캐스트 버전)
     kafkaConsumer.setAiSuggestionHandler((data) => {
