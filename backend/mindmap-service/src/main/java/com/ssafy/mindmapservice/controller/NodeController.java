@@ -1,15 +1,18 @@
 package com.ssafy.mindmapservice.controller;
 
 import com.ssafy.mindmapservice.domain.MindmapNode;
+import com.ssafy.mindmapservice.dto.request.AddIdeaRequest;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.request.BatchPositionUpdateRequest;
 import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
 import com.ssafy.mindmapservice.dto.request.VoiceIdeaRequest;
 import com.ssafy.mindmapservice.dto.request.ImageNodeCreateRequest;
+import com.ssafy.mindmapservice.dto.response.AddIdeaResponse;
 import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
 import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
 import com.ssafy.mindmapservice.dto.response.NodeResponse;
 import com.ssafy.mindmapservice.dto.request.WorkspaceCloneRequest;
+import com.ssafy.mindmapservice.service.NodeAiService;
 import com.ssafy.mindmapservice.service.NodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +40,7 @@ import java.util.List;
 public class NodeController {
 
     private final NodeService nodeService;
+    private final NodeAiService nodeAiService;
 
     @Operation(
             summary = "초기 마인드맵 생성",
@@ -524,7 +528,6 @@ public class NodeController {
                                     value = """
                                             {
                                               "workspaceName": "복제된 워크스페이스",
-                                              "workspaceDescription": "원본의 복사본"
                                             }
                                             """
                             )
@@ -785,5 +788,114 @@ public class NodeController {
         nodeService.batchUpdatePositions(workspaceId, request.positions());
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "기존 워크스페이스에 아이디어 추가 (GPT 키워드 자동 추출)",
+            description = """
+                    ## 💡 아이디어 기반 마인드맵 확장
+
+                    사용자가 입력한 텍스트 아이디어를 GPT를 통해 분석하여 핵심 키워드를 자동으로 추출하고,
+                    기존 마인드맵에 자동으로 연결합니다.
+
+                    ### 📌 처리 흐름
+                    1. **기존 노드 조회**: 워크스페이스의 모든 노드 정보 수집
+                    2. **GPT 분석**: 입력한 아이디어에서 1~10개의 핵심 키워드 추출
+                    3. **자동 연결**: GPT가 각 키워드를 가장 적절한 기존 노드에 자동 연결 (parentId 설정)
+                    4. **노드 생성**: 추출된 키워드로 새 노드 생성 (MongoDB 저장)
+                    5. **실시간 전송**: WebSocket을 통해 클라이언트에 변경사항 전달
+
+                    ### ⚡ 동기 처리
+                    - GPT API를 동기적으로 호출하여 즉시 결과를 반환합니다
+                    - 생성된 노드 정보는 200 OK와 함께 반환됩니다
+                    - WebSocket으로도 동시에 전달되어 실시간 업데이트됩니다
+
+                    ### 🔒 중요 사항
+                    - **기존 노드는 절대 수정되지 않습니다** - 오직 새 키워드 노드만 추가됩니다
+                    - GPT가 잘못된 parentId를 반환하면 루트 노드에 자동 연결됩니다
+                    - 텍스트 아이디어만 입력 가능합니다 (이미지/영상 미지원)
+
+                    ### 📝 GPT 추출 예시
+                    입력: "삼겹살 맛집 추천 앱을 만들고 싶어"
+
+                    GPT 추출 키워드:
+                    - "맛집 검색" (기존 "앱 기능" 노드에 연결)
+                    - "리뷰 시스템" (기존 "사용자 기능" 노드에 연결)
+                    - "위치 기반 서비스" (기존 "기술 스택" 노드에 연결)
+                    - "음식점 정보 관리" (기존 "데이터베이스" 노드에 연결)
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "아이디어 추가 성공. GPT가 키워드를 추출하여 마인드맵에 추가했습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AddIdeaResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (아이디어가 비어있음, 워크스페이스에 노드가 없음 등)",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "워크스페이스를 찾을 수 없음",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "서버 오류 (GPT API 호출 실패, 노드 생성 실패 등)",
+                    content = @Content
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "추가할 아이디어 텍스트",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = AddIdeaRequest.class),
+                    examples = {
+                            @ExampleObject(
+                                    name = "맛집 앱 아이디어",
+                                    summary = "새로운 서비스 아이디어 추가",
+                                    value = """
+                                            {
+                                              "idea": "삼겹살 맛집 추천 앱을 만들고 싶어. 사용자 위치 기반으로 주변 맛집을 찾고, 리뷰를 공유할 수 있으면 좋겠어."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "기능 추가 아이디어",
+                                    summary = "기존 프로젝트에 기능 추가",
+                                    value = """
+                                            {
+                                              "idea": "알림 기능, 즐겨찾기, 공유하기 기능도 필요할 것 같아"
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "기술적 아이디어",
+                                    summary = "기술 스택 관련 아이디어",
+                                    value = """
+                                            {
+                                              "idea": "백엔드는 Spring Boot로 하고, 프론트는 React Native로 모바일 앱을 만들자"
+                                            }
+                                            """
+                            )
+                    }
+            )
+    )
+    @PostMapping("/{workspaceId}/add-idea")
+    public ResponseEntity<AddIdeaResponse> addIdea(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
+            @PathVariable Long workspaceId,
+            @RequestBody AddIdeaRequest request) {
+        log.info("POST /mindmap/{}/add-idea - idea length: {}", workspaceId, request.idea().length());
+
+        AddIdeaResponse response = nodeAiService.addIdeaToWorkspace(workspaceId, request);
+
+        return ResponseEntity.ok(response);
     }
 }

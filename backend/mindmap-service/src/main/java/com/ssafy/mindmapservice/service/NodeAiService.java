@@ -1,22 +1,33 @@
 package com.ssafy.mindmapservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.mindmapservice.client.GmsOpenAiClient;
+import com.ssafy.mindmapservice.domain.InitialColor;
 import com.ssafy.mindmapservice.domain.MindmapNode;
+import com.ssafy.mindmapservice.dto.request.AddIdeaRequest;
 import com.ssafy.mindmapservice.dto.request.AnalyzeNodesRequest;
 import com.ssafy.mindmapservice.dto.request.ChatCompletionRequest;
 import com.ssafy.mindmapservice.dto.request.ChatMessage;
 import com.ssafy.mindmapservice.dto.request.CreatePlanRequest;
+import com.ssafy.mindmapservice.dto.response.AddIdeaResponse;
 import com.ssafy.mindmapservice.dto.response.AnalyzeNodesResponse;
 import com.ssafy.mindmapservice.dto.response.ChatCompletionResponse;
 import com.ssafy.mindmapservice.dto.response.CreatePlanResponse;
+import com.ssafy.mindmapservice.dto.response.ExtractedKeywordNode;
+import com.ssafy.mindmapservice.kafka.NodeUpdateProducer;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -25,6 +36,9 @@ public class NodeAiService {
 
     private final NodeRepository nodeRepository;
     private final GmsOpenAiClient gmsOpenAiClient;
+    private final NodeService nodeService;
+    private final NodeUpdateProducer nodeUpdateProducer;
+    private final ObjectMapper objectMapper;
 
     @Value("${gms.api-key}")
     private String gmsApiKey;
@@ -96,6 +110,136 @@ public class NodeAiService {
         return new CreatePlanResponse(plan);
     }
 
+    // ===================== 아이디어 추가 API =====================
+
+    /**
+     * 기존 워크스페이스에 아이디어를 추가하고, GPT가 키워드를 추출하여 마인드맵에 자동 연결합니다.
+     *
+     * @param workspaceId 워크스페이스 ID
+     * @param request 아이디어 추가 요청 (텍스트만)
+     * @return 생성된 노드 정보
+     */
+    @Transactional
+    public AddIdeaResponse addIdeaToWorkspace(Long workspaceId, AddIdeaRequest request) {
+        log.info("Adding idea to workspace: workspaceId={}, idea={}", workspaceId, request.idea());
+
+        // 1. 기존 워크스페이스의 모든 노드 조회
+        List<MindmapNode> existingNodes = nodeRepository.findByWorkspaceId(workspaceId);
+
+        if (existingNodes.isEmpty()) {
+            throw new IllegalArgumentException("워크스페이스에 노드가 하나도 없습니다. workspaceId=" + workspaceId);
+        }
+
+        log.info("Found {} existing nodes in workspace {}", existingNodes.size(), workspaceId);
+
+        // 2. GPT 프롬프트 생성
+        String prompt = buildAddIdeaPrompt(existingNodes, request.idea());
+
+        // 3. GPT API 호출
+        ChatCompletionRequest gmsRequest = new ChatCompletionRequest(
+                MODEL,
+                List.of(
+                        new ChatMessage("developer",
+                                "You must respond ONLY with valid JSON format. " +
+                                        "Do not include any markdown code blocks, explanations, or extra text. " +
+                                        "Just pure JSON array."),
+                        new ChatMessage("system",
+                                "You are an AI assistant that extracts keywords from ideas and connects them to existing mindmap nodes. " +
+                                        "You must respond with ONLY valid JSON format without any markdown formatting."),
+                        new ChatMessage("user", prompt)
+                )
+        );
+
+        ChatCompletionResponse gmsResponse = callGms(gmsRequest, "아이디어 키워드 추출");
+        String gptResponseText = extractContent(gmsResponse);
+
+        log.info("GPT response: {}", gptResponseText);
+
+        // 4. GPT 응답 파싱 (JSON 배열 추출)
+        List<ExtractedKeywordNode> extractedKeywords = parseGptKeywordResponse(gptResponseText);
+
+        if (extractedKeywords.isEmpty()) {
+            log.warn("GPT returned no keywords for idea: {}", request.idea());
+            throw new IllegalStateException("GPT가 키워드를 추출하지 못했습니다.");
+        }
+
+        log.info("Extracted {} keywords from GPT", extractedKeywords.size());
+
+        // 5. 추출된 키워드로 새 노드 생성
+        List<Long> createdNodeIds = new ArrayList<>();
+
+        for (ExtractedKeywordNode extracted : extractedKeywords) {
+            // parentId 유효성 검증
+            Long parentId = extracted.getParentId();
+            boolean parentExists = existingNodes.stream()
+                    .anyMatch(node -> node.getNodeId().equals(parentId));
+
+            if (!parentExists) {
+                log.warn("Invalid parentId {} for keyword '{}'. Using root node instead.",
+                        parentId, extracted.getKeyword());
+                // 첫 번째 노드를 루트로 사용
+                parentId = existingNodes.get(0).getNodeId();
+            }
+
+            // 새 노드 생성
+            MindmapNode newNode = MindmapNode.builder()
+                    .workspaceId(workspaceId)
+                    .parentId(parentId)
+                    .type("text")
+                    .keyword(extracted.getKeyword())
+                    .memo(extracted.getMemo())
+                    .color(InitialColor.getRandomColor())
+                    .analysisStatus(MindmapNode.AnalysisStatus.NONE)
+                    .build();
+
+            MindmapNode created = nodeService.createNode(newNode);
+            createdNodeIds.add(created.getNodeId());
+
+            log.info("Created node: nodeId={}, keyword={}, parentId={}",
+                    created.getNodeId(), created.getKeyword(), created.getParentId());
+        }
+
+        // 6. WebSocket으로 변경사항 전송 (Kafka 이벤트 발행)
+        nodeUpdateProducer.sendNodeUpdate(workspaceId);
+        log.info("Published node update event for workspace {}", workspaceId);
+
+        return new AddIdeaResponse(
+                workspaceId,
+                createdNodeIds.size(),
+                createdNodeIds,
+                createdNodeIds.size() + "개의 키워드가 마인드맵에 추가되었습니다."
+        );
+    }
+
+    /**
+     * GPT 응답에서 JSON 배열을 파싱하여 ExtractedKeywordNode 리스트로 변환합니다.
+     * GPT가 마크다운 코드 블록으로 감싼 경우도 처리합니다.
+     */
+    private List<ExtractedKeywordNode> parseGptKeywordResponse(String gptResponse) {
+        try {
+            // 마크다운 코드 블록 제거 (```json ... ``` 형태)
+            String cleaned = gptResponse.trim();
+            if (cleaned.startsWith("```")) {
+                // ```json 또는 ``` 로 시작하는 경우
+                int firstNewline = cleaned.indexOf('\n');
+                int lastBacktick = cleaned.lastIndexOf("```");
+                if (firstNewline > 0 && lastBacktick > firstNewline) {
+                    cleaned = cleaned.substring(firstNewline + 1, lastBacktick).trim();
+                }
+            }
+
+            log.debug("Cleaned GPT response for parsing: {}", cleaned);
+
+            // JSON 배열 파싱
+            return objectMapper.readValue(cleaned,
+                    new TypeReference<List<ExtractedKeywordNode>>() {});
+
+        } catch (Exception e) {
+            log.error("Failed to parse GPT response as JSON: {}", gptResponse, e);
+            throw new IllegalStateException("GPT 응답을 파싱할 수 없습니다: " + e.getMessage(), e);
+        }
+    }
+
     // ===================== 공통 GMS 호출 & 응답 처리 =====================
 
     private ChatCompletionResponse callGms(ChatCompletionRequest request, String purpose) {
@@ -138,6 +282,85 @@ public class NodeAiService {
     }
 
     // ===================== 프롬프트 템플릿 =====================
+
+    /**
+     * 아이디어 추가용 GPT 프롬프트 생성
+     * 기존 노드 정보 + 새 아이디어를 제공하고, JSON 형식으로 응답받습니다.
+     */
+    private String buildAddIdeaPrompt(List<MindmapNode> existingNodes, String newIdea) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
+            You are an AI assistant helping to expand a mindmap with new ideas.
+
+            ## Your Task
+            1. Analyze the user's new idea
+            2. Extract 1-10 key concepts/keywords from the idea
+            3. For each keyword, determine the most appropriate parent node from the existing mindmap
+            4. Create a brief description (memo) for each keyword in Korean
+
+            ## Important Rules
+            - **DO NOT modify existing nodes** - only create new keyword nodes
+            - Each keyword must have a valid parentId from the existing nodes
+            - Choose the most semantically related parent node for each keyword
+            - If no clear parent exists, use the root node (nodeId with parentId=null)
+            - Extract between 1 and 10 keywords (no more, no less)
+            - Keywords and memos must be in Korean
+
+            ## Existing Mindmap Nodes
+            Below is the current mindmap structure. You can only use these nodeIds as parentId values:
+
+            ```json
+            [
+            """);
+
+        // 기존 노드 정보를 JSON 형태로 추가
+        for (int i = 0; i < existingNodes.size(); i++) {
+            MindmapNode node = existingNodes.get(i);
+            sb.append("  {")
+                    .append("\"nodeId\": ").append(node.getNodeId()).append(", ")
+                    .append("\"parentId\": ").append(node.getParentId() == null ? "null" : node.getParentId()).append(", ")
+                    .append("\"type\": \"").append(nullToEmpty(node.getType())).append("\", ")
+                    .append("\"keyword\": \"").append(escape(node.getKeyword())).append("\", ")
+                    .append("\"memo\": \"").append(escape(node.getMemo())).append("\"")
+                    .append("}");
+            if (i < existingNodes.size() - 1) sb.append(",");
+            sb.append("\n");
+        }
+
+        sb.append("""
+            ]
+            ```
+
+            ## New Idea to Process
+            """).append("\"").append(escape(newIdea)).append("\"").append("""
+
+
+            ## Required Response Format
+            Respond with ONLY a JSON array containing the extracted keywords. No explanations, no markdown code blocks.
+            Each object must have exactly these fields:
+            - keyword: string (the extracted keyword in Korean)
+            - memo: string (brief description in Korean, 1-2 sentences)
+            - parentId: number (must be a valid nodeId from the existing nodes above)
+
+            Example response format:
+            [
+              {
+                "keyword": "맛집 검색",
+                "memo": "사용자 위치 기반으로 주변 맛집을 검색하는 기능",
+                "parentId": 3
+              },
+              {
+                "keyword": "리뷰 시스템",
+                "memo": "사용자들이 맛집에 대한 리뷰를 작성하고 공유하는 기능",
+                "parentId": 3
+              }
+            ]
+
+            Now extract keywords from the new idea and respond with JSON only.
+            """);
+
+        return sb.toString();
+    }
 
     /**
      * 마인드맵 노드 분석용 프롬프트
