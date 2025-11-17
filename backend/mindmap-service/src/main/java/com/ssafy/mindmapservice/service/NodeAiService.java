@@ -16,6 +16,7 @@ import com.ssafy.mindmapservice.dto.response.AnalyzeNodesResponse;
 import com.ssafy.mindmapservice.dto.response.ChatCompletionResponse;
 import com.ssafy.mindmapservice.dto.response.CreatePlanResponse;
 import com.ssafy.mindmapservice.dto.response.ExtractedKeywordNode;
+import com.ssafy.mindmapservice.kafka.NodeRestructureProducer;
 import com.ssafy.mindmapservice.kafka.NodeUpdateProducer;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import feign.FeignException;
@@ -28,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,6 +42,7 @@ public class NodeAiService {
     private final NodeService nodeService;
     private final NodeUpdateProducer nodeUpdateProducer;
     private final ObjectMapper objectMapper;
+    private final NodeRestructureProducer nodeRestructureProducer;
 
     @Value("${gms.api-key}")
     private String gmsApiKey;
@@ -481,4 +485,159 @@ public class NodeAiService {
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n");
     }
+
+    @Transactional
+    public void restructureWorkspace(Long workspaceId) {
+
+        // 🔥 0) 우선 LOCK 브로드캐스트
+        nodeRestructureProducer.sendLock(workspaceId);
+
+        // 1) 기존 노드 조회
+        List<MindmapNode> nodes = nodeRepository.findByWorkspaceId(workspaceId);
+
+        if (nodes.isEmpty()) {
+            throw new IllegalArgumentException("해당 워크스페이스에 노드가 없습니다.");
+        }
+
+        // 2) GPT 프롬프트 생성
+        String prompt = buildRestructurePrompt(nodes);
+
+        ChatCompletionRequest request = new ChatCompletionRequest(
+                "gpt-5-mini",
+                List.of(
+                        new ChatMessage("developer", """
+                        반드시 JSON만 출력.
+                        마크다운, 설명, ``` 금지.
+                    """),
+                        new ChatMessage("system", """
+                        You are an expert mindmap restructuring agent.
+                        You will reorganize nodes into a clean hierarchy.
+                        DO NOT modify nodeId=1 (root node).
+                    """),
+                        new ChatMessage("user", prompt)
+                )
+        );
+
+        ChatCompletionResponse response = callGms(request, "정리하기");
+        String json = extractContent(response);
+
+        // 3) GPT 응답 → 엔티티 리스트 변환
+        List<MindmapNode> rebuilt = parseRestructureJson(workspaceId, json);
+
+        // ⭐⭐⭐ 4) 여기 넣으면 됨 — nodeId 검증 로직
+        validateNodeIds(nodes, rebuilt);
+
+        // 4) DB 전체 덮어쓰기
+        nodeRepository.deleteByWorkspaceId(workspaceId);
+        nodeRepository.saveAll(rebuilt);
+
+        // 🔥 5) APPLY 이벤트 발행 (nodes 포함)
+        nodeRestructureProducer.sendApply(workspaceId, rebuilt);
+
+        log.info("Workspace {} restructure complete", workspaceId);
+    }
+
+
+    private String buildRestructurePrompt(List<MindmapNode> nodes) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("""
+      당신의 임무는 사용자의 마인드맵을 최적화하여
+      깔끔한 트리 구조로 재구성하는 것입니다.
+
+      🎯 요구사항
+      1. nodeId=1 은 ROOT 이며 절대 변경/삭제/이동 금지
+      2. keyword + memo가 의미적으로 중복이면 병합
+      3. 계층 구조를 semantic 기준으로 재배치
+      4. parentId 는 존재하는 nodeId 중 하나여야 함
+      5. 좌표(x,y)는 자동 생성 (트리 형태 면 됨)
+      6. 출력은 반드시 JSON array 로만, 설명 금지
+
+      🎯 출력 포맷
+      [
+        {
+          "nodeId": number,
+          "parentId": number | null,
+          "keyword": "string",
+          "memo": "string",
+          "type": "text",
+          "color": "#hex",
+          "x": number,
+          "y": number
+        }
+      ]
+
+      아래는 기존 노드 목록입니다:
+      [
+    """);
+
+        for (int i = 0; i < nodes.size(); i++) {
+            MindmapNode n = nodes.get(i);
+            sb.append(String.format("""
+          {
+            "nodeId": %d,
+            "parentId": %s,
+            "keyword": "%s",
+            "memo": "%s"
+          }%s
+        """,
+                    n.getNodeId(),
+                    n.getParentId() == null ? "null" : n.getParentId(),
+                    escape(n.getKeyword()),
+                    escape(n.getMemo()),
+                    (i < nodes.size() - 1 ? "," : "")
+            ));
+        }
+
+        sb.append("\n]");
+
+        return sb.toString();
+    }
+
+    private List<MindmapNode> parseRestructureJson(Long workspaceId, String json) {
+        try {
+            List<JsonNode> arr = objectMapper.readValue(json, new TypeReference<>() {});
+
+            List<MindmapNode> result = new ArrayList<>();
+
+            for (JsonNode n : arr) {
+                result.add(
+                        MindmapNode.builder()
+                                .workspaceId(workspaceId)
+                                .nodeId(n.get("nodeId").asLong())
+                                .parentId(n.get("parentId").isNull() ? null : n.get("parentId").asLong())
+                                .type("text")
+                                .keyword(n.get("keyword").asText())
+                                .memo(n.get("memo").asText())
+                                .color(n.get("color").asText())
+                                .x(n.get("x").asDouble())
+                                .y(n.get("y").asDouble())
+                                .analysisStatus(MindmapNode.AnalysisStatus.NONE)
+                                .build()
+                );
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new IllegalStateException("정리된 JSON 파싱 실패", e);
+        }
+    }
+
+    private void validateNodeIds(List<MindmapNode> originalNodes, List<MindmapNode> rebuiltNodes) {
+
+        Set<Long> originalIds = originalNodes.stream()
+                .map(MindmapNode::getNodeId)
+                .collect(Collectors.toSet());
+
+        for (MindmapNode n : rebuiltNodes) {
+            if (!originalIds.contains(n.getNodeId())) {
+                throw new IllegalStateException(
+                        "GPT가 존재하지 않는 nodeId 생성함: " + n.getNodeId()
+                );
+            }
+        }
+    }
+
+
+
 }

@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/mindmap/{workspaceId}/ai")
@@ -71,4 +73,13 @@ public class NodeAiController {
         CreatePlanResponse response = nodeAiService.createPlanFromAnalysis(workspaceId, request);
         return ResponseEntity.ok(response);
     }
+
+
+    public ResponseEntity<?> restructureMindmap(
+            @PathVariable Long workspaceId
+    ) {
+        nodeAiService.restructureWorkspace(workspaceId);
+        return ResponseEntity.ok(Map.of("message", "정리 작업이 시작되었습니다."));
+    }
+
 }

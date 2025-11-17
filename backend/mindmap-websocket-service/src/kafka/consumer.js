@@ -29,6 +29,7 @@ class KafkaConsumerService {
     this.onInitialCreateDone = null;  // 초기 노드 생성 완료 이벤트 핸들러
     this.nodeUpdateTopic = process.env.KAFKA_TOPIC_NODE_UPDATE || 'mindmap.node.update';
     this.aiSuggestionTopic = process.env.KAFKA_TOPIC_AI_SUGGESTION || 'mindmap.ai.suggestion';
+    this.nodeRestructureTopic  = process.env.KAFKA_TOPIC_RESTRUCTURE || 'mindmap.restructure.update';
     this.onAiSuggestion = null;
   }
 
@@ -88,8 +89,18 @@ class KafkaConsumerService {
           fromBeginning: false,
       });
 
+      await this.consumer.subscribe({
+          topic: this.nodeRestructureTopic ,
+          fromBeginning: false,
+      });
 
-      logger.info(`Kafka consumer subscribed to topics: [${this.nodeUpdateTopic}, ${this.aiSuggestionTopic}]`, { brokers });
+
+
+      logger.info(
+          `Kafka consumer subscribed to topics: [` +
+          `${this.nodeUpdateTopic}, ${this.aiSuggestionTopic}, ${this.nodeRestructureTopic}]`,
+          { brokers }
+      );
     } catch (error) {
       // 연결 실패 시 비활성화 (서비스 중단 방지)
       logger.error('Failed to initialize Kafka consumer', {
@@ -128,7 +139,9 @@ class KafkaConsumerService {
                           this.handleNodeUpdate(data);
                       } else if (topic === this.aiSuggestionTopic) {
                           this.handleAiSuggestion(data);
-                      } else {
+                      } else if (topic === this.nodeRestructureTopic) {
+                          this.handleNodeRestructure(data);
+                      }  else {
                           logger.warn('Received message from unknown topic', { topic, data });
                       }
                   } catch (error) {
@@ -284,7 +297,81 @@ class KafkaConsumerService {
       }
   }
 
-  /**
+  handleNodeRestructure(data) {
+      const { workspaceId, nodes, eventType } = data;
+
+      if (!workspaceId) {
+          logger.warn('Invalid restructure message: missing workspaceId', { data });
+          return;
+      }
+
+      // Y.Doc 가져오기
+      const ydoc = ydocManager.docs.get(workspaceId.toString());
+      if (!ydoc) {
+          logger.debug(`Workspace ${workspaceId} not in memory, skipping Y.Doc restructure`);
+          return;
+      }
+
+      const metaMap = ydoc.getMap('meta');
+      const nodesMap = ydoc.getMap('nodes');
+
+      // 1) LOCK: 편집 막기
+      if (eventType === 'LOCK') {
+          metaMap.set('locked', true);
+          logger.info(`Workspace ${workspaceId} locked for restructure`);
+          return;
+      }
+
+      // 2) APPLY: 노드 전체 교체 + unlock
+      if (eventType === 'APPLY') {
+          if (!Array.isArray(nodes)) {
+              logger.warn('APPLY event without nodes array', { data });
+              return;
+          }
+
+          logger.info('Received restructure APPLY from Kafka', {
+              workspaceId,
+              nodeCount: nodes.length,
+          });
+
+          try {
+              // 기존 노드 싹 다 지우고
+              nodesMap.clear();
+
+              // 새 노드 전체 세팅
+              for (const node of nodes) {
+                  nodesMap.set(String(node.nodeId), {
+                      nodeId: node.nodeId,
+                      parentId: node.parentId ?? null,
+                      keyword: node.keyword,
+                      memo: node.memo,
+                      type: node.type || 'text',
+                      color: node.color,
+                      x: node.x ?? null,
+                      y: node.y ?? null,
+                  });
+              }
+
+              // lock 해제
+              metaMap.set('locked', false);
+
+              logger.info(
+                  `Workspace ${workspaceId} Y.Doc restructured with ${nodes.length} nodes`,
+              );
+          } catch (error) {
+              logger.error(
+                  `Failed to apply restructure update to Y.Doc for workspace ${workspaceId}`,
+                  { error: error.message },
+              );
+          }
+          return;
+      }
+
+    logger.warn('Unknown restructure eventType', { eventType, data });
+}
+
+
+    /**
    * Kafka consumer 연결 종료 (graceful shutdown)
    * 서버 종료 시 호출되어 안전하게 연결을 끊음
    */
