@@ -110,9 +110,9 @@ const MindmapPageContent: React.FC = () => {
   // GPT 노드를 트리 구조로 변환
   const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[]) => {
     return gptNodes.map((node) => ({
-      id: node.id || `gpt-${Date.now()}-${Math.random()}`,
-      label: node.content,
-      children: node.children ? convertGptNodesToKeywords(node.children) : undefined,
+      id: node.parentId || `gpt-${Date.now()}-${Math.random()}`,
+      label: node.keyword,
+      children: undefined, // GptNodeSuggestion에는 children이 없음 (flat 구조)
     }));
   };
 

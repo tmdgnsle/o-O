@@ -156,6 +156,7 @@ export function useVoiceConnection(
               break;
 
             case 'gpt-done':
+              console.log('[useVoiceConnection] 🎯 Received gpt-done message:', message);
               handlersRef.current.onGptDone?.(message);
               break;
 
