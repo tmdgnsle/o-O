@@ -155,6 +155,16 @@ const MindmapPageContent: React.FC = () => {
   const gptKeywords = gptState?.keywords ?? [];
   const gptToggleRef = React.useRef<(() => void) | null>(null);
 
+  // 6b. 로컬 패널 표시 상태 (non-MAINTAINER용)
+  const [showGptPanel, setShowGptPanel] = useState(true);
+
+  // 녹음 시작 시 패널 자동 표시
+  useEffect(() => {
+    if (isGptRecording) {
+      setShowGptPanel(true);
+    }
+  }, [isGptRecording]);
+
   // GPT 노드를 트리 구조로 변환
   const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
     return gptNodes.map((node, index) => ({
@@ -614,6 +624,7 @@ const MindmapPageContent: React.FC = () => {
               onGptToggleReady={(toggle) => { gptToggleRef.current = toggle; }}
               yclient={collab?.client}
               cursorColor={cursorColorRef.current ?? undefined}
+              gptState={gptState}
               updateGptState={updateGptState}
             />
           </div>
@@ -630,7 +641,7 @@ const MindmapPageContent: React.FC = () => {
         )}
 
         {/* GPT Recording - RecordIdeaDialog */}
-        {(isGptRecording || gptKeywords.length > 0) && (
+        {showGptPanel && (isGptRecording || gptKeywords.length > 0) && (
           <div className="fixed top-24 right-4 z-40">
             <RecordIdeaDialog
               keywords={gptKeywords}
@@ -638,9 +649,14 @@ const MindmapPageContent: React.FC = () => {
               onNodeClick={handleKeywordClick}
               myRole={myRole}
               onClose={() => {
-                // 닫기 버튼 클릭 시 Awareness 상태 초기화
-                if (updateGptState) {
-                  updateGptState(null);
+                // MAINTAINER: Awareness 상태 클리어 (모든 참여자에게 영향)
+                // non-MAINTAINER: 로컬 패널만 숨김
+                if (myRole === 'MAINTAINER') {
+                  if (updateGptState) {
+                    updateGptState(null);
+                  }
+                } else {
+                  setShowGptPanel(false);
                 }
               }}
             />

@@ -29,6 +29,12 @@ interface VoiceChatProps {
   onGptToggleReady?: (toggle: () => void) => void;
   yclient?: YClient | null;
   cursorColor?: string;
+  gptState?: {
+    isRecording: boolean;
+    keywords: Array<{ id: string; label: string; children?: any[] }>;
+    startedBy: string;
+    timestamp: number;
+  } | null;
   updateGptState?: (gptData: {
     isRecording: boolean;
     keywords: Array<{ id: string; label: string; children?: any[] }>;
@@ -49,6 +55,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   onGptToggleReady,
   yclient,
   cursorColor,
+  gptState,
   updateGptState,
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
@@ -93,14 +100,24 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     });
     console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
 
-    // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
-    const createdNodeIds = createNodesFromGpt(message.nodes);
+    // 녹음 시작자만 노드를 생성 (중복 생성 방지)
+    const isStarter = gptState?.startedBy === currentUser?.id.toString();
 
-    // 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
+    let createdNodeIds: string[] = [];
+
+    if (isStarter) {
+      console.log('[VoiceChat] 🎯 녹음 시작자 → 노드 생성');
+      // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
+      createdNodeIds = createNodesFromGpt(message.nodes);
+    } else {
+      console.log('[VoiceChat] ℹ️ 다른 참여자 → 키워드 표시만 업데이트');
+    }
+
+    // 모든 참여자: 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
     onGptNodesReceived?.(message.nodes, createdNodeIds);
 
-    console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
-  }, [createNodesFromGpt, onGptNodesReceived]);
+    console.log('[VoiceChat] ✅ GPT 처리 완료');
+  }, [createNodesFromGpt, onGptNodesReceived, currentUser, updateGptState, gptState]);
 
   // GPT Error 핸들러 (useCallback으로 memoization)
   const handleGptError = useCallback((message: { error: string; rawText?: string; timestamp: number }) => {
