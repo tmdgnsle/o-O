@@ -175,8 +175,8 @@ const MindmapPageContent: React.FC = () => {
     gptToggleRef.current?.();
   };
 
-  // GPT 노드 수신 핸들러 (Awareness에 키워드 추가)
-  const handleGptNodesReceived = (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
+  // GPT 노드 수신 핸들러 (Awareness에 키워드 추가) - useCallback으로 memoization
+  const handleGptNodesReceived = useCallback((nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
     console.log('[MindmapPage] GPT 노드 수신:', nodes.length, '개');
 
     const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
@@ -191,7 +191,7 @@ const MindmapPageContent: React.FC = () => {
         timestamp: Date.now(),
       });
     }
-  };
+  }, [updateGptState, gptState, currentUser]);
 
   // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
   const handleKeywordClick = (nodeId: string) => {

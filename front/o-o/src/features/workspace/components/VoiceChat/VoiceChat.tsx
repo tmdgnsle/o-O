@@ -60,11 +60,84 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   // Ref to store handleGptChunk function
   const handleGptChunkRef = useRef<((content: string) => void) | null>(null);
 
+  // Ref to prevent duplicate GPT processing
+  const processedGptTimestamps = useRef(new Set<number>());
+
   // GPT 청크 핸들러
   const onGptChunkReceived = useCallback((content: string) => {
     // useVoiceGpt의 handleGptChunk 호출
     handleGptChunkRef.current?.(content);
   }, []);
+
+  // GPT Done 핸들러 (useCallback으로 memoization)
+  const handleGptDone = useCallback((message: { nodes: any[]; timestamp: number }) => {
+    // 중복 방지: 같은 timestamp를 2번 처리하지 않음
+    if (processedGptTimestamps.current.has(message.timestamp)) {
+      console.warn('[VoiceChat] ⚠️ Duplicate GPT done message ignored:', message.timestamp);
+      return;
+    }
+    processedGptTimestamps.current.add(message.timestamp);
+
+    console.log('[VoiceChat] ===== GPT Processing Complete =====');
+    console.log('[VoiceChat] 📊 Received GPT response:', {
+      nodeCount: message.nodes.length,
+      timestamp: new Date(message.timestamp).toISOString(),
+    });
+    console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
+
+    // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
+    const createdNodeIds = createNodesFromGpt(message.nodes);
+
+    // 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
+    onGptNodesReceived?.(message.nodes, createdNodeIds);
+
+    console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
+  }, [createNodesFromGpt, onGptNodesReceived]);
+
+  // GPT Error 핸들러 (useCallback으로 memoization)
+  const handleGptError = useCallback((message: { error: string; rawText?: string; timestamp: number }) => {
+    console.error('[VoiceChat] ===== GPT Error =====');
+    console.error('[VoiceChat] ❌ Error message:', message.error);
+
+    if (message.rawText) {
+      console.error('[VoiceChat] 📄 Raw GPT response (failed to parse):');
+      console.error(message.rawText);
+      console.error('[VoiceChat] Response length:', message.rawText.length, 'characters');
+    } else {
+      console.error('[VoiceChat] ⚠️ No raw response available');
+    }
+
+    // TODO: 사용자에게 에러 알림 표시
+    console.log('[VoiceChat] 💡 TODO: Display error notification to user');
+  }, []);
+
+  // GPT Recording Started 핸들러 (useCallback으로 memoization)
+  const handleGptRecordingStarted = useCallback((startedBy: string, timestamp: number) => {
+    console.log('[VoiceChat] ===== GPT 녹음 시작됨 =====');
+    console.log('[VoiceChat] 👤 Started by:', startedBy);
+    console.log('[VoiceChat] 🕐 Timestamp:', new Date(timestamp).toISOString());
+
+    // 이미 녹음 중이 아니면 자동 시작 (중복 방지)
+    if (!gpt.isRecording) {
+      console.log('[VoiceChat] 🎤 자동으로 STT 시작...');
+      gpt.startRecording();
+    } else {
+      console.log('[VoiceChat] ⚠️ 이미 녹음 중, 스킵');
+    }
+  }, [gpt]);
+
+  // GPT Session Ended 핸들러 (useCallback으로 memoization)
+  const handleGptSessionEnded = useCallback(() => {
+    console.log('[VoiceChat] ===== GPT 세션 종료됨 =====');
+
+    // 녹음 중이면 자동 종료
+    if (gpt.isRecording) {
+      console.log('[VoiceChat] 🛑 자동으로 STT 종료...');
+      gpt.stopRecording();
+    } else {
+      console.log('[VoiceChat] ⚠️ 녹음 중이 아님, 스킵');
+    }
+  }, [gpt]);
 
   // Use the voice chat hook
   const {
@@ -83,61 +156,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     userId: currentUser?.id.toString(),
     enabled: false, // Manual join via button
     onGptChunk: onGptChunkReceived,
-    onGptDone: (message) => {
-      console.log('[VoiceChat] ===== GPT Processing Complete =====');
-      console.log('[VoiceChat] 📊 Received GPT response:', {
-        nodeCount: message.nodes.length,
-        timestamp: new Date(message.timestamp).toISOString(),
-      });
-      console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
-
-      // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
-      const createdNodeIds = createNodesFromGpt(message.nodes);
-
-      // 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
-      onGptNodesReceived?.(message.nodes, createdNodeIds);
-
-      console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
-    },
-    onGptError: (message) => {
-      console.error('[VoiceChat] ===== GPT Error =====');
-      console.error('[VoiceChat] ❌ Error message:', message.error);
-
-      if (message.rawText) {
-        console.error('[VoiceChat] 📄 Raw GPT response (failed to parse):');
-        console.error(message.rawText);
-        console.error('[VoiceChat] Response length:', message.rawText.length, 'characters');
-      } else {
-        console.error('[VoiceChat] ⚠️ No raw response available');
-      }
-
-      // TODO: 사용자에게 에러 알림 표시
-      console.log('[VoiceChat] 💡 TODO: Display error notification to user');
-    },
-    onGptRecordingStarted: (startedBy, timestamp) => {
-      console.log('[VoiceChat] ===== GPT 녹음 시작됨 =====');
-      console.log('[VoiceChat] 👤 Started by:', startedBy);
-      console.log('[VoiceChat] 🕐 Timestamp:', new Date(timestamp).toISOString());
-
-      // 이미 녹음 중이 아니면 자동 시작 (중복 방지)
-      if (!gpt.isRecording) {
-        console.log('[VoiceChat] 🎤 자동으로 STT 시작...');
-        gpt.startRecording();
-      } else {
-        console.log('[VoiceChat] ⚠️ 이미 녹음 중, 스킵');
-      }
-    },
-    onGptSessionEnded: () => {
-      console.log('[VoiceChat] ===== GPT 세션 종료됨 =====');
-
-      // 녹음 중이면 자동 종료
-      if (gpt.isRecording) {
-        console.log('[VoiceChat] 🛑 자동으로 STT 종료...');
-        gpt.stopRecording();
-      } else {
-        console.log('[VoiceChat] ⚠️ 녹음 중이 아님, 스킵');
-      }
-    },
+    onGptDone: handleGptDone,
+    onGptError: handleGptError,
+    onGptRecordingStarted: handleGptRecordingStarted,
+    onGptSessionEnded: handleGptSessionEnded,
   });
 
   // GPT Hook (only for UI state management - handlers are in useVoiceChat)
