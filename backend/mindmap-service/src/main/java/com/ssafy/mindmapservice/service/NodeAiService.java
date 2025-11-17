@@ -77,7 +77,7 @@ public class NodeAiService {
         String prompt = buildPlanPrompt(request.getAnalysisText(), request.getTitle());
 
         ChatCompletionRequest gmsRequest = new ChatCompletionRequest(
-                "gpt-5-mini",
+                "gpt-4o",
                 List.of(
                         new ChatMessage("developer",
                                 "한국어 비즈니스 문체로 답변하고, 반드시 지정된 목차 구조를 지키세요. " +
