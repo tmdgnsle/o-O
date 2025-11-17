@@ -29,7 +29,7 @@ public class NodeAiService {
     @Value("${gms.api-key}")
     private String gmsApiKey;
 
-    private static final String MODEL = "gpt-5";
+    private static final String MODEL = "gpt-5-mini";
 
     // ===================== 분석 API =====================
 
@@ -57,9 +57,7 @@ public class NodeAiService {
                                 "You are an expert product planner who analyzes mindmap structures " +
                                         "and extracts insights for service planning."),
                         new ChatMessage("user", prompt)
-                ),
-                0.3,
-                800
+                )
         );
 
         ChatCompletionResponse gmsResponse = callGms(gmsRequest, "분석");
@@ -79,7 +77,7 @@ public class NodeAiService {
         String prompt = buildPlanPrompt(request.getAnalysisText(), request.getTitle());
 
         ChatCompletionRequest gmsRequest = new ChatCompletionRequest(
-                MODEL,
+                "gpt-5-mini",
                 List.of(
                         new ChatMessage("developer",
                                 "한국어 비즈니스 문체로 답변하고, 반드시 지정된 목차 구조를 지키세요. " +
@@ -88,9 +86,7 @@ public class NodeAiService {
                                 "You are a senior product manager who writes real-world service planning documents " +
                                         "based on analysis summaries."),
                         new ChatMessage("user", prompt)
-                ),
-                0.3,
-                800
+                )
         );
 
         ChatCompletionResponse gmsResponse = callGms(gmsRequest, "기획안 생성");
@@ -208,7 +204,7 @@ public class NodeAiService {
 
             ## 1. 서비스 개요
             - 서비스 한 줄 정의
-            - 서비스 설명(3~5문장)
+            - 서비스 설명
 
             ## 2. 기획 배경 및 문제 정의
             - 해결하려는 문제/니즈
