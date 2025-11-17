@@ -219,7 +219,24 @@ export function useVoiceGpt({
     }
   }, [isConnected, sendMessage, currentUser, onGptError]);
 
-  // 녹음 종료
+  // 녹음 일시정지 (서버 연결 유지)
+  const pauseRecording = useCallback(() => {
+    console.log('[VoiceGpt] ===== Pausing GPT Recording =====');
+    console.log('[VoiceGpt] Current user:', currentUser?.nickname, `(ID: ${currentUser?.id})`);
+
+    // Web Speech API만 종료 (서버 연결은 유지)
+    if (recognitionRef.current) {
+      console.log('[VoiceGpt] ⏸️ Pausing Web Speech API...');
+      recognitionRef.current.stop();
+    } else {
+      console.warn('[VoiceGpt] ⚠️ Recognition ref is null, cannot pause');
+    }
+
+    setIsRecording(false);
+    console.log('[VoiceGpt] ✅ Recording paused (server connection maintained)');
+  }, [currentUser]);
+
+  // 녹음 종료 (서버 연결 해제)
   const stopRecording = useCallback(() => {
     console.log('[VoiceGpt] ===== Stopping GPT Recording =====');
     console.log('[VoiceGpt] Current user:', currentUser?.nickname, `(ID: ${currentUser?.id})`);
@@ -269,19 +286,20 @@ export function useVoiceGpt({
     onGptChunkRef.current?.(content);
   }, []);
 
-  // 녹음 토글
+  // 녹음 토글 (일시정지/재개)
   const toggleRecording = useCallback(() => {
     if (isRecording) {
-      stopRecording();
+      pauseRecording();
     } else {
       startRecording();
     }
-  }, [isRecording, startRecording, stopRecording]);
+  }, [isRecording, startRecording, pauseRecording]);
 
   return {
     isRecording,
     transcripts,
     startRecording,
+    pauseRecording,
     stopRecording,
     toggleRecording,
     addPeerTranscript,

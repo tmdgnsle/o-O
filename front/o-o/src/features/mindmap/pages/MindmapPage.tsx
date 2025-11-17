@@ -363,7 +363,7 @@ const MindmapPageContent: React.FC = () => {
         )}
 
         {/* GPT Recording - RecordIdeaDialog */}
-        {isGptRecording && (
+        {gptKeywords.length > 0 && (
           <div className="fixed top-24 right-4 z-40">
             <RecordIdeaDialog
               keywords={gptKeywords}
