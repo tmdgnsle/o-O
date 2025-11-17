@@ -18,6 +18,7 @@ interface YjsCRUD {
 interface VoiceChatProps {
   workspaceId: string;
   crud: YjsCRUD | null;
+  myRole?: string;
   onCallEnd?: () => void;
   onOrganize?: () => void;
   onShare?: () => void;
@@ -28,6 +29,7 @@ interface VoiceChatProps {
 const VoiceChat: React.FC<VoiceChatProps> = ({
   workspaceId,
   crud,
+  myRole,
   onCallEnd,
   onOrganize,
   onShare,
@@ -45,10 +47,6 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
   // GPT 청크 핸들러
   const onGptChunkReceived = useCallback((content: string) => {
-    console.log('[VoiceChat] 📦 GPT chunk received in VoiceChat component');
-    console.log('[VoiceChat] 📦 Chunk length:', content.length);
-    console.log('[VoiceChat] 📦 Chunk preview:', content.substring(0, 100) + '...');
-
     // useVoiceGpt의 handleGptChunk 호출
     handleGptChunkRef.current?.(content);
   }, []);
@@ -70,17 +68,6 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     userId: currentUser?.id.toString(),
     enabled: false, // Manual join via button
     onGptChunk: onGptChunkReceived,
-  });
-
-  // GPT Hook
-  const gpt = useVoiceGpt({
-    sendMessage,
-    isConnected: connectionState === 'connected',
-    onGptChunk: (content) => {
-      console.log('[VoiceChat] 📦 GPT chunk passed to onGptChunk callback');
-      console.log('[VoiceChat] 📦 Chunk length:', content.length);
-      // TODO: 스트림 청크를 UI에 표시
-    },
     onGptDone: (message) => {
       console.log('[VoiceChat] ===== GPT Processing Complete =====');
       console.log('[VoiceChat] 📊 Received GPT response:', {
@@ -97,14 +84,14 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
       console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
     },
-    onGptError: (error, rawText) => {
+    onGptError: (message) => {
       console.error('[VoiceChat] ===== GPT Error =====');
-      console.error('[VoiceChat] ❌ Error message:', error);
+      console.error('[VoiceChat] ❌ Error message:', message.error);
 
-      if (rawText) {
+      if (message.rawText) {
         console.error('[VoiceChat] 📄 Raw GPT response (failed to parse):');
-        console.error(rawText);
-        console.error('[VoiceChat] Response length:', rawText.length, 'characters');
+        console.error(message.rawText);
+        console.error('[VoiceChat] Response length:', message.rawText.length, 'characters');
       } else {
         console.error('[VoiceChat] ⚠️ No raw response available');
       }
@@ -112,6 +99,15 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       // TODO: 사용자에게 에러 알림 표시
       console.log('[VoiceChat] 💡 TODO: Display error notification to user');
     },
+  });
+
+  // GPT Hook (only for UI state management - handlers are in useVoiceChat)
+  const gpt = useVoiceGpt({
+    sendMessage,
+    isConnected: connectionState === 'connected',
+    onGptChunk: () => {}, // Handled by useVoiceChat
+    onGptDone: () => {}, // Handled by useVoiceChat
+    onGptError: () => {}, // Handled by useVoiceChat
   });
 
   // handleGptChunk를 ref에 저장
@@ -227,6 +223,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         isMuted={isMuted}
         isCallActive={isInVoice}
         isGptRecording={gpt.isRecording}
+        showOrganize={myRole === "MAINTAINER"}
         onMicToggle={toggleMute}
         onCallToggle={handleCallToggle}
         onOrganize={gpt.toggleRecording}

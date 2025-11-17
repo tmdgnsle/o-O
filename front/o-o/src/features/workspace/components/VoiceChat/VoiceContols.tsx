@@ -11,6 +11,7 @@ interface VoiceControlsProps {
   isMuted: boolean;
   isCallActive: boolean;
   isGptRecording?: boolean;
+  showOrganize?: boolean;
   onMicToggle: () => void;
   onCallToggle: () => void;
   onOrganize?: () => void;
@@ -21,6 +22,7 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
   isMuted,
   isCallActive,
   isGptRecording = false,
+  showOrganize = true,
   onMicToggle,
   onCallToggle,
   onOrganize,
@@ -71,34 +73,36 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
       </button>
 
       {/* Organize Button with Tooltip (GPT Toggle) */}
-      <CustomTooltip
-        content={
-          <p className="text-sm leading-relaxed">
-            <div>{isGptRecording ? 'GPT 녹음 중...' : '아이디어를 놓치지 않게'}</div>
-            <div>
-              <span className="font-bold">Popo</span>가 정리해드려요.
-            </div>
-          </p>
-        }
-      >
-        <button
-          onClick={onOrganize}
-          className={`
-            w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-200
-            ${isGptRecording
-              ? 'bg-danger/10 hover:bg-danger/20 ring-2 ring-danger animate-pulse'
-              : 'bg-white hover:bg-gray-100'
-            }
-          `}
-          aria-label={isGptRecording ? "녹음 중지" : "녹음 시작"}
+      {showOrganize && (
+        <CustomTooltip
+          content={
+            <p className="text-sm leading-relaxed">
+              <div>{isGptRecording ? 'GPT 녹음 중...' : '아이디어를 놓치지 않게'}</div>
+              <div>
+                <span className="font-bold">Popo</span>가 정리해드려요.
+              </div>
+            </p>
+          }
         >
-          <img
-            src={organizePopo}
-            alt="organize"
-            className="w-10 h-10 object-contain"
-          />
-        </button>
-      </CustomTooltip>
+          <button
+            onClick={onOrganize}
+            className={`
+              w-14 h-14 rounded-full flex items-center justify-center shadow-md transition-all duration-200
+              ${isGptRecording
+                ? 'bg-danger/10 hover:bg-danger/20 ring-2 ring-danger animate-pulse'
+                : 'bg-white hover:bg-gray-100'
+              }
+            `}
+            aria-label={isGptRecording ? "녹음 중지" : "녹음 시작"}
+          >
+            <img
+              src={organizePopo}
+              alt="organize"
+              className="w-10 h-10 object-contain"
+            />
+          </button>
+        </CustomTooltip>
+      )}
 
       {/* Share Button */}
       <Button
