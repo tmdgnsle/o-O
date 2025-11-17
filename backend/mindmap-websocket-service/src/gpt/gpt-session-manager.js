@@ -72,6 +72,15 @@ class GptSessionManager {
       text,
       timestamp,
     });
+
+    // 첫 번째 transcript가 왔을 때 즉시 GPT 호출
+    if (session.transcripts.length === 1) {
+      logger.info(`[GPT] First transcript received, triggering immediate processing`, {
+        workspaceId,
+        text: text.substring(0, 50),
+      });
+      this.processSession(workspaceId);
+    }
   }
 
   // GPT 처리
@@ -400,6 +409,7 @@ class GptSessionManager {
 
       const nodesMap = ydoc.getMap('mindmap:nodes');
       const nodes = [];
+      const keywords = [];
 
       nodesMap.forEach((node, id) => {
         nodes.push({
@@ -407,11 +417,13 @@ class GptSessionManager {
           keyword: node.keyword,
           parentId: node.parentId,
         });
+        keywords.push(node.keyword);
       });
 
       return {
         nodeCount: nodes.length,
         nodes: nodes.slice(0, 50), // 최대 50개만 (토큰 절약)
+        existingKeywords: keywords, // 기존 키워드 목록
       };
     } catch (error) {
       logger.error(`[GPT] Error getting mindmap context:`, error);
@@ -429,6 +441,12 @@ class GptSessionManager {
         prompt += `- ID: ${node.id}, 키워드: "${node.keyword}", 부모ID: ${node.parentId || 'null'}\n`;
       });
       prompt += '\n';
+
+      // 기존 키워드 목록 명시
+      if (mindmapContext.existingKeywords && mindmapContext.existingKeywords.length > 0) {
+        prompt += '**이미 존재하는 키워드 목록 (중복 금지):**\n';
+        prompt += mindmapContext.existingKeywords.map(k => `"${k}"`).join(', ') + '\n\n';
+      }
     } else {
       prompt += '아직 노드가 없습니다. 루트 노드(parentId: null)부터 시작하세요.\n\n';
     }
@@ -441,7 +459,8 @@ class GptSessionManager {
     prompt += '- 인사말("안녕하세요", "반갑습니다" 등)은 제외하세요.\n';
     prompt += '- 참석자 이름, 메타 정보("이승훈", "회의 시작" 등)는 제외하세요.\n';
     prompt += '- 실제 논의된 주제, 아이디어, 작업 항목, 결정 사항만 포함하세요.\n';
-    prompt += '- 대화 내용이 인사나 잡담뿐이면 빈 배열 []을 반환하세요.\n\n';
+    prompt += '- **이미 존재하는 키워드와 중복되지 않는 새로운 키워드만 제안하세요.**\n';
+    prompt += '- 대화 내용이 인사나 잡담뿐이거나 새로운 키워드가 없으면 빈 배열 []을 반환하세요.\n\n';
 
     prompt += '# JSON 응답 형식\n\n';
     prompt += '**반드시 아래 JSON 배열 형식으로만 답변하세요. 코드블록(```)이나 설명 텍스트는 포함하지 마세요.**\n\n';
@@ -479,9 +498,13 @@ class GptSessionManager {
     prompt += '❌ {"parentId": "root", ...}  // "root" 문자열 금지\n';
     prompt += '❌ {"parentId": "n1", ...}    // 문자열 ID 금지\n';
     prompt += '❌ {"keyword": "안녕하세요", ...}  // 인사말 금지\n';
-    prompt += '❌ {"keyword": "참석자: 홍길동", ...}  // 메타 정보 금지\n\n';
+    prompt += '❌ {"keyword": "참석자: 홍길동", ...}  // 메타 정보 금지\n';
+    if (mindmapContext && mindmapContext.existingKeywords && mindmapContext.existingKeywords.length > 0) {
+      prompt += `❌ {"keyword": "${mindmapContext.existingKeywords[0]}", ...}  // 이미 존재하는 키워드 금지\n`;
+    }
+    prompt += '\n';
 
-    prompt += '실제 회의 내용이 있으면 2-3개의 노드를, 인사만 있으면 빈 배열 []을 반환하세요.';
+    prompt += '새로운 회의 내용이 있으면 1-2개의 새로운 노드를, 중복이거나 새로운 내용이 없으면 빈 배열 []을 반환하세요.';
 
     return prompt;
   }
