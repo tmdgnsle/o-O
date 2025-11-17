@@ -158,12 +158,21 @@ const MindmapPageContent: React.FC = () => {
   // 6b. 로컬 패널 표시 상태 (non-MAINTAINER용)
   const [showGptPanel, setShowGptPanel] = useState(true);
 
-  // 녹음 시작 시 패널 자동 표시
+  // Ref to access latest gptState without triggering callback recreation
+  const gptStateRef = React.useRef(gptState);
+  React.useEffect(() => {
+    gptStateRef.current = gptState;
+  }, [gptState]);
+
+  // 녹음 시작 시 또는 키워드가 있을 때 패널 표시
   useEffect(() => {
     if (isGptRecording) {
       setShowGptPanel(true);
+    } else if (gptKeywords.length > 0) {
+      // 녹음은 끝났지만 키워드가 있으면 패널 유지
+      setShowGptPanel(true);
     }
-  }, [isGptRecording]);
+  }, [isGptRecording, gptKeywords.length]);
 
   // GPT 노드를 트리 구조로 변환
   const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
@@ -192,14 +201,15 @@ const MindmapPageContent: React.FC = () => {
     const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
 
     // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
-    if (updateGptState && gptState) {
+    // Use ref to avoid recreating this callback when gptState changes
+    if (updateGptState && gptStateRef.current) {
       console.log('[MindmapPage] 📡 Awareness에 키워드 추가');
       updateGptState({
-        ...gptState, // 기존 상태 유지 (isRecording, startedBy, timestamp 등)
-        keywords: [...(gptState.keywords ?? []), ...newKeywords], // 키워드만 추가
+        ...gptStateRef.current, // ref로 접근 (기존 상태 유지)
+        keywords: [...(gptStateRef.current.keywords ?? []), ...newKeywords], // 키워드만 추가
       });
     }
-  }, [updateGptState, gptState, currentUser]);
+  }, [updateGptState]);
 
   // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
   const handleKeywordClick = (nodeId: string) => {
@@ -507,13 +517,26 @@ const MindmapPageContent: React.FC = () => {
     const interval = setInterval(() => {
       if (transformRef.current) {
         const currentTransform = transformRef.current.current;
-        setTransform({ ...currentTransform });
+        // Only update if values actually changed
+        setTransform(prev => {
+          if (prev.x === currentTransform.x &&
+              prev.y === currentTransform.y &&
+              prev.scale === currentTransform.scale) {
+            return prev; // No change, return same object
+          }
+          return { ...currentTransform };
+        });
       }
 
       if (containerRef.current) {
-        setContainerSize({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
+        const newWidth = containerRef.current.clientWidth;
+        const newHeight = containerRef.current.clientHeight;
+        // Only update if values actually changed
+        setContainerSize(prev => {
+          if (prev.width === newWidth && prev.height === newHeight) {
+            return prev; // No change, return same object
+          }
+          return { width: newWidth, height: newHeight };
         });
       }
     }, 16); // ~60fps
