@@ -83,7 +83,7 @@ public class AiAnalysisConsumer {
 
             // 2. INITIAL인 경우 원본 노드의 memo에 aiSummary 업데이트 및 워크스페이스 title 업데이트
             if (isInitial) {
-                updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary());
+                updateNodeMemo(result.workspaceId(), originalNodeId, result.aiSummary(), result.keyword());
                 log.info("Updated original node memo with AI summary: workspaceId={}, nodeId={}",
                         result.workspaceId(), originalNodeId);
 
@@ -123,28 +123,6 @@ public class AiAnalysisConsumer {
                     log.info("  ✨ Created Node: nodeId={}, parentId={}, keyword={}, type={}, x={}, y={}",
                             node.getNodeId(), node.getParentId(), node.getKeyword(), node.getType(), node.getX(), node.getY());
                 }
-
-                // 4. 생성된 각 노드를 WebSocket으로 전파
-                log.info("📡 [WebSocket Broadcast START] Broadcasting {} nodes to y.js server", createdNodes.size());
-                for (MindmapNode node : createdNodes) {
-                    Map<String, Object> nodeData = new HashMap<>();
-                    nodeData.put("nodeId", node.getNodeId());
-                    nodeData.put("parentId", node.getParentId());
-                    nodeData.put("keyword", node.getKeyword());
-                    nodeData.put("memo", node.getMemo());
-                    nodeData.put("type", node.getType());
-                    nodeData.put("createdAt", node.getCreatedAt() != null ? node.getCreatedAt().toString() : null);
-
-                    nodeUpdateProducer.sendNodeUpdate(
-                            result.workspaceId(),
-                            node.getNodeId(),
-                            nodeData
-                    );
-
-                    log.info("  📤 Sent to WebSocket: workspaceId={}, nodeId={}, keyword={}",
-                            result.workspaceId(), node.getNodeId(), node.getKeyword());
-                }
-                log.info("✅ [WebSocket Broadcast COMPLETE]");
             } else {
                 log.warn("⚠️ [NO NODES] AI result has no nodes to create: workspaceId={}, nodes={}",
                         result.workspaceId(), result.nodes());
@@ -157,6 +135,9 @@ public class AiAnalysisConsumer {
             log.info("Successfully processed AI analysis result: workspaceId={}, nodeId={}, type={}",
                     result.workspaceId(), originalNodeId, analysisType);
 
+            nodeUpdateProducer.sendNodeUpdate(result.workspaceId());
+            log.info("✅ [Kafka Topic Send Success: mindmap.node.update]");
+
         } catch (Exception e) {
             log.error("Failed to process AI analysis result", e);
         }
@@ -165,25 +146,16 @@ public class AiAnalysisConsumer {
     /**
      * 노드의 memo를 AI Summary로 업데이트합니다 (INITIAL 분석 전용)
      */
-    private void updateNodeMemo(Long workspaceId, Long nodeId, String aiSummary) {
+    private void updateNodeMemo(Long workspaceId, Long nodeId, String aiSummary, String keyword) {
         try {
             MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Node not found: workspaceId=" + workspaceId + ", nodeId=" + nodeId));
 
+            node.setKeyword(keyword);
             node.setMemo(aiSummary);
             node.setUpdatedAt(LocalDateTime.now());
             nodeRepository.save(node);
-
-            log.debug("Updated node memo with AI summary: workspaceId={}, nodeId={}",
-                    workspaceId, nodeId);
-
-            // WebSocket으로 memo 변경 전파
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("memo", aiSummary);
-            updates.put("updatedAt", node.getUpdatedAt().toString());
-
-            nodeUpdateProducer.sendNodeUpdate(workspaceId, nodeId, updates);
 
         } catch (Exception e) {
             log.error("Failed to update node memo: workspaceId={}, nodeId={}",
@@ -207,13 +179,6 @@ public class AiAnalysisConsumer {
 
             log.debug("Updated node analysis status: workspaceId={}, nodeId={}, status={}",
                     workspaceId, nodeId, status);
-
-            // WebSocket으로 상태 변경 전파
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("analysisStatus", status.name());
-            updates.put("updatedAt", node.getUpdatedAt().toString());
-
-            nodeUpdateProducer.sendNodeUpdate(workspaceId, nodeId, updates);
 
         } catch (Exception e) {
             log.error("Failed to update node analysis status: workspaceId={}, nodeId={}, status={}",
