@@ -19,6 +19,7 @@ export function MyPage() {
     loadMore,
     hasNext,
     fetchWorkspacesList,
+    deleteWorkspace,
     activeDates,
     activeDaysLoading,
     activeDaysError,
@@ -78,6 +79,7 @@ export function MyPage() {
             isFullscreen={isFullscreen}
             hasNext={hasNext}
             onLoadMore={loadMore}
+            onDelete={deleteWorkspace}
           />
         ) : (
           <CalendarView
