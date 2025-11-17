@@ -22,10 +22,10 @@ async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   }
 
   // 방사형 레이아웃 적용을 위한 노드 준비
+  // parentId는 이미 nodeId를 참조하므로 문자열로 정규화만 수행
   const nodesForLayout = nodes.map(node => ({
     ...node,
-    // parentId를 문자열로 변환 (radialLayoutWithForces가 string을 기대)
-    parentId: node.parentId === null || node.parentId === undefined ? null : String(node.parentId),
+    parentId: node.parentId == null ? null : String(node.parentId),
   }));
 
   // 방사형 레이아웃 적용 (applyRadialLayoutWithForcesToNodes 사용)
