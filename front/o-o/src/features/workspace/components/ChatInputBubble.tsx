@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, useMemo } from "react";
-import type { Core } from "cytoscape";
+import { useEffect, useRef, useState } from "react";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
+import type { Transform } from "@/features/mindmap/types";
+import { useSpeechBubble } from "../hooks/custom/useSpeechBubble";
+import { BUBBLE_STYLES, createBubbleTailStyle } from "../utils/speechBubbleStyles";
 
 type ChatInputBubbleProps = {
-  cy: Core | null;
+  transform: Transform;
+  container: HTMLElement | null;
   position: { x: number; y: number }; // Model coordinates
   color: string;
   onClose: () => void;
@@ -19,50 +22,33 @@ type ChatInputBubbleProps = {
  * - Broadcasts each keystroke in real-time
  * - ESC to cancel, Enter to confirm and close
  * - Speech bubble style matching cursor color
+ * - Multi-line support with 60 character limit
  */
 export function ChatInputBubble({
-  cy,
+  transform,
+  container,
   position,
   color,
   onClose,
   onUpdateChat,
 }: Readonly<ChatInputBubbleProps>) {
   const [text, setText] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const rafRef = useRef<number>(0);
-  const [viewport, setViewport] = useState({ pan: { x: 0, y: 0 }, zoom: 1 });
 
   // Calculate text color based on background for readability
   const textColor = getContrastTextColor(color);
 
-  // Track viewport changes to follow cursor in real-time
-  useEffect(() => {
-    if (!cy) return;
-
-    const updateViewport = () => {
-      setViewport({ pan: cy.pan(), zoom: cy.zoom() });
-    };
-
-    cy.on("pan zoom", updateViewport);
-    updateViewport(); // Initial update
-
-    return () => {
-      cy.off("pan zoom", updateViewport);
-    };
-  }, [cy]);
-
-  // Transform model coordinates to screen coordinates
-  const screenPosition = useMemo(() => {
-    if (!cy) return position;
-    return {
-      x: position.x * viewport.zoom + viewport.pan.x,
-      y: position.y * viewport.zoom + viewport.pan.y,
-    };
-  }, [cy, position, viewport]);
+  // Transform model coordinates to screen coordinates using shared hook
+  const { screenPosition } = useSpeechBubble({
+    modelPosition: position,
+    transform,
+    // No containerSize = no off-screen clamping for input bubble
+  });
 
   // Auto-focus on mount
   useEffect(() => {
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   }, []);
 
   // Broadcast typing state in real-time (throttled with RAF)
@@ -90,7 +76,7 @@ export function ChatInputBubble({
     };
   }, [text, onUpdateChat]);
 
-  // Auto-close: 3 seconds if empty, 7 seconds after last input if has text
+  // Auto-close: 3 seconds if empty, 6 seconds after last input if has text
   useEffect(() => {
     const timer = text.length === 0
       ? setTimeout(() => {
@@ -99,13 +85,22 @@ export function ChatInputBubble({
           onClose();
         }, 3000)
       : setTimeout(() => {
-          // Has text: close after 7 seconds of last input
+          // Has text: close after 6 seconds of last input
           onUpdateChat(null);
           onClose();
-        }, 7000);
+        }, 6000);
 
     return () => clearTimeout(timer);
   }, [text, onClose, onUpdateChat]);
+
+  // Keyboard event handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onUpdateChat(null);
+      onClose();
+    }
+  };
 
   return (
     <div
@@ -123,18 +118,18 @@ export function ChatInputBubble({
         style={{
           position: "relative",
           background: color,
-          borderRadius: 12,
-          padding: "8px 12px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          borderRadius: BUBBLE_STYLES.borderRadius,
+          padding: BUBBLE_STYLES.padding,
+          boxShadow: BUBBLE_STYLES.boxShadow,
           minWidth: 200,
           marginBottom: 8,
         }}
       >
-        <input
-          ref={inputRef}
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="메시지를 입력하세요"
           style={{
             width: "100%",
@@ -142,25 +137,19 @@ export function ChatInputBubble({
             border: "none",
             outline: "none",
             color: textColor,
-            fontSize: 14,
+            fontSize: BUBBLE_STYLES.fontSize,
+            resize: "none",
+            fontFamily: "inherit",
+            lineHeight: BUBBLE_STYLES.lineHeight,
+            wordWrap: "break-word",
+            overflow: "hidden",
           }}
-          maxLength={200}
+          maxLength={30}
+          rows={2}
         />
 
         {/* Speech bubble tail */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: -6,
-            left: "10%",
-            transform: "translateX(-50%)",
-            width: 0,
-            height: 0,
-            borderLeft: "6px solid transparent",
-            borderRight: "6px solid transparent",
-            borderTop: `6px solid ${color}`,
-          }}
-        />
+        <div style={createBubbleTailStyle(color, "10%")} />
       </div>
     </div>
   );

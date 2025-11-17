@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
-import type { Core } from "cytoscape";
 import type { Awareness } from "y-protocols/awareness";
 import { getContrastTextColor } from "@/shared/utils/colorUtils";
+import type { Transform } from "@/features/mindmap/types";
+import {
+  BUBBLE_STYLES,
+  createBubbleTailStyle,
+  createDirectionalArrowStyle,
+} from "../utils/speechBubbleStyles";
 
 type PeerChat = {
   id: number;
@@ -15,7 +20,9 @@ type PeerChat = {
 };
 
 type ChatBubblesOverlayProps = {
-  cy: Core | null;
+  transform: Transform;
+  containerWidth: number;
+  containerHeight: number;
   awareness?: Awareness;
 };
 
@@ -29,37 +36,12 @@ type ChatBubblesOverlayProps = {
  * - Matches bubble color to user's cursor color
  */
 export function ChatBubblesOverlay({
-  cy,
+  transform,
+  containerWidth,
+  containerHeight,
   awareness,
 }: Readonly<ChatBubblesOverlayProps>) {
   const [peers, setPeers] = useState<PeerChat[]>([]);
-  const [viewport, setViewport] = useState({ pan: { x: 0, y: 0 }, zoom: 1 });
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-
-  // Update viewport on pan/zoom
-  useEffect(() => {
-    if (!cy) return;
-
-    const updateViewport = () => {
-      setViewport({ pan: cy.pan(), zoom: cy.zoom() });
-
-      // Update container size
-      const container = cy.container();
-      if (container) {
-        setContainerSize({
-          width: container.clientWidth,
-          height: container.clientHeight,
-        });
-      }
-    };
-
-    cy.on("pan zoom", updateViewport);
-    updateViewport(); // Initial update
-
-    return () => {
-      cy.off("pan zoom", updateViewport);
-    };
-  }, [cy]);
 
   // Subscribe to awareness changes and extract chat data
   useEffect(() => {
@@ -126,10 +108,6 @@ export function ChatBubblesOverlay({
     return 1 - (age - 6000) / 1000; // Fade from 1 to 0 over last 1 second
   };
 
-  if (!cy) {
-    return null;
-  }
-
   return (
     <div
       aria-hidden
@@ -142,41 +120,36 @@ export function ChatBubblesOverlay({
       }}
     >
       {peers.map((peer) => {
-        // Transform model coordinates to screen coordinates
-        const renderedPos = cy.pan();
-        const zoom = cy.zoom();
-        let x = peer.cursorX * zoom + renderedPos.x;
-        let y = peer.cursorY * zoom + renderedPos.y;
+        // Calculate position using D3 transform
+        const x = peer.cursorX * transform.k + transform.x;
+        const y = peer.cursorY * transform.k + transform.y;
 
         // Check if cursor is outside viewport
-        const isOffScreen = {
-          left: x < 0,
-          right: x > containerSize.width,
-          top: y < 0,
-          bottom: y > containerSize.height,
-        };
-
-        const anyOffScreen = Object.values(isOffScreen).some(Boolean);
+        const isOffScreenLeft = x < 0;
+        const isOffScreenRight = x > containerWidth;
+        const isOffScreenTop = y < 0;
+        const isOffScreenBottom = y > containerHeight;
+        const isOffScreen = isOffScreenLeft || isOffScreenRight || isOffScreenTop || isOffScreenBottom;
 
         // Clamp position to screen edges if off-screen
         let clampedX = x;
         let clampedY = y;
         let arrowDirection: "left" | "right" | "top" | "bottom" | null = null;
 
-        if (anyOffScreen) {
-          if (isOffScreen.left) {
+        if (isOffScreen) {
+          if (isOffScreenLeft) {
             clampedX = 20;
             arrowDirection = "left";
-          } else if (isOffScreen.right) {
-            clampedX = containerSize.width - 20;
+          } else if (isOffScreenRight) {
+            clampedX = containerWidth - 20;
             arrowDirection = "right";
           }
 
-          if (isOffScreen.top) {
+          if (isOffScreenTop) {
             clampedY = 20;
             arrowDirection = "top";
-          } else if (isOffScreen.bottom) {
-            clampedY = containerSize.height - 20;
+          } else if (isOffScreenBottom) {
+            clampedY = containerHeight - 20;
             arrowDirection = "bottom";
           }
         }
@@ -191,7 +164,7 @@ export function ChatBubblesOverlay({
               position: "absolute",
               left: clampedX,
               top: clampedY,
-              transform: anyOffScreen
+              transform: isOffScreen
                 ? "translate(-50%, -50%)"
                 : "translate(-10%, calc(-100% - 14px))",
               opacity,
@@ -203,9 +176,9 @@ export function ChatBubblesOverlay({
               style={{
                 position: "relative",
                 background: peer.color,
-                borderRadius: 12,
-                padding: "8px 12px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                borderRadius: BUBBLE_STYLES.borderRadius,
+                padding: BUBBLE_STYLES.padding,
+                boxShadow: BUBBLE_STYLES.boxShadow,
                 maxWidth: 250,
                 wordWrap: "break-word",
               }}
@@ -228,7 +201,7 @@ export function ChatBubblesOverlay({
               {/* Message text */}
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: BUBBLE_STYLES.fontSize,
                   color: textColor,
                 }}
               >
@@ -245,63 +218,11 @@ export function ChatBubblesOverlay({
               </div>
 
               {/* Speech bubble tail (only when on-screen) */}
-              {!anyOffScreen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: -6,
-                    left: "16%",
-                    transform: "translateX(-50%)",
-                    width: 0,
-                    height: 0,
-                    borderLeft: "6px solid transparent",
-                    borderRight: "6px solid transparent",
-                    borderTop: `6px solid ${peer.color}`,
-                  }}
-                />
-              )}
+              {!isOffScreen && <div style={createBubbleTailStyle(peer.color, "16%")} />}
 
               {/* Directional arrow (when off-screen) */}
-              {anyOffScreen && arrowDirection && (
-                <div
-                  style={{
-                    position: "absolute",
-                    ...(arrowDirection === "left" && {
-                      left: -8,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      borderTop: "6px solid transparent",
-                      borderBottom: "6px solid transparent",
-                      borderRight: `8px solid ${peer.color}`,
-                    }),
-                    ...(arrowDirection === "right" && {
-                      right: -8,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      borderTop: "6px solid transparent",
-                      borderBottom: "6px solid transparent",
-                      borderLeft: `8px solid ${peer.color}`,
-                    }),
-                    ...(arrowDirection === "top" && {
-                      top: -8,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      borderLeft: "6px solid transparent",
-                      borderRight: "6px solid transparent",
-                      borderBottom: `8px solid ${peer.color}`,
-                    }),
-                    ...(arrowDirection === "bottom" && {
-                      bottom: -8,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      borderLeft: "6px solid transparent",
-                      borderRight: "6px solid transparent",
-                      borderTop: `8px solid ${peer.color}`,
-                    }),
-                    width: 0,
-                    height: 0,
-                  }}
-                />
+              {isOffScreen && arrowDirection && (
+                <div style={createDirectionalArrowStyle(arrowDirection, peer.color)} />
               )}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Core } from "cytoscape";
+import type { Transform } from "../types";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
 import { useWorkspacePermissions } from "../../workspace/hooks/custom/useWorkspacePermissions";
 import MiniNav from "@/shared/ui/MiniNav";
@@ -46,10 +47,16 @@ const MindmapPageContent: React.FC = () => {
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const { myRole, canEdit, canManage } = useWorkspacePermissions(workspaceId);
 
-  // 3. Refs for Cytoscape
+  // 3. Refs for Cytoscape (mock API for backward compatibility)
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [cyReady, setCyReady] = useState(false);
+
+  // 3a. D3 Transform state management
+  const transformRef = useRef<React.MutableRefObject<Transform> | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
 
   // 4. Helper hooks
@@ -169,6 +176,27 @@ const MindmapPageContent: React.FC = () => {
 
     console.log(`[MindmapPage] ${newNodes.length}개의 트렌드 키워드 노드 생성 완료`);
   }, [collab, crud, isBootstrapping, getRandomThemeColor]);
+
+  // 🔄 Track D3 transform updates and container size
+  useEffect(() => {
+    if (!transformRef.current || !containerRef.current) return;
+
+    const interval = setInterval(() => {
+      if (transformRef.current) {
+        const currentTransform = transformRef.current.current;
+        setTransform({ ...currentTransform });
+      }
+
+      if (containerRef.current) {
+        setContainerSize({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    }, 16); // ~60fps
+
+    return () => clearInterval(interval);
+  }, [cyReady]);
 
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {
@@ -305,6 +333,14 @@ const MindmapPageContent: React.FC = () => {
             onCyReady={(cy) => {
               cyRef.current = cy;
               setCyReady(true);
+
+              // Extract D3 transform and container refs from mock cy object
+              if ((cy as any)._d3Transform) {
+                transformRef.current = (cy as any)._d3Transform;
+              }
+              if ((cy as any)._d3Container) {
+                containerRef.current = (cy as any)._d3Container.current;
+              }
             }}
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
@@ -314,11 +350,17 @@ const MindmapPageContent: React.FC = () => {
             onDismissDetachedSelection={detachedSelection.handleDismissDetachedSelection}
             className="absolute inset-0"
           />
-          <RemoteCursorsOverlay cy={cyRef.current} />
-          <ChatBubblesOverlay cy={cyRef.current} awareness={collab.client.provider.awareness} />
+          <RemoteCursorsOverlay transform={transform} container={containerRef.current} />
+          <ChatBubblesOverlay
+            transform={transform}
+            containerWidth={containerSize.width}
+            containerHeight={containerSize.height}
+            awareness={collab.client.provider.awareness}
+          />
           {chatInput.isInputVisible && chatInput.inputPosition && (
             <ChatInputBubble
-              cy={cyRef.current}
+              transform={transform}
+              container={containerRef.current}
               position={chatInput.inputPosition}
               color={cursorColorRef.current}
               onClose={chatInput.closeChatInput}

@@ -153,7 +153,7 @@ export default function D3Canvas({
 
     setD3Ready(true);
 
-    // onCyReady 호출 (Cytoscape API 호환용 mock 객체)
+    // onCyReady 호출 (Cytoscape API 호환용 mock 객체 + D3 transform 정보)
     if (onCyReady) {
       const mockCy = {
         pan: () => ({ x: transformRef.current.x, y: transformRef.current.y }),
@@ -197,6 +197,10 @@ export default function D3Canvas({
           // D3에서는 zoom transform으로 처리
           return mockCy;
         },
+
+        // D3 관련 정보 제공
+        _d3Transform: transformRef,
+        _d3Container: containerRef,
       };
 
       onCyReady(mockCy as any);

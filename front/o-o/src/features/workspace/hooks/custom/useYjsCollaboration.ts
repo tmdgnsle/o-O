@@ -1,5 +1,5 @@
 // useYjsCollaboration.ts
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import * as Y from "yjs";
 import { createYClient, type YClient } from "./yjsClient";
 import { createYMapCrud, type YMapCrud } from "./yMapCrud";
@@ -370,14 +370,14 @@ export function useYjsCollaboration(
   }, [collab, cursorColor, currentUser, myRole]);
 
   // 채팅 상태 업데이트 메서드
-  const updateChatState = (
+  const updateChatState = useCallback((
     chatData: { isTyping: boolean; currentText: string; timestamp: number } | null
   ) => {
     if (!collab) return;
     const awareness = collab.client.provider.awareness;
     if (!awareness) return;
     awareness.setLocalStateField("chat", chatData);
-  };
+  }, [collab]);
 
   return {
     collab,

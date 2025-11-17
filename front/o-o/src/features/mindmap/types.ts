@@ -2,6 +2,13 @@
 // Mindmap UI Component Props Types
 // ============================================
 
+// D3 Transform type (replaces Cytoscape)
+export type Transform = {
+  x: number;
+  y: number;
+  k: number;
+};
+
 // NodeAddInput.tsx
 export type NodeAddInputProps = Readonly<{
   open: boolean;
