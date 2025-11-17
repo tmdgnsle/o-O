@@ -2,6 +2,7 @@ package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.mindmapservice.dto.kafka.AiContextualSuggestion;
+import com.ssafy.mindmapservice.dto.response.AiTrendSuggestionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,19 +25,16 @@ public class AiSuggestionProducer {
      * - MongoDB에는 새 노드를 만들지 않고
      * - WebSocket 서버가 이 토픽을 구독해서 클라이언트에 뿌리도록 사용
      */
-    public void sendContextualSuggestion(AiContextualSuggestion suggestion) {
+    public void sendContextualSuggestion(AiTrendSuggestionResponse payload) {
         try {
-            String json = objectMapper.writeValueAsString(suggestion);
+            String message = objectMapper.writeValueAsString(payload);
+            kafkaTemplate.send(aiSuggestionTopic, payload.getWorkspaceId().toString(), message);
 
-            // workspaceId 기준 파티셔닝
-            kafkaTemplate.send(aiSuggestionTopic, suggestion.workspaceId().toString(), json);
-
-            log.info("📤 Sent AI contextual suggestion: workspaceId={}, targetNodeId={}, count={}",
-                    suggestion.workspaceId(), suggestion.targetNodeId(),
-                    suggestion.suggestions() != null ? suggestion.suggestions().size() : 0);
+            log.info("AI + Trend suggestion sent: workspaceId={}, targetNodeId={}",
+                    payload.getWorkspaceId(), payload.getTargetNodeId());
         } catch (Exception e) {
-            log.error("❌ Failed to send AI contextual suggestion", e);
-            throw new RuntimeException("AI 추천 전송 실패", e);
+            log.error("Failed to send AI+Trend suggestion", e);
         }
     }
+
 }

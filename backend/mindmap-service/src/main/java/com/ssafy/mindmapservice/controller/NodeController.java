@@ -543,105 +543,82 @@ public class NodeController {
     }
 
     @Operation(
-            summary = "AI 분석 요청",
+            summary = "맥락 기반 AI+트렌드 확장 추천 요청 (CONTEXTUAL 전용)",
             description = """
-                    ## AI 기반 마인드맵 노드 분석 요청
+                ## 🧠 맥락 기반 AI + 트렌드 확장 추천 요청
 
-                    콘텐츠(이미지/영상/텍스트)를 분석하여 마인드맵 노드를 자동 생성합니다.
-                    요청은 Kafka를 통해 비동기로 처리되며, 결과는 WebSocket으로 실시간 전달됩니다.
+                특정 노드를 기준으로 **AI 확장 추천 키워드 + 트렌드 키워드**를 한 번에 받아옵니다.
 
-                    ### 📌 분석 타입
+                이 API는 다음과 같은 플로우로 동작합니다:
 
-                    #### 1️⃣ INITIAL (최초 분석)
-                    - **사용 시점**: 홈 화면에서 새 워크스페이스의 첫 노드 생성 시
-                    - **입력**: contentUrl, contentType, prompt, analysisType
-                    - **출력**: AI 요약(memo 업데이트) + 6개의 키워드 노드 (2단계 계층 구조)
-                    - **nodes 필드**: null (생략)
+                1. 클라이언트가 `workspaceId`, `nodeId`로 이 API를 호출
+                2. 서버가 해당 노드의 조상 경로를 수집해서 **CONTEXTUAL 모드**로 AI 서버에 Kafka 요청 발행
+                3. AI 서버에서 분석 완료 → `ai-analysis-result` 토픽으로 결과 발행
+                4. Mindmap 서비스 Consumer가 결과를 수신
+                   - AI가 추천한 키워드 목록을 `aiList`로 정리
+                   - Trend 서비스(`/trend/{parentKeyword}`)를 호출하여 연관 트렌드 키워드를 `trendList`로 조회
+                   - 두 리스트를 `AiTrendSuggestionResponse` 형태로 합쳐서 Kafka(`mindmap.ai.suggestion` 등)로 전송
+                5. Node.js WebSocket 서버가 Kafka 메시지를 받아
+                   같은 `workspaceId`에 접속한 클라이언트들에게 브로드캐스트
 
-                    #### 2️⃣ CONTEXTUAL (맥락 기반 확장)
-                    - **사용 시점**: 기존 노드를 확장할 때
-                    - **입력**: nodes (조상 경로), analysisType
-                    - **출력**: 3개의 자식 노드 (keyword + memo)
-                    - **contentUrl, prompt**: null (생략)
+                클라이언트에서는 WebSocket을 통해 다음과 같은 payload를 수신합니다:
 
-                    ### ⚠️ 주의사항
-                    - INITIAL 요청 시 `nodes` 필드는 반드시 null이어야 합니다
-                    - CONTEXTUAL 요청 시 `nodes` 필드에 nodeId부터 루트까지의 조상 경로를 포함해야 합니다
-                    - 응답은 202 Accepted로 즉시 반환되며, 실제 결과는 Kafka Consumer를 통해 비동기 처리됩니다
-                    """
+                ```json
+                {
+                  "type": "ai_suggestion",
+                  "workspaceId": 123,
+                  "targetNodeId": 15,
+                  "aiList": [
+                    { "tempId": "ai-1", "parentId": 15, "keyword": "굽기 정도별 레시피", "memo": "..." },
+                    { "tempId": "ai-2", "parentId": 15, "keyword": "부위별 특징", "memo": "..." }
+                  ],
+                  "trendList": [
+                    { "keyword": "스테이크 굽기", "score": 982, "rank": 1 },
+                    { "keyword": "고기 레시피", "score": 754, "rank": 2 },
+                    { "keyword": "바비큐 파티", "score": 621, "rank": 3 }
+                  ]
+                }
+                ```
+
+                ### 📌 이 엔드포인트의 특징
+
+                - **CONTEXTUAL 전용**입니다.  
+                  - `analysisType`은 클라이언트에서 보낼 필요가 없고,
+                    서버 내부에서 항상 `"CONTEXTUAL"`로 설정합니다.
+                - 요청 바디에서 `contentUrl`, `contentType`, `prompt`는 사용하지 않습니다.
+                  - 컨텍스트는 서버가 `nodeId` 기준으로 MongoDB에서 조상 경로를 자동 수집합니다.
+                - HTTP 응답은 항상 **202 Accepted**이고,
+                  실제 추천 결과는 WebSocket으로 비동기 전송됩니다.
+                """
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "202",
-                    description = "분석 요청이 정상적으로 접수되었습니다. 결과는 Kafka를 통해 비동기로 처리됩니다.",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "잘못된 요청 (필수 필드 누락, 분석 타입 불일치 등)",
+                    description = "분석 요청이 정상적으로 접수되었습니다. 결과는 WebSocket으로 비동기 전송됩니다.",
                     content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "노드를 찾을 수 없음",
+                    description = "해당 워크스페이스 또는 노드를 찾을 수 없음",
                     content = @Content
             )
     })
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "AI 분석 요청 정보",
-            required = true,
+            description = "CONTEXTUAL 분석 요청 정보 (현재는 바디를 사용하지 않음, 빈 객체 `{}`로 호출 권장)",
+            required = false,
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = AiAnalysisRequest.class),
                     examples = {
                             @ExampleObject(
-                                    name = "INITIAL 요청 예시",
-                                    summary = "최초 분석 요청 (영상 콘텐츠)",
+                                    name = "기본 CONTEXTUAL 요청",
+                                    summary = "기존 노드 확장 추천 요청 (바디 없이 호출하거나 `{}`로 호출)",
                                     value = """
-                                            {
-                                              "workspaceId": 123,
-                                              "nodeId": 1,
-                                              "contentUrl": "https://youtu.be/qDG3auuSb1E",
-                                              "contentType": "VIDEO",
-                                              "prompt": "고기랑 관련된 아이디어 없을까?",
-                                              "analysisType": "INITIAL",
-                                              "nodes": null
-                                            }
-                                            """
-                            ),
-                            @ExampleObject(
-                                    name = "CONTEXTUAL 요청 예시",
-                                    summary = "맥락 기반 확장 요청",
-                                    value = """
-                                            {
-                                              "workspaceId": 123,
-                                              "nodeId": 15,
-                                              "contentUrl": null,
-                                              "contentType": "TEXT",
-                                              "prompt": null,
-                                              "analysisType": "CONTEXTUAL",
-                                              "nodes": [
-                                                {
-                                                  "nodeId": 2,
-                                                  "parentId": 1,
-                                                  "keyword": "굽기 정도별 레시피",
-                                                  "memo": "레어~웰던 단계별 조리 시간 비교"
-                                                },
-                                                {
-                                                  "nodeId": 3,
-                                                  "parentId": 2,
-                                                  "keyword": "부위별 특징",
-                                                  "memo": "안심, 등심 등 질감 및 맛 차이 설명"
-                                                },
-                                                {
-                                                  "nodeId": 15,
-                                                  "parentId": 3,
-                                                  "keyword": "고기",
-                                                  "memo": "고기 종류"
-                                                }
-                                              ]
-                                            }
-                                            """
+                                        {
+                                          // 현재 버전에서는 필수 필드 없음.
+                                          // 추후 확장을 위해 빈 JSON으로 호출하는 형태를 권장합니다.
+                                        }
+                                        """
                             )
                     }
             )
@@ -651,24 +628,25 @@ public class NodeController {
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
 
-            @Parameter(description = "노드 ID (INITIAL: 첫 노드, CONTEXTUAL: 확장할 노드)", required = true, example = "1")
+            @Parameter(description = "기준 노드 ID (이 노드를 기준으로 AI+트렌드 확장 추천을 생성)", required = true, example = "15")
             @PathVariable Long nodeId,
 
-            @RequestBody AiAnalysisRequest request) {
-        log.info("POST /mindmap/{}/node/{}/analyze - type={}, contentType={}",
-                workspaceId, nodeId, request.analysisType(), request.contentType());
+            @RequestBody(required = false) AiAnalysisRequest request) {
 
+        log.info("POST /mindmap/{}/node/{}/analyze [CONTEXTUAL]", workspaceId, nodeId);
+
+        // 현재는 바디 내용에 상관없이 CONTEXTUAL 로직 고정
         nodeService.requestAiAnalysis(
                 workspaceId,
                 nodeId,
-                request.contentUrl(),
-                request.contentType(),
-                request.prompt(),
-                request.analysisType()
+                null,   // contentUrl 사용 안 함
+                null,   // contentType 사용 안 함
+                null    // prompt 사용 안 함
         );
 
         return ResponseEntity.accepted().build();
     }
+
 
     @Operation(
             summary = "음성 아이디어 추가 (모바일)",

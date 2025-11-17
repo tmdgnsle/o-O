@@ -544,28 +544,30 @@ public class NodeService {
     }
 
     /**
-     * AI 분석을 요청합니다.
+     * CONTEXTUAL AI 분석을 요청합니다.
      * 1. 노드의 분석 상태를 PENDING으로 변경
      * 2. Kafka를 통해 AI 서버로 분석 요청 전송
      *
-     * @param analysisType "INITIAL" or "CONTEXTUAL"
+     * CONTEXTUAL만 사용하므로 analysisType 파라미터는 받지 않고,
+     * 내부에서 "CONTEXTUAL"로 고정합니다.
      */
-    public void requestAiAnalysis(Long workspaceId, Long nodeId, String contentUrl,
-                                  String contentType, String prompt,
-                                  String analysisType) {
-        log.info("Requesting AI analysis: workspaceId={}, nodeId={}, type={}, contentType={}",
-                workspaceId, nodeId, analysisType, contentType);
+    public void requestAiAnalysis(Long workspaceId, Long nodeId,
+                                  String contentUrl,
+                                  String contentType,
+                                  String prompt) {
+
+        final String analysisType = "CONTEXTUAL";
+
+        log.info("Requesting CONTEXTUAL AI analysis: workspaceId={}, nodeId={}, contentType={}",
+                workspaceId, nodeId, contentType);
 
         // 1. 노드 존재 확인
         MindmapNode node = nodeRepository.findByWorkspaceIdAndNodeId(workspaceId, nodeId)
                 .orElseThrow(() -> new IllegalArgumentException("Node not found: " + nodeId));
 
-        // 2. 노드 컨텍스트 수집 (CONTEXTUAL인 경우)
-        List<NodeContextDto> nodes = null;
-        if ("CONTEXTUAL".equals(analysisType)) {
-            nodes = getAncestorContext(workspaceId, nodeId);
-            log.debug("Collected node context with {} nodes", nodes.size());
-        }
+        // 2. 노드 컨텍스트 수집 (항상 CONTEXTUAL)
+        List<NodeContextDto> nodes = getAncestorContext(workspaceId, nodeId);
+        log.debug("Collected node context with {} nodes", nodes.size());
 
         // 3. 분석 상태를 PENDING으로 변경
         node.setAnalysisStatus(MindmapNode.AnalysisStatus.PENDING);
@@ -576,17 +578,18 @@ public class NodeService {
         AiAnalysisRequest request = new AiAnalysisRequest(
                 workspaceId,
                 nodeId,
-                contentUrl,
-                contentType,
-                prompt,
-                analysisType,
-                nodes
+                contentUrl,     // CONTEXTUAL이면 보통 null이지만, 필드 유지
+                contentType,    // 필요 없다면 호출하는 쪽에서 null 넘기면 됨
+                prompt,         // 필요 없다면 null
+                analysisType,   // 항상 "CONTEXTUAL"
+                nodes           // 조상 경로 컨텍스트
         );
 
         aiAnalysisProducer.sendAnalysisRequest(request);
 
         log.info("AI analysis request sent successfully: nodeId={}, type={}", nodeId, analysisType);
     }
+
 
     /**
      * 모바일 음성 아이디어로 새 워크스페이스와 루트 노드를 생성합니다.
