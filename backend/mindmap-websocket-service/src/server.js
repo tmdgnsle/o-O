@@ -292,27 +292,41 @@ wss.on('connection', (conn, req) => {
  *
  * Kafka에서 mindmap.node.update 토픽을 수신하면 호출됨
  * 해당 workspace의 모든 사용자에게 initial-create-done 이벤트를 전송
- * 클라이언트는 이 메시지를 받고 workspace 데이터를 다시 조회함
+ * 클라이언트는 이 메시지를 받고 생성된 노드를 화면에 렌더링
  *
  * @param {string|number} workspaceId - workspace ID
+ * @param {Array<object>} nodes - 생성된 노드 정보 배열 (옵션)
+ *   예: [{ nodeId: 10, parentId: 3, keyword: '맛집 검색', memo: '...', type: 'text', color: '#FFE5E5', x: null, y: null }]
  */
-function handleInitialCreateDone(workspaceId) {
+function handleInitialCreateDone(workspaceId, nodes = null) {
   const workspaceIdStr = workspaceId.toString();
 
   logger.info(`[InitialCreateDone] Initial node creation completed`, {
     workspaceId: workspaceIdStr,
+    hasNodes: nodes !== null,
+    nodeCount: nodes ? nodes.length : 0,
   });
 
   // workspace의 모든 사용자에게 initial-create-done 이벤트 전송
-  const sentCount = sendToWorkspace(workspaceIdStr, {
+  const payload = {
     type: 'initial-create-done',
     workspaceId: workspaceIdStr,
-  });
+  };
+
+  // 생성된 노드 정보가 있으면 포함
+  if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+    payload.nodes = nodes;  // 전체 노드 정보
+    payload.nodeCount = nodes.length;
+  }
+
+  const sentCount = sendToWorkspace(workspaceIdStr, payload);
 
   if (sentCount > 0) {
     logger.info(`[InitialCreateDone] Notification sent successfully`, {
       workspaceId: workspaceIdStr,
       sentCount,
+      includedNodeData: nodes !== null,
+      nodeCount: nodes ? nodes.length : 0,
     });
   } else {
     logger.warn(`[InitialCreateDone] No users connected to workspace`, {

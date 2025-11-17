@@ -170,14 +170,43 @@ class KafkaConsumerService {
    *   workspaceId: 197
    * }
    *
+   * 메시지 형식 예시 (아이디어 추가로 노드 생성):
+   * {
+   *   message: '새로운 노드가 추가되었습니다.',
+   *   workspaceId: 123,
+   *   nodes: [
+   *     { nodeId: 10, parentId: 3, keyword: '맛집 검색', memo: '...', type: 'text', color: '#FFE5E5', x: null, y: null },
+   *     { nodeId: 11, parentId: 3, keyword: '리뷰 시스템', memo: '...', type: 'text', color: '#E5F5FF', x: null, y: null }
+   *   ],
+   *   nodeCount: 2
+   * }
+   *
    * @param {object} data - Kafka 메시지 데이터
    */
   handleNodeUpdate(data) {
-    const { workspaceId, nodeId, updates, message } = data;
+    const { workspaceId, nodeId, updates, message, nodes, nodeCount } = data;
 
     // 필수 필드 검증: workspaceId는 항상 필요
     if (!workspaceId) {
       logger.warn('Invalid node update message: missing workspaceId', { data });
+      return;
+    }
+
+    // 아이디어 추가로 노드가 생성된 경우 (nodes 배열 포함)
+    if (message && nodes && Array.isArray(nodes)) {
+      logger.info(`Received nodes created message from Kafka`, {
+        workspaceId,
+        message,
+        nodeCount,
+        nodeKeywords: nodes.map(n => n.keyword),
+      });
+
+      // 등록된 핸들러 호출 (생성된 노드 전체 정보 포함)
+      if (this.onInitialCreateDone) {
+        this.onInitialCreateDone(workspaceId, nodes);
+      } else {
+        logger.warn('No initial create done handler registered');
+      }
       return;
     }
 
