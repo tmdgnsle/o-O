@@ -3,6 +3,7 @@ import type { GptNodeSuggestion } from '../../../workspace/types/voice.types';
 import type { NodeData } from '../../types';
 import { useColorTheme } from '../useColorTheme';
 import { useNodePositioning } from '../useNodePositioning';
+import { useAppSelector } from '@/store/hooks';
 
 interface YjsCRUD {
   create: (node: NodeData) => void;
@@ -12,6 +13,7 @@ interface YjsCRUD {
 export function useGptNodeCreator(crud: YjsCRUD | null, workspaceId: string, nodes: NodeData[] = []) {
   const { getRandomThemeColor } = useColorTheme();
   const { findNonOverlappingPosition } = useNodePositioning();
+  const currentUser = useAppSelector((state) => state.user.user);
 
   const createNodesFromGpt = useCallback(
     (suggestions: GptNodeSuggestion[]) => {
@@ -20,9 +22,11 @@ export function useGptNodeCreator(crud: YjsCRUD | null, workspaceId: string, nod
       }
 
       const createdNodeIds: string[] = [];
+      const timestamp = Date.now();
 
       suggestions.forEach((suggestion, index) => {
-        const nodeId = `gpt-${Date.now()}-${index}`;
+        // Include userId to ensure unique IDs across different clients
+        const nodeId = `gpt-${currentUser?.id || 'unknown'}-${timestamp}-${index}`;
         createdNodeIds.push(nodeId);
 
         // 부모 노드 찾기
@@ -97,7 +101,7 @@ export function useGptNodeCreator(crud: YjsCRUD | null, workspaceId: string, nod
 
       return createdNodeIds;
     },
-    [crud, nodes, getRandomThemeColor, findNonOverlappingPosition]
+    [crud, nodes, getRandomThemeColor, findNonOverlappingPosition, currentUser]
   );
 
   return { createNodesFromGpt };

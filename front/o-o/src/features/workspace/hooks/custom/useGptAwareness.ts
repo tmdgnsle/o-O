@@ -11,8 +11,11 @@ export interface GptState {
 /**
  * Hook to subscribe to GPT recording state from Yjs Awareness
  *
- * Listens to all participants' Awareness state and returns the active GPT session
- * if any participant is recording.
+ * Listens to all participants' Awareness state and returns the GPT session
+ * if any participant has GPT state (recording or processing).
+ *
+ * Note: Returns GPT state even when isRecording is false to preserve startedBy
+ * information for proper node creation authorization.
  */
 export function useGptAwareness(awareness?: Awareness): GptState | null {
   const [gptState, setGptState] = useState<GptState | null>(null);
@@ -24,14 +27,14 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
     }
 
     const updateGptState = () => {
-      // Find any peer with active GPT recording
+      // Find any peer with GPT state (recording or processing)
       // Priority: Local user first, then other participants
       const states = Array.from(awareness.getStates().entries());
 
       // Check local state first
       const localClientId = awareness.clientID;
       const localState = awareness.getLocalState() as any;
-      if (localState?.gpt?.isRecording) {
+      if (localState?.gpt) {
         setGptState(localState.gpt);
         return;
       }
@@ -41,13 +44,13 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
         if (clientId === localClientId) continue; // Skip local (already checked)
 
         const gptData = (state as any)?.gpt;
-        if (gptData?.isRecording) {
+        if (gptData) {
           setGptState(gptData);
           return;
         }
       }
 
-      // No active recording found
+      // No GPT state found
       setGptState(null);
     };
 
