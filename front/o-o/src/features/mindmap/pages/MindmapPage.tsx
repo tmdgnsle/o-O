@@ -29,6 +29,7 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
+import { useGptAwareness } from "../../workspace/hooks/custom/useGptAwareness";
 import type { GptNodeSuggestion } from "../../workspace/types/voice.types";
 import {
   getPendingImportKeywords,
@@ -107,7 +108,7 @@ const MindmapPageContent: React.FC = () => {
   }, []);
 
   // 6. Collaboration hooks
-  const { collab, crud, updateChatState } = useYjsCollaboration(
+  const { collab, crud, updateChatState, updateGptState } = useYjsCollaboration(
     wsUrl,
     workspaceId,
     cursorColorRef.current,
@@ -146,9 +147,10 @@ const MindmapPageContent: React.FC = () => {
     setVoiceChatVisible,
   } = useMindmapUIState();
 
-  // 6a. GPT state for RecordIdeaDialog
-  const [isGptRecording, setIsGptRecording] = useState(false);
-  const [gptKeywords, setGptKeywords] = useState<{ id: string; label: string; children?: any[] }[]>([]);
+  // 6a. GPT state from Awareness (실시간 동기화)
+  const gptState = useGptAwareness(collab?.client.provider.awareness);
+  const isGptRecording = gptState?.isRecording ?? false;
+  const gptKeywords = gptState?.keywords ?? [];
   const gptToggleRef = React.useRef<(() => void) | null>(null);
 
   // GPT 노드를 트리 구조로 변환
@@ -160,12 +162,10 @@ const MindmapPageContent: React.FC = () => {
     }));
   };
 
-  // GPT 녹음 상태 변경 핸들러
+  // GPT 녹음 상태 변경 핸들러 (Awareness 동기화는 VoiceChat에서 처리)
   const handleGptRecordingChange = (isRecording: boolean) => {
-    setIsGptRecording(isRecording);
-    if (!isRecording) {
-      // 녹음 종료 시 키워드 초기화는 하지 않음 (결과가 올 때까지 대기)
-    }
+    // Awareness에서 상태를 가져오므로 로컬 state 업데이트 불필요
+    console.log('[MindmapPage] GPT 녹음 상태 변경:', isRecording);
   };
 
   // GPT 토글 핸들러 (RecordIdeaDialog의 재생/일시정지 버튼용)
@@ -173,61 +173,62 @@ const MindmapPageContent: React.FC = () => {
     gptToggleRef.current?.();
   };
 
-  // GPT 노드 수신 핸들러
+  // GPT 노드 수신 핸들러 (Awareness에 키워드 추가)
   const handleGptNodesReceived = (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
-    const keywords = convertGptNodesToKeywords(nodes, createdNodeIds);
-    setGptKeywords(prev => [...prev, ...keywords]);
+    console.log('[MindmapPage] GPT 노드 수신:', nodes.length, '개');
+
+    const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
+
+    // Awareness 업데이트 (모든 참여자에게 동기화)
+    if (updateGptState && gptState) {
+      console.log('[MindmapPage] 📡 Awareness에 키워드 추가');
+      updateGptState({
+        ...gptState,
+        keywords: [...gptState.keywords, ...newKeywords],
+        timestamp: Date.now(),
+      });
+    }
   };
 
   // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
   const handleKeywordClick = (nodeId: string) => {
-    // GPT 노드는 임시 ID를 사용하므로, nodes 배열에서 찾기
-    const targetNode = nodes.find(node => node.id === nodeId);
-
-    if (targetNode && canvasContainerRef.current) {
-      const svgElement = canvasContainerRef.current.querySelector('svg');
-      if (svgElement) {
-        // D3 zoom을 사용하여 노드 위치로 이동
-        const zoom = (svgElement as any).__zoom;
-        if (zoom) {
-          const containerRect = canvasContainerRef.current.getBoundingClientRect();
-          const centerX = containerRect.width / 2;
-          const centerY = containerRect.height / 2;
-
-          // 노드를 화면 중앙으로 이동
-          const transform = d3.zoomIdentity
-            .translate(centerX, centerY)
-            .scale(1)
-            .translate(-targetNode.x, -targetNode.y);
-
-          d3.select(svgElement)
-            .transition()
-            .duration(500)
-            .call((zoom as any).transform, transform);
-        }
-      }
-    }
+    // focusNodeId 설정하여 기존 포커스 로직 사용
+    setFocusNodeId(nodeId);
+    // 노드 선택
+    setSelectedNodeId(nodeId);
   };
 
-  // 키워드 삭제 핸들러 - UI와 실제 노드 모두 삭제
+  // 키워드 삭제 핸들러 - Awareness + 실제 노드 삭제
   const handleDeleteKeyword = (nodeId: string) => {
-    // UI에서 키워드 제거
-    const removeNodeById = (nodes: typeof gptKeywords): typeof gptKeywords => {
-      return nodes.filter((node) => {
-        if (node.id === nodeId) {
-          return false;
-        }
-        if (node.children) {
-          node.children = removeNodeById(node.children);
-        }
-        return true;
-      });
-    };
-    setGptKeywords(removeNodeById(gptKeywords));
+    console.log('[MindmapPage] 키워드 삭제:', nodeId);
 
-    // 실제 노드도 삭제
+    // 실제 노드 삭제 (Yjs CRDT로 자동 동기화)
     if (crud) {
       crud.remove(nodeId);
+    }
+
+    // Awareness에서 키워드 제거 (모든 참여자에게 동기화)
+    if (updateGptState && gptState) {
+      const removeNodeById = (nodes: typeof gptKeywords): typeof gptKeywords => {
+        return nodes.filter((node) => {
+          if (node.id === nodeId) {
+            return false;
+          }
+          if (node.children) {
+            node.children = removeNodeById(node.children);
+          }
+          return true;
+        });
+      };
+
+      const filteredKeywords = removeNodeById(gptState.keywords);
+
+      console.log('[MindmapPage] 📡 Awareness에서 키워드 제거');
+      updateGptState({
+        ...gptState,
+        keywords: filteredKeywords,
+        timestamp: Date.now(),
+      });
     }
   };
 
@@ -610,6 +611,7 @@ const MindmapPageContent: React.FC = () => {
               onGptToggleReady={(toggle) => { gptToggleRef.current = toggle; }}
               yclient={collab?.client}
               cursorColor={cursorColorRef.current ?? undefined}
+              updateGptState={updateGptState}
             />
           </div>
         ) : (
@@ -629,10 +631,15 @@ const MindmapPageContent: React.FC = () => {
           <div className="fixed top-24 right-4 z-40">
             <RecordIdeaDialog
               keywords={gptKeywords}
-              onDelete={handleDeleteKeyword}
+              onDelete={canEdit ? handleDeleteKeyword : undefined}
               onNodeClick={handleKeywordClick}
-              isRecording={isGptRecording}
-              onToggleRecording={handleToggleGptRecording}
+              myRole={myRole}
+              onClose={() => {
+                // 닫기 버튼 클릭 시 Awareness 상태 초기화
+                if (updateGptState) {
+                  updateGptState(null);
+                }
+              }}
             />
           </div>
         )}

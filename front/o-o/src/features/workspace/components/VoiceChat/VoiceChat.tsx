@@ -29,6 +29,12 @@ interface VoiceChatProps {
   onGptToggleReady?: (toggle: () => void) => void;
   yclient?: YClient | null;
   cursorColor?: string;
+  updateGptState?: (gptData: {
+    isRecording: boolean;
+    keywords: Array<{ id: string; label: string; children?: any[] }>;
+    startedBy: string;
+    timestamp: number;
+  } | null) => void;
 }
 
 const VoiceChat: React.FC<VoiceChatProps> = ({
@@ -43,6 +49,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   onGptToggleReady,
   yclient,
   cursorColor,
+  updateGptState,
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
@@ -107,6 +114,30 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       // TODO: 사용자에게 에러 알림 표시
       console.log('[VoiceChat] 💡 TODO: Display error notification to user');
     },
+    onGptRecordingStarted: (startedBy, timestamp) => {
+      console.log('[VoiceChat] ===== GPT 녹음 시작됨 =====');
+      console.log('[VoiceChat] 👤 Started by:', startedBy);
+      console.log('[VoiceChat] 🕐 Timestamp:', new Date(timestamp).toISOString());
+
+      // 이미 녹음 중이 아니면 자동 시작 (중복 방지)
+      if (!gpt.isRecording) {
+        console.log('[VoiceChat] 🎤 자동으로 STT 시작...');
+        gpt.startRecording();
+      } else {
+        console.log('[VoiceChat] ⚠️ 이미 녹음 중, 스킵');
+      }
+    },
+    onGptSessionEnded: () => {
+      console.log('[VoiceChat] ===== GPT 세션 종료됨 =====');
+
+      // 녹음 중이면 자동 종료
+      if (gpt.isRecording) {
+        console.log('[VoiceChat] 🛑 자동으로 STT 종료...');
+        gpt.stopRecording();
+      } else {
+        console.log('[VoiceChat] ⚠️ 녹음 중이 아님, 스킵');
+      }
+    },
   });
 
   // GPT Hook (only for UI state management - handlers are in useVoiceChat)
@@ -123,10 +154,27 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     handleGptChunkRef.current = gpt.handleGptChunk;
   }, [gpt.handleGptChunk]);
 
-  // GPT 녹음 상태 변경 시 부모에게 알림
+  // GPT 녹음 상태 변경 시 부모에게 알림 + Awareness 업데이트
   useEffect(() => {
     onGptRecordingChange?.(gpt.isRecording);
-  }, [gpt.isRecording, onGptRecordingChange]);
+
+    // Awareness에 GPT 상태 동기화
+    if (updateGptState && currentUser) {
+      if (gpt.isRecording) {
+        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 시작');
+        updateGptState({
+          isRecording: true,
+          keywords: [], // 초기 상태
+          startedBy: currentUser.id.toString(),
+          timestamp: Date.now(),
+        });
+      } else {
+        // 녹음 종료 시 Awareness 상태 유지 (키워드 보존)
+        // null로 설정하지 않음 - MindmapPage에서 관리
+        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 종료 (상태 유지)');
+      }
+    }
+  }, [gpt.isRecording, onGptRecordingChange, updateGptState, currentUser]);
 
   // GPT toggle 함수를 부모에게 전달
   useEffect(() => {

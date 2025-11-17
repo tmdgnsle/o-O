@@ -11,9 +11,11 @@ interface UseVoiceChatOptions {
   onGptChunk?: (content: string) => void;
   onGptDone?: (message: { nodes: any[]; timestamp: number }) => void;
   onGptError?: (message: { error: string; rawText?: string; timestamp: number }) => void;
+  onGptRecordingStarted?: (startedBy: string, timestamp: number) => void;
+  onGptSessionEnded?: () => void;
 }
 
-export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk, onGptDone, onGptError }: UseVoiceChatOptions) {
+export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk, onGptDone, onGptError, onGptRecordingStarted, onGptSessionEnded }: UseVoiceChatOptions) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isInVoice, setIsInVoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,8 @@ export function useVoiceChat({ workspaceId, userId, enabled = false, onGptChunk,
       onGptChunk: onGptChunk,
       onGptDone: onGptDone,
       onGptError: onGptError,
+      onGptRecordingStarted: onGptRecordingStarted,
+      onGptSessionEnded: onGptSessionEnded,
     }
   );
 
