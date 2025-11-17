@@ -21,17 +21,16 @@ public class NodeUpdateProducer {
     @Value("${kafka.topics.node-update}")
     private String nodeUpdateTopic;
 
-    public void sendNodeUpdate(Long workspaceId, Long nodeId, Map<String, Object> updates) {
+    public void sendNodeUpdate(Long workspaceId) {
         try {
             Map<String, Object> message = new HashMap<>();
             message.put("workspaceId", workspaceId);
-            message.put("nodeId", nodeId);
-            message.put("updates", updates);
+            message.put("message", "노드 분석 후 업데이트를 완료했습니다.");
 
             String jsonMessage = objectMapper.writeValueAsString(message);
 
             kafkaTemplate.send(nodeUpdateTopic, workspaceId.toString(), jsonMessage);
-            log.info("Sent node update to Kafka: workspaceId={}, nodeId={}", workspaceId, nodeId);
+            log.info("Sent node update to Kafka: workspaceId={}, message={}", workspaceId, message.get("message"));
 
         } catch (Exception e) {
             log.error("Failed to send node update to Kafka", e);
