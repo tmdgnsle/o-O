@@ -110,9 +110,9 @@ const MindmapPageContent: React.FC = () => {
   const gptToggleRef = React.useRef<(() => void) | null>(null);
 
   // GPT 노드를 트리 구조로 변환
-  const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[]) => {
-    return gptNodes.map((node) => ({
-      id: node.parentId || `gpt-${Date.now()}-${Math.random()}`,
+  const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
+    return gptNodes.map((node, index) => ({
+      id: createdNodeIds[index],
       label: node.keyword,
       children: undefined, // GptNodeSuggestion에는 children이 없음 (flat 구조)
     }));
@@ -132,9 +132,9 @@ const MindmapPageContent: React.FC = () => {
   };
 
   // GPT 노드 수신 핸들러
-  const handleGptNodesReceived = (nodes: GptNodeSuggestion[]) => {
-    const keywords = convertGptNodesToKeywords(nodes);
-    setGptKeywords(keywords);
+  const handleGptNodesReceived = (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
+    const keywords = convertGptNodesToKeywords(nodes, createdNodeIds);
+    setGptKeywords(prev => [...prev, ...keywords]);
   };
 
   // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
@@ -363,7 +363,7 @@ const MindmapPageContent: React.FC = () => {
         )}
 
         {/* GPT Recording - RecordIdeaDialog */}
-        {gptKeywords.length > 0 && (
+        {(isGptRecording || gptKeywords.length > 0) && (
           <div className="fixed top-24 right-4 z-40">
             <RecordIdeaDialog
               keywords={gptKeywords}

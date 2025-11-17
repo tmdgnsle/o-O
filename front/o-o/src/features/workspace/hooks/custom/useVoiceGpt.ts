@@ -286,14 +286,14 @@ export function useVoiceGpt({
     onGptChunkRef.current?.(content);
   }, []);
 
-  // 녹음 토글 (일시정지/재개)
+  // 녹음 토글 (시작/종료)
   const toggleRecording = useCallback(() => {
     if (isRecording) {
-      pauseRecording();
+      stopRecording();
     } else {
       startRecording();
     }
-  }, [isRecording, startRecording, pauseRecording]);
+  }, [isRecording, startRecording, stopRecording]);
 
   return {
     isRecording,

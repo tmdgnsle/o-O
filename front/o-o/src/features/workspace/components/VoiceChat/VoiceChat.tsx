@@ -24,7 +24,7 @@ interface VoiceChatProps {
   onOrganize?: () => void;
   onShare?: () => void;
   onGptRecordingChange?: (isRecording: boolean) => void;
-  onGptNodesReceived?: (nodes: GptNodeSuggestion[]) => void;
+  onGptNodesReceived?: (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => void;
   onGptToggleReady?: (toggle: () => void) => void;
 }
 
@@ -80,11 +80,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       });
       console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
 
-      // 노드를 마인드맵에 추가
-      createNodesFromGpt(message.nodes);
+      // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
+      const createdNodeIds = createNodesFromGpt(message.nodes);
 
-      // 부모 컴포넌트에 노드 전달 (ExtractedKeywordList에 표시하기 위해)
-      onGptNodesReceived?.(message.nodes);
+      // 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
+      onGptNodesReceived?.(message.nodes, createdNodeIds);
 
       console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
     },

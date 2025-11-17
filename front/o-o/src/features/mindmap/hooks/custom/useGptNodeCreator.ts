@@ -16,11 +16,14 @@ export function useGptNodeCreator(crud: YjsCRUD | null, workspaceId: string, nod
   const createNodesFromGpt = useCallback(
     (suggestions: GptNodeSuggestion[]) => {
       if (!crud) {
-        return;
+        return [];
       }
+
+      const createdNodeIds: string[] = [];
 
       suggestions.forEach((suggestion, index) => {
         const nodeId = `gpt-${Date.now()}-${index}`;
+        createdNodeIds.push(nodeId);
 
         // 부모 노드 찾기
         let parentNode: NodeData | undefined;
@@ -65,6 +68,8 @@ export function useGptNodeCreator(crud: YjsCRUD | null, workspaceId: string, nod
 
         crud.create(newNode);
       });
+
+      return createdNodeIds;
     },
     [crud, nodes, getRandomThemeColor, findNonOverlappingPosition]
   );
