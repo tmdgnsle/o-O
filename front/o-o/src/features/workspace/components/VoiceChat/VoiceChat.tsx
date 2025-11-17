@@ -25,6 +25,7 @@ interface VoiceChatProps {
   onShare?: () => void;
   onGptRecordingChange?: (isRecording: boolean) => void;
   onGptNodesReceived?: (nodes: GptNodeSuggestion[]) => void;
+  onGptToggleReady?: (toggle: () => void) => void;
 }
 
 const VoiceChat: React.FC<VoiceChatProps> = ({
@@ -37,6 +38,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   onShare,
   onGptRecordingChange,
   onGptNodesReceived,
+  onGptToggleReady,
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
@@ -121,6 +123,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   useEffect(() => {
     onGptRecordingChange?.(gpt.isRecording);
   }, [gpt.isRecording, onGptRecordingChange]);
+
+  // GPT toggle 함수를 부모에게 전달
+  useEffect(() => {
+    onGptToggleReady?.(gpt.toggleRecording);
+  }, [gpt.toggleRecording, onGptToggleReady]);
 
   // Join voice chat on mount
   useEffect(() => {

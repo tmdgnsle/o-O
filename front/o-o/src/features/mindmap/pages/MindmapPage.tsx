@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Core } from "cytoscape";
+import * as d3 from "d3";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
 import MiniNav from "@/shared/ui/MiniNav";
 import AskPopo from "../components/AskPopoButton";
@@ -106,6 +107,7 @@ const MindmapPageContent: React.FC = () => {
   // 6a. GPT state for RecordIdeaDialog
   const [isGptRecording, setIsGptRecording] = useState(false);
   const [gptKeywords, setGptKeywords] = useState<{ id: string; label: string; children?: any[] }[]>([]);
+  const gptToggleRef = React.useRef<(() => void) | null>(null);
 
   // GPT 노드를 트리 구조로 변환
   const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[]) => {
@@ -124,14 +126,50 @@ const MindmapPageContent: React.FC = () => {
     }
   };
 
+  // GPT 토글 핸들러 (RecordIdeaDialog의 재생/일시정지 버튼용)
+  const handleToggleGptRecording = () => {
+    gptToggleRef.current?.();
+  };
+
   // GPT 노드 수신 핸들러
   const handleGptNodesReceived = (nodes: GptNodeSuggestion[]) => {
     const keywords = convertGptNodesToKeywords(nodes);
     setGptKeywords(keywords);
   };
 
-  // 키워드 삭제 핸들러
+  // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
+  const handleKeywordClick = (nodeId: string) => {
+    // GPT 노드는 임시 ID를 사용하므로, nodes 배열에서 찾기
+    const targetNode = nodes.find(node => node.id === nodeId);
+
+    if (targetNode && canvasContainerRef.current) {
+      const svgElement = canvasContainerRef.current.querySelector('svg');
+      if (svgElement) {
+        // D3 zoom을 사용하여 노드 위치로 이동
+        const zoom = (svgElement as any).__zoom;
+        if (zoom) {
+          const containerRect = canvasContainerRef.current.getBoundingClientRect();
+          const centerX = containerRect.width / 2;
+          const centerY = containerRect.height / 2;
+
+          // 노드를 화면 중앙으로 이동
+          const transform = d3.zoomIdentity
+            .translate(centerX, centerY)
+            .scale(1)
+            .translate(-targetNode.x, -targetNode.y);
+
+          d3.select(svgElement)
+            .transition()
+            .duration(500)
+            .call((zoom as any).transform, transform);
+        }
+      }
+    }
+  };
+
+  // 키워드 삭제 핸들러 - UI와 실제 노드 모두 삭제
   const handleDeleteKeyword = (nodeId: string) => {
+    // UI에서 키워드 제거
     const removeNodeById = (nodes: typeof gptKeywords): typeof gptKeywords => {
       return nodes.filter((node) => {
         if (node.id === nodeId) {
@@ -144,6 +182,11 @@ const MindmapPageContent: React.FC = () => {
       });
     };
     setGptKeywords(removeNodeById(gptKeywords));
+
+    // 실제 노드도 삭제
+    if (crud) {
+      crud.remove(nodeId);
+    }
   };
 
   // 7. Node operations hook
@@ -304,6 +347,7 @@ const MindmapPageContent: React.FC = () => {
               onShare={() => console.log("Share clicked")}
               onGptRecordingChange={handleGptRecordingChange}
               onGptNodesReceived={handleGptNodesReceived}
+              onGptToggleReady={(toggle) => { gptToggleRef.current = toggle; }}
             />
           </div>
         ) : (
@@ -321,7 +365,13 @@ const MindmapPageContent: React.FC = () => {
         {/* GPT Recording - RecordIdeaDialog */}
         {isGptRecording && (
           <div className="fixed top-24 right-4 z-40">
-            <RecordIdeaDialog keywords={gptKeywords} onDelete={handleDeleteKeyword} />
+            <RecordIdeaDialog
+              keywords={gptKeywords}
+              onDelete={handleDeleteKeyword}
+              onNodeClick={handleKeywordClick}
+              isRecording={isGptRecording}
+              onToggleRecording={handleToggleGptRecording}
+            />
           </div>
         )}
 

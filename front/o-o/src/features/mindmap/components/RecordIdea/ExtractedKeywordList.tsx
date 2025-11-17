@@ -10,6 +10,7 @@ interface KeywordNode {
 interface ExtractedKeywordListProps {
   keywords?: KeywordNode[];
   onDelete?: (nodeId: string) => void;
+  onNodeClick?: (nodeId: string) => void;
 }
 
 // 재귀적으로 트리를 렌더링하는 컴포넌트
@@ -19,12 +20,14 @@ const KeywordTreeNode = ({
   isLast = false,
   ancestorLines = [],
   onDelete,
+  onNodeClick,
 }: {
   node: KeywordNode;
   level?: number;
   isLast?: boolean;
   ancestorLines?: boolean[];
   onDelete: (nodeId: string) => void;
+  onNodeClick?: (nodeId: string) => void;
 }) => {
   const hasChildren = node.children && node.children.length > 0;
 
@@ -92,7 +95,12 @@ const KeywordTreeNode = ({
 
         {/* 라벨과 삭제 버튼 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-black">{node.label}</span>
+          <span
+            className="text-sm text-black cursor-pointer hover:text-primary transition-colors"
+            onClick={() => onNodeClick?.(node.id)}
+          >
+            {node.label}
+          </span>
           <button
             onClick={() => onDelete(node.id)}
             className="flex items-center justify-center w-3 h-3 rounded-full bg-[#D16D6A] hover:bg-red-500 transition-colors"
@@ -122,6 +130,7 @@ const KeywordTreeNode = ({
               isLast={lastChild}
               ancestorLines={nextAncestorLines}
               onDelete={onDelete}
+              onNodeClick={onNodeClick}
             />
           );
         })}
@@ -129,7 +138,7 @@ const KeywordTreeNode = ({
   );
 };
 
-export function ExtractedKeywordList({ keywords = [], onDelete }: ExtractedKeywordListProps = {}) {
+export function ExtractedKeywordList({ keywords = [], onDelete, onNodeClick }: ExtractedKeywordListProps = {}) {
   const handleDelete = (nodeId: string) => {
     // 부모 컴포넌트에서 전달받은 onDelete가 있으면 사용
     if (onDelete) {
@@ -147,6 +156,7 @@ export function ExtractedKeywordList({ keywords = [], onDelete }: ExtractedKeywo
             level={0}
             ancestorLines={[]}
             onDelete={handleDelete}
+            onNodeClick={onNodeClick}
           />
         ))
       ) : (
