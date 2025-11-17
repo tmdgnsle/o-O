@@ -13,7 +13,4 @@ import java.util.List;
 public class ChatCompletionRequest {
     private String model;
     private List<ChatMessage> messages;
-    private Double temperature;
-    @JsonProperty("max_tokens")
-    private Integer maxTokens;
 }
