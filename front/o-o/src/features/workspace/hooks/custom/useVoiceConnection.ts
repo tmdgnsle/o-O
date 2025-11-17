@@ -64,42 +64,28 @@ export function useVoiceConnection(
   // Send message to server
   const sendMessage = useCallback((message: ClientMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('[useVoiceConnection] 📤 Sending message:', message.type, message);
       wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('[useVoiceConnection] ❌ Cannot send message: WebSocket not open', {
-        readyState: wsRef.current?.readyState,
-        message: message.type,
-      });
     }
   }, []);
 
   // Connect to Voice WebSocket
   const connect = useCallback(async () => {
-    console.log('[useVoiceConnection] connect() called, enabled:', enabled, 'mounted:', mountedRef.current, 'wsState:', wsRef.current?.readyState);
-
     if (!enabled || !mountedRef.current) {
-      console.log('[useVoiceConnection] Skipping connect - enabled:', enabled, 'mounted:', mountedRef.current);
       return;
     }
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('[useVoiceConnection] Already connected');
       return;
     }
 
     try {
       setConnectionState('connecting');
-      console.log('[useVoiceConnection] Fetching WebSocket token...');
 
       const token = await fetchWebSocketToken();
       const url = `${buildVoiceWsUrl(workspaceId)}&token=${token}`;
 
-      console.log('[useVoiceConnection] Connecting to:', url);
-
       const socket = new WebSocket(url);
 
       socket.onopen = () => {
-        console.log('[useVoiceConnection] Connected');
         setConnectionState('connected');
         reconnectAttemptsRef.current = 0;
 
@@ -112,7 +98,6 @@ export function useVoiceConnection(
       socket.onmessage = (event) => {
         try {
           const message: ServerMessage = JSON.parse(event.data);
-          console.log('[useVoiceConnection] Received:', message.type);
 
           switch (message.type) {
             case 'participants':
@@ -133,7 +118,6 @@ export function useVoiceConnection(
               break;
 
             case 'voice-full':
-              console.warn('[useVoiceConnection] Room is full');
               setIsFull(true);
               setConnectionState('error');
               break;
@@ -159,12 +143,6 @@ export function useVoiceConnection(
               break;
 
             case 'peer-transcript':
-              console.log('[useVoiceConnection] 📝 Peer transcript received:', {
-                userId: message.userId,
-                userName: message.userName,
-                text: message.text.substring(0, 50) + '...',
-                timestamp: new Date(message.timestamp).toISOString(),
-              });
               handlersRef.current.onPeerTranscript?.(
                 message.userId,
                 message.userName,
@@ -174,55 +152,34 @@ export function useVoiceConnection(
               break;
 
             case 'gpt-chunk':
-              console.log('[useVoiceConnection] 📦 GPT chunk received:', {
-                content: message.content.substring(0, 100) + '...',
-                length: message.content.length,
-                timestamp: new Date(message.timestamp).toISOString(),
-              });
               handlersRef.current.onGptChunk?.(message.content);
               break;
 
             case 'gpt-done':
-              console.log('[useVoiceConnection] ✅ GPT done received:', {
-                nodeCount: message.nodes.length,
-                timestamp: new Date(message.timestamp).toISOString(),
-              });
-              console.log('[useVoiceConnection] GPT nodes:', message.nodes);
               handlersRef.current.onGptDone?.(message);
               break;
 
             case 'gpt-error':
-              console.error('[useVoiceConnection] ❌ GPT error received:', {
-                error: message.error,
-                hasRawText: !!message.rawText,
-                timestamp: new Date(message.timestamp).toISOString(),
-              });
-              if (message.rawText) {
-                console.error('[useVoiceConnection] Raw text:', message.rawText);
-              }
               handlersRef.current.onGptError?.(message);
               break;
 
             case 'server-shutdown':
-              console.warn('[useVoiceConnection] Server shutting down');
               setConnectionState('disconnected');
               break;
 
             default:
-              console.warn('[useVoiceConnection] Unknown message type:', message);
+              break;
           }
         } catch (error) {
           console.error('[useVoiceConnection] Error parsing message:', error);
         }
       };
 
-      socket.onerror = (error) => {
-        console.error('[useVoiceConnection] WebSocket error:', error);
+      socket.onerror = () => {
         setConnectionState('error');
       };
 
-      socket.onclose = (event) => {
-        console.log('[useVoiceConnection] Disconnected:', event.code, event.reason);
+      socket.onclose = () => {
         setConnectionState('disconnected');
         wsRef.current = null;
         setWs(null);
@@ -234,20 +191,15 @@ export function useVoiceConnection(
           reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
         ) {
           reconnectAttemptsRef.current++;
-          console.log(
-            `[useVoiceConnection] Reconnecting (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})...`
-          );
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, RECONNECT_DELAY);
         } else if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('[useVoiceConnection] Max reconnect attempts reached');
           onAuthError?.();
         }
       };
     } catch (error) {
-      console.error('[useVoiceConnection] Connection error:', error);
       setConnectionState('error');
       onAuthError?.();
     }
@@ -261,7 +213,6 @@ export function useVoiceConnection(
     }
 
     if (wsRef.current) {
-      console.log('[useVoiceConnection] Disconnecting...');
       wsRef.current.close();
       wsRef.current = null;
       setWs(null);

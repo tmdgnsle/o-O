@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { X } from "lucide-react";
 
 // 임시 데이터 타입 정의
@@ -6,6 +5,11 @@ interface KeywordNode {
   id: string;
   label: string;
   children?: KeywordNode[];
+}
+
+interface ExtractedKeywordListProps {
+  keywords?: KeywordNode[];
+  onDelete?: (nodeId: string) => void;
 }
 
 // 재귀적으로 트리를 렌더링하는 컴포넌트
@@ -125,48 +129,12 @@ const KeywordTreeNode = ({
   );
 };
 
-export function ExtractedKeywordList() {
-  // 서버에서 받을 데이터 구조 (임시 목업 데이터)
-  const [keywords, setKeywords] = useState<KeywordNode[]>([
-    {
-      id: "1",
-      label: "여행 코스 추천",
-      children: [
-        {
-          id: "2",
-          label: "최적 코스",
-          children: [{ id: "3", label: "사용자 맞춤형 일정" }],
-        },
-        {
-          id: "4",
-          label: "최단거리 알고리즘",
-          children: [
-            { id: "5", label: "BFS" },
-            { id: "6", label: "다익스트라" },
-            { id: "7", label: "최적화" },
-          ],
-        },
-      ],
-    },
-  ]);
-
-  // 특정 노드를 삭제하는 함수 (부모 노드 삭제 시 자식도 모두 삭제)
-  const deleteNode = (nodeId: string) => {
-    const removeNodeById = (nodes: KeywordNode[]): KeywordNode[] => {
-      return nodes.filter((node) => {
-        if (node.id === nodeId) {
-          // 이 노드와 모든 자식 노드 삭제
-          return false;
-        }
-        // 자식 노드들에서도 재귀적으로 삭제 시도
-        if (node.children) {
-          node.children = removeNodeById(node.children);
-        }
-        return true;
-      });
-    };
-
-    setKeywords(removeNodeById(keywords));
+export function ExtractedKeywordList({ keywords = [], onDelete }: ExtractedKeywordListProps = {}) {
+  const handleDelete = (nodeId: string) => {
+    // 부모 컴포넌트에서 전달받은 onDelete가 있으면 사용
+    if (onDelete) {
+      onDelete(nodeId);
+    }
   };
 
   return (
@@ -178,7 +146,7 @@ export function ExtractedKeywordList() {
             node={keyword}
             level={0}
             ancestorLines={[]}
-            onDelete={deleteNode}
+            onDelete={handleDelete}
           />
         ))
       ) : (

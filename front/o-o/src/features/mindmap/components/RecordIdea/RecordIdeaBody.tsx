@@ -1,6 +1,17 @@
 import { ExtractedKeywordList } from "./ExtractedKeywordList";
 
-export function RecordIdeaBody() {
+interface KeywordNode {
+  id: string;
+  label: string;
+  children?: KeywordNode[];
+}
+
+interface RecordIdeaBodyProps {
+  keywords?: KeywordNode[];
+  onDelete?: (nodeId: string) => void;
+}
+
+export function RecordIdeaBody({ keywords, onDelete }: RecordIdeaBodyProps) {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-primary text-lg font-bold">추출된 키워드</p>
@@ -8,7 +19,7 @@ export function RecordIdeaBody() {
         <p>키워드를 틀릭하여</p>
         <p>해당 노드의 위치를 확인할 수 있습니다.</p>
       </div>
-      <ExtractedKeywordList />
+      <ExtractedKeywordList keywords={keywords} onDelete={onDelete} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
 import D3Canvas from "../components/D3Canvas";
 import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
+import { RecordIdeaDialog } from "../components/RecordIdea/RecordIdeaDialog";
 import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
 import { ChatBubblesOverlay } from "../../workspace/components/ChatBubblesOverlay";
@@ -24,6 +25,7 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
+import type { GptNodeSuggestion } from "../../workspace/types/voice.types";
 import {
   getPendingImportKeywords,
   clearPendingImportKeywords,
@@ -100,6 +102,49 @@ const MindmapPageContent: React.FC = () => {
     setSelectedNodeId,
     setVoiceChatVisible,
   } = useMindmapUIState();
+
+  // 6a. GPT state for RecordIdeaDialog
+  const [isGptRecording, setIsGptRecording] = useState(false);
+  const [gptKeywords, setGptKeywords] = useState<{ id: string; label: string; children?: any[] }[]>([]);
+
+  // GPT 노드를 트리 구조로 변환
+  const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[]) => {
+    return gptNodes.map((node) => ({
+      id: node.id || `gpt-${Date.now()}-${Math.random()}`,
+      label: node.content,
+      children: node.children ? convertGptNodesToKeywords(node.children) : undefined,
+    }));
+  };
+
+  // GPT 녹음 상태 변경 핸들러
+  const handleGptRecordingChange = (isRecording: boolean) => {
+    setIsGptRecording(isRecording);
+    if (!isRecording) {
+      // 녹음 종료 시 키워드 초기화는 하지 않음 (결과가 올 때까지 대기)
+    }
+  };
+
+  // GPT 노드 수신 핸들러
+  const handleGptNodesReceived = (nodes: GptNodeSuggestion[]) => {
+    const keywords = convertGptNodesToKeywords(nodes);
+    setGptKeywords(keywords);
+  };
+
+  // 키워드 삭제 핸들러
+  const handleDeleteKeyword = (nodeId: string) => {
+    const removeNodeById = (nodes: typeof gptKeywords): typeof gptKeywords => {
+      return nodes.filter((node) => {
+        if (node.id === nodeId) {
+          return false;
+        }
+        if (node.children) {
+          node.children = removeNodeById(node.children);
+        }
+        return true;
+      });
+    };
+    setGptKeywords(removeNodeById(gptKeywords));
+  };
 
   // 7. Node operations hook
   const nodeOperations = useNodeOperations({
@@ -255,6 +300,8 @@ const MindmapPageContent: React.FC = () => {
               onCallEnd={() => setVoiceChatVisible(false)}
               onOrganize={() => console.log("Organize clicked")}
               onShare={() => console.log("Share clicked")}
+              onGptRecordingChange={handleGptRecordingChange}
+              onGptNodesReceived={handleGptNodesReceived}
             />
           </div>
         ) : (
@@ -266,6 +313,13 @@ const MindmapPageContent: React.FC = () => {
         {mode === "edit" && (
           <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-50 w-[min(95vw,48rem)] px-2 md:bottom-4 md:px-4">
             <Textbox onAddNode={nodeOperations.handleAddNode} />
+          </div>
+        )}
+
+        {/* GPT Recording - RecordIdeaDialog */}
+        {isGptRecording && (
+          <div className="fixed top-24 right-4 z-40">
+            <RecordIdeaDialog keywords={gptKeywords} onDelete={handleDeleteKeyword} />
           </div>
         )}
 

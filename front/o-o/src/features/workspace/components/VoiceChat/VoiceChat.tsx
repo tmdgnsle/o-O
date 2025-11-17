@@ -8,6 +8,7 @@ import { useGptNodeCreator } from "../../../mindmap/hooks/custom/useGptNodeCreat
 import { usePeerCursors } from "../PeerCursorProvider";
 import { useAppSelector } from "@/store/hooks";
 import type { NodeData } from "../../../mindmap/types";
+import type { GptNodeSuggestion } from "../../types/voice.types";
 
 interface YjsCRUD {
   create: (node: NodeData) => void;
@@ -20,6 +21,8 @@ interface VoiceChatProps {
   onCallEnd?: () => void;
   onOrganize?: () => void;
   onShare?: () => void;
+  onGptRecordingChange?: (isRecording: boolean) => void;
+  onGptNodesReceived?: (nodes: GptNodeSuggestion[]) => void;
 }
 
 const VoiceChat: React.FC<VoiceChatProps> = ({
@@ -28,6 +31,8 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   onCallEnd,
   onOrganize,
   onShare,
+  onGptRecordingChange,
+  onGptNodesReceived,
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
@@ -83,11 +88,14 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         timestamp: new Date(message.timestamp).toISOString(),
       });
       console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
-      console.log('[VoiceChat] 🚀 Creating nodes in mindmap...');
 
+      // 노드를 마인드맵에 추가
       createNodesFromGpt(message.nodes);
 
-      console.log('[VoiceChat] ✅ GPT node creation triggered');
+      // 부모 컴포넌트에 노드 전달 (ExtractedKeywordList에 표시하기 위해)
+      onGptNodesReceived?.(message.nodes);
+
+      console.log('[VoiceChat] ✅ GPT 노드 생성 완료 및 데이터 전달');
     },
     onGptError: (error, rawText) => {
       console.error('[VoiceChat] ===== GPT Error =====');
@@ -110,6 +118,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   useEffect(() => {
     handleGptChunkRef.current = gpt.handleGptChunk;
   }, [gpt.handleGptChunk]);
+
+  // GPT 녹음 상태 변경 시 부모에게 알림
+  useEffect(() => {
+    onGptRecordingChange?.(gpt.isRecording);
+  }, [gpt.isRecording, onGptRecordingChange]);
 
   // Join voice chat on mount
   useEffect(() => {

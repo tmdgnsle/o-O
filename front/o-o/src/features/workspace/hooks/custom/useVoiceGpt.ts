@@ -265,11 +265,7 @@ export function useVoiceGpt({
 
   // GPT 청크 핸들러
   const handleGptChunk = useCallback((content: string) => {
-    console.log('[VoiceGpt] 📦 ===== GPT CHUNK RECEIVED =====');
-    console.log('[VoiceGpt] 📦 Chunk content length:', content.length);
-    console.log('[VoiceGpt] 📦 Chunk content:', content);
-    console.log('[VoiceGpt] 📦 ================================');
-
+    console.log('[VoiceGpt]', content);
     onGptChunkRef.current?.(content);
   }, []);
 
