@@ -65,4 +65,6 @@ public interface NodeRepository extends MongoRepository<MindmapNode, String> {
     List<MindmapNode> findByWorkspaceIdInAndParentIdIn(List<Long> workspaceIds,
                                                        List<Long> parentIds);
 
+    List<MindmapNode> findByWorkspaceIdAndNodeIdIn(Long workspaceId, List<Long> nodeIds);
+
 }
