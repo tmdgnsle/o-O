@@ -16,9 +16,9 @@ public record AiNodeResult(
         @Schema(description = "부모 노드 ID (INITIAL 전용, 숫자 문자열 또는 tempId)", example = "1", nullable = true)
         String parentId,
 
-        @Schema(description = "노드 키워드", example = "소고기 요리", required = true)
+        @Schema(description = "노드 키워드", example = "소고기 요리")
         String keyword,
 
-        @Schema(description = "노드 메모 (키워드 설명)", example = "고급 레스토랑 중심의 메뉴 아이디어", required = true)
+        @Schema(description = "노드 메모 (키워드 설명)", example = "고급 레스토랑 중심의 메뉴 아이디어")
         String memo
 ) {}
