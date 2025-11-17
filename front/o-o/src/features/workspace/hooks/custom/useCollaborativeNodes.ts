@@ -1,58 +1,51 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import * as Y from "yjs";
-import { fetchMindmapNodes, batchUpdateNodePositions } from "@/services/mindmapService";
+import {
+  fetchMindmapNodes,
+  batchUpdateNodePositions,
+} from "@/services/mindmapService";
 import { useYMapState } from "./useYMapState";
 import type { NodeData } from "../../../mindmap/types";
 import type { YClient } from "./yjsClient";
-import { CANVAS_CENTER_X, CANVAS_CENTER_Y } from "../../../mindmap/utils/d3Utils";
 
 /**
  * x, y가 null인 노드들에게 자동으로 위치를 할당
- * - 방사형 레이아웃을 사용하여 부모 주위로 배치
+ * - 방사형(radial) 레이아웃: 루트 중심, depth별 동심원 배치
+ * - 부모-자식 근접 배치 (각도 기반)
+ * - D3 force simulation으로 노드 겹침 방지 및 edge crossing 최소화
  */
 async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   if (nodes.length === 0) return nodes;
 
   // x, y가 null인 노드 확인
-  const nullPositionNodes = nodes.filter(n => n.x == null || n.y == null);
+  const nullPositionNodes = nodes.filter((n) => n.x == null || n.y == null);
 
   if (nullPositionNodes.length === 0) {
     // 모든 노드에 이미 좌표가 있음
     return nodes;
   }
 
-  // 방사형 레이아웃 적용을 위한 노드 준비
-  // parentId는 이미 nodeId를 참조하므로 문자열로 정규화만 수행
-  const nodesForLayout = nodes.map(node => ({
-    ...node,
-    parentId: node.parentId == null ? null : String(node.parentId),
-  }));
-
-  // 방사형 레이아웃 적용 (applyRadialLayoutWithForcesToNodes 사용)
-  const { applyRadialLayoutWithForcesToNodes } = await import("../../../mindmap/utils/radialLayoutWithForces");
-
-  const layoutedNodes = await applyRadialLayoutWithForcesToNodes(
-    nodesForLayout,
-    CANVAS_CENTER_X,
-    CANVAS_CENTER_Y,
-    350 // baseRadius
+  // 방사형 레이아웃 + Force Simulation 적용
+  const { applyRadialLayoutWithForcesToNodes } = await import(
+    "../../../mindmap/utils/radialLayoutWithForces"
   );
 
-  // 원래 노드 데이터와 병합 (x, y만 업데이트)
-  const processedNodes = nodes.map((node, index) => {
-    const layoutedNode = layoutedNodes[index];
+  const CANVAS_CENTER_X = 2500;
+  const CANVAS_CENTER_Y = 2500;
+  const BASE_RADIUS = 350; // depth당 기본 반경
 
-    // null 좌표였던 노드만 업데이트
-    if (node.x == null || node.y == null) {
-      return {
-        ...node,
-        x: layoutedNode.x,
-        y: layoutedNode.y,
-      };
-    }
+  // parentId를 string으로 변환 (radialLayoutWithForces 타입 요구사항)
+  const nodesWithStringParentId = nodes.map((node) => ({
+    ...node,
+    parentId: node.parentId != null ? String(node.parentId) : null,
+  }));
 
-    return node;
-  });
+  const processedNodes = await applyRadialLayoutWithForcesToNodes(
+    nodesWithStringParentId,
+    CANVAS_CENTER_X,
+    CANVAS_CENTER_Y,
+    BASE_RADIUS
+  );
 
   return processedNodes;
 }
@@ -118,12 +111,17 @@ export function useCollaborativeNodes(
         // 🔥 좌표가 정규화된 노드들과 자동 계산된 노드들을 추적 (서버에 저장하기 위해)
         const nodesToUpdate = processedNodes.filter((processed, index) => {
           const original = restNodes[index];
-          if (!original || processed.nodeId == null || processed.x == null || processed.y == null) {
+          if (
+            !original ||
+            processed.nodeId == null ||
+            processed.x == null ||
+            processed.y == null
+          ) {
             return false;
           }
 
           // 1. null 좌표가 자동 계산된 경우
-          if ((original.x == null || original.y == null)) {
+          if (original.x == null || original.y == null) {
             return true;
           }
 
@@ -151,9 +149,8 @@ export function useCollaborativeNodes(
               const existingId = existingNodeIds.get(node.nodeId as number)!;
 
               // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
-              if (existingId !== node.id && existingId.includes('-')) {
+              if (existingId !== node.id && existingId.includes("-")) {
                 // 로컬 노드를 제거하고 서버 노드로 교체
-                console.log(`[useCollaborativeNodes] 🔄 Replacing local node ${existingId} with server node ${node.id} (nodeId: ${node.nodeId})`);
                 collab.map.delete(existingId);
                 collab.map.set(cleanNode.id, cleanNode);
                 existingNodeIds.set(node.nodeId as number, node.id);
@@ -179,7 +176,10 @@ export function useCollaborativeNodes(
           try {
             await batchUpdateNodePositions(workspaceId, positionUpdates);
           } catch (error) {
-            console.error(`[useCollaborativeNodes] Failed to save position updates:`, error);
+            console.error(
+              `[useCollaborativeNodes] Failed to save position updates:`,
+              error
+            );
           }
         }
 
@@ -188,7 +188,10 @@ export function useCollaborativeNodes(
         if (!cancelled) {
           hasBootstrappedRef.current = false;
           setIsBootstrapping(false);
-          console.error("[useCollaborativeNodes] Failed to bootstrap nodes:", error);
+          console.error(
+            "[useCollaborativeNodes] Failed to bootstrap nodes:",
+            error
+          );
         }
       }
     };
@@ -213,7 +216,7 @@ export function useCollaborativeNodes(
   useEffect(() => {
     if (!collab || nodes.length === 0) return;
 
-    const nullPositionNodes = nodes.filter(n => n.x == null || n.y == null);
+    const nullPositionNodes = nodes.filter((n) => n.x == null || n.y == null);
 
     if (nullPositionNodes.length === 0) {
       // 모든 노드에 좌표가 있으면 스킵
@@ -225,15 +228,26 @@ export function useCollaborativeNodes(
       const processedNodes = await calculateNodePositions(nodes);
 
       // 자동 계산된 좌표를 추적 (서버에 저장하기 위해)
-      const updatedNodesForServer: Array<{ nodeId: number; x: number; y: number }> = [];
+      const updatedNodesForServer: Array<{
+        nodeId: number;
+        x: number;
+        y: number;
+      }> = [];
 
       // Yjs map에 업데이트
       collab.client.doc.transact(() => {
         for (const node of processedNodes) {
           if (node.x != null && node.y != null) {
             const existingNode = collab.map.get(node.id);
-            if (existingNode && (existingNode.x == null || existingNode.y == null)) {
-              collab.map.set(node.id, { ...existingNode, x: node.x, y: node.y });
+            if (
+              existingNode &&
+              (existingNode.x == null || existingNode.y == null)
+            ) {
+              collab.map.set(node.id, {
+                ...existingNode,
+                x: node.x,
+                y: node.y,
+              });
 
               // nodeId가 있으면 서버 업데이트 목록에 추가
               if (existingNode.nodeId) {
@@ -253,7 +267,10 @@ export function useCollaborativeNodes(
         try {
           await batchUpdateNodePositions(workspaceId, updatedNodesForServer);
         } catch (error) {
-          console.error(`[useCollaborativeNodes] 🔧 Failed to save position updates:`, error);
+          console.error(
+            `[useCollaborativeNodes] 🔧 Failed to save position updates:`,
+            error
+          );
         }
       }
     };
@@ -269,11 +286,9 @@ export function useCollaborativeNodes(
     }
 
     try {
-      console.log("[useCollaborativeNodes] 🔄 Refetching nodes from server...");
       const restNodes = await fetchMindmapNodes(workspaceId);
 
       if (restNodes.length === 0) {
-        console.log("[useCollaborativeNodes] No new nodes to merge");
         return;
       }
 
@@ -283,12 +298,17 @@ export function useCollaborativeNodes(
       // 좌표가 자동 계산된 노드들을 추적 (서버에 저장하기 위해)
       const nodesToUpdate = processedNodes.filter((processed, index) => {
         const original = restNodes[index];
-        if (!original || processed.nodeId == null || processed.x == null || processed.y == null) {
+        if (
+          !original ||
+          processed.nodeId == null ||
+          processed.x == null ||
+          processed.y == null
+        ) {
           return false;
         }
 
         // null 좌표가 자동 계산된 경우
-        if ((original.x == null || original.y == null)) {
+        if (original.x == null || original.y == null) {
           return true;
         }
 
@@ -315,9 +335,8 @@ export function useCollaborativeNodes(
             const existingId = existingNodeIds.get(node.nodeId as number)!;
 
             // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
-            if (existingId !== node.id && existingId.includes('-')) {
+            if (existingId !== node.id && existingId.includes("-")) {
               // 로컬 노드를 제거하고 서버 노드로 교체
-              console.log(`[refetchAndMergeNodes] 🔄 Replacing local node ${existingId} with server node ${node.id} (nodeId: ${node.nodeId})`);
               collab.map.delete(existingId);
               collab.map.set(cleanNode.id, cleanNode);
               existingNodeIds.set(node.nodeId as number, node.id);
@@ -334,8 +353,6 @@ export function useCollaborativeNodes(
         }
       }, "mindmap-refetch");
 
-      console.log(`[useCollaborativeNodes] ✅ Added ${addedCount} new nodes to Y.Map`);
-
       // 정규화/자동 계산된 좌표를 서버에 저장
       if (nodesToUpdate.length > 0) {
         const positionUpdates = nodesToUpdate.map((node: NodeData) => ({
@@ -347,7 +364,10 @@ export function useCollaborativeNodes(
         try {
           await batchUpdateNodePositions(workspaceId, positionUpdates);
         } catch (error) {
-          console.error(`[useCollaborativeNodes] Failed to save position updates:`, error);
+          console.error(
+            `[useCollaborativeNodes] Failed to save position updates:`,
+            error
+          );
         }
       }
     } catch (error) {
