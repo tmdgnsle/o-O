@@ -81,6 +81,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   // Refs for stable access in callbacks (avoid dependency array changes)
   const currentUserRef = useRef(currentUser);
   const gptStateRef = useRef(gptState);
+  const createNodesFromGptRef = useRef(createNodesFromGpt);
 
   // Sync refs with latest values
   useEffect(() => {
@@ -90,6 +91,10 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   useEffect(() => {
     gptStateRef.current = gptState;
   }, [gptState]);
+
+  useEffect(() => {
+    createNodesFromGptRef.current = createNodesFromGpt;
+  }, [createNodesFromGpt]);
 
   // GPT 청크 핸들러
   const onGptChunkReceived = useCallback((content: string) => {
@@ -126,8 +131,8 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
     if (isStarter) {
       console.log('[VoiceChat] 🎯 녹음 시작자 → 노드 생성');
-      // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기
-      createdNodeIds = createNodesFromGpt(message.nodes);
+      // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기 (ref로 최신 함수 참조)
+      createdNodeIds = createNodesFromGptRef.current(message.nodes);
     } else {
       console.log('[VoiceChat] ℹ️ 다른 참여자 → 키워드 표시만 업데이트');
     }
@@ -136,7 +141,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     onGptNodesReceived?.(message.nodes, createdNodeIds);
 
     console.log('[VoiceChat] ✅ GPT 처리 완료');
-  }, [createNodesFromGpt, onGptNodesReceived]);
+  }, [onGptNodesReceived]);
 
   // GPT Error 핸들러 (useCallback으로 memoization)
   const handleGptError = useCallback((message: { error: string; rawText?: string; timestamp: number }) => {

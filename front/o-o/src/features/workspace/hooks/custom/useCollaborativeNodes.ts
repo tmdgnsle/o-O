@@ -221,13 +221,13 @@ export function useCollaborativeNodes(
   const nodesState = useYMapState<NodeData>(collab?.map);
   const nodes = useMemo<NodeData[]>(() => Object.values(nodesState), [nodesState]);
 
-  // 🔍 디버깅: Y.Map 크기와 노드 개수 로그
-  useEffect(() => {
-    if (collab) {
-      console.log(`[useCollaborativeNodes] 🔍 Y.Map size: ${collab.map.size}, React nodes count: ${nodes.length}`);
-      console.log(`[useCollaborativeNodes] 🔍 Nodes:`, nodes.map(n => ({ id: n.id, nodeId: n.nodeId, keyword: n.keyword })));
-    }
-  }, [collab, nodes]);
+  // 🔍 디버깅: Y.Map 크기와 노드 개수 로그 (주석 처리)
+  // useEffect(() => {
+  //   if (collab) {
+  //     console.log(`[useCollaborativeNodes] 🔍 Y.Map size: ${collab.map.size}, React nodes count: ${nodes.length}`);
+  //     console.log(`[useCollaborativeNodes] 🔍 Nodes:`, nodes.map(n => ({ id: n.id, nodeId: n.nodeId, keyword: n.keyword })));
+  //   }
+  // }, [collab, nodes]);
 
   // 🔥 좌표가 null인 노드들을 자동으로 재계산하여 업데이트
   useEffect(() => {
