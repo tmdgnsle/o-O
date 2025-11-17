@@ -579,7 +579,7 @@ public class NodeService {
                 workspaceId,
                 nodeId,
                 contentUrl,     // CONTEXTUAL이면 보통 null이지만, 필드 유지
-                node.getType(),    // 필요 없다면 호출하는 쪽에서 null 넘기면 됨
+                node.getType().toUpperCase(),    // 필요 없다면 호출하는 쪽에서 null 넘기면 됨
                 prompt,         // 필요 없다면 null
                 analysisType,   // 항상 "CONTEXTUAL"
                 nodes           // 조상 경로 컨텍스트
