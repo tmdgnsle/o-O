@@ -2,7 +2,10 @@ import React, { useRef, useMemo, useEffect, useState, useCallback } from "react"
 import type { RecommendNodeData } from "../types";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import type { Core } from "cytoscape";
+import * as d3 from "d3";
+import type { Transform } from "../types";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
+import { useWorkspacePermissions } from "../../workspace/hooks/custom/useWorkspacePermissions";
 import MiniNav from "@/shared/ui/MiniNav";
 import AskPopo from "../components/AskPopoButton";
 import StatusBox from "../../workspace/components/StatusBox";
@@ -11,6 +14,7 @@ import { Textbox } from "../components/Textbox";
 import AnalyzeSelectionPanel from "../components/AnalyzeSelectionPanel";
 import D3Canvas from "../components/D3Canvas";
 import VoiceChat from "../../workspace/components/VoiceChat/VoiceChat";
+import { RecordIdeaDialog } from "../components/RecordIdea/RecordIdeaDialog";
 import { PeerCursorProvider } from "../../workspace/components/PeerCursorProvider";
 import { RemoteCursorsOverlay } from "../../workspace/components/RemoteCursorsOverlay";
 import { ChatBubblesOverlay } from "../../workspace/components/ChatBubblesOverlay";
@@ -25,6 +29,7 @@ import { useMindmapUIState } from "../hooks/custom/useMindmapUIState";
 import { useAnalyzeMode } from "../hooks/custom/useAnalyzeMode";
 import { useDetachedSelection } from "../hooks/custom/useDetachedSelection";
 import { useMindmapSync } from "../hooks/custom/useMindmapSync";
+import type { GptNodeSuggestion } from "../../workspace/types/voice.types";
 import {
   getPendingImportKeywords,
   clearPendingImportKeywords,
@@ -46,14 +51,21 @@ const MindmapPageContent: React.FC = () => {
   const location = useLocation();
   const wsUrl = resolveMindmapWsUrl();
 
-  // 2. Get workspace info for role
+  // 2. Get workspace info and permissions
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
+  const { myRole, canEdit, canManage } = useWorkspacePermissions(workspaceId);
 
-  // 3. Refs for Cytoscape
+  // 3. Refs for Cytoscape (mock API for backward compatibility)
   const cyRef = useRef<Core | null>(null);
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [cyReady, setCyReady] = useState(false);
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
+
+  // 3a. D3 Transform state management
+  const transformRef = useRef<React.MutableRefObject<Transform> | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
 
   // 4. Helper hooks
@@ -111,6 +123,13 @@ const MindmapPageContent: React.FC = () => {
 
   const { nodes, isBootstrapping } = useCollaborativeNodes(collab, workspaceId);
 
+  // 🐛 DEBUG: Expose Yjs map to window for console debugging
+  useEffect(() => {
+    if (collab?.map) {
+      (globalThis as any).yNodes = collab.map;
+    }
+  }, [collab]);
+
   // 5a. Sync Yjs changes to backend API
   useMindmapSync(workspaceId, collab?.map ?? null, !!collab);
 
@@ -127,6 +146,91 @@ const MindmapPageContent: React.FC = () => {
     setVoiceChatVisible,
   } = useMindmapUIState();
 
+  // 6a. GPT state for RecordIdeaDialog
+  const [isGptRecording, setIsGptRecording] = useState(false);
+  const [gptKeywords, setGptKeywords] = useState<{ id: string; label: string; children?: any[] }[]>([]);
+  const gptToggleRef = React.useRef<(() => void) | null>(null);
+
+  // GPT 노드를 트리 구조로 변환
+  const convertGptNodesToKeywords = (gptNodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
+    return gptNodes.map((node, index) => ({
+      id: createdNodeIds[index],
+      label: node.keyword,
+      children: undefined, // GptNodeSuggestion에는 children이 없음 (flat 구조)
+    }));
+  };
+
+  // GPT 녹음 상태 변경 핸들러
+  const handleGptRecordingChange = (isRecording: boolean) => {
+    setIsGptRecording(isRecording);
+    if (!isRecording) {
+      // 녹음 종료 시 키워드 초기화는 하지 않음 (결과가 올 때까지 대기)
+    }
+  };
+
+  // GPT 토글 핸들러 (RecordIdeaDialog의 재생/일시정지 버튼용)
+  const handleToggleGptRecording = () => {
+    gptToggleRef.current?.();
+  };
+
+  // GPT 노드 수신 핸들러
+  const handleGptNodesReceived = (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
+    const keywords = convertGptNodesToKeywords(nodes, createdNodeIds);
+    setGptKeywords(prev => [...prev, ...keywords]);
+  };
+
+  // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
+  const handleKeywordClick = (nodeId: string) => {
+    // GPT 노드는 임시 ID를 사용하므로, nodes 배열에서 찾기
+    const targetNode = nodes.find(node => node.id === nodeId);
+
+    if (targetNode && canvasContainerRef.current) {
+      const svgElement = canvasContainerRef.current.querySelector('svg');
+      if (svgElement) {
+        // D3 zoom을 사용하여 노드 위치로 이동
+        const zoom = (svgElement as any).__zoom;
+        if (zoom) {
+          const containerRect = canvasContainerRef.current.getBoundingClientRect();
+          const centerX = containerRect.width / 2;
+          const centerY = containerRect.height / 2;
+
+          // 노드를 화면 중앙으로 이동
+          const transform = d3.zoomIdentity
+            .translate(centerX, centerY)
+            .scale(1)
+            .translate(-targetNode.x, -targetNode.y);
+
+          d3.select(svgElement)
+            .transition()
+            .duration(500)
+            .call((zoom as any).transform, transform);
+        }
+      }
+    }
+  };
+
+  // 키워드 삭제 핸들러 - UI와 실제 노드 모두 삭제
+  const handleDeleteKeyword = (nodeId: string) => {
+    // UI에서 키워드 제거
+    const removeNodeById = (nodes: typeof gptKeywords): typeof gptKeywords => {
+      return nodes.filter((node) => {
+        if (node.id === nodeId) {
+          return false;
+        }
+        if (node.children) {
+          node.children = removeNodeById(node.children);
+        }
+        return true;
+      });
+    };
+    setGptKeywords(removeNodeById(gptKeywords));
+
+    // 실제 노드도 삭제
+    if (crud) {
+      crud.remove(nodeId);
+    }
+  };
+
   // 7. Node operations hook
   const nodeOperations = useNodeOperations({
     crud,
@@ -134,6 +238,7 @@ const MindmapPageContent: React.FC = () => {
     cyRef,
     mode,
     workspaceId,
+    myRole,
     getRandomThemeColor,
     findNonOverlappingPosition,
     findEmptySpace,
@@ -383,6 +488,27 @@ const MindmapPageContent: React.FC = () => {
     }
   }, [focusNodeId, nodes]);
 
+  // 🔄 Track D3 transform updates and container size
+  useEffect(() => {
+    if (!transformRef.current || !containerRef.current) return;
+
+    const interval = setInterval(() => {
+      if (transformRef.current) {
+        const currentTransform = transformRef.current.current;
+        setTransform({ ...currentTransform });
+      }
+
+      if (containerRef.current) {
+        setContainerSize({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    }, 16); // ~60fps
+
+    return () => clearInterval(interval);
+  }, [cyReady]);
+
   // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
   useEffect(() => {
     if (!collab) return;
@@ -465,6 +591,7 @@ const MindmapPageContent: React.FC = () => {
             <StatusBox
               onStartVoiceChat={() => setVoiceChatVisible(true)}
               workspaceId={workspaceId}
+              yclient={collab?.client}
             />
           </div>
         )}
@@ -473,9 +600,16 @@ const MindmapPageContent: React.FC = () => {
           <div className="fixed top-1 md:top-4 left-1/2 -translate-x-1/2 z-50">
             <VoiceChat
               workspaceId={workspaceId}
+              crud={crud}
+              nodes={nodes}
+              myRole={workspace?.myRole}
               onCallEnd={() => setVoiceChatVisible(false)}
-              onOrganize={() => {}}
-              onShare={() => {}}
+              onOrganize={() => console.log("Organize clicked")}
+              onGptRecordingChange={handleGptRecordingChange}
+              onGptNodesReceived={handleGptNodesReceived}
+              onGptToggleReady={(toggle) => { gptToggleRef.current = toggle; }}
+              yclient={collab?.client}
+              cursorColor={cursorColorRef.current ?? undefined}
             />
           </div>
         ) : (
@@ -490,6 +624,19 @@ const MindmapPageContent: React.FC = () => {
           </div>
         )}
 
+        {/* GPT Recording - RecordIdeaDialog */}
+        {(isGptRecording || gptKeywords.length > 0) && (
+          <div className="fixed top-24 right-4 z-40">
+            <RecordIdeaDialog
+              keywords={gptKeywords}
+              onDelete={handleDeleteKeyword}
+              onNodeClick={handleKeywordClick}
+              isRecording={isGptRecording}
+              onToggleRecording={handleToggleGptRecording}
+            />
+          </div>
+        )}
+
         {/* D3 Canvas */}
         <div className="absolute inset-0" ref={canvasContainerRef}>
           <D3Canvas
@@ -499,6 +646,7 @@ const MindmapPageContent: React.FC = () => {
             selectedNodeId={selectedNodeId}
             aiRecommendationsMap={aiRecommendationsMap}
             workspaceId={workspaceId}
+            isReadOnly={!canEdit}
             onNodeSelect={setSelectedNodeId}
             onNodeUnselect={() => setSelectedNodeId(null)}
             onApplyTheme={nodeOperations.handleApplyTheme}
@@ -508,6 +656,14 @@ const MindmapPageContent: React.FC = () => {
             onCyReady={(cy) => {
               cyRef.current = cy;
               setCyReady(true);
+
+              // Extract D3 transform and container refs from mock cy object
+              if ((cy as any)._d3Transform) {
+                transformRef.current = (cy as any)._d3Transform;
+              }
+              if ((cy as any)._d3Container) {
+                containerRef.current = (cy as any)._d3Container.current;
+              }
             }}
             onCreateChildNode={nodeOperations.handleCreateChildNode}
             onAnalyzeNodeToggle={analyzeMode.handleAnalyzeNodeToggle}
@@ -517,11 +673,17 @@ const MindmapPageContent: React.FC = () => {
             onDismissDetachedSelection={detachedSelection.handleDismissDetachedSelection}
             className="absolute inset-0"
           />
-          <RemoteCursorsOverlay cy={cyRef.current} />
-          <ChatBubblesOverlay cy={cyRef.current} awareness={collab.client.provider.awareness} />
+          <RemoteCursorsOverlay transform={transform} container={containerRef.current} />
+          <ChatBubblesOverlay
+            transform={transform}
+            containerWidth={containerSize.width}
+            containerHeight={containerSize.height}
+            awareness={collab.client.provider.awareness}
+          />
           {chatInput.isInputVisible && chatInput.inputPosition && (
             <ChatInputBubble
-              cy={cyRef.current}
+              transform={transform}
+              container={containerRef.current}
               position={chatInput.inputPosition}
               color={cursorColorRef.current}
               onClose={chatInput.closeChatInput}

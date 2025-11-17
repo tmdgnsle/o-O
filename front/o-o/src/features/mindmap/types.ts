@@ -2,6 +2,13 @@
 // Mindmap UI Component Props Types
 // ============================================
 
+// D3 Transform type (replaces Cytoscape)
+export type Transform = {
+  x: number;
+  y: number;
+  k: number;
+};
+
 // NodeAddInput.tsx
 export type NodeAddInputProps = Readonly<{
   open: boolean;
@@ -34,6 +41,7 @@ export type CytoscapeCanvasProps = Readonly<{
   mode: MindmapMode;
   analyzeSelection: string[];
   selectedNodeId: string | null;
+  isReadOnly?: boolean;
   onNodeSelect: (nodeId: string) => void;
   onNodeUnselect: () => void;
   onApplyTheme: (colors: string[]) => void;
@@ -67,6 +75,7 @@ export type CytoscapeNodeOverlayProps = {
   canvasApi?: any; // D3Canvas mockCy 객체 (focusOnNode 등의 API)
   aiRecommendations?: RecommendNodeData[]; // AI 추천 노드 목록
   workspaceId?: string; // 워크스페이스 ID (AI 분석 요청에 필요)
+  isReadOnly?: boolean;
   onSelect: () => void;
   onDeselect: () => void;
   onApplyTheme: (colors: string[]) => void;
@@ -137,7 +146,12 @@ export type TextboxProps = Readonly<{
 
 export type MindmapNodeType = "text" | "image" | "video" | "link";
 
-export type NodeAnalysisStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+export type NodeAnalysisStatus =
+  | "NONE"
+  | "PENDING"
+  | "PROCESSING"
+  | "DONE"
+  | "FAILED";
 
 export type NodeOperation = "ADD" | "UPDATE" | "DELETE";
 

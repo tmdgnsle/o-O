@@ -1,34 +1,20 @@
-import { useEffect, useState } from "react";
-import type { Core } from "cytoscape";
 import { usePeerCursors } from "./PeerCursorProvider";
 import { CursorIcon } from "@/shared/ui/CursorIcon";
+import type { Transform } from "@/features/mindmap/types";
 
 type RemoteCursorsOverlayProps = {
-  cy: Core | null;
+  transform: Transform;
+  container: HTMLElement | null;
 };
 
-// Renders absolute-positioned peer cursors on top of the Cytoscape canvas
+// Renders absolute-positioned peer cursors on top of the D3 canvas
 export function RemoteCursorsOverlay({
-  cy,
-}: Readonly <RemoteCursorsOverlayProps>) {
+  transform,
+  container,
+}: Readonly<RemoteCursorsOverlayProps>) {
   const { peers } = usePeerCursors();
-  const [viewport, setViewport] = useState({ pan: { x: 0, y: 0 }, zoom: 1 });
 
-  // pan/zoom 변경 시 리렌더링
-  useEffect(() => {
-    if (!cy) return;
-
-    const updateViewport = () => {
-      setViewport({ pan: cy.pan(), zoom: cy.zoom() });
-    };
-
-    cy.on("pan zoom", updateViewport);
-    return () => {
-      cy.off("pan zoom", updateViewport);
-    };
-  }, [cy]);
-
-  if (!cy) {
+  if (!container) {
     return null;
   }
 
@@ -44,11 +30,11 @@ export function RemoteCursorsOverlay({
     >
       {peers.map((peer) => {
         // peer.x/y는 캔버스 절대 좌표 (model coordinates)
-        // 화면 좌표로 변환 (rendered position)
-        const renderedPos = cy.pan();
-        const zoom = cy.zoom();
-        const x = peer.x * zoom + renderedPos.x;
-        const y = peer.y * zoom + renderedPos.y;
+        // D3 transform을 사용하여 화면 좌표로 변환 (rendered position)
+        const x = peer.x * transform.k + transform.x;
+        const y = peer.y * transform.k + transform.y;
+
+        // console.log(`🎯 [RemoteCursorsOverlay] Peer ${peer.id} model:(${peer.x}, ${peer.y}) → rendered:(${x}, ${y})`);
 
         return (
           <div
@@ -62,7 +48,11 @@ export function RemoteCursorsOverlay({
               gap: 4,
             }}
           >
-            <CursorIcon color={peer.color ?? "#3b82f6"} width={20} height={20} />
+            <CursorIcon
+              color={peer.color ?? "#3b82f6"}
+              width={20}
+              height={20}
+            />
             {peer.name && (
               <div
                 style={{

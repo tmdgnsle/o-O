@@ -37,6 +37,7 @@ function NodeOverlay({
   canvasApi, // 🔥 D3Canvas API (focusOnNode 등)
   aiRecommendations = [], // AI 추천 노드 목록
   workspaceId,
+  isReadOnly = false,
   onSelect,
   onDeselect,
   onApplyTheme,
@@ -51,6 +52,7 @@ function NodeOverlay({
 }: Readonly<CytoscapeNodeOverlayProps>) {
   const { keyword, memo, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
+  const isEditDisabled = isReadOnly || isAnalyzeMode;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -59,8 +61,9 @@ function NodeOverlay({
   );
   const [hasMoved, setHasMoved] = useState(false);
   const dragThrottleRef = useRef<number>(0); // 🔥 드래그 중 force simulation 스로틀링
-  const [trendRecommendations, setTrendRecommendations] = useState<RecommendNodeData[]>([]);
-
+  const [trendRecommendations, setTrendRecommendations] = useState<
+    RecommendNodeData[]
+  >([]);
 
   // 노드 선택 해제 시 모달 닫기
   useEffect(() => {
@@ -214,17 +217,35 @@ function NodeOverlay({
     (e: React.MouseEvent) => {
       e.stopPropagation();
 
+      if (isAnalyzeMode) {
+        // analyze 모드에서는 클릭만 처리
+        onSelect();
+        return;
+      }
+
+      if (isReadOnly) {
+        // 읽기 전용 모드에서는 드래그 비활성화, 클릭만 처리
+        onSelect();
+        return;
+      }
+
       // edit 모드: 드래그 시작
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
       setHasMoved(false);
     },
-    []
+    [isAnalyzeMode, isReadOnly, onSelect]
   );
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !dragStart || !onBatchNodePositionChange || isAnalyzeMode) return;
+      if (
+        !isDragging ||
+        !dragStart ||
+        !onBatchNodePositionChange ||
+        isAnalyzeMode
+      )
+        return;
 
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
@@ -302,7 +323,12 @@ function NodeOverlay({
     }
 
     // 🔥 드래그 종료 시 주변 노드들을 부드럽게 밀어내기 (편집 모드에서만)
-    if (hasMoved && !isAnalyzeMode && allNodes.length > 1 && onBatchNodePositionChange) {
+    if (
+      hasMoved &&
+      !isAnalyzeMode &&
+      allNodes.length > 1 &&
+      onBatchNodePositionChange
+    ) {
       // Force simulation 적용 (부드럽게 밀어내기)
       const pushedNodes = applyDragForce(
         node.id,
@@ -509,7 +535,7 @@ function NodeOverlay({
           )}
         </div>
 
-        {!isAnalyzeMode && (
+        {!isAnalyzeMode && !isReadOnly && (
           <RadialToolGroup
             open={
               isSelected &&
@@ -536,7 +562,7 @@ function NodeOverlay({
           />
         )}
 
-        {!isAnalyzeMode && focusedButton === "recommend" && (
+        {!isAnalyzeMode && !isReadOnly && focusedButton === "recommend" && (
           <RecommendNodeOverlay
             open={focusedButton === "recommend"}
             onClose={() => setFocusedButton(null)}

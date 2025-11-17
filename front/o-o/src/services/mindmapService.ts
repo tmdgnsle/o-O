@@ -1,5 +1,10 @@
 import type { NodeData } from "@/features/mindmap/types";
-import { mapDtoToNodeData, type NodeDTO } from "./dto/mindmap.dto";
+import {
+  mapDtoToNodeData,
+  type NodeDTO,
+  type InitialMindmapRequestDTO,
+  type InitialMindmapResponseDTO,
+} from "./dto/mindmap.dto";
 import { apiClient } from "@/lib/axios";
 
 const CANVAS_MIN = 0;
@@ -8,7 +13,9 @@ const CANVAS_MAX = 5000;
 /**
  * 노드 좌표를 0~5000 범위로 정규화하고, 변경 여부를 표시
  */
-function clampNodePosition(node: NodeData): NodeData & { _wasClamped?: boolean } {
+function clampNodePosition(
+  node: NodeData
+): NodeData & { _wasClamped?: boolean } {
   if (node.x == null || node.y == null) {
     return node;
   }
@@ -30,7 +37,9 @@ function clampNodePosition(node: NodeData): NodeData & { _wasClamped?: boolean }
 export const fetchMindmapNodes = async (
   workspaceId: string
 ): Promise<NodeData[]> => {
-  const { data } = await apiClient.get<NodeDTO[]>(`/mindmap/${workspaceId}/nodes`);
+  const { data } = await apiClient.get<NodeDTO[]>(
+    `/mindmap/${workspaceId}/nodes`
+  );
   return data
     .filter((dto) => !dto.deleted)
     .map(mapDtoToNodeData)
@@ -107,7 +116,12 @@ export const batchUpdateNodePositions = async (
 export const requestNodeAnalysis = async (
   workspaceId: string,
   nodeId: number,
-  ancestorNodes: Array<{ nodeId: number; parentId: number | null; keyword: string; memo: string }>
+  ancestorNodes: Array<{
+    nodeId: number;
+    parentId: number | null;
+    keyword: string;
+    memo: string;
+  }>
 ): Promise<void> => {
   await apiClient.post(`/mindmap/${workspaceId}/node/${nodeId}/analyze`, {
     workspaceId: Number(workspaceId),
@@ -118,4 +132,40 @@ export const requestNodeAnalysis = async (
     analysisType: "CONTEXTUAL",
     nodes: ancestorNodes,
   });
+};
+
+// Creates initial mindmap with content (text/video)
+export const createInitialMindmap = async (
+  request: InitialMindmapRequestDTO
+): Promise<InitialMindmapResponseDTO> => {
+  const { data } = await apiClient.post<InitialMindmapResponseDTO>(
+    "/mindmap/initial",
+    request
+  );
+  return data;
+};
+
+// Creates initial mindmap from image file
+export const createInitialMindmapFromImage = async (
+  file: File,
+  startPrompt: string | null
+): Promise<InitialMindmapResponseDTO> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const params = new URLSearchParams();
+  if (startPrompt) {
+    params.append("startPrompt", startPrompt);
+  }
+
+  const { data } = await apiClient.post<InitialMindmapResponseDTO>(
+    `/mindmap/initial/image?${params.toString()}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return data;
 };
