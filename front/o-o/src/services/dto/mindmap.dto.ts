@@ -61,6 +61,15 @@ export interface AnalyzeNodesResponseDTO {
   analysis: string;
 }
 
+export interface CreatePlanRequestDTO {
+  analysisText: string;
+  title: string;
+}
+
+export interface CreatePlanResponseDTO {
+  plan: string;
+}
+
 // Initial Mindmap Creation
 export interface InitialMindmapRequestDTO {
   contentUrl: string | null;

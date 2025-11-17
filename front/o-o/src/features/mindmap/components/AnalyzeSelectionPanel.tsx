@@ -31,10 +31,7 @@ export default function AnalyzeSelectionPanel({
   const [apiAnalysisResult, setApiAnalysisResult] = useState<string | null>(
     null
   );
-  const [apiPlan, setApiPlan] = useState<{
-    title: string;
-    content: string;
-  } | null>(null);
+  const [apiPlan, setApiPlan] = useState<string | null>(null);
 
   // 선택된 노드들을 계층 구조로 변환
   const treeRoots = useMemo(() => {
@@ -96,8 +93,18 @@ export default function AnalyzeSelectionPanel({
     setAnalysisDialogOpen(false);
 
     try {
-      const result = await createPlan(workspaceId);
-      setApiPlan(result);
+      // 분석 결과가 없으면 기획안을 생성할 수 없음
+      if (!apiAnalysisResult) {
+        showToast("분석 결과가 없습니다. 먼저 분석을 실행해주세요.", "error");
+        return;
+      }
+
+      const result = await createPlan(
+        workspaceId,
+        apiAnalysisResult,
+        "AI 기반 마인드맵 서비스 기획안"
+      );
+      setApiPlan(result.plan);
       setPlanDialogOpen(true);
     } catch (error) {
       console.error("[AnalyzeSelectionPanel] 기획안 생성 실패:", error);
@@ -107,7 +114,7 @@ export default function AnalyzeSelectionPanel({
 
   const handlePlanCopy = () => {
     if (navigator?.clipboard) {
-      const content = apiPlan?.content || planContent;
+      const content = apiPlan || planContent;
       navigator.clipboard.writeText(content).catch(() => {
         console.warn("Failed to copy plan content");
       });
@@ -200,8 +207,8 @@ export default function AnalyzeSelectionPanel({
       {planDialogOpen && (
         <ContentDialog
           characterImage={planningPopoImage}
-          title={apiPlan?.title || "기획안"}
-          content={apiPlan?.content || planContent}
+          title="AI 기반 마인드맵 서비스 기획안"
+          content={apiPlan || planContent}
           onClose={() => setPlanDialogOpen(false)}
           buttons={[
             {

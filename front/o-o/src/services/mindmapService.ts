@@ -7,6 +7,7 @@ import {
   type CreateImageNodeRequest,
   type AnalyzeNodesRequestDTO,
   type AnalyzeNodesResponseDTO,
+  type CreatePlanResponseDTO,
 } from "./dto/mindmap.dto";
 import { apiClient } from "@/lib/axios";
 
@@ -184,10 +185,17 @@ export const analyzeSelectedNodes = async (
 };
 
 // 기획안 생성
-export const createPlan = async (workspaceId: string) => {
-  const { data } = await apiClient.post(
+export const createPlan = async (
+  workspaceId: string,
+  analysisText: string,
+  title: string
+): Promise<CreatePlanResponseDTO> => {
+  const { data } = await apiClient.post<CreatePlanResponseDTO>(
     `/mindmap/${workspaceId}/ai/create-plan`,
-    {},
+    {
+      analysisText,
+      title,
+    },
     { timeout: 60000 }
   );
   return data;
