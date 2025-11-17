@@ -164,11 +164,11 @@ const MindmapPageContent: React.FC = () => {
     }));
   };
 
-  // GPT 녹음 상태 변경 핸들러 (Awareness 동기화는 VoiceChat에서 처리)
-  const handleGptRecordingChange = (isRecording: boolean) => {
+  // GPT 녹음 상태 변경 핸들러 (Awareness 동기화는 VoiceChat에서 처리) - useCallback으로 memoization
+  const handleGptRecordingChange = useCallback((isRecording: boolean) => {
     // Awareness에서 상태를 가져오므로 로컬 state 업데이트 불필요
     console.log('[MindmapPage] GPT 녹음 상태 변경:', isRecording);
-  };
+  }, []);
 
   // GPT 토글 핸들러 (RecordIdeaDialog의 재생/일시정지 버튼용)
   const handleToggleGptRecording = () => {

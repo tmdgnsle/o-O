@@ -68,6 +68,9 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   const gptStopRecordingRef = useRef<(() => void) | null>(null);
   const gptIsRecordingRef = useRef<boolean>(false);
 
+  // Ref to track previous recording state
+  const prevIsRecordingRef = useRef<boolean>(false);
+
   // GPT 청크 핸들러
   const onGptChunkReceived = useCallback((content: string) => {
     // useVoiceGpt의 handleGptChunk 호출
@@ -192,21 +195,33 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     gptIsRecordingRef.current = gpt.isRecording;
   }, [gpt.startRecording, gpt.stopRecording, gpt.isRecording]);
 
-  // GPT 녹음 시작 시 Awareness 업데이트
+  // GPT 녹음 상태 변경 시 처리
   useEffect(() => {
     onGptRecordingChange?.(gpt.isRecording);
 
-    // Awareness에 GPT 상태 동기화 (녹음 시작 시에만)
-    if (gpt.isRecording && updateGptState && currentUser) {
-      console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 시작');
-      updateGptState({
-        isRecording: true,
-        keywords: [], // 초기 상태
-        startedBy: currentUser.id.toString(),
-        timestamp: Date.now(),
-      });
+    // 녹음이 시작될 때만 Awareness 초기화 (false -> true 전환)
+    if (gpt.isRecording && !prevIsRecordingRef.current) {
+      if (updateGptState && currentUser) {
+        console.log('[VoiceChat] 📡 Awareness 초기화: 녹음 시작');
+        updateGptState({
+          isRecording: true,
+          keywords: [], // 초기 상태
+          startedBy: currentUser.id.toString(),
+          timestamp: Date.now(),
+        });
+      }
     }
-  }, [gpt.isRecording, onGptRecordingChange, updateGptState, currentUser]);
+    // 녹음이 종료될 때 Awareness 클리어
+    else if (!gpt.isRecording && prevIsRecordingRef.current) {
+      if (updateGptState) {
+        console.log('[VoiceChat] 📡 Awareness 클리어: 녹음 종료');
+        updateGptState(null);
+      }
+    }
+
+    // 이전 상태 업데이트
+    prevIsRecordingRef.current = gpt.isRecording;
+  }, [gpt.isRecording]); // onGptRecordingChange, updateGptState, currentUser는 안정적이므로 의존성에서 제외
 
   // GPT toggle 함수를 부모에게 전달
   useEffect(() => {
