@@ -9,6 +9,8 @@ import { usePeerCursors } from "../PeerCursorProvider";
 import { useAppSelector } from "@/store/hooks";
 import type { NodeData } from "../../../mindmap/types";
 import type { GptNodeSuggestion } from "../../types/voice.types";
+import { getProfileImageUrl } from "@/shared/utils/imageMapper";
+import type { YClient } from "../../hooks/custom/yjsClient";
 
 interface YjsCRUD {
   create: (node: NodeData) => void;
@@ -22,10 +24,11 @@ interface VoiceChatProps {
   myRole?: string;
   onCallEnd?: () => void;
   onOrganize?: () => void;
-  onShare?: () => void;
   onGptRecordingChange?: (isRecording: boolean) => void;
   onGptNodesReceived?: (nodes: GptNodeSuggestion[], createdNodeIds: string[]) => void;
   onGptToggleReady?: (toggle: () => void) => void;
+  yclient?: YClient | null;
+  cursorColor?: string;
 }
 
 const VoiceChat: React.FC<VoiceChatProps> = ({
@@ -35,10 +38,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   myRole,
   onCallEnd,
   onOrganize,
-  onShare,
   onGptRecordingChange,
   onGptNodesReceived,
   onGptToggleReady,
+  yclient,
+  cursorColor,
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
@@ -195,15 +199,18 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
           ? currentUser.nickname
           : (peer?.name ?? `User ${participant.userId}`),
         avatar: isCurrentUser
-          ? (currentUser.profileImage ?? '')
-          : (peer?.profileImage ?? ''),
+          ? getProfileImageUrl(currentUser.profileImage)
+          : getProfileImageUrl(peer?.profileImage),
         isSpeaking: isUserSpeaking && !(participant.voiceState?.muted ?? false),
+        voiceColor: isCurrentUser
+          ? cursorColor
+          : peer?.color,
         colorIndex: index % 6,
       };
     });
 
     return users;
-  }, [participants, peers, currentUser, isSpeaking]);
+  }, [participants, peers, currentUser, isSpeaking, cursorColor]);
 
   return (
     <div
@@ -218,6 +225,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
             avatar={user.avatar}
             name={user.name}
             isSpeaking={user.isSpeaking}
+            voiceColor={user.voiceColor}
             colorIndex={user.colorIndex}
             index={index}
           />
@@ -236,7 +244,9 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         onMicToggle={toggleMute}
         onCallToggle={handleCallToggle}
         onOrganize={gpt.toggleRecording}
-        onShare={onShare}
+        workspaceId={workspaceId}
+        yclient={yclient}
+        peers={peers}
       />
     </div>
   );

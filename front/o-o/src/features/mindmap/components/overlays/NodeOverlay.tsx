@@ -27,6 +27,7 @@ function NodeOverlay({
   mode,
   isSelected,
   isAnalyzeSelected,
+  isReadOnly = false,
   onSelect,
   onDeselect,
   onApplyTheme,
@@ -41,6 +42,7 @@ function NodeOverlay({
 }: Readonly<CytoscapeNodeOverlayProps>) {
   const { keyword, memo, color: initialColor } = node;
   const isAnalyzeMode = mode === "analyze";
+  const isEditDisabled = isReadOnly || isAnalyzeMode;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -161,12 +163,18 @@ function NodeOverlay({
         return;
       }
 
+      if (isReadOnly) {
+        // 읽기 전용 모드에서는 드래그 비활성화, 클릭만 처리
+        onSelect();
+        return;
+      }
+
       // edit 모드: 드래그 시작
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
       setHasMoved(false);
     },
-    [isAnalyzeMode, onSelect]
+    [isAnalyzeMode, isReadOnly, onSelect]
   );
 
   const handleMouseMove = useCallback(
@@ -339,7 +347,7 @@ function NodeOverlay({
           )}
         </div>
 
-        {!isAnalyzeMode && (
+        {!isAnalyzeMode && !isReadOnly && (
           <RadialToolGroup
             open={isSelected && !isEditing && focusedButton !== "recommend"}
             paletteOpen={paletteOpen}
@@ -361,7 +369,7 @@ function NodeOverlay({
           />
         )}
 
-        {!isAnalyzeMode && focusedButton === "recommend" && (
+        {!isAnalyzeMode && !isReadOnly && focusedButton === "recommend" && (
           <RecommendNodeOverlay
             open={focusedButton === "recommend"}
             onClose={() => setFocusedButton(null)}
