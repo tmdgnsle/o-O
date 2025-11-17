@@ -426,7 +426,7 @@ class GptSessionManager {
     if (mindmapContext && mindmapContext.nodes.length > 0) {
       prompt += `현재 ${mindmapContext.nodeCount}개의 노드가 있습니다:\n`;
       mindmapContext.nodes.forEach(node => {
-        prompt += `- ID: ${node.id}, 키워드: "${node.keyword}", 부모ID: ${node.parentId || '없음'}\n`;
+        prompt += `- ID: ${node.id}, 키워드: "${node.keyword}", 부모ID: ${node.parentId || 'null'}\n`;
       });
       prompt += '\n';
     } else {
@@ -436,23 +436,52 @@ class GptSessionManager {
     prompt += '# 팀원들의 대화\n\n';
     prompt += conversation + '\n\n';
 
-    prompt += '# 요청\n\n';
-    prompt += '위 대화에서 핵심 키워드를 추출하고, 마인드맵 노드를 제안하세요.\n';
-    prompt += '**반드시 아래 JSON 배열 형식으로만 답변하세요. 코드블록(```)이나 다른 텍스트는 포함하지 마세요.**\n\n';
+    prompt += '# 중요 지침\n\n';
+    prompt += '위 대화에서 **회의 내용과 관련된 핵심 키워드만** 추출하여 마인드맵 노드를 제안하세요.\n';
+    prompt += '- 인사말("안녕하세요", "반갑습니다" 등)은 제외하세요.\n';
+    prompt += '- 참석자 이름, 메타 정보("이승훈", "회의 시작" 등)는 제외하세요.\n';
+    prompt += '- 실제 논의된 주제, 아이디어, 작업 항목, 결정 사항만 포함하세요.\n';
+    prompt += '- 대화 내용이 인사나 잡담뿐이면 빈 배열 []을 반환하세요.\n\n';
+
+    prompt += '# JSON 응답 형식\n\n';
+    prompt += '**반드시 아래 JSON 배열 형식으로만 답변하세요. 코드블록(```)이나 설명 텍스트는 포함하지 마세요.**\n\n';
     prompt += '각 노드는 다음 구조를 따릅니다:\n';
     prompt += '[\n';
     prompt += '  {\n';
-    prompt += '    "parentId": "기존 노드 ID 또는 null (루트)",\n';
-    prompt += '    "keyword": "핵심 키워드 (간결하게)",\n';
+    prompt += '    "parentId": 기존_노드_ID_숫자 또는 null,\n';
+    prompt += '    "keyword": "핵심 키워드 (3-10자, 간결하게)",\n';
     prompt += '    "memo": "상세 설명 (1-2문장)"\n';
     prompt += '  }\n';
     prompt += ']\n\n';
-    prompt += '예시:\n';
-    prompt += '[\n';
-    prompt += '  {"parentId": null, "keyword": "AI 서비스", "memo": "인공지능 기반 추천 시스템"},\n';
-    prompt += '  {"parentId": "기존노드ID", "keyword": "사용자 분석", "memo": "행동 패턴 기반 개인화"}\n';
-    prompt += ']\n\n';
-    prompt += '2-3개의 노드를 제안하세요.';
+
+    prompt += '# parentId 규칙\n\n';
+    prompt += '- parentId는 반드시 **숫자(number)** 또는 **null**이어야 합니다.\n';
+    prompt += '- 문자열로 감싸지 마세요. ❌ "null", "root", "n1" 같은 형식 금지\n';
+    prompt += '- 루트 노드(최상위)는 parentId를 null로 설정\n';
+    prompt += '- 기존 노드의 하위 노드는 위에 나열된 기존 노드 ID 숫자를 사용\n\n';
+
+    prompt += '# 올바른 예시\n\n';
+    if (mindmapContext && mindmapContext.nodes.length > 0) {
+      const firstNode = mindmapContext.nodes[0];
+      prompt += '[\n';
+      prompt += `  {"parentId": null, "keyword": "AI 기술 도입", "memo": "업무 자동화를 위한 AI 기술 검토"},\n`;
+      prompt += `  {"parentId": ${firstNode.id}, "keyword": "데이터 수집", "memo": "학습용 데이터셋 구축 계획"}\n`;
+      prompt += ']\n\n';
+    } else {
+      prompt += '[\n';
+      prompt += '  {"parentId": null, "keyword": "프로젝트 기획", "memo": "신규 프로젝트 전체 기획안"},\n';
+      prompt += '  {"parentId": null, "keyword": "일정 관리", "memo": "마일스톤 및 주요 일정 정리"}\n';
+      prompt += ']\n\n';
+    }
+
+    prompt += '# 잘못된 예시 (사용 금지)\n\n';
+    prompt += '❌ {"parentId": "null", ...}  // 문자열 "null" 금지\n';
+    prompt += '❌ {"parentId": "root", ...}  // "root" 문자열 금지\n';
+    prompt += '❌ {"parentId": "n1", ...}    // 문자열 ID 금지\n';
+    prompt += '❌ {"keyword": "안녕하세요", ...}  // 인사말 금지\n';
+    prompt += '❌ {"keyword": "참석자: 홍길동", ...}  // 메타 정보 금지\n\n';
+
+    prompt += '실제 회의 내용이 있으면 2-3개의 노드를, 인사만 있으면 빈 배열 []을 반환하세요.';
 
     return prompt;
   }
