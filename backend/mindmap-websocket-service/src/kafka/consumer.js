@@ -27,6 +27,8 @@ class KafkaConsumerService {
     this.isEnabled = false;      // Kafka 사용 여부 (환경변수로 제어)
     this.isConnected = false;    // Kafka 연결 상태
     this.onInitialCreateDone = null;  // 초기 노드 생성 완료 이벤트 핸들러
+    this.nodeUpdateTopic = process.env.KAFKA_TOPIC_NODE_UPDATE || 'mindmap.node.update';
+    this.aiSuggestionTopic = process.env.KAFKA_TOPIC_AI_SUGGESTION || 'mindmap.ai.suggestion';
   }
 
   /**
@@ -70,12 +72,16 @@ class KafkaConsumerService {
       this.isConnected = true;
       this.isEnabled = true;
 
-      // mindmap.node.update 토픽 구독
-      const topic = process.env.KAFKA_TOPIC_NODE_UPDATE || 'mindmap.node.update';
       await this.consumer.subscribe({
-        topic,
-        fromBeginning: false  // 새로운 메시지만 수신 (과거 이력 무시)
+          topic: this.nodeUpdateTopic,
+          fromBeginning: false,
       });
+
+      await this.consumer.subscribe({
+          topic: this.aiSuggestionTopic,
+          fromBeginning: false,
+      });
+
 
       logger.info(`Kafka consumer subscribed to ${topic}`, { brokers });
     } catch (error) {
@@ -93,44 +99,49 @@ class KafkaConsumerService {
    * 메시지가 도착하면 eachMessage 콜백 실행
    */
   async start() {
-    if (!this.consumer || !this.isConnected) {
-      logger.debug('Kafka consumer not enabled, skipping start');
-      return;
-    }
+      if (!this.consumer || !this.isConnected) {
+          logger.debug('Kafka consumer not enabled, skipping start');
+          return;
+      }
 
-    try {
-      await this.consumer.run({
-        // 각 메시지를 처리하는 콜백
-        eachMessage: async ({ topic, partition, message }) => {
-          try {
-            // Kafka 메시지 파싱
-            const data = JSON.parse(message.value.toString());
+      try {
+          await this.consumer.run({
+              eachMessage: async ({ topic, partition, message }) => {
+                  try {
+                      const data = JSON.parse(message.value.toString());
 
-            logger.debug('Received Kafka message', {
-              topic,
-              partition,
-              offset: message.offset,
-              key: message.key?.toString(),
-            });
+                      logger.debug('Received Kafka message', {
+                          topic,
+                          partition,
+                          offset: message.offset,
+                          key: message.key?.toString(),
+                      });
 
-            // 노드 업데이트 처리
-            this.handleNodeUpdate(data);
-          } catch (error) {
-            logger.error('Failed to process Kafka message', {
+                      // 🔸 토픽에 따라 처리 분기
+                      if (topic === this.nodeUpdateTopic) {
+                          this.handleNodeUpdate(data);
+                      } else if (topic === this.aiSuggestionTopic) {
+                          this.handleAiSuggestion(data);
+                      } else {
+                          logger.warn('Received message from unknown topic', { topic, data });
+                      }
+                  } catch (error) {
+                      logger.error('Failed to process Kafka message', {
+                          error: error.message,
+                          messageValue: message.value?.toString(),
+                      });
+                  }
+              },
+          });
+
+          logger.info('Kafka consumer started and listening for messages');
+      } catch (error) {
+          logger.error('Failed to start Kafka consumer', {
               error: error.message,
-              messageValue: message.value?.toString(),
-            });
-          }
-        },
-      });
-
-      logger.info('Kafka consumer started and listening for messages');
-    } catch (error) {
-      logger.error('Failed to start Kafka consumer', {
-        error: error.message,
-      });
-    }
+          });
+      }
   }
+
 
   /**
    * Spring이 보낸 노드 업데이트를 처리

@@ -730,6 +730,34 @@ async function startServer() {
     await kafkaConsumer.initialize();
     // 초기 노드 생성 완료 이벤트 핸들러 등록
     kafkaConsumer.setInitialCreateDoneHandler(handleInitialCreateDone);
+
+    // ✅ CONTEXTUAL AI 추천 핸들러 등록
+    kafkaConsumer.setAiSuggestionHandler((data) => {
+        const { workspaceId, targetNodeId, suggestions } = data;
+
+        if (!workspaceId || !targetNodeId || !Array.isArray(suggestions)) {
+            logger.warn('[AiSuggestion] Invalid suggestion payload', { data });
+            return;
+        }
+
+        const workspaceIdStr = workspaceId.toString();
+
+        const payload = {
+            type: 'ai_suggestion',
+            workspaceId: workspaceIdStr,
+            targetNodeId,
+            suggestions,
+        };
+
+        const sentCount = sendToWorkspace(workspaceIdStr, payload);
+
+        logger.info('[AiSuggestion] Broadcasted suggestions', {
+            workspaceId: workspaceIdStr,
+            targetNodeId,
+            suggestionCount: suggestions.length,
+            sentCount,
+        });
+    });
     await kafkaConsumer.start();
 
     // 3. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)
