@@ -76,12 +76,12 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
       {showOrganize && (
         <CustomTooltip
           content={
-            <p className="text-sm leading-relaxed">
+            <div className="text-sm leading-relaxed">
               <div>{isGptRecording ? 'GPT 녹음 중...' : '아이디어를 놓치지 않게'}</div>
               <div>
                 <span className="font-bold">Popo</span>가 정리해드려요.
               </div>
-            </p>
+            </div>
           }
         >
           <button

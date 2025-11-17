@@ -18,6 +18,7 @@ interface YjsCRUD {
 interface VoiceChatProps {
   workspaceId: string;
   crud: YjsCRUD | null;
+  nodes?: NodeData[];
   myRole?: string;
   onCallEnd?: () => void;
   onOrganize?: () => void;
@@ -29,6 +30,7 @@ interface VoiceChatProps {
 const VoiceChat: React.FC<VoiceChatProps> = ({
   workspaceId,
   crud,
+  nodes = [],
   myRole,
   onCallEnd,
   onOrganize,
@@ -40,7 +42,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   const { peers } = usePeerCursors();
 
   // GPT Node Creator
-  const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId);
+  const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId, nodes);
 
   // Ref to store handleGptChunk function
   const handleGptChunkRef = useRef<((content: string) => void) | null>(null);

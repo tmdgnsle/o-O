@@ -297,6 +297,7 @@ const MindmapPageContent: React.FC = () => {
             <VoiceChat
               workspaceId={workspaceId}
               crud={crud}
+              nodes={nodes}
               myRole={workspace?.myRole}
               onCallEnd={() => setVoiceChatVisible(false)}
               onOrganize={() => console.log("Organize clicked")}
