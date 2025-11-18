@@ -300,10 +300,10 @@ function NodeOverlay({
       onBatchNodePositionChange
     ) {
       // Force simulation 적용 (부드럽게 밀어내기)
+      // 기본값 NODE_RADIUS * 2 (160px) 사용 - 연쇄 반응 방지
       const pushedNodes = applyDragForce(
         node.id,
-        allNodes.map((n) => ({ id: n.id, x: n.x, y: n.y })),
-        NODE_RADIUS * 4 // 거리 임계값 (약 320px)
+        allNodes.map((n) => ({ id: n.id, x: n.x, y: n.y }))
       );
 
       // 밀려난 노드들의 위치만 업데이트
