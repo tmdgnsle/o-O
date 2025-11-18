@@ -70,6 +70,18 @@ export interface CreatePlanResponseDTO {
   plan: string;
 }
 
+// Add Idea to Mindmap
+export interface AddIdeaRequestDTO {
+  idea: string;
+}
+
+export interface AddIdeaResponseDTO {
+  workspaceId: number;
+  createdNodeCount: number;
+  createdNodeIds: number[];
+  message: string;
+}
+
 // Initial Mindmap Creation
 export interface InitialMindmapRequestDTO {
   contentUrl: string | null;
@@ -83,6 +95,11 @@ export interface InitialMindmapResponseDTO {
   keyword: string;
   memo: string;
   analysisStatus: NodeAnalysisStatus;
+  message: string;
+}
+
+// Restructure Mindmap
+export interface RestructureMindmapResponseDTO {
   message: string;
 }
 

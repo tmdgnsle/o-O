@@ -8,6 +8,9 @@ import {
   type AnalyzeNodesRequestDTO,
   type AnalyzeNodesResponseDTO,
   type CreatePlanResponseDTO,
+  type AddIdeaRequestDTO,
+  type AddIdeaResponseDTO,
+  type RestructureMindmapResponseDTO,
 } from "./dto/mindmap.dto";
 import { apiClient } from "@/lib/axios";
 
@@ -201,6 +204,23 @@ export const createPlan = async (
   return data;
 };
 
+// 아이디어 추가 (GPT 키워드 자동 추출)
+export const addIdeaToMindmap = async (
+  workspaceId: string,
+  idea: string
+): Promise<AddIdeaResponseDTO> => {
+  const { data } = await apiClient.post<AddIdeaResponseDTO>(
+    `/mindmap/${workspaceId}/add-idea`,
+    {
+      idea,
+    } as AddIdeaRequestDTO,
+    {
+      timeout: 60000  // GPT 키워드 추출 + 노드 생성은 시간이 오래 걸릴 수 있음 (60초)
+    }
+  );
+  return data;
+};
+
 // Creates initial mindmap with content (text/video)
 export const createInitialMindmap = async (
   request: InitialMindmapRequestDTO
@@ -232,6 +252,20 @@ export const createInitialMindmapFromImage = async (
       headers: {
         "Content-Type": "multipart/form-data",
       },
+    }
+  );
+  return data;
+};
+
+// 마인드맵 전체 구조 정리하기 (GPT 기반 재구성)
+export const restructureMindmap = async (
+  workspaceId: string
+): Promise<RestructureMindmapResponseDTO> => {
+  const { data } = await apiClient.post<RestructureMindmapResponseDTO>(
+    `/mindmap/${workspaceId}/ai/restructure`,
+    {},
+    {
+      timeout: 60000  // 60초 timeout (GPT 재구성 작업 소요 시간 고려)
     }
   );
   return data;

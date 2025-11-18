@@ -11,8 +11,9 @@ import type {
 import type { WorkspaceRole } from "@/services/dto/workspace.dto";
 import { canEditWorkspace } from "@/shared/utils/permissionUtils";
 import { useToast } from "@/shared/ui/ToastProvider";
-import { createMindmapNode, createMindmapNodeFromImage } from "@/services/mindmapService";
+import { addIdeaToMindmap } from "@/services/mindmapService";
 import { calculateChildPosition } from "../../utils/parentCenteredLayout";
+import { clampNodePosition } from "../../utils/d3Utils";
 
 /**
  * 노드 CRUD 작업 핸들러를 제공하는 커스텀 훅
@@ -58,14 +59,12 @@ export function useNodeOperations(params: {
   const { showToast } = useToast();
 
   /**
-   * 텍스트박스에서 새 노드 추가
-   * - Viewport 중심에 배치 (model coordinates)
-   * - API 직접 호출 후 Y.Doc에 결과 추가
+   * 텍스트박스에서 아이디어 추가
+   * - GPT 키워드 자동 추출 API 호출
+   * - WebSocket을 통해 생성된 노드들이 실시간으로 전달됨
    */
-  const handleAddNode = useCallback(async ({ text, imageFile, youtubeUrl }: {
+  const handleAddNode = useCallback(async ({ text }: {
     text: string;
-    imageFile?: File | null;
-    youtubeUrl?: string | null;
   }) => {
     if (mode === "analyze" || !crud) return;
 
@@ -74,71 +73,52 @@ export function useNodeOperations(params: {
       return;
     }
 
-    const randomColor = getRandomThemeColor();
-
-    let baseX = 0;
-    let baseY = 0;
-
-    // Calculate viewport center in model coordinates
-    if (cyRef.current) {
-      const pan = cyRef.current.pan();
-      const zoom = cyRef.current.zoom();
-      const container = cyRef.current.container();
-
-      if (container) {
-        const centerX = container.clientWidth / 2;
-        const centerY = container.clientHeight / 2;
-
-        // Convert screen center to model coordinates
-        baseX = (centerX - pan.x) / zoom;
-        baseY = (centerY - pan.y) / zoom;
-      }
+    if (!text.trim()) {
+      showToast("아이디어를 입력해주세요", "error");
+      return;
     }
-
-    const { x, y } = findNonOverlappingPosition(nodes, baseX, baseY);
-    console.log("[Mindmap] New node base position", { x, y });
 
     try {
-      let createdNode: NodeData;
+      // GPT 키워드 추출 API 호출 (WebSocket으로 노드가 실시간 전달됨)
+      const response = await addIdeaToMindmap(workspaceId, text.trim());
 
-      // 이미지 노드 생성
-      if (imageFile) {
-        createdNode = await createMindmapNodeFromImage(workspaceId, {
-          file: imageFile,
-          keyword: text || "이미지",
-          x,
-          y,
-          color: randomColor,
-        });
-      }
-      // 텍스트/유튜브 노드 생성
-      else {
-        createdNode = await createMindmapNode(workspaceId, {
-          type: youtubeUrl ? "video" : "text",
-          keyword: text || "새 노드",
-          contentUrl: youtubeUrl || null,
-          x,
-          y,
-          color: randomColor,
-        });
-      }
+      console.log("[handleAddNode] Idea added successfully:", {
+        createdNodeCount: response.createdNodeCount,
+        createdNodeIds: response.createdNodeIds,
+      });
 
-      // Y.Doc에 서버 응답 추가 (origin: "remote"로 useMindmapSync 재진입 방지)
-      if (yMap?.doc) {
-        yMap.doc.transact(() => {
-          yMap.set(createdNode.id, createdNode);
-        }, "remote");
-      } else {
-        // fallback: 일반 crud.set 사용
-        crud?.set(createdNode.id, createdNode);
-      }
-
-      showToast("노드가 생성되었습니다", "success");
+      showToast(
+        `아이디어가 추가되었습니다 (생성된 노드: ${response.createdNodeCount}개)`,
+        "success"
+      );
     } catch (error) {
-      console.error("[handleAddNode] Failed to create node:", error);
-      showToast("노드 생성에 실패했습니다", "error");
+      console.error("[handleAddNode] Failed to add idea:", error);
+
+      // 에러 타입별 메시지 처리
+      if (error && typeof error === 'object') {
+        const axiosError = error as { code?: string; response?: { status?: number } };
+
+        // 타임아웃 에러
+        if (axiosError.code === 'ECONNABORTED') {
+          showToast("요청 시간이 초과되었습니다. 다시 시도해주세요", "error");
+        }
+        // HTTP 상태 코드 기반 에러
+        else if ('response' in error && axiosError.response?.status) {
+          if (axiosError.response.status === 400) {
+            showToast("아이디어가 비어있거나 워크스페이스에 노드가 없습니다", "error");
+          } else if (axiosError.response.status === 404) {
+            showToast("워크스페이스를 찾을 수 없습니다", "error");
+          } else {
+            showToast("아이디어 추가에 실패했습니다", "error");
+          }
+        } else {
+          showToast("아이디어 추가에 실패했습니다", "error");
+        }
+      } else {
+        showToast("아이디어 추가에 실패했습니다", "error");
+      }
     }
-  }, [crud, yMap, findNonOverlappingPosition, getRandomThemeColor, mode, nodes, cyRef, workspaceId, myRole, showToast]);
+  }, [crud, mode, workspaceId, myRole, showToast]);
 
   /**
    * 자식 노드 생성
@@ -152,14 +132,16 @@ export function useNodeOperations(params: {
       parentY,
       keyword,
       memo,
+      mediaData,
     }: {
       parentId: string;
       parentX: number;
       parentY: number;
       keyword: string;
       memo?: string;
+      mediaData?: import("@/features/home/types").MediaData;
     }) => {
-      if (!crud || !keyword) return;
+      if (!crud || (!keyword && !mediaData?.type)) return;
 
       if (!canEditWorkspace(myRole)) {
         showToast("노드를 추가할 권한이 없습니다", "error");
@@ -191,18 +173,32 @@ export function useNodeOperations(params: {
         }
       );
 
+      // 미디어 타입에 따라 노드 타입 결정
+      let nodeType: "text" | "image" | "video" = "text";
+      let contentUrl: string | undefined = undefined;
+
+      if (mediaData?.type === "image") {
+        nodeType = "image";
+      } else if (mediaData?.type === "youtube") {
+        nodeType = "video";
+        contentUrl = mediaData.youtubeUrl;
+      }
+
       const newNode: NodeData = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         parentId: parentNode.nodeId, // 부모 노드의 nodeId 사용
         workspaceId: parseInt(workspaceId, 10),
-        type: "text",
+        type: nodeType,
         analysisStatus: "NONE",
-        keyword: keyword,
+        keyword: keyword || (mediaData?.type === "image" ? mediaData.imageFile?.name : mediaData?.youtubeUrl) || "",
         x,
         y,
         color: getRandomThemeColor(),
         operation: "ADD",
         ...(memo ? { memo } : {}),
+        ...(contentUrl ? { contentUrl } : {}),
+        // 이미지 파일이 있으면 임시로 저장 (나중에 API 호출 시 사용)
+        ...(mediaData?.type === "image" && mediaData.imageFile ? { _tempImageFile: mediaData.imageFile } : {}),
       };
 
       console.log("[handleCreateChildNode] Creating new child node:", {
@@ -210,6 +206,8 @@ export function useNodeOperations(params: {
         parentId: newNode.parentId,
         parentNodeId: parentNode.nodeId,
         keyword: newNode.keyword,
+        type: nodeType,
+        hasImageFile: !!(mediaData?.type === "image" && mediaData.imageFile),
       });
 
       crud.set(newNode.id, newNode);
@@ -323,6 +321,7 @@ export function useNodeOperations(params: {
   /**
    * 다수 노드 위치 일괄 변경
    * - Layout 재배치 후 호출
+   * - 위치를 캔버스 경계 내로 제한 (100px 마진 적용)
    */
   const handleBatchNodePositionChange = useCallback(
     (positions: Array<{ id: string; x: number; y: number }>) => {
@@ -332,7 +331,16 @@ export function useNodeOperations(params: {
         showToast("노드를 이동할 권한이 없습니다", "error");
         return;
       }
-      const positionMap = new Map(positions.map((pos) => [pos.id, pos]));
+
+      // 경계 제약 적용
+      const validatedPositions = positions.map((pos) => {
+        const clamped = clampNodePosition(pos.x, pos.y);
+        return { id: pos.id, x: clamped.x, y: clamped.y };
+      });
+
+      const positionMap = new Map(
+        validatedPositions.map((pos) => [pos.id, pos])
+      );
 
       crud.transact((map) => {
         positionMap.forEach(({ id, x, y }) => {

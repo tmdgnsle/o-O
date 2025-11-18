@@ -12,7 +12,7 @@ export type Transform = {
 // NodeAddInput.tsx
 export type NodeAddInputProps = Readonly<{
   open: boolean;
-  onConfirm: (keyword: string, description: string) => void;
+  onConfirm: (keyword: string, description: string, mediaData?: import("@/features/home/types").MediaData) => void;
   onCancel: () => void;
   buttonRef?: React.RefObject<HTMLButtonElement | null>;
   centerX?: number;
@@ -143,8 +143,6 @@ export type RecommendNodeOverlayProps = Readonly<{
 export type TextboxProps = Readonly<{
   onAddNode: (params: {
     text: string;
-    imageFile?: File | null;
-    youtubeUrl?: string | null;
   }) => void;
   disabled?: boolean;
 }>;
@@ -191,6 +189,7 @@ export type ChildNodeRequest = {
   parentY: number;
   keyword: string;
   memo?: string;
+  mediaData?: import("@/features/home/types").MediaData;
 };
 
 export type DeleteNodePayload = {

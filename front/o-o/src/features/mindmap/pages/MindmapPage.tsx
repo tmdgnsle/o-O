@@ -764,7 +764,7 @@ const MindmapPageContent: React.FC = () => {
 
         <div className="fixed bottom-24 right-2 lg:bottom-4 lg:right-4 z-50">
           {mode === "edit" ? (
-            <AskPopo />
+            <AskPopo workspaceId={workspaceId} />
           ) : (
             <AnalyzeSelectionPanel
               selectedNodes={analyzeMode.selectedAnalyzeNodes}
