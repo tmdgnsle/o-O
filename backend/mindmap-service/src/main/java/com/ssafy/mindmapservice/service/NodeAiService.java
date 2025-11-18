@@ -362,14 +362,15 @@ public class NodeAiService {
 
             ## Your Task
             1. Analyze the user's idea
-            2. Extract 1-10 key concepts/keywords from the idea
+            2. Extract 1–3 key concepts/keywords from the idea (prefer extracting exactly 1 if possible)
             3. Create a brief description (memo) for each keyword in Korean
 
             ## Important Rules
-            - Extract between 1 and 10 keywords (no more, no less)
+            - Prefer extracting exactly 1 keyword. Only if it is truly necessary, extract up to 3 keywords.
+            - Never extract more than 3 keywords.
             - Keywords and memos must be in Korean
             - The first keyword will be the root node (most important concept)
-            - Other keywords will be child nodes of the first keyword
+            - If there is more than one keyword, all other keywords will be child nodes of the first keyword.
             - DO NOT include parentId in the response (it will be assigned automatically)
 
             ## New Idea to Process
@@ -398,7 +399,7 @@ public class NodeAiService {
               }
             ]
 
-            Now extract keywords from the new idea and respond with JSON only.
+            Now extract 1–3 keywords from the new idea (prefer 1 if possible) and respond with JSON only.
             """;
     }
 
@@ -413,16 +414,17 @@ public class NodeAiService {
 
             ## Your Task
             1. Analyze the user's new idea
-            2. Extract 1-10 key concepts/keywords from the idea
+            2. Extract 1–3 key concepts/keywords from the idea (prefer extracting exactly 1 if possible)
             3. For each keyword, determine the most appropriate parent node from the existing mindmap
             4. Create a brief description (memo) for each keyword in Korean
 
             ## Important Rules
-            - **DO NOT modify existing nodes** - only create new keyword nodes
+            - **DO NOT modify existing nodes** - only create new keyword nodes.
             - Each keyword must have a valid parentId from the existing nodes
             - Choose the most semantically related parent node for each keyword
             - If no clear parent exists, use the root node (nodeId with parentId=null)
-            - Extract between 1 and 10 keywords (no more, no less)
+            - Prefer extracting exactly 1 keyword. Only if it is truly necessary, extract up to 3 keywords.
+            - Never extract more than 3 keywords.
             - Keywords and memos must be in Korean
 
             ## Existing Mindmap Nodes
@@ -475,7 +477,7 @@ public class NodeAiService {
               }
             ]
 
-            Now extract keywords from the new idea and respond with JSON only.
+            Now extract 1–3 keywords from the new idea (prefer 1 if possible) and respond with JSON only.
             """);
 
         return sb.toString();
