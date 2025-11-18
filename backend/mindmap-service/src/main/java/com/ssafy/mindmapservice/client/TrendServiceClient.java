@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 @FeignClient(name = "trend-service", url = "${service.trend.url}")
 public interface TrendServiceClient {
 
-    @GetMapping("/trend/{parentKeyword}")
+    @GetMapping("/trend")
     TrendResponse getParentTrend(
-            @PathVariable("parentKeyword") String parentKeyword,
+            @RequestParam("parentKeyword") String parentKeyword,
             @RequestParam("period") String period,
             @RequestParam("limit") Integer limit
     );
