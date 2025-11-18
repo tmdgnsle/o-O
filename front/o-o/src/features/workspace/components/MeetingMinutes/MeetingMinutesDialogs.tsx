@@ -1,7 +1,7 @@
 import React from 'react';
 import ConfirmDialog from '@/shared/ui/ConfirmDialog';
 import ContentDialog from '@/shared/ui/ContentDialog/ContentDialog';
-import popoImage from '@/shared/assets/images/popo.webp';
+import popoImage from '@/shared/assets/images/organize_popo.webp';
 
 // ConfirmEndVoiceChatDialog: 음성 채팅 종료 시 표시되는 확인 다이얼로그
 interface ConfirmEndVoiceChatDialogProps {
