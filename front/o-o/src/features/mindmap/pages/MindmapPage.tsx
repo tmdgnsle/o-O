@@ -248,9 +248,9 @@ const MindmapPageContent: React.FC = () => {
     console.log('[MindmapPage] GPT 노드 수신:', nodes.length, '개');
     console.log('[MindmapPage] 생성된 노드 IDs:', createdNodeIds);
 
-    // MAINTAINER만 노드를 생성하므로, createdNodeIds가 있을 때만 키워드 추가
+    // MAINTAINER만 Awareness 업데이트 (다른 사용자는 Awareness 구독으로 자동 동기화)
     if (createdNodeIds.length === 0) {
-      console.log('[MindmapPage] ℹ️ 노드 미생성 (다른 역할) → 키워드 추가 스킵');
+      console.log('[MindmapPage] ℹ️ 다른 역할 → Awareness 업데이트 스킵 (MAINTAINER가 업데이트함)');
       return;
     }
 
@@ -259,7 +259,7 @@ const MindmapPageContent: React.FC = () => {
     // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
     // Use ref to avoid recreating this callback when gptState changes
     if (updateGptState && gptStateRef.current) {
-      console.log('[MindmapPage] 📡 Awareness에 키워드 추가');
+      console.log('[MindmapPage] 📡 MAINTAINER가 Awareness에 키워드 추가');
       updateGptState({
         ...gptStateRef.current, // ref로 접근 (기존 상태 유지)
         keywords: [...(gptStateRef.current.keywords ?? []), ...newKeywords], // 키워드만 추가
