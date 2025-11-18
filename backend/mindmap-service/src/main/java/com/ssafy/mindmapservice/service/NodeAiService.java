@@ -613,6 +613,7 @@ public class NodeAiService {
                             new ChatMessage("developer", """
                                 반드시 JSON만 출력.
                                 마크다운, 설명, ``` 금지.
+                                새로운 nodeId 생성 금지.
                                 """),
                             new ChatMessage("system", """
                                 You are an expert mindmap restructuring agent.
@@ -671,7 +672,7 @@ public class NodeAiService {
 
       🎯 요구사항
       1. nodeId=1 은 ROOT 이며 절대 변경/삭제/이동 금지
-      2. keyword + memo가 의미적으로 중복이면 병합
+      2. keyword + memo가 의미적으로 중복이면 병합  nodeId가 작은 것을 남기기.
       3. 계층 구조를 semantic 기준으로 재배치
       4. parentId 는 존재하는 nodeId 중 하나여야 함
       5. 좌표(x,y)는 자동 생성 (트리 형태 면 됨)

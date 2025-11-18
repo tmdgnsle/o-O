@@ -794,24 +794,24 @@ async function startServer() {
         const workspaceIdStr = workspaceId.toString();
 
         // Y.Doc 가져오기
-        const ydoc = ydocManager.docs.get(workspaceIdStr);
-        if (!ydoc) {
-            logger.debug(`Workspace ${workspaceId} not in memory, skipping Y.Doc restructure`);
-
-            // 필요하면 여기서도 그냥 브로드캐스트만 해줄 수 있음
-            // (지금은 일단 완전 스킵)
-            return;
-        }
-
-        const metaMap = ydoc.getMap('meta');
-        const nodesMap = ydoc.getMap('mindmap:nodes');
+        // const ydoc = ydocManager.docs.get(workspaceIdStr);
+        // if (!ydoc) {
+        //     logger.debug(`Workspace ${workspaceId} not in memory, skipping Y.Doc restructure`);
+        //
+        //     // 필요하면 여기서도 그냥 브로드캐스트만 해줄 수 있음
+        //     // (지금은 일단 완전 스킵)
+        //     return;
+        // }
+        //
+        // const metaMap = ydoc.getMap('meta');
+        // const nodesMap = ydoc.getMap('mindmap:nodes');
 
         // 1) LOCK
         if (eventType === 'LOCK') {
-            if (!metaMap.get('locked')) {
-                metaMap.set('locked', true);
-                logger.info(`Workspace ${workspaceId} locked for restructure`);
-            }
+            // if (!metaMap.get('locked')) {
+            //     metaMap.set('locked', true);
+            //     logger.info(`Workspace ${workspaceId} locked for restructure`);
+            // }
 
             const payload = {
                 type: 'restructure_lock',
@@ -840,62 +840,62 @@ async function startServer() {
                 nodeCount: nodes.length,
             });
 
-            let success = false;
+            // let success = false;
+            //
+            // try {
+            //     // Yjs 트랜잭션으로 묶기 (선택 사항이지만 있으면 더 안전)
+            //     ydoc.transact(() => {
+            //         nodesMap.clear();
+            //
+            //         for (const node of nodes) {
+            //             nodesMap.set(String(node.nodeId), {
+            //                 nodeId: node.nodeId,
+            //                 parentId: node.parentId ?? null,
+            //                 keyword: node.keyword,
+            //                 memo: node.memo,
+            //                 type: node.type || 'text',
+            //                 color: node.color,
+            //                 x: node.x ?? null,
+            //                 y: node.y ?? null,
+            //             });
+            //         }
+            //
+            //         metaMap.set('locked', false);
+            //     });
+            //
+            //     success = true;
+            //
+            //     logger.info(
+            //         `Workspace ${workspaceId} Y.Doc restructured with ${nodes.length} nodes`,
+            //     );
+            // } catch (error) {
+            //     logger.error(
+            //         `Failed to apply restructure update to Y.Doc for workspace ${workspaceId}`,
+            //         { error: error.message },
+            //     );
+            // }
+            //
+            // if (!success) {
+            //     // 실패: 프론트에 실패 알리고 lock 풀어줄지 말지 결정
+            //     // 여기서는 일단 풀어주는 버전 예시
+            //     metaMap.set('locked', false);
+            //
+            //     const failPayload = {
+            //         type: 'restructure_failed',
+            //         workspaceId: workspaceIdStr,
+            //     };
+            //
+            //     const sentCount = sendToWorkspace(workspaceIdStr, failPayload);
+            //
+            //     logger.warn('[Restructure] APPLY failed, broadcasted FAIL', {
+            //         workspaceId: workspaceIdStr,
+            //         sentCount,
+            //     });
+            //
+            //     return;
+            // }
 
-            try {
-                // Yjs 트랜잭션으로 묶기 (선택 사항이지만 있으면 더 안전)
-                ydoc.transact(() => {
-                    nodesMap.clear();
-
-                    for (const node of nodes) {
-                        nodesMap.set(String(node.nodeId), {
-                            nodeId: node.nodeId,
-                            parentId: node.parentId ?? null,
-                            keyword: node.keyword,
-                            memo: node.memo,
-                            type: node.type || 'text',
-                            color: node.color,
-                            x: node.x ?? null,
-                            y: node.y ?? null,
-                        });
-                    }
-
-                    metaMap.set('locked', false);
-                });
-
-                success = true;
-
-                logger.info(
-                    `Workspace ${workspaceId} Y.Doc restructured with ${nodes.length} nodes`,
-                );
-            } catch (error) {
-                logger.error(
-                    `Failed to apply restructure update to Y.Doc for workspace ${workspaceId}`,
-                    { error: error.message },
-                );
-            }
-
-            if (!success) {
-                // ❌ 실패: 프론트에 실패 알리고 lock 풀어줄지 말지 결정
-                // 여기서는 일단 풀어주는 버전 예시
-                metaMap.set('locked', false);
-
-                const failPayload = {
-                    type: 'restructure_failed',
-                    workspaceId: workspaceIdStr,
-                };
-
-                const sentCount = sendToWorkspace(workspaceIdStr, failPayload);
-
-                logger.warn('[Restructure] APPLY failed, broadcasted FAIL', {
-                    workspaceId: workspaceIdStr,
-                    sentCount,
-                });
-
-                return;
-            }
-
-            // ✅ 성공한 경우에만 APPLY 브로드캐스트
+            // 성공한 경우에만 APPLY 브로드캐스트
             const payload = {
                 type: 'restructure_apply',
                 workspaceId: workspaceIdStr,
