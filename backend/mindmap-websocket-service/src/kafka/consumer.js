@@ -313,12 +313,14 @@ class KafkaConsumerService {
       }
 
       const metaMap = ydoc.getMap('meta');
-      const nodesMap = ydoc.getMap('nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
 
       // 1) LOCK: 편집 막기
       if (eventType === 'LOCK') {
-          metaMap.set('locked', true);
-          logger.info(`Workspace ${workspaceId} locked for restructure`);
+          if (!metaMap.get('locked')) {
+              metaMap.set('locked', true);
+              logger.info(`Workspace ${workspaceId} locked for restructure`);
+          }
           return;
       }
 
@@ -364,6 +366,9 @@ class KafkaConsumerService {
                   { error: error.message },
               );
           }
+          logger.info(
+              `Workspace ${workspaceId} Y.Doc restructured with ${nodes.length} nodes (unlock)`
+          );
           return;
       }
 
