@@ -192,7 +192,7 @@ public class NodeController {
             @Parameter(description = "업로드할 이미지 파일", required = true)
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "사용자 프롬프트", required = false)
-            @RequestParam("startPrompt") String startPrompt) {
+            @RequestParam(value = "startPrompt", defaultValue = "") String startPrompt) {
         log.info("POST /mindmap/initial/image - userId={}, fileName={}, startPrompt={}",
                 userId, file.getOriginalFilename(), startPrompt);
 
