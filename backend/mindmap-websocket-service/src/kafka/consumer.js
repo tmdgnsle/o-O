@@ -263,7 +263,7 @@ class KafkaConsumerService {
 
     try {
       // Y.Doc 업데이트 → 모든 연결된 클라이언트에게 자동 전파
-      const nodesMap = ydoc.getMap('nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
       const currentNode = nodesMap.get(nodeId.toString());
 
       if (currentNode) {

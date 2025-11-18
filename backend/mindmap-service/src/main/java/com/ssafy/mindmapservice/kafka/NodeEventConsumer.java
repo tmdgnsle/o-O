@@ -39,27 +39,16 @@ public class NodeEventConsumer {
 
                 // nodeId 변환 (Integer, Long, String 모두 지원)
                 Object nodeIdObj = event.get("nodeId");
-                Long nodeId = nodeIdObj instanceof Integer
-                    ? ((Integer) nodeIdObj).longValue()
-                    : nodeIdObj instanceof String
-                        ? Long.parseLong((String) nodeIdObj)
-                        : (Long) nodeIdObj;
+                Long nodeId = getLong(nodeIdObj);
 
                 Object workspaceIdObj = event.get("workspaceId");
-                Long workspaceId = workspaceIdObj instanceof Integer
-                    ? ((Integer) workspaceIdObj).longValue()
-                    : (Long) workspaceIdObj;
+                Long workspaceId = getLong(workspaceIdObj);
 
                 switch (operation) {
                     case "ADD":
                         // parentId 변환
                         Object parentIdObj = event.get("parentId");
-                        Long parentId = parentIdObj == null ? null :
-                                parentIdObj instanceof Integer
-                                    ? ((Integer) parentIdObj).longValue()
-                                    : parentIdObj instanceof String
-                                        ? Long.parseLong((String) parentIdObj)
-                                        : (Long) parentIdObj;
+                        Long parentId = parentIdObj == null ? null : getLong(parentIdObj);
 
                         MindmapNode newNode = MindmapNode.builder()
                                 .nodeId(nodeId)
@@ -99,12 +88,7 @@ public class NodeEventConsumer {
                         }
                         if (event.containsKey("parentId")) {
                             Object updateParentIdObj = event.get("parentId");
-                            Long updateParentId = updateParentIdObj == null ? null :
-                                    updateParentIdObj instanceof Integer
-                                        ? ((Integer) updateParentIdObj).longValue()
-                                        : updateParentIdObj instanceof String
-                                            ? Long.parseLong((String) updateParentIdObj)
-                                            : (Long) updateParentIdObj;
+                            Long updateParentId = updateParentIdObj == null ? null : getLong(updateParentIdObj);
                             update.set("parentId", updateParentId);
                         }
                         if (event.containsKey("contentUrl")) {
@@ -140,4 +124,17 @@ public class NodeEventConsumer {
         if (value instanceof String) return Double.parseDouble((String) value);
         return null;
     }
+
+    private Long getLong(Object value) {
+        if (value == null) return null;
+
+        if (value instanceof Long) return (Long) value;
+        if (value instanceof Integer) return ((Integer) value).longValue();
+        if (value instanceof String) return Long.parseLong((String) value);
+
+        throw new IllegalArgumentException(
+                "Cannot convert value to Long: " + value + " (" + value.getClass() + ")"
+        );
+    }
+
 }

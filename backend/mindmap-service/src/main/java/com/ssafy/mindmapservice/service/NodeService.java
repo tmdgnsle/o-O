@@ -254,6 +254,10 @@ public class NodeService {
         log.info("Creating initial mindmap with image file: userId={}, fileName={}",
                 userId, file.getOriginalFilename());
 
+        if (startPrompt == null || startPrompt.isBlank()) {
+            startPrompt = "";
+        }
+
         // 1. 이미지 S3 업로드
         String imageKey = imageService.uploadImage(file);
         log.debug("Image uploaded to S3: key={}", imageKey);
