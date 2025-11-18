@@ -101,7 +101,11 @@ export const createMindmapNodeFromImage = async (
     requestBody.color = request.color;
   }
 
-  formData.append("request", JSON.stringify(requestBody));
+  formData.append(
+    "request",
+    new Blob([JSON.stringify(requestBody)], { type: "application/json" })
+  );
+
 
   const { data } = await apiClient.post<NodeDTO>(
     `/mindmap/${workspaceId}/node/image`,
