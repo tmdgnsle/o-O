@@ -365,7 +365,7 @@ const MindmapPageContent: React.FC = () => {
         // createMindmapNode API 호출
         const createdNode = await createMindmapNode(workspaceId, {
           parentId: backendParentId,
-          type: node.type,
+          type: node.type || "text",
           keyword: node.keyword,
           memo: node.memo || '',
           x: node.x || 0,
@@ -675,7 +675,7 @@ const MindmapPageContent: React.FC = () => {
         setTransform(prev => {
           if (prev.x === currentTransform.x &&
               prev.y === currentTransform.y &&
-              prev.scale === currentTransform.scale) {
+              prev.k === currentTransform.k) {
             return prev; // No change, return same object
           }
           return { ...currentTransform };
