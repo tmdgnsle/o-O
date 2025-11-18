@@ -35,20 +35,47 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
       console.log('[useGptAwareness] 🔍 Checking awareness states:', {
         totalStates: states.length,
         myClientId: awareness.clientID,
+        allClientIds: states.map(([id]) => id),
       });
 
-      // Check all participants for GPT state
-      for (const [clientId, state] of states) {
+      // Log ALL states for debugging
+      states.forEach(([clientId, state]) => {
         const gptData = (state as any)?.gpt;
-        console.log(`[useGptAwareness] Client ${clientId}:`, {
+        console.log(`[useGptAwareness] 📊 Client ${clientId}:`, {
           hasGptData: !!gptData,
           isRecording: gptData?.isRecording,
           keywordsCount: gptData?.keywords?.length,
+          keywords: gptData?.keywords?.map((k: any) => k.label),
           startedBy: gptData?.startedBy,
+          timestamp: gptData?.timestamp,
         });
+      });
+
+      // Check all participants for GPT state with keywords
+      for (const [clientId, state] of states) {
+        const gptData = (state as any)?.gpt;
+
+        if (gptData && gptData.keywords && gptData.keywords.length > 0) {
+          console.log('[useGptAwareness] ✅ GPT state with keywords found, updating local state:', {
+            clientId,
+            keywordsCount: gptData.keywords.length,
+            keywords: gptData.keywords.map((k: any) => k.label),
+          });
+          setGptState(gptData);
+          return;
+        }
+      }
+
+      // Check for GPT state without keywords (isRecording only)
+      for (const [clientId, state] of states) {
+        const gptData = (state as any)?.gpt;
 
         if (gptData) {
-          console.log('[useGptAwareness] ✅ GPT state found, updating local state');
+          console.log('[useGptAwareness] ⚠️ GPT state found but no keywords:', {
+            clientId,
+            isRecording: gptData.isRecording,
+            keywordsCount: gptData.keywords?.length || 0,
+          });
           setGptState(gptData);
           return;
         }

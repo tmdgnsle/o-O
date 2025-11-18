@@ -245,12 +245,22 @@ const MindmapPageContent: React.FC = () => {
 
   // GPT 노드 수신 핸들러 (Awareness에 키워드 추가) - useCallback으로 memoization
   const handleGptNodesReceived = useCallback((nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
-    console.log('[MindmapPage] GPT 노드 수신:', nodes.length, '개');
-    console.log('[MindmapPage] 생성된 노드 IDs:', createdNodeIds);
+    console.log('[MindmapPage] GPT 노드 수신:', {
+      nodesCount: nodes.length,
+      createdNodeIds,
+      myRole,
+      isMaintainer: myRole === 'MAINTAINER',
+    });
 
     // MAINTAINER만 Awareness 업데이트 (다른 사용자는 Awareness 구독으로 자동 동기화)
-    if (createdNodeIds.length === 0) {
+    if (myRole !== 'MAINTAINER') {
       console.log('[MindmapPage] ℹ️ 다른 역할 → Awareness 업데이트 스킵 (MAINTAINER가 업데이트함)');
+      return;
+    }
+
+    // createdNodeIds가 비어있으면 실제로 노드가 생성되지 않은 것
+    if (createdNodeIds.length === 0) {
+      console.warn('[MindmapPage] ⚠️ MAINTAINER인데 createdNodeIds가 비어있음 - 노드 생성 실패?');
       return;
     }
 
@@ -259,13 +269,17 @@ const MindmapPageContent: React.FC = () => {
     // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
     // Use ref to avoid recreating this callback when gptState changes
     if (updateGptState && gptStateRef.current) {
-      console.log('[MindmapPage] 📡 MAINTAINER가 Awareness에 키워드 추가');
+      console.log('[MindmapPage] 📡 MAINTAINER가 Awareness에 키워드 추가:', {
+        existingKeywords: gptStateRef.current.keywords?.length || 0,
+        newKeywords: newKeywords.length,
+        totalAfterUpdate: (gptStateRef.current.keywords?.length || 0) + newKeywords.length,
+      });
       updateGptState({
         ...gptStateRef.current, // ref로 접근 (기존 상태 유지)
         keywords: [...(gptStateRef.current.keywords ?? []), ...newKeywords], // 키워드만 추가
       });
     }
-  }, [updateGptState]);
+  }, [updateGptState, myRole]);
 
   // 키워드 클릭 핸들러 - 해당 노드로 화면 이동
   const handleKeywordClick = (nodeId: string) => {
