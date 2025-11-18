@@ -65,7 +65,7 @@ workspace:
     url: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
 
 elasticsearch:
-  host: ${ELASTICSEARCH_URL:http://k13d202.p.ssafy.io:9200}
+  host: ${ELASTICSEARCH_URL}
 
 feign:
   client:
