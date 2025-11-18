@@ -75,11 +75,38 @@ public class NodeAiController {
     }
 
 
-    public ResponseEntity<?> restructureMindmap(
+    @Operation(
+            summary = "마인드맵 전체 구조 정리하기",
+            description = """
+                    현재 워크스페이스의 모든 노드를 GPT 기반으로 재구성하여
+                    더 깔끔한 트리 구조로 정렬합니다.
+
+                    수행 과정:
+                    1) 서버가 해당 workspace 의 모든 노드를 MongoDB에서 조회
+                    2) GPT(gpt-5-mini)를 사용해 의미 기반 트리 구조 재배치
+                    3) 노드 병합, parent 재구성, root(nodeId=1) 보존
+                    4) DB 전체 덮어쓰기
+                    5) Kafka(mindmap.restructure.update) 이벤트 발행 → 실시간 클라이언트 반영
+
+                    이 API는 약 4~7초 정도 소요될 수 있습니다.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "정리 작업 시작됨",
+                    content = @Content(schema = @Schema(example = """
+                            {
+                              "message": "정리 작업이 시작되었습니다."
+                            }
+                            """))),
+            @ApiResponse(responseCode = "400", description = "잘못된 workspaceId"),
+            @ApiResponse(responseCode = "500", description = "정리 작업 중 오류 발생")
+    })
+    @PostMapping("/restructure")
+    public ResponseEntity<Map<String, String>> restructureMindmap(
+            @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Long workspaceId
     ) {
         nodeAiService.restructureWorkspace(workspaceId);
         return ResponseEntity.ok(Map.of("message", "정리 작업이 시작되었습니다."));
     }
-
 }
