@@ -14,8 +14,9 @@ export interface GptState {
  * Listens to all participants' Awareness state and returns the GPT session
  * if any participant has GPT state (recording or processing).
  *
- * Note: Returns GPT state even when isRecording is false to preserve startedBy
- * information for proper node creation authorization.
+ * Note:
+ * - Returns GPT state even when isRecording is false to preserve startedBy
+ * - Shares GPT state globally (no local priority) for keyword panel sync
  */
 export function useGptAwareness(awareness?: Awareness): GptState | null {
   const [gptState, setGptState] = useState<GptState | null>(null);
@@ -28,21 +29,11 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
 
     const updateGptState = () => {
       // Find any peer with GPT state (recording or processing)
-      // Priority: Local user first, then other participants
+      // Check all participants (no priority, share GPT state globally)
       const states = Array.from(awareness.getStates().entries());
 
-      // Check local state first
-      const localClientId = awareness.clientID;
-      const localState = awareness.getLocalState() as any;
-      if (localState?.gpt) {
-        setGptState(localState.gpt);
-        return;
-      }
-
-      // Check other participants
+      // Check all participants for GPT state
       for (const [clientId, state] of states) {
-        if (clientId === localClientId) continue; // Skip local (already checked)
-
         const gptData = (state as any)?.gpt;
         if (gptData) {
           setGptState(gptData);
