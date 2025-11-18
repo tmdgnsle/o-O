@@ -49,6 +49,15 @@ public class NodeRestructureProducer {
                 "nodes", nodes
         ));
     }
+
+    public void sendFail(Long workspaceId, String reason) {
+        // 필요하면 reason 너무 길면 잘라서 보내도 됨
+        sendPayload(workspaceId, Map.of(
+                "workspaceId", workspaceId,
+                "eventType", "FAIL",
+                "reason", reason
+        ));
+    }
 }
 
 

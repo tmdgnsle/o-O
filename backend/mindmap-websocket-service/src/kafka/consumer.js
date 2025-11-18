@@ -31,6 +31,7 @@ class KafkaConsumerService {
     this.aiSuggestionTopic = process.env.KAFKA_TOPIC_AI_SUGGESTION || 'mindmap.ai.suggestion';
     this.nodeRestructureTopic  = process.env.KAFKA_TOPIC_RESTRUCTURE || 'mindmap.restructure.update';
     this.onAiSuggestion = null;
+    this.onRestructure = null;
   }
 
   /**
@@ -47,7 +48,13 @@ class KafkaConsumerService {
       logger.info('AI suggestion handler registered');
   }
 
-  /**
+  setRestructureHandler(handler) {
+      this.onRestructure = handler;
+      logger.info('Restructure handler registered');
+  }
+
+
+    /**
    * Kafka Consumer 초기화 및 연결
    * 환경변수 KAFKA_BROKERS가 설정되어 있으면 실제 Kafka에 연결
    * 없으면 비활성화 (stub mode)
@@ -296,6 +303,17 @@ class KafkaConsumerService {
           logger.warn('AI suggestion received but no handler registered', { data });
       }
   }
+
+  handleNodeRestructure(data){
+      if (this.onRestructure) {
+          this.onRestructure(data);
+      } else {
+          logger.warn('Restructure message received but no handler registered', { data });
+      }
+  }
+
+
+
 
   handleNodeRestructure(data) {
       const { workspaceId, nodes, eventType } = data;
