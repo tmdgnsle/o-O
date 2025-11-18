@@ -246,6 +246,13 @@ const MindmapPageContent: React.FC = () => {
   // GPT 노드 수신 핸들러 (Awareness에 키워드 추가) - useCallback으로 memoization
   const handleGptNodesReceived = useCallback((nodes: GptNodeSuggestion[], createdNodeIds: string[]) => {
     console.log('[MindmapPage] GPT 노드 수신:', nodes.length, '개');
+    console.log('[MindmapPage] 생성된 노드 IDs:', createdNodeIds);
+
+    // MAINTAINER만 노드를 생성하므로, createdNodeIds가 있을 때만 키워드 추가
+    if (createdNodeIds.length === 0) {
+      console.log('[MindmapPage] ℹ️ 노드 미생성 (다른 역할) → 키워드 추가 스킵');
+      return;
+    }
 
     const newKeywords = convertGptNodesToKeywords(nodes, createdNodeIds);
 

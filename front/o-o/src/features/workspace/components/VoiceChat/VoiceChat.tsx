@@ -118,30 +118,30 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     });
     console.log('[VoiceChat] 🎯 GPT Nodes:', message.nodes);
 
-    // 녹음 시작자만 노드를 생성 (중복 생성 방지) - Ref로 안정적으로 접근
-    const isStarter = gptStateRef.current?.startedBy === currentUserRef.current?.id.toString();
+    // MAINTAINER만 노드를 생성 (권한 기반 제어)
+    const isMaintainer = myRole === 'MAINTAINER';
 
-    console.log('[VoiceChat] 🔍 isStarter 체크:', {
-      startedBy: gptStateRef.current?.startedBy,
+    console.log('[VoiceChat] 🔍 권한 체크:', {
+      myRole,
+      isMaintainer,
       currentUserId: currentUserRef.current?.id.toString(),
-      isStarter,
     });
 
     let createdNodeIds: string[] = [];
 
-    if (isStarter) {
-      console.log('[VoiceChat] 🎯 녹음 시작자 → 노드 생성');
+    if (isMaintainer) {
+      console.log('[VoiceChat] 🎯 MAINTAINER → 노드 생성');
       // 노드를 마인드맵에 추가하고 생성된 노드 ID들 받기 (ref로 최신 함수 참조)
       createdNodeIds = createNodesFromGptRef.current(message.nodes);
     } else {
-      console.log('[VoiceChat] ℹ️ 다른 참여자 → 키워드 표시만 업데이트');
+      console.log('[VoiceChat] ℹ️ 다른 역할 → 키워드 표시만');
     }
 
     // 모든 참여자: 부모 컴포넌트에 노드와 생성된 ID들 전달 (ExtractedKeywordList에 표시하기 위해)
     onGptNodesReceived?.(message.nodes, createdNodeIds);
 
     console.log('[VoiceChat] ✅ GPT 처리 완료');
-  }, [onGptNodesReceived]);
+  }, [onGptNodesReceived, myRole]);
 
   // GPT Error 핸들러 (useCallback으로 memoization)
   const handleGptError = useCallback((message: { error: string; rawText?: string; timestamp: number }) => {
