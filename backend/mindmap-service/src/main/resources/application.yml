@@ -68,6 +68,11 @@ elasticsearch:
   host: ${ELASTICSEARCH_URL:http://k13d202.p.ssafy.io:9200}
 
 feign:
+  client:
+    config:
+      gms-client:
+        connectTimeout: 5000
+        readTimeout: 150000
   httpclient:
     enabled: false
   okhttp:

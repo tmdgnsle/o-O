@@ -614,6 +614,7 @@ public class NodeAiService {
                                 반드시 JSON만 출력.
                                 마크다운, 설명, ``` 금지.
                                 새로운 nodeId 생성 금지.
+                                keyword, memo 변경금지
                                 """),
                             new ChatMessage("system", """
                                 You are an expert mindmap restructuring agent.
@@ -675,8 +676,9 @@ public class NodeAiService {
       2. keyword + memo가 의미적으로 중복이면 병합  nodeId가 작은 것을 남기기.
       3. 계층 구조를 semantic 기준으로 재배치
       4. parentId 는 존재하는 nodeId 중 하나여야 함
-      5. 좌표(x,y)는 자동 생성 (트리 형태 면 됨)
+      5. 좌표(x,y)는 null로 채워야함.
       6. 출력은 반드시 JSON array 로만, 설명 금지
+      7. parentId를 변경하여 재배치.
 
       🎯 출력 포맷
       [
@@ -687,8 +689,8 @@ public class NodeAiService {
           "memo": "string",
           "type": "text",
           "color": "#hex",
-          "x": number,
-          "y": number
+          "x": null,
+          "y": null
         }
       ]
 
