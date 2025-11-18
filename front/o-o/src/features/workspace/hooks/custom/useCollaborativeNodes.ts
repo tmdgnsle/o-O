@@ -19,7 +19,7 @@ import type { YClient } from "./yjsClient";
  * - 부모-자식 근접 배치 (각도 기반)
  * - D3 force simulation으로 노드 겹침 방지 및 edge crossing 최소화
  */
-async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
+export async function calculateNodePositions(nodes: NodeData[]): Promise<NodeData[]> {
   if (nodes.length === 0) return nodes;
 
   // x, y가 null인 노드 확인
