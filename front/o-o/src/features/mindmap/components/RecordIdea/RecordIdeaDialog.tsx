@@ -18,7 +18,7 @@ interface RecordIdeaDialogProps {
 
 export function RecordIdeaDialog({ keywords, onDelete, onNodeClick, myRole, onClose }: RecordIdeaDialogProps) {
   const isMaintainer = myRole === 'MAINTAINER';
-  const canDelete = myRole === 'MAINTAINER' || myRole === 'EDIT';
+  const canDelete = myRole === 'MAINTAINER'; // MAINTAINER만 키워드 삭제 가능
 
   return (
     <div className="w-[33vh] h-[80vh] rounded-2xl shadow-lg flex flex-col">
