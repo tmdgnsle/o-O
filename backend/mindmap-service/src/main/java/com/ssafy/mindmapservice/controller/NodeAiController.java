@@ -135,7 +135,7 @@ public class NodeAiController {
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Long workspaceId
     ) {
-        nodeAiService.restructureWorkspace(workspaceId);
+        nodeAiService.restructureAsync(workspaceId);
         return ResponseEntity.ok(Map.of("message", "정리 작업이 시작되었습니다."));
     }
 }
