@@ -53,30 +53,30 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
         });
       });
 
-      // 1순위: MAINTAINER의 gptState (keywords 있음)
+      // 1순위: MAINTAINER의 gptState (빈 배열 포함)
       for (const [clientId, state] of states) {
         const gptData = (state as any)?.gpt;
         const user = (state as any)?.user;
 
-        if (gptData && user?.role === 'MAINTAINER' && gptData.keywords && gptData.keywords.length > 0) {
-          console.log('[useGptAwareness] ✅ MAINTAINER state 선택:', {
+        if (gptData && user?.role === 'MAINTAINER' && gptData.keywords !== undefined) {
+          console.log('[useGptAwareness] ✅ MAINTAINER state 선택 (빈 배열 포함):', {
             clientId,
             keywordsCount: gptData.keywords.length,
-            keywords: gptData.keywords.map((k: any) => k.label),
+            keywords: gptData.keywords.length > 0 ? gptData.keywords.map((k: any) => k.label) : '[]',
           });
           setGptState(gptData);
           return;
         }
       }
 
-      // 2순위: timestamp가 가장 최신인 gptState (keywords 있음)
+      // 2순위: timestamp가 가장 최신인 gptState (빈 배열 포함)
       let latestState: GptState | null = null;
       let latestTimestamp = 0;
       let latestClientId: number | null = null;
 
       for (const [clientId, state] of states) {
         const gptData = (state as any)?.gpt;
-        if (gptData && gptData.keywords && gptData.keywords.length > 0) {
+        if (gptData && gptData.keywords !== undefined) {
           if (gptData.timestamp > latestTimestamp) {
             latestState = gptData;
             latestTimestamp = gptData.timestamp;
@@ -86,11 +86,11 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
       }
 
       if (latestState) {
-        console.log('[useGptAwareness] 📅 최신 timestamp state 선택:', {
+        console.log('[useGptAwareness] 📅 최신 timestamp state 선택 (빈 배열 포함):', {
           clientId: latestClientId,
           timestamp: latestTimestamp,
           keywordsCount: latestState.keywords.length,
-          keywords: latestState.keywords.map((k: any) => k.label),
+          keywords: latestState.keywords.length > 0 ? latestState.keywords.map((k: any) => k.label) : '[]',
         });
         setGptState(latestState);
         return;
