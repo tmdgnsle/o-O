@@ -779,7 +779,13 @@ const MindmapPageContent: React.FC = () => {
         {!voiceChatVisible && (
           <div className="fixed top-1 right-1 md:top-4 md:right-4 z-50">
             <StatusBox
-              onStartVoiceChat={() => setVoiceChatVisible(true)}
+              onStartVoiceChat={() => {
+                // 분석모드에서 음성채팅 시작 시 편집모드로 자동 전환
+                if (mode === "analyze") {
+                  handleModeChange("edit");
+                }
+                setVoiceChatVisible(true);
+              }}
               workspaceId={workspaceId}
               yclient={collab?.client}
             />
