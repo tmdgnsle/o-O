@@ -15,6 +15,7 @@ import {
   ConfirmEndVoiceChatDialog,
   MeetingMinutesContentDialog,
 } from "../MeetingMinutes/MeetingMinutesDialogs";
+import { useWorkspaceAccessQuery } from "../../hooks/query/useWorkspaceAccessQuery";
 
 interface YjsCRUD {
   create: (node: NodeData) => void;
@@ -64,6 +65,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 }) => {
   const currentUser = useAppSelector((state) => state.user.user);
   const { peers } = usePeerCursors();
+  const { workspace } = useWorkspaceAccessQuery(workspaceId);
 
   // GPT Node Creator
   const { createNodesFromGpt } = useGptNodeCreator(crud, workspaceId, nodes);
@@ -525,6 +527,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         content={meetingMinutesState.content}
         isGenerating={meetingMinutesState.isGenerating}
         error={meetingMinutesState.error}
+        workspaceTitle={workspace?.title}
       />
     </>
   );
