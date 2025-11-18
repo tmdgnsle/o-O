@@ -14,9 +14,10 @@ interface RecordIdeaDialogProps {
   onNodeClick?: (nodeId: string) => void;
   myRole?: string;
   onClose?: () => void;
+  onSubmit?: () => void;
 }
 
-export function RecordIdeaDialog({ keywords, onDelete, onNodeClick, myRole, onClose }: RecordIdeaDialogProps) {
+export function RecordIdeaDialog({ keywords, onDelete, onNodeClick, myRole, onClose, onSubmit }: RecordIdeaDialogProps) {
   const isMaintainer = myRole === 'MAINTAINER';
   const canDelete = myRole === 'MAINTAINER'; // MAINTAINER만 키워드 삭제 가능
 
@@ -29,7 +30,7 @@ export function RecordIdeaDialog({ keywords, onDelete, onNodeClick, myRole, onCl
         <RecordIdeaBody keywords={keywords} onDelete={onDelete} onNodeClick={onNodeClick} canDelete={canDelete} />
       </div>
       {isMaintainer ? (
-        <Button className="bg-primary mb-4 mx-4 shadow-md">입력하기</Button>
+        <Button className="bg-primary mb-4 mx-4 shadow-md" onClick={onSubmit}>입력하기</Button>
       ) : (
         <Button className="bg-primary mb-4 mx-4 shadow-md" onClick={onClose}>
           닫기

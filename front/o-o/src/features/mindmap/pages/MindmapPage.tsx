@@ -323,6 +323,89 @@ const MindmapPageContent: React.FC = () => {
     }
   };
 
+  // GPT 노드 서버 저장 핸들러 (MAINTAINER만 실행)
+  const handleSubmitGptNodes = useCallback(async () => {
+    if (!gptState?.keywords || gptState.keywords.length === 0) {
+      console.log('[MindmapPage] 저장할 GPT 키워드가 없습니다.');
+      return;
+    }
+
+    if (!collab) {
+      console.error('[MindmapPage] collab이 초기화되지 않았습니다.');
+      return;
+    }
+
+    console.log('[MindmapPage] 🚀 GPT 노드 서버 저장 시작:', gptState.keywords.length, '개');
+
+    try {
+      // 1. keywords에서 nodeId가 없는 노드들 필터링 (아직 서버에 없는 노드)
+      const nodesToSave = gptState.keywords
+        .map(kw => nodes.find(n => n.id === kw.id))
+        .filter(node => node && !node.nodeId);
+
+      console.log('[MindmapPage] 📝 서버에 저장할 노드:', nodesToSave.length, '개');
+
+      // 2. 각 노드를 서버에 POST
+      for (const node of nodesToSave) {
+        if (!node) continue;
+
+        // parentId 변환 (string ID → backend nodeId)
+        let backendParentId: number | null = null;
+        if (node.parentId && node.parentId !== '0') {
+          const parentNode = nodes.find(n => n.id === node.parentId);
+          backendParentId = (parentNode?.nodeId as number) || null;
+        }
+
+        console.log('[MindmapPage] 💾 노드 저장 중:', {
+          id: node.id,
+          keyword: node.keyword,
+          parentId: backendParentId,
+        });
+
+        // createMindmapNode API 호출
+        const createdNode = await createMindmapNode(workspaceId, {
+          parentId: backendParentId,
+          type: node.type,
+          keyword: node.keyword,
+          memo: node.memo || '',
+          x: node.x || 0,
+          y: node.y || 0,
+          color: node.color,
+          contentUrl: null,
+        });
+
+        console.log('[MindmapPage] ✅ 노드 저장 완료:', {
+          id: node.id,
+          nodeId: createdNode.nodeId,
+        });
+
+        // 3. Yjs map 업데이트 (nodeId 할당)
+        collab.client.doc.transact(() => {
+          const current = collab.map.get(node.id);
+          if (current) {
+            collab.map.set(node.id, {
+              ...current,
+              nodeId: createdNode.nodeId,
+            });
+          }
+        }, 'remote'); // origin='remote'로 useMindmapSync 재트리거 방지
+      }
+
+      console.log('[MindmapPage] ✨ 모든 GPT 노드 저장 완료');
+
+      // 4. Awareness 초기화 (GPT 상태 제거)
+      if (updateGptState) {
+        updateGptState(null);
+      }
+
+      // 5. 패널 닫기
+      setShowGptPanel(false);
+    } catch (error) {
+      console.error('[MindmapPage] ❌ GPT 노드 저장 실패:', error);
+      // TODO: 에러 토스트 표시
+    }
+  }, [gptState, nodes, collab, workspaceId, updateGptState]);
+
   // 7. Node operations hook
   const nodeOperations = useNodeOperations({
     crud,
@@ -752,6 +835,7 @@ const MindmapPageContent: React.FC = () => {
                   setShowGptPanel(false);
                 }
               }}
+              onSubmit={handleSubmitGptNodes}
             />
           </div>
         )}
