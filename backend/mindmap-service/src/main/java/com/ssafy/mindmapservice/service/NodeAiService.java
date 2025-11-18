@@ -155,7 +155,11 @@ public class NodeAiService {
                         new ChatMessage("developer",
                                 "You must respond ONLY with valid JSON format. " +
                                         "Do not include any markdown code blocks, explanations, or extra text. " +
-                                        "Just pure JSON array."),
+                                        "Just pure JSON array. " +
+                                        "Extract only the single most relevant keyword. " +
+                                        "If identifying only one keyword is truly impossible, extract up to three keywords as a maximum. " +
+                                        "The JSON array must contain at least one and at most three objects."
+                        ),
                         new ChatMessage("system",
                                 "You are an AI assistant that extracts keywords from ideas and connects them to existing mindmap nodes. " +
                                         "You must respond with ONLY valid JSON format without any markdown formatting."),
