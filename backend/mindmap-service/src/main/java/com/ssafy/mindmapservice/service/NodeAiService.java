@@ -593,53 +593,73 @@ public class NodeAiService {
     @Transactional
     public void restructureWorkspace(Long workspaceId) {
 
-        // 🔥 0) 우선 LOCK 브로드캐스트
+        // 🔥 0) 우선 LOCK 브로드캐스트 (프론트 편집 막기)
         nodeRestructureProducer.sendLock(workspaceId);
 
-        // 1) 기존 노드 조회
-        List<MindmapNode> nodes = nodeRepository.findByWorkspaceId(workspaceId);
+        try {
+            // 1) 기존 노드 조회
+            List<MindmapNode> nodes = nodeRepository.findByWorkspaceId(workspaceId);
 
-        if (nodes.isEmpty()) {
-            throw new IllegalArgumentException("해당 워크스페이스에 노드가 없습니다.");
+            if (nodes.isEmpty()) {
+                throw new IllegalArgumentException("해당 워크스페이스에 노드가 없습니다.");
+            }
+
+            // 2) GPT 프롬프트 생성
+            String prompt = buildRestructurePrompt(nodes);
+
+            ChatCompletionRequest request = new ChatCompletionRequest(
+                    "gpt-5-mini",
+                    List.of(
+                            new ChatMessage("developer", """
+                                반드시 JSON만 출력.
+                                마크다운, 설명, ``` 금지.
+                                """),
+                            new ChatMessage("system", """
+                                You are an expert mindmap restructuring agent.
+                                You will reorganize nodes into a clean hierarchy.
+                                DO NOT modify nodeId=1 (root node).
+                                """),
+                            new ChatMessage("user", prompt)
+                    )
+            );
+
+            // 3) GPT 호출 + 결과 JSON 추출
+            ChatCompletionResponse response = callGms(request, "정리하기");
+            String json = extractContent(response);
+
+            // 4) GPT 응답 → 엔티티 리스트 변환
+            List<MindmapNode> rebuilt = parseRestructureJson(workspaceId, json);
+
+            // 5) nodeId / parentId 등 검증
+            validateNodeIds(nodes, rebuilt);
+
+            // 6) DB 전체 덮어쓰기
+            nodeRepository.deleteByWorkspaceId(workspaceId);
+            nodeRepository.saveAll(rebuilt);
+
+            // 🔥 7) APPLY 이벤트 발행 (nodes 포함)
+            nodeRestructureProducer.sendApply(workspaceId, rebuilt);
+
+            log.info("Workspace {} restructure complete", workspaceId);
+
+        } catch (Exception e) {
+            log.error("Workspace {} restructure failed", workspaceId, e);
+
+            // 🔥 실패 시 FAIL 이벤트 발행 (프론트는 lock 풀고 토스트 띄우게)
+            try {
+                nodeRestructureProducer.sendFail(workspaceId, e.getMessage());
+            } catch (Exception sendEx) {
+                log.error("Failed to send restructure FAIL event for workspace {}", workspaceId, sendEx);
+            }
+
+            // 트랜잭션 롤백되도록 재-throw
+            if (e instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new RuntimeException(e);
         }
-
-        // 2) GPT 프롬프트 생성
-        String prompt = buildRestructurePrompt(nodes);
-
-        ChatCompletionRequest request = new ChatCompletionRequest(
-                "gpt-5-mini",
-                List.of(
-                        new ChatMessage("developer", """
-                        반드시 JSON만 출력.
-                        마크다운, 설명, ``` 금지.
-                    """),
-                        new ChatMessage("system", """
-                        You are an expert mindmap restructuring agent.
-                        You will reorganize nodes into a clean hierarchy.
-                        DO NOT modify nodeId=1 (root node).
-                    """),
-                        new ChatMessage("user", prompt)
-                )
-        );
-
-        ChatCompletionResponse response = callGms(request, "정리하기");
-        String json = extractContent(response);
-
-        // 3) GPT 응답 → 엔티티 리스트 변환
-        List<MindmapNode> rebuilt = parseRestructureJson(workspaceId, json);
-
-        // ⭐⭐⭐ 4) 여기 넣으면 됨 — nodeId 검증 로직
-        validateNodeIds(nodes, rebuilt);
-
-        // 4) DB 전체 덮어쓰기
-        nodeRepository.deleteByWorkspaceId(workspaceId);
-        nodeRepository.saveAll(rebuilt);
-
-        // 🔥 5) APPLY 이벤트 발행 (nodes 포함)
-        nodeRestructureProducer.sendApply(workspaceId, rebuilt);
-
-        log.info("Workspace {} restructure complete", workspaceId);
     }
+
 
 
     private String buildRestructurePrompt(List<MindmapNode> nodes) {
