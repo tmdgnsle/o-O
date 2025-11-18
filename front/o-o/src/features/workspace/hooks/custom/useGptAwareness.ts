@@ -29,7 +29,7 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
 
     const updateGptState = () => {
       // Find any peer with GPT state (recording or processing)
-      // Check all participants (no priority, share GPT state globally)
+      // Priority: MAINTAINER > Latest timestamp > isRecording
       const states = Array.from(awareness.getStates().entries());
 
       console.log('[useGptAwareness] 🔍 Checking awareness states:', {
@@ -41,8 +41,10 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
       // Log ALL states for debugging
       states.forEach(([clientId, state]) => {
         const gptData = (state as any)?.gpt;
+        const user = (state as any)?.user;
         console.log(`[useGptAwareness] 📊 Client ${clientId}:`, {
           hasGptData: !!gptData,
+          role: user?.role,
           isRecording: gptData?.isRecording,
           keywordsCount: gptData?.keywords?.length,
           keywords: gptData?.keywords?.map((k: any) => k.label),
@@ -51,12 +53,13 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
         });
       });
 
-      // Check all participants for GPT state with keywords
+      // 1순위: MAINTAINER의 gptState (keywords 있음)
       for (const [clientId, state] of states) {
         const gptData = (state as any)?.gpt;
+        const user = (state as any)?.user;
 
-        if (gptData && gptData.keywords && gptData.keywords.length > 0) {
-          console.log('[useGptAwareness] ✅ GPT state with keywords found, updating local state:', {
+        if (gptData && user?.role === 'MAINTAINER' && gptData.keywords && gptData.keywords.length > 0) {
+          console.log('[useGptAwareness] ✅ MAINTAINER state 선택:', {
             clientId,
             keywordsCount: gptData.keywords.length,
             keywords: gptData.keywords.map((k: any) => k.label),
@@ -66,12 +69,54 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
         }
       }
 
-      // Check for GPT state without keywords (isRecording only)
+      // 2순위: timestamp가 가장 최신인 gptState (keywords 있음)
+      let latestState: GptState | null = null;
+      let latestTimestamp = 0;
+      let latestClientId: number | null = null;
+
+      for (const [clientId, state] of states) {
+        const gptData = (state as any)?.gpt;
+        if (gptData && gptData.keywords && gptData.keywords.length > 0) {
+          if (gptData.timestamp > latestTimestamp) {
+            latestState = gptData;
+            latestTimestamp = gptData.timestamp;
+            latestClientId = clientId;
+          }
+        }
+      }
+
+      if (latestState) {
+        console.log('[useGptAwareness] 📅 최신 timestamp state 선택:', {
+          clientId: latestClientId,
+          timestamp: latestTimestamp,
+          keywordsCount: latestState.keywords.length,
+          keywords: latestState.keywords.map((k: any) => k.label),
+        });
+        setGptState(latestState);
+        return;
+      }
+
+      // 3순위: isRecording 중인 gptState (keywords 없어도 됨)
+      for (const [clientId, state] of states) {
+        const gptData = (state as any)?.gpt;
+
+        if (gptData && gptData.isRecording) {
+          console.log('[useGptAwareness] 🎤 녹음 중 state 선택:', {
+            clientId,
+            isRecording: gptData.isRecording,
+            keywordsCount: gptData.keywords?.length || 0,
+          });
+          setGptState(gptData);
+          return;
+        }
+      }
+
+      // 4순위: gptData가 있기만 하면 (fallback)
       for (const [clientId, state] of states) {
         const gptData = (state as any)?.gpt;
 
         if (gptData) {
-          console.log('[useGptAwareness] ⚠️ GPT state found but no keywords:', {
+          console.log('[useGptAwareness] ⚠️ GPT state found (fallback):', {
             clientId,
             isRecording: gptData.isRecording,
             keywordsCount: gptData.keywords?.length || 0,
