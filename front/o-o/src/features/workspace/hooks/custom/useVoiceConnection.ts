@@ -15,6 +15,9 @@ import type {
   GptChunkMessage,
   GptDoneMessage,
   GptErrorMessage,
+  MeetingMinutesChunkMessage,
+  MeetingMinutesDoneMessage,
+  MeetingMinutesErrorMessage,
 } from '../../types/voice.types';
 
 type UseVoiceConnectionOptions = {
@@ -33,6 +36,9 @@ type MessageHandlers = {
   onGptError?: (message: GptErrorMessage) => void;
   onGptRecordingStarted?: (startedBy: string, timestamp: number) => void;
   onGptSessionEnded?: () => void;
+  onMeetingMinutesChunk?: (message: MeetingMinutesChunkMessage) => void;
+  onMeetingMinutesDone?: (message: MeetingMinutesDoneMessage) => void;
+  onMeetingMinutesError?: (message: MeetingMinutesErrorMessage) => void;
 };
 
 export function useVoiceConnection(
@@ -174,6 +180,18 @@ export function useVoiceConnection(
 
             case 'gpt-session-ended':
               handlersRef.current.onGptSessionEnded?.();
+              break;
+
+            case 'meeting-minutes-chunk':
+              handlersRef.current.onMeetingMinutesChunk?.(message);
+              break;
+
+            case 'meeting-minutes-done':
+              handlersRef.current.onMeetingMinutesDone?.(message);
+              break;
+
+            case 'meeting-minutes-error':
+              handlersRef.current.onMeetingMinutesError?.(message);
               break;
 
             case 'server-shutdown':

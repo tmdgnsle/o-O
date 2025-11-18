@@ -11,6 +11,10 @@ import type { NodeData } from "../../../mindmap/types";
 import type { GptNodeSuggestion } from "../../types/voice.types";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 import type { YClient } from "../../hooks/custom/yjsClient";
+import {
+  ConfirmEndVoiceChatDialog,
+  MeetingMinutesContentDialog,
+} from "../MeetingMinutes/MeetingMinutesDialogs";
 
 interface YjsCRUD {
   create: (node: NodeData) => void;
@@ -192,6 +196,50 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     }
   }, []);
 
+  // Meeting Minutes handlers (will be passed to useVoiceChat)
+  const [meetingMinutesState, setMeetingMinutesState] = React.useState({
+    isGenerating: false,
+    content: '',
+    showConfirmDialog: false,
+    showContentDialog: false,
+    error: null as string | null,
+  });
+
+  const handleMeetingMinutesChunk = useCallback(
+    (message: { content: string; timestamp: number }) => {
+      console.log('[VoiceChat] 📦 Meeting minutes chunk received');
+      setMeetingMinutesState((prev) => ({
+        ...prev,
+        content: prev.content + message.content,
+      }));
+    },
+    []
+  );
+
+  const handleMeetingMinutesDone = useCallback(
+    (message: { content: string; timestamp: number }) => {
+      console.log('[VoiceChat] ✅ Meeting minutes generation complete');
+      setMeetingMinutesState((prev) => ({
+        ...prev,
+        isGenerating: false,
+        content: message.content,
+      }));
+    },
+    []
+  );
+
+  const handleMeetingMinutesError = useCallback(
+    (message: { error: string; timestamp: number }) => {
+      console.error('[VoiceChat] ❌ Meeting minutes error:', message.error);
+      setMeetingMinutesState((prev) => ({
+        ...prev,
+        isGenerating: false,
+        error: message.error,
+      }));
+    },
+    []
+  );
+
   // Use the voice chat hook
   const {
     isInVoice,
@@ -204,6 +252,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     toggleMute,
     sendMessage,
     connectionState,
+    requestMeetingMinutes,
   } = useVoiceChat({
     workspaceId,
     userId: currentUser?.id.toString(),
@@ -213,6 +262,9 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     onGptError: handleGptError,
     onGptRecordingStarted: handleGptRecordingStarted,
     onGptSessionEnded: handleGptSessionEnded,
+    onMeetingMinutesChunk: handleMeetingMinutesChunk,
+    onMeetingMinutesDone: handleMeetingMinutesDone,
+    onMeetingMinutesError: handleMeetingMinutesError,
   });
 
   // GPT Hook (only for UI state management - handlers are in useVoiceChat)
@@ -306,10 +358,54 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
         gpt.stopRecording();
       }
 
-      leaveVoice();
-      onCallEnd?.();
+      // MAINTAINER: Show confirm dialog to choose between mindmap or meeting minutes
+      const isMaintainer = myRole === 'MAINTAINER';
+      if (isMaintainer) {
+        console.log('[VoiceChat] 👤 MAINTAINER ending voice → Show confirm dialog');
+        setMeetingMinutesState((prev) => ({ ...prev, showConfirmDialog: true }));
+      } else {
+        // MEMBER: Just leave voice chat immediately
+        console.log('[VoiceChat] 👤 MEMBER ending voice → Leave immediately');
+        leaveVoice();
+        onCallEnd?.();
+      }
     }
   };
+
+  // Handle "View Mindmap" button click in confirm dialog
+  const handleViewMindmap = useCallback(() => {
+    console.log('[VoiceChat] 📍 User chose "View Mindmap" → Cleanup and close');
+    setMeetingMinutesState((prev) => ({ ...prev, showConfirmDialog: false }));
+    leaveVoice();
+    onCallEnd?.();
+  }, [leaveVoice, onCallEnd]);
+
+  // Handle "View Meeting Minutes" button click in confirm dialog
+  const handleViewMeetingMinutes = useCallback(() => {
+    console.log('[VoiceChat] 📝 User chose "View Meeting Minutes" → Generate');
+    setMeetingMinutesState((prev) => ({
+      ...prev,
+      showConfirmDialog: false,
+      showContentDialog: true,
+      isGenerating: true,
+      content: '',
+      error: null,
+    }));
+    requestMeetingMinutes();
+  }, [requestMeetingMinutes]);
+
+  // Handle meeting minutes dialog close
+  const handleMeetingMinutesClose = useCallback(() => {
+    console.log('[VoiceChat] ❌ Closing meeting minutes dialog → Cleanup');
+    setMeetingMinutesState((prev) => ({
+      ...prev,
+      showContentDialog: false,
+      content: '',
+      error: null,
+    }));
+    leaveVoice();
+    onCallEnd?.();
+  }, [leaveVoice, onCallEnd]);
 
   // Play remote audio streams
   useEffect(() => {
@@ -377,42 +473,60 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
   }, [participants, peers, currentUser, isSpeaking, cursorColor]);
 
   return (
-    <div
-      className="flex items-center gap-3 bg-semi-white px-4 py-2 shadow-lg"
-      style={{ borderRadius: "20px" }}
-    >
-      {/* Users Avatars */}
-      <div className="flex items-center gap-3">
-        {voiceUsers.map((user, index) => (
-          <VoiceAvatar
-            key={user.id}
-            avatar={user.avatar}
-            name={user.name}
-            isSpeaking={user.isSpeaking}
-            voiceColor={user.voiceColor}
-            colorIndex={user.colorIndex}
-            index={index}
-          />
-        ))}
+    <>
+      <div
+        className="flex items-center gap-3 bg-semi-white px-4 py-2 shadow-lg"
+        style={{ borderRadius: "20px" }}
+      >
+        {/* Users Avatars */}
+        <div className="flex items-center gap-3">
+          {voiceUsers.map((user, index) => (
+            <VoiceAvatar
+              key={user.id}
+              avatar={user.avatar}
+              name={user.name}
+              isSpeaking={user.isSpeaking}
+              voiceColor={user.voiceColor}
+              colorIndex={user.colorIndex}
+              index={index}
+            />
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="h-12 w-px bg-gray-300 mx-2" />
+
+        {/* Control Buttons */}
+        <VoiceControls
+          isMuted={isMuted}
+          isCallActive={isInVoice}
+          isGptRecording={gpt.isRecording}
+          showOrganize={myRole === "MAINTAINER"}
+          onMicToggle={toggleMute}
+          onCallToggle={handleCallToggle}
+          onOrganize={gpt.toggleRecording}
+          workspaceId={workspaceId}
+          yclient={yclient}
+          peers={peers}
+        />
       </div>
 
-      {/* Divider */}
-      <div className="h-12 w-px bg-gray-300 mx-2" />
-
-      {/* Control Buttons */}
-      <VoiceControls
-        isMuted={isMuted}
-        isCallActive={isInVoice}
-        isGptRecording={gpt.isRecording}
-        showOrganize={myRole === "MAINTAINER"}
-        onMicToggle={toggleMute}
-        onCallToggle={handleCallToggle}
-        onOrganize={gpt.toggleRecording}
-        workspaceId={workspaceId}
-        yclient={yclient}
-        peers={peers}
+      {/* Meeting Minutes Dialogs */}
+      <ConfirmEndVoiceChatDialog
+        isOpen={meetingMinutesState.showConfirmDialog}
+        onClose={() => setMeetingMinutesState((prev) => ({ ...prev, showConfirmDialog: false }))}
+        onViewMindmap={handleViewMindmap}
+        onViewMeetingMinutes={handleViewMeetingMinutes}
       />
-    </div>
+
+      <MeetingMinutesContentDialog
+        isOpen={meetingMinutesState.showContentDialog}
+        onClose={handleMeetingMinutesClose}
+        content={meetingMinutesState.content}
+        isGenerating={meetingMinutesState.isGenerating}
+        error={meetingMinutesState.error}
+      />
+    </>
   );
 };
 

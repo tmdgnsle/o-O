@@ -102,7 +102,8 @@ export function useVoiceGpt({
           console.log('[VoiceGpt] ✅ Final transcript confirmed:', transcript);
           console.log('[VoiceGpt] 👤 Speaker:', currentUserRef.current?.nickname, `(ID: ${currentUserRef.current?.id})`);
 
-          const message: ClientMessage = {
+          // Send gpt-transcript (for GPT node suggestion)
+          const gptMessage: ClientMessage = {
             type: 'gpt-transcript' as const,
             userId: currentUserRef.current?.id.toString() || '',
             userName: currentUserRef.current?.nickname || '',
@@ -111,8 +112,20 @@ export function useVoiceGpt({
             timestamp: Date.now(),
           };
 
-          console.log('[VoiceGpt] 📤 Sending transcript to server:', message);
-          sendMessageRef.current(message);
+          console.log('[VoiceGpt] 📤 Sending gpt-transcript to server:', gptMessage);
+          sendMessageRef.current(gptMessage);
+
+          // Also send voice-transcript (for meeting minutes collection)
+          const voiceTranscriptMessage: ClientMessage = {
+            type: 'voice-transcript' as const,
+            userId: currentUserRef.current?.id.toString() || '',
+            userName: currentUserRef.current?.nickname || '',
+            text: transcript,
+            timestamp: Date.now(),
+          };
+
+          console.log('[VoiceGpt] 📤 Sending voice-transcript for meeting minutes:', voiceTranscriptMessage);
+          sendMessageRef.current(voiceTranscriptMessage);
         } else if (!isFinal) {
           console.log('[VoiceGpt] 🔄 Interim result (not sending):', transcript.substring(0, 30) + '...');
         } else if (!transcript.trim()) {
