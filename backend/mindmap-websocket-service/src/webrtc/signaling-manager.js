@@ -14,6 +14,7 @@
 
 import { logger } from '../utils/logger.js';
 import { gptSessionManager } from '../gpt/gpt-session-manager.js';
+import { meetingMinutesManager } from '../meeting/meeting-minutes-manager.js';
 
 const MAX_PARTICIPANTS = 6;
 
@@ -25,6 +26,8 @@ class VoiceRoom {
     this.workspaceId = workspaceId;
     // userId → { conn: WebSocket, userId: string, voiceState: { muted: boolean, speaking: boolean } }
     this.participants = new Map();
+    // 회의록 생성용 STT 수집 배열
+    this.transcripts = [];
     logger.info(`[SignalingManager] VoiceRoom created for workspace ${workspaceId}`);
   }
 
@@ -131,6 +134,37 @@ class VoiceRoom {
    */
   isFull() {
     return this.participants.size >= MAX_PARTICIPANTS;
+  }
+
+  /**
+   * 음성 채팅 중 STT 추가 (회의록용)
+   */
+  addTranscript(userId, userName, text, timestamp) {
+    this.transcripts.push({ userId, userName, text, timestamp });
+    logger.debug(`[SignalingManager] Transcript added to room ${this.workspaceId}`, {
+      userId,
+      userName,
+      textLength: text.length,
+      totalTranscripts: this.transcripts.length,
+    });
+  }
+
+  /**
+   * 수집된 transcript 가져오기
+   */
+  getTranscripts() {
+    return this.transcripts;
+  }
+
+  /**
+   * transcript 정리 (메모리 관리)
+   */
+  clearTranscripts() {
+    const count = this.transcripts.length;
+    this.transcripts = [];
+    logger.info(`[SignalingManager] Transcripts cleared for room ${this.workspaceId}`, {
+      clearedCount: count,
+    });
   }
 }
 
@@ -353,6 +387,62 @@ class SignalingManager {
     logger.info(`[SignalingManager] GPT recording stopped by user ${userId} in workspace ${workspaceId}`);
 
     gptSessionManager.stopSession(workspaceId);
+  }
+
+  /**
+   * 음성 채팅 중 STT 수집 (회의록용)
+   */
+  handleVoiceTranscript(workspaceId, userId, userName, text, timestamp) {
+    logger.debug(`[SignalingManager] Voice transcript from ${userName} in workspace ${workspaceId}`);
+
+    const room = this.voiceRooms.get(workspaceId);
+    if (!room) {
+      logger.warn(`[SignalingManager] Room not found for workspace ${workspaceId}`);
+      return;
+    }
+
+    // VoiceRoom에 transcript 추가
+    room.addTranscript(userId, userName, text, timestamp);
+  }
+
+  /**
+   * 회의록 생성 요청 처리
+   */
+  async handleGenerateMeetingMinutes(workspaceId, requesterId, conn) {
+    logger.info(`[SignalingManager] Meeting minutes generation requested by user ${requesterId} in workspace ${workspaceId}`);
+
+    const room = this.voiceRooms.get(workspaceId);
+    if (!room) {
+      logger.warn(`[SignalingManager] Room not found for workspace ${workspaceId}`);
+      this.sendMessage(conn, {
+        type: 'meeting-minutes-error',
+        error: '음성 채팅 방을 찾을 수 없습니다.',
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    const transcripts = room.getTranscripts();
+    if (transcripts.length === 0) {
+      logger.warn(`[SignalingManager] No transcripts available for workspace ${workspaceId}`);
+      this.sendMessage(conn, {
+        type: 'meeting-minutes-error',
+        error: '회의록을 생성할 대화 내용이 없습니다.',
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    logger.info(`[SignalingManager] Generating meeting minutes`, {
+      workspaceId,
+      transcriptCount: transcripts.length,
+      requesterId,
+    });
+
+    // MeetingMinutesManager에게 회의록 생성 요청
+    await meetingMinutesManager.generate(workspaceId, transcripts, conn);
+
+    logger.info(`[SignalingManager] Meeting minutes generation completed for workspace ${workspaceId}`);
   }
 
   /**

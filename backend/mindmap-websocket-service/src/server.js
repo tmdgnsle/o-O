@@ -445,7 +445,7 @@ function handleVoiceConnection(conn, req, url) {
   }
 
   // 메시지 핸들러 등록
-  conn.on('message', (data) => {
+  conn.on('message', async (data) => {
     try {
       const message = JSON.parse(data.toString());
       logger.info(`[VoiceChat] Message received from user ${userId}`, {
@@ -489,6 +489,21 @@ function handleVoiceConnection(conn, req, url) {
 
         case 'gpt-stop-recording':
           signalingManager.handleGptStop(workspaceId, userId);
+          break;
+
+        // 회의록 생성 관련 메시지
+        case 'voice-transcript':
+          signalingManager.handleVoiceTranscript(
+            workspaceId,
+            userId,
+            message.userName,
+            message.text,
+            message.timestamp
+          );
+          break;
+
+        case 'generate-meeting-minutes':
+          await signalingManager.handleGenerateMeetingMinutes(workspaceId, userId, conn);
           break;
 
         case 'role-changed':
