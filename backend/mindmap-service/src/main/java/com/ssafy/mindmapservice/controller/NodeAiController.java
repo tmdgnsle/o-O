@@ -5,6 +5,7 @@ import com.ssafy.mindmapservice.dto.request.CreatePlanRequest;
 import com.ssafy.mindmapservice.dto.response.AnalyzeNodesResponse;
 import com.ssafy.mindmapservice.dto.response.CreatePlanResponse;
 import com.ssafy.mindmapservice.service.NodeAiService;
+import com.ssafy.mindmapservice.service.NodeRestructureJobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,6 +26,7 @@ import java.util.Map;
 public class NodeAiController {
 
     private final NodeAiService nodeAiService;
+    private final NodeRestructureJobService nodeRestructureJobService;
 
     @Operation(
             summary = "마인드맵 노드 분석",
@@ -135,7 +137,7 @@ public class NodeAiController {
             @Parameter(description = "워크스페이스 ID", example = "1")
             @PathVariable Long workspaceId
     ) {
-        nodeAiService.restructureAsync(workspaceId);
+        nodeRestructureJobService.runRestructure(workspaceId);
         return ResponseEntity.ok(Map.of("message", "정리 작업이 시작되었습니다."));
     }
 }

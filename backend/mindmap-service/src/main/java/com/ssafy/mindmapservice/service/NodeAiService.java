@@ -742,12 +742,5 @@ public class NodeAiService {
         }
     }
 
-    @Async
-    public void restructureAsync(Long workspaceId) {
-        // 기존 동기 처리 코드 실행
-        restructureWorkspace(workspaceId);
-    }
-
-
 
 }
