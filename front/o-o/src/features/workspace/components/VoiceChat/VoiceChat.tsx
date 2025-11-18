@@ -242,22 +242,23 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
     // 녹음이 시작될 때만 Awareness 초기화 (false -> true 전환)
     if (gpt.isRecording && !prevIsRecordingRef.current) {
-      if (updateGptState && currentUser) {
+      if (updateGptState && currentUserRef.current) {
         console.log('[VoiceChat] 📡 Awareness 초기화: 녹음 시작');
         updateGptState({
           isRecording: true,
           keywords: [], // 초기 상태
-          startedBy: currentUser.id.toString(),
+          startedBy: currentUserRef.current.id.toString(),
           timestamp: Date.now(),
         });
       }
     }
     // 녹음이 종료될 때 isRecording만 false로 업데이트 (키워드는 유지)
     else if (!gpt.isRecording && prevIsRecordingRef.current) {
-      if (updateGptState && gptState) {
-        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 종료 (키워드 유지)');
+      if (updateGptState && gptStateRef.current) {
+        console.log('[VoiceChat] 📡 Awareness 업데이트: 녹음 종료');
+        console.log('[VoiceChat] 현재 상태:', gptStateRef.current);
         updateGptState({
-          ...gptState,
+          ...gptStateRef.current, // ref 사용으로 최신 상태 참조
           isRecording: false, // 녹음 상태만 false로 변경
           // keywords, startedBy, timestamp는 그대로 유지
         });
@@ -266,7 +267,7 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
 
     // 이전 상태 업데이트
     prevIsRecordingRef.current = gpt.isRecording;
-  }, [gpt.isRecording, gptState]); // gptState 추가 (녹음 종료 시 현재 상태 참조 필요)
+  }, [gpt.isRecording, updateGptState, onGptRecordingChange]); // gptState 제거, ref 사용
 
   // GPT toggle 함수를 부모에게 전달
   useEffect(() => {

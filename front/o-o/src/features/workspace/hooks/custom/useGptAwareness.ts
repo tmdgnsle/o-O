@@ -32,16 +32,30 @@ export function useGptAwareness(awareness?: Awareness): GptState | null {
       // Check all participants (no priority, share GPT state globally)
       const states = Array.from(awareness.getStates().entries());
 
+      console.log('[useGptAwareness] 🔍 Checking awareness states:', {
+        totalStates: states.length,
+        myClientId: awareness.clientID,
+      });
+
       // Check all participants for GPT state
       for (const [clientId, state] of states) {
         const gptData = (state as any)?.gpt;
+        console.log(`[useGptAwareness] Client ${clientId}:`, {
+          hasGptData: !!gptData,
+          isRecording: gptData?.isRecording,
+          keywordsCount: gptData?.keywords?.length,
+          startedBy: gptData?.startedBy,
+        });
+
         if (gptData) {
+          console.log('[useGptAwareness] ✅ GPT state found, updating local state');
           setGptState(gptData);
           return;
         }
       }
 
       // No GPT state found
+      console.log('[useGptAwareness] ❌ No GPT state found');
       setGptState(null);
     };
 
