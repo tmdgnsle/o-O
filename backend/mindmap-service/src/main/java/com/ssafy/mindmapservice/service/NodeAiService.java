@@ -27,6 +27,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -604,23 +608,30 @@ public class NodeAiService {
                 throw new IllegalArgumentException("해당 워크스페이스에 노드가 없습니다.");
             }
 
-            // 2) GPT 프롬프트 생성
+            // 🔍 원본 노드 맵 (nodeId → MindmapNode)
+            Map<Long, MindmapNode> originalMap = nodes.stream()
+                    .collect(Collectors.toMap(MindmapNode::getNodeId, n -> n));
+
+            // 2) GPT 프롬프트 생성 (필요한 정보만 넣자)
             String prompt = buildRestructurePrompt(nodes);
 
             ChatCompletionRequest request = new ChatCompletionRequest(
                     "gpt-5-mini",
                     List.of(
                             new ChatMessage("developer", """
-                                반드시 JSON만 출력.
-                                마크다운, 설명, ``` 금지.
-                                새로운 nodeId 생성 금지.
-                                keyword, memo 변경금지
-                                """),
+                            반드시 JSON 배열만 출력.
+                            마크다운, 설명, ``` 금지.
+                            새로운 nodeId 생성 금지.
+                            기존 nodeId 목록 외의 nodeId 사용 금지.
+                            keyword, memo 내용은 바꾸지 말 것.
+                            createdAt, updatedAt, x, y, color, type 필드는 출력하지 말 것.
+                            (서버에서 다시 채운다)
+                            """),
                             new ChatMessage("system", """
-                                You are an expert mindmap restructuring agent.
-                                You will reorganize nodes into a clean hierarchy.
-                                DO NOT modify nodeId=1 (root node).
-                                """),
+                            You are an expert mindmap restructuring agent.
+                            You will reorganize nodes into a clean hierarchy.
+                            DO NOT modify nodeId=1 (root node).
+                            """),
                             new ChatMessage("user", prompt)
                     )
             );
@@ -629,8 +640,8 @@ public class NodeAiService {
             ChatCompletionResponse response = callGms(request, "정리하기");
             String json = extractContent(response);
 
-            // 4) GPT 응답 → 엔티티 리스트 변환
-            List<MindmapNode> rebuilt = parseRestructureJson(workspaceId, json);
+            // 4) GPT 응답 → 엔티티 리스트 변환 (원본 노드 정보 섞어서 재구성)
+            List<MindmapNode> rebuilt = parseRestructureJson(workspaceId, json, originalMap);
 
             // 5) nodeId / parentId 등 검증
             validateNodeIds(nodes, rebuilt);
@@ -664,6 +675,7 @@ public class NodeAiService {
 
 
 
+
     private String buildRestructurePrompt(List<MindmapNode> nodes) {
         StringBuilder sb = new StringBuilder();
 
@@ -673,24 +685,19 @@ public class NodeAiService {
 
       🎯 요구사항
       1. nodeId=1 은 ROOT 이며 절대 변경/삭제/이동 금지
-      2. keyword + memo가 의미적으로 중복이면 병합  nodeId가 작은 것을 남기기.
+      2. keyword + memo가 의미적으로 중복이면 병합, nodeId가 작은 것을 남기기
       3. 계층 구조를 semantic 기준으로 재배치
       4. parentId 는 존재하는 nodeId 중 하나여야 함
-      5. 좌표(x,y)는 null로 채워야함.
-      6. 출력은 반드시 JSON array 로만, 설명 금지
-      7. parentId를 변경하여 재배치.
+      5. 출력은 반드시 JSON array 로만, 설명 금지
+      6. parentId를 변경하여 재배치하되, nodeId 집합은 그대로 유지
 
-      🎯 출력 포맷
+      🎯 출력 포맷 (예시)
       [
         {
-          "nodeId": number,
-          "parentId": number | null,
-          "keyword": "string",
-          "memo": "string",
-          "type": "text",
-          "color": "#hex",
-          "x": null,
-          "y": null
+          "nodeId": 1,
+          "parentId": null,
+          "keyword": "루트",
+          "memo": "루트 노드"
         }
       ]
 
@@ -721,25 +728,61 @@ public class NodeAiService {
         return sb.toString();
     }
 
-    private List<MindmapNode> parseRestructureJson(Long workspaceId, String json) {
+
+    private List<MindmapNode> parseRestructureJson(
+            Long workspaceId,
+            String json,
+            Map<Long, MindmapNode> originalMap
+    ) {
         try {
             List<JsonNode> arr = objectMapper.readValue(json, new TypeReference<>() {});
 
             List<MindmapNode> result = new ArrayList<>();
 
             for (JsonNode n : arr) {
+                long nodeId = n.get("nodeId").asLong();
+
+                MindmapNode original = originalMap.get(nodeId);
+                if (original == null) {
+                    throw new IllegalStateException("GPT 결과에 존재하지 않는 nodeId 포함: " + nodeId);
+                }
+
+                // parentId는 GPT가 바꿔준 값 사용
+                Long parentId = n.get("parentId").isNull()
+                        ? null
+                        : n.get("parentId").asLong();
+
+                // keyword/memo는 바꾸지 말라고 했으니, 혹시라도 바뀌었으면 검증해서 막을 수도 있음
+                String keywordFromGpt = n.get("keyword").asText();
+                String memoFromGpt = n.get("memo").asText();
+
+                if (!original.getKeyword().equals(keywordFromGpt)) {
+                    log.warn("GPT가 keyword를 변경함: nodeId={}, original='{}', gpt='{}'",
+                            nodeId, original.getKeyword(), keywordFromGpt);
+                    // 필요하면 여기서 예외 던져도 됨
+                }
+                if (!original.getMemo().equals(memoFromGpt)) {
+                    log.warn("GPT가 memo를 변경함: nodeId={}, original='{}', gpt='{}'",
+                            nodeId, original.getMemo(), memoFromGpt);
+                }
+
                 result.add(
                         MindmapNode.builder()
                                 .workspaceId(workspaceId)
-                                .nodeId(n.get("nodeId").asLong())
-                                .parentId(n.get("parentId").isNull() ? null : n.get("parentId").asLong())
-                                .type("text")
-                                .keyword(n.get("keyword").asText())
-                                .memo(n.get("memo").asText())
-                                .color(n.get("color").asText())
-                                .x(n.get("x").asDouble())
-                                .y(n.get("y").asDouble())
-                                .analysisStatus(MindmapNode.AnalysisStatus.NONE)
+                                .nodeId(nodeId)
+                                .parentId(parentId)
+                                // 구조 외 필드는 원본 그대로 유지
+                                .type(original.getType())
+                                .keyword(original.getKeyword())
+                                .memo(original.getMemo())
+                                .color(original.getColor())
+                                // 좌표는 재배치 후 프론트에서 다시 계산하게, 항상 null
+                                .x(null)
+                                .y(null)
+                                // 날짜는 서버/감사 로직에 맞게
+                                .createdAt(original.getCreatedAt())
+                                .updatedAt(LocalDateTime.now())
+                                .analysisStatus(original.getAnalysisStatus())
                                 .build()
                 );
             }
@@ -750,19 +793,32 @@ public class NodeAiService {
         }
     }
 
+
     private void validateNodeIds(List<MindmapNode> originalNodes, List<MindmapNode> rebuiltNodes) {
 
         Set<Long> originalIds = originalNodes.stream()
                 .map(MindmapNode::getNodeId)
                 .collect(Collectors.toSet());
 
-        for (MindmapNode n : rebuiltNodes) {
-            if (!originalIds.contains(n.getNodeId())) {
-                throw new IllegalStateException(
-                        "GPT가 존재하지 않는 nodeId 생성함: " + n.getNodeId()
-                );
-            }
+        Set<Long> rebuiltIds = rebuiltNodes.stream()
+                .map(MindmapNode::getNodeId)
+                .collect(Collectors.toSet());
+
+        if (!originalIds.equals(rebuiltIds)) {
+            throw new IllegalStateException(
+                    "GPT가 nodeId 집합을 변경함. original=" + originalIds + ", rebuilt=" + rebuiltIds
+            );
         }
+
+        // root 안전장치
+        rebuiltNodes.stream()
+                .filter(n -> n.getNodeId() == 1L)
+                .findFirst()
+                .ifPresent(root -> {
+                    if (root.getParentId() != null) {
+                        throw new IllegalStateException("root node(1)의 parentId가 null이 아님");
+                    }
+                });
     }
 
 
