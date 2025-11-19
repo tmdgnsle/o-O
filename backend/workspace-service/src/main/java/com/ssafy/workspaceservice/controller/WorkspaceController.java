@@ -216,8 +216,9 @@ public class WorkspaceController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "참여 성공"),
-            @ApiResponse(responseCode = "400", description = "이미 멤버이거나 인원이 가득 참"),
-            @ApiResponse(responseCode = "404", description = "유효하지 않은 초대 링크")
+            @ApiResponse(responseCode = "400", description = "인원이 가득 참"),
+            @ApiResponse(responseCode = "404", description = "유효하지 않은 초대 링크"),
+            @ApiResponse(responseCode = "409", description = "이미 멤버입니다.")
     })
     @PostMapping("/join")
     public ResponseEntity<WorkspaceJoinResponse> joinWorkspace(
