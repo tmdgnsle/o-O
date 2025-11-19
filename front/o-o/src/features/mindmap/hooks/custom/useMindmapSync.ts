@@ -234,7 +234,8 @@ export function useMindmapSync(
                   yMap.set(key, {
                     ...cleanNode,
                     nodeId: createdNode.nodeId,
-                    contentUrl: createdNode.contentUrl, // 서버에서 받은 이미지 URL
+                    keyword: createdNode.keyword, // 백엔드에서 받은 keyword (이미지 URL 포함)
+                    contentUrl: createdNode.contentUrl, // 서버에서 받은 이미지 URL (있는 경우)
                   });
                 }
               }, "remote");

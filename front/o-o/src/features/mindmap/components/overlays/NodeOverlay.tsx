@@ -645,6 +645,7 @@ export default memo(
     prev.node.keyword === next.node.keyword &&
     prev.node.memo === next.node.memo &&
     prev.node.color === next.node.color &&
+    prev.node.contentUrl === next.node.contentUrl &&
     prev.x === next.x &&
     prev.y === next.y &&
     prev.zoom === next.zoom &&
