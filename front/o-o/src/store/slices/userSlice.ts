@@ -120,9 +120,9 @@ const userSlice = createSlice({
         state.error = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
-        state.user = action.payload;
+        state.user = { ...state.user, ...action.payload };
         state.loading = false;
-        localStorage.setItem("user", JSON.stringify(action.payload));
+        localStorage.setItem("user", JSON.stringify(state.user));
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.loading = false;
