@@ -63,13 +63,19 @@ apiClient.interceptors.response.use(
         // refreshToken(쿠키)으로 새 accessToken 받기
         const response = await axiosPlain.post("/auth/reissue", {});
 
+        // 디버깅: 응답 헤더 전체 확인
+        console.log("🔍 reissue 응답 헤더:", response.headers);
+
         // Authorization 헤더에서 토큰 추출
         const authHeader = response.headers.authorization || response.headers.Authorization;
+        console.log("🔍 authHeader:", authHeader);
+
         if (!authHeader?.startsWith("Bearer ")) {
           throw new Error("reissue 응답으로 Authorization 헤더가 안 왔음!!");
         }
 
         const newAccessToken = authHeader.replace("Bearer ", "");
+        console.log("✅ 새 토큰 추출 성공:", newAccessToken.substring(0, 20) + "...");
 
         // Redux 업데이트
         if (store) {
