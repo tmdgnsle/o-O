@@ -801,7 +801,6 @@ public class NodeAiService {
 
 
     private void validateNodeIds(List<MindmapNode> originalNodes, List<MindmapNode> rebuiltNodes) {
-
         Set<Long> originalIds = originalNodes.stream()
                 .map(MindmapNode::getNodeId)
                 .collect(Collectors.toSet());
@@ -810,9 +809,10 @@ public class NodeAiService {
                 .map(MindmapNode::getNodeId)
                 .collect(Collectors.toSet());
 
-        if (!originalIds.equals(rebuiltIds)) {
+        // 기존에 없던 새로운 nodeId 생성 방지
+        if (!originalIds.containsAll(rebuiltIds)) {
             throw new IllegalStateException(
-                    "GPT가 nodeId 집합을 변경함. original=" + originalIds + ", rebuilt=" + rebuiltIds
+                    "GPT가 존재하지 않는 nodeId를 생성함. original=" + originalIds + ", rebuilt=" + rebuiltIds
             );
         }
 
@@ -826,6 +826,7 @@ public class NodeAiService {
                     }
                 });
     }
+
 
 
 }

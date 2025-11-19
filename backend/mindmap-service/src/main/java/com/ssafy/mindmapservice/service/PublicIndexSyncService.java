@@ -28,7 +28,6 @@ public class PublicIndexSyncService {
 
     private final ElasticsearchClient esClient;
     private final NodeRepository nodeRepository;
-    private final WorkspaceServiceClientAdapter workspaceServiceClient;
 
     @Value("${elasticsearch.public-index-name:public_mindmap_nodes}")
     private String indexName;
