@@ -89,7 +89,7 @@ apiClient.interceptors.response.use(
           store.dispatch(clearUser());
         }
 
-        globalThis.location.href = "/";
+        // globalThis.location.href = "/";
         return Promise.reject(refreshError);
       }
     }
