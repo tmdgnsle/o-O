@@ -61,23 +61,26 @@ apiClient.interceptors.response.use(
 
       try {
         // refreshToken(쿠키)으로 새 accessToken 받기
-        const { data } = await axiosPlain.post("/auth/reissue", {});
+        const response = await axiosPlain.post("/auth/reissue", {});
 
-        // accessToken이 없으면 에러 throw
-        if (!data?.accessToken) {
-          throw new Error("reissue 응답으로 data (AccessToken)이 안 왔음!!");
+        // Authorization 헤더에서 토큰 추출
+        const authHeader = response.headers.authorization || response.headers.Authorization;
+        if (!authHeader?.startsWith("Bearer ")) {
+          throw new Error("reissue 응답으로 Authorization 헤더가 안 왔음!!");
         }
+
+        const newAccessToken = authHeader.replace("Bearer ", "");
 
         // Redux 업데이트
         if (store) {
           store.dispatch({
             type: "auth/setAccessToken",
-            payload: data.accessToken,
+            payload: newAccessToken,
           });
         }
 
         // 실패했던 요청 재시도
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         const retryResult = await apiClient(originalRequest);
         return retryResult;
       } catch (refreshError) {
