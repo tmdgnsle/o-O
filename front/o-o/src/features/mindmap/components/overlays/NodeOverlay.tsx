@@ -431,8 +431,20 @@ function NodeOverlay({
           transition: "none", // 애니메이션 제거
         }}
       >
-        <CustomTooltip content={isHovered && memo && !isDragging ? memo : ""}>
-          <div
+        <div
+          style={{
+            transform: `scale(${1 / zoom})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <CustomTooltip content={isHovered && memo && !isDragging ? memo : ""}>
+            <div
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+              }}
+            >
+              <div
             className={`w-48 h-48 rounded-full flex flex-col items-center justify-center ${selectionRingClass}`}
             style={{
               background: createRadialGradient(initialColor),
@@ -523,8 +535,10 @@ function NodeOverlay({
               )}
             </div>
           )}
-          </div>
-        </CustomTooltip>
+              </div>
+            </div>
+          </CustomTooltip>
+        </div>
 
         {!isAnalyzeMode && !isReadOnly && (
           <RadialToolGroup

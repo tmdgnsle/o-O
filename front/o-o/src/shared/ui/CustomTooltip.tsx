@@ -37,7 +37,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ children, content }) => {
             }}
           />
           {/* 말풍선 */}
-          <div className="bg-[#E1E1E1] text-[#263A6B] px-5 py-3 rounded-2xl shadow-lg max-w-xs whitespace-pre-wrap break-words text-sm">
+          <div className="bg-[#E1E1E1] text-[#263A6B] px-5 py-3 rounded-2xl shadow-lg w-max max-w-sm whitespace-pre-wrap text-sm leading-normal font-paperlogy">
             {content}
           </div>
         </div>
