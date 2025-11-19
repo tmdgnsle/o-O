@@ -95,18 +95,38 @@ export function useCollaborativeNodes(
       return;
     }
 
-    // If the map already has data (from other peers), skip bootstrap
-    if (collab.map.size > 0) {
-      hasBootstrappedRef.current = true;
-      return;
-    }
-
+    // ✅ 플래그를 먼저 설정하여 중복 실행 방지
     hasBootstrappedRef.current = true;
-    setIsBootstrapping(true);
-    let cancelled = false;
 
-    const run = async () => {
+    // ✅ 임시 ID 판별 헬퍼
+    const isTempId = (id: string): boolean => {
+      // 1. 순수 숫자 문자열 (예: "12", "13")
+      if (/^\d+$/.test(id)) {
+        return true;
+      }
+      // 2. 하이픈 포함 (예: "1234567890-uuid", "temp-123")
+      if (id.includes("-")) {
+        return true;
+      }
+      // 3. MongoDB ObjectId가 아닌 경우 (24자 hex)
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        return false; // 길이가 24가 아니거나 hex가 아니면 판단 보류
+      }
+      return false; // ObjectId 형식이면 영속 ID
+    };
+
+    let cancelled = false;
+    let syncedHandler: ((isSynced: boolean) => void) | null = null;
+
+    const runBootstrap = async () => {
       try {
+        // ✅ WebSocket 동기화 완료 후 Y.Map 사이즈 재확인
+        if (collab.map.size > 0) {
+          console.log("[Bootstrap] Y.Map already has data after sync, skipping bootstrap");
+          setIsBootstrapping(false);
+          return;
+        }
+
         console.log(`📊 [Bootstrap] Fetching nodes from REST API for workspace="${workspaceId}"`);
         const restNodes = await fetchMindmapNodes(workspaceId);
         console.log(`📊 [Bootstrap] Fetched ${restNodes.length} nodes from REST`);
@@ -142,11 +162,23 @@ export function useCollaborativeNodes(
           return wasClamped;
         });
 
+        // ✅ 삽입 직전 최종 재검증: WebSocket 동기화 중 데이터가 들어왔을 수 있음
+        if (collab.map.size > 0) {
+          console.log(`⚠️ [Bootstrap] Y.Map has ${collab.map.size} nodes after REST fetch, skipping insertion`);
+          setIsBootstrapping(false);
+          return;
+        }
+
         // Use transaction to batch all insertions for performance
 
-        // 중복 제거: 같은 nodeId를 가진 노드가 이미 있으면 로컬 노드를 제거하고 서버 노드로 교체
+        // ✅ 강화된 중복 제거: id와 nodeId 모두 검사
+        // - existingNodeIds: nodeId → id 매핑 (MongoDB ID 기준 중복 검사)
+        // - existingIds: Set<id> (Y.Map key 기준 중복 검사)
         const existingNodeIds = new Map<number, string>();
+        const existingIds = new Set<string>();
+
         collab.map.forEach((node, id) => {
+          existingIds.add(id);
           if (node.nodeId) {
             existingNodeIds.set(node.nodeId as number, id);
           }
@@ -156,35 +188,46 @@ export function useCollaborativeNodes(
         console.log(`📊 [Bootstrap Before Insert] Y.Map size: ${collab.map.size}`);
         console.log(`📊 [Bootstrap Before Insert] Nodes to insert: ${processedNodes.length}`);
         console.log(`📊 [Bootstrap Before Insert] Existing nodeIds:`, Array.from(existingNodeIds.entries()));
+        console.log(`📊 [Bootstrap Before Insert] Existing ids:`, Array.from(existingIds));
 
         collab.client.doc.transact(() => {
           for (const node of processedNodes) {
             const { _wasClamped, ...cleanNode } = node as any;
 
+            // ✅ 1차 검사: nodeId로 중복 확인 (MongoDB ID 기준)
             if (node.nodeId && existingNodeIds.has(node.nodeId as number)) {
               const existingId = existingNodeIds.get(node.nodeId as number)!;
 
               console.log(`🔍 [Bootstrap Duplicate Check] nodeId=${node.nodeId} already exists with id="${existingId}"`);
 
-              // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
-              if (existingId !== node.id && existingId.includes("-")) {
-                // 로컬 노드를 제거하고 서버 노드로 교체
-                console.log(`🔄 [Bootstrap Replace] Replacing temp node "${existingId}" with server node "${node.id}"`);
+              // ✅ 임시 ID인 기존 노드를 영속 ID로 교체
+              if (existingId !== node.id && isTempId(existingId)) {
+                // 로컬 임시 노드를 제거하고 서버 영속 노드로 교체
+                console.log(`🔄 [Bootstrap Replace] Replacing temp node "${existingId}" with persistent node "${node.id}"`);
                 collab.map.delete(existingId);
+                existingIds.delete(existingId);
                 collab.map.set(cleanNode.id, cleanNode);
+                existingIds.add(cleanNode.id);
                 existingNodeIds.set(node.nodeId as number, node.id);
               } else {
-                console.log(`⏭️ [Bootstrap Skip] Server node already exists, skipping`);
+                console.log(`⏭️ [Bootstrap Skip] Persistent node already exists, skipping`);
               }
               // 이미 서버 노드가 있으면 건너뜀
               continue;
             }
 
-            if (!collab.map.has(node.id)) {
-              console.log(`➕ [Bootstrap Insert] Inserting new node id="${node.id}", nodeId=${node.nodeId}`);
-              collab.map.set(cleanNode.id, cleanNode);
-            } else {
+            // ✅ 2차 검사: id로 중복 확인 (Y.Map key 기준)
+            if (existingIds.has(node.id)) {
               console.log(`⚠️ [Bootstrap Warning] Node id="${node.id}" already exists in Y.Map, skipping`);
+              continue;
+            }
+
+            // ✅ 중복이 아닌 경우에만 삽입
+            console.log(`➕ [Bootstrap Insert] Inserting new node id="${node.id}", nodeId=${node.nodeId}`);
+            collab.map.set(cleanNode.id, cleanNode);
+            existingIds.add(cleanNode.id);
+            if (node.nodeId) {
+              existingNodeIds.set(node.nodeId as number, node.id);
             }
           }
         }, "mindmap-bootstrap");
@@ -223,10 +266,38 @@ export function useCollaborativeNodes(
       }
     };
 
-    run();
+    // ✅ WebSocket 동기화 완료를 기다린 후 Bootstrap 실행
+    const provider = collab.client.provider;
+
+    if (provider.synced) {
+      // 이미 동기화 완료된 경우 즉시 실행
+      console.log("[Bootstrap] Provider already synced, running bootstrap immediately");
+      setIsBootstrapping(true);
+      runBootstrap();
+    } else {
+      // 동기화 대기
+      console.log("[Bootstrap] Waiting for provider to sync...");
+      syncedHandler = (isSynced: boolean) => {
+        if (isSynced && !cancelled) {
+          console.log("[Bootstrap] Provider synced, running bootstrap");
+          setIsBootstrapping(true);
+          runBootstrap();
+          // 한 번만 실행되도록 리스너 제거
+          if (syncedHandler) {
+            provider.off('sync', syncedHandler);
+            syncedHandler = null;
+          }
+        }
+      };
+      provider.on('sync', syncedHandler);
+    }
 
     return () => {
       cancelled = true;
+      if (syncedHandler) {
+        provider.off('sync', syncedHandler);
+        syncedHandler = null;
+      }
     };
   }, [collab, workspaceId]);
 
@@ -281,15 +352,25 @@ export function useCollaborativeNodes(
           y: number;
         }> = [];
 
-        // Yjs map에 업데이트
+        // Yjs map에 업데이트 (실제로 변경된 좌표만)
         collab.client.doc.transact(() => {
           for (const node of processedNodes) {
             if (node.x != null && node.y != null) {
               const existingNode = collab.map.get(node.id);
-              if (
-                existingNode &&
-                (existingNode.x == null || existingNode.y == null)
-              ) {
+
+              // ✅ 조건 1: 노드가 존재해야 함
+              if (!existingNode) continue;
+
+              // ✅ 조건 2: 좌표가 없거나 실제로 변경된 경우만 업데이트
+              const needsUpdate =
+                existingNode.x == null ||
+                existingNode.y == null ||
+                existingNode.x !== node.x ||
+                existingNode.y !== node.y;
+
+              if (needsUpdate) {
+                console.log(`🔧 [Position Update] Updating node "${node.id}" from (${existingNode.x}, ${existingNode.y}) to (${node.x}, ${node.y})`);
+
                 collab.map.set(node.id, {
                   ...existingNode,
                   x: node.x,
@@ -304,6 +385,8 @@ export function useCollaborativeNodes(
                     y: node.y,
                   });
                 }
+              } else {
+                console.log(`⏭️ [Position Update] Skipping node "${node.id}" - coordinates unchanged`);
               }
             }
           }
@@ -347,6 +430,23 @@ export function useCollaborativeNodes(
       return;
     }
 
+    // ✅ 임시 ID 판별 헬퍼
+    const isTempId = (id: string): boolean => {
+      // 1. 순수 숫자 문자열 (예: "12", "13")
+      if (/^\d+$/.test(id)) {
+        return true;
+      }
+      // 2. 하이픈 포함 (예: "1234567890-uuid", "temp-123")
+      if (id.includes("-")) {
+        return true;
+      }
+      // 3. MongoDB ObjectId가 아닌 경우 (24자 hex)
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        return false; // 길이가 24가 아니거나 hex가 아니면 판단 보류
+      }
+      return false; // ObjectId 형식이면 영속 ID
+    };
+
     try {
       const restNodes = await fetchMindmapNodes(workspaceId);
 
@@ -379,9 +479,12 @@ export function useCollaborativeNodes(
         return wasClamped;
       });
 
-      // 중복 제거: 같은 nodeId를 가진 노드가 이미 있으면 로컬 노드를 제거하고 서버 노드로 교체
+      // ✅ 강화된 중복 제거: id와 nodeId 모두 검사
       const existingNodeIds = new Map<number, string>();
+      const existingIds = new Set<string>();
+
       collab.map.forEach((node, id) => {
+        existingIds.add(id);
         if (node.nodeId) {
           existingNodeIds.set(node.nodeId as number, id);
         }
@@ -393,14 +496,17 @@ export function useCollaborativeNodes(
         for (const node of processedNodes) {
           const { _wasClamped, ...cleanNode } = node as any;
 
+          // ✅ 1차 검사: nodeId로 중복 확인 (MongoDB ID 기준)
           if (node.nodeId && existingNodeIds.has(node.nodeId as number)) {
             const existingId = existingNodeIds.get(node.nodeId as number)!;
 
-            // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
-            if (existingId !== node.id && existingId.includes("-")) {
-              // 로컬 노드를 제거하고 서버 노드로 교체
+            // ✅ 임시 ID인 기존 노드를 영속 ID로 교체
+            if (existingId !== node.id && isTempId(existingId)) {
+              // 로컬 임시 노드를 제거하고 서버 영속 노드로 교체
               collab.map.delete(existingId);
+              existingIds.delete(existingId);
               collab.map.set(cleanNode.id, cleanNode);
+              existingIds.add(cleanNode.id);
               existingNodeIds.set(node.nodeId as number, node.id);
               addedCount++;
             }
@@ -408,10 +514,18 @@ export function useCollaborativeNodes(
             continue;
           }
 
-          if (!collab.map.has(node.id)) {
-            collab.map.set(cleanNode.id, cleanNode);
-            addedCount++;
+          // ✅ 2차 검사: id로 중복 확인 (Y.Map key 기준)
+          if (existingIds.has(node.id)) {
+            continue;
           }
+
+          // ✅ 중복이 아닌 경우에만 삽입
+          collab.map.set(cleanNode.id, cleanNode);
+          existingIds.add(cleanNode.id);
+          if (node.nodeId) {
+            existingNodeIds.set(node.nodeId as number, node.id);
+          }
+          addedCount++;
         }
       }, "mindmap-refetch");
 

@@ -202,7 +202,11 @@ export function useYjsCollaboration(
     };
 
     // 커스텀 메시지 리스너 등록
-    const attachCustomMessageListener = (client: YClient) => {
+    const attachCustomMessageListener = (
+      client: YClient,
+      safeTransact: (callback: () => void, origin: string) => void,
+      isTempId: (id: string) => boolean
+    ) => {
       if (customMessageCleanupRef.current) {
         customMessageCleanupRef.current();
         customMessageCleanupRef.current = null;
@@ -228,11 +232,12 @@ export function useYjsCollaboration(
 
           const nodesMap = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
 
-          client.doc.transact(() => {
+          safeTransact(() => {
             restNodes.forEach((node) => {
-              const existingNode = nodesMap.get(node.id);
-              const nextNode = existingNode ? { ...existingNode, ...node } : node;
-              nodesMap.set(node.id, nextNode);
+              // ✅ 중복 방지: 이미 있는 노드는 건너뜀
+              if (!nodesMap.has(node.id)) {
+                nodesMap.set(node.id, node);
+              }
             });
           }, "initial-create-done");
         } catch (error) {
@@ -282,6 +287,36 @@ export function useYjsCollaboration(
         return;
       }
 
+      // ✅ 임시 ID 판별 헬퍼
+      const isTempId = (id: string): boolean => {
+        // 1. 순수 숫자 문자열 (예: "12", "13")
+        if (/^\d+$/.test(id)) {
+          return true;
+        }
+        // 2. 하이픈 포함 (예: "1234567890-uuid", "temp-123")
+        if (id.includes("-")) {
+          return true;
+        }
+        // 3. MongoDB ObjectId가 아닌 경우 (24자 hex)
+        if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+          return false; // 길이가 24가 아니거나 hex가 아니면 판단 보류
+        }
+        return false; // ObjectId 형식이면 영속 ID
+      };
+
+      // ✅ Transaction origin 검증 헬퍼 (이 함수 내에서 client를 참조)
+      const createSafeTransact = (client: YClient) => {
+        return (callback: () => void, origin: string) => {
+          if (typeof origin !== 'string') {
+            console.error('❌ [Yjs] Invalid transaction origin (expected string):', origin);
+            console.error('   Type:', typeof origin);
+            console.error('   Stack trace:', new Error().stack);
+            origin = 'unknown';
+          }
+          client.doc.transact(callback, origin);
+        };
+      };
+
       try {
         console.log("[useYjsCollaboration] fetching initial ws-token");
         const token = await fetchWebSocketToken();
@@ -290,6 +325,7 @@ export function useYjsCollaboration(
         console.log("[useYjsCollaboration] initializing YClient with workspace:", roomId);
         const client = createYClient(wsUrl, roomId, token);
         const map = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
+        const safeTransact = createSafeTransact(client);
 
         if (!mountedRef.current || !enabledRef.current) {
           client.destroy();
@@ -304,7 +340,7 @@ export function useYjsCollaboration(
         setConnectionError(false);
 
         attachStatusListener(client);
-        attachCustomMessageListener(client);
+        attachCustomMessageListener(client, safeTransact, isTempId);
         console.log("[useYjsCollaboration] Custom message listener attached, ws readyState:", client.provider.ws?.readyState);
 
         client.provider.on("connection-close", (event: any) => {
@@ -343,22 +379,22 @@ export function useYjsCollaboration(
             console.log(`📊 [Y.Map Before Insert] Existing nodeIds:`, Array.from(existingNodeIds.entries()));
 
             // Y.Doc에 새 노드 추가 (origin: "remote"로 설정하여 useMindmapSync 재진입 방지)
-            client.doc.transact(() => {
+            safeTransact(() => {
               for (const nodeData of nodeDatas) {
                 if (nodeData.nodeId && existingNodeIds.has(nodeData.nodeId as number)) {
                   const existingId = existingNodeIds.get(nodeData.nodeId as number)!;
 
                   console.log(`🔍 [Duplicate Check] nodeId=${nodeData.nodeId} already exists with id="${existingId}"`);
 
-                  // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
-                  if (existingId !== nodeData.id && existingId.includes("-")) {
-                    // 로컬 노드를 제거하고 서버 노드로 교체
-                    console.log(`🔄 [Replace] Replacing temp node "${existingId}" with server node "${nodeData.id}"`);
+                  // ✅ 임시 ID인 기존 노드를 영속 ID로 교체
+                  if (existingId !== nodeData.id && isTempId(existingId)) {
+                    // 로컬 임시 노드를 제거하고 서버 영속 노드로 교체
+                    console.log(`🔄 [Replace] Replacing temp node "${existingId}" with persistent node "${nodeData.id}"`);
                     nodesMap.delete(existingId);
                     nodesMap.set(nodeData.id, nodeData);
                     existingNodeIds.set(nodeData.nodeId as number, nodeData.id);
                   } else {
-                    console.log(`⏭️ [Skip] Server node already exists, skipping`);
+                    console.log(`⏭️ [Skip] Persistent node already exists, skipping`);
                   }
                   // 이미 서버 노드가 있으면 건너뜀
                   continue;
@@ -412,7 +448,7 @@ export function useYjsCollaboration(
             const processedNodes = await calculateNodePositions(nodeDatas);
 
             // Y.Map 완전 교체 (기존 노드 전부 삭제 후 새로운 노드로 재구성)
-            client.doc.transact(() => {
+            safeTransact(() => {
               // 1. 기존 노드 모두 제거
               nodesMap.clear();
 

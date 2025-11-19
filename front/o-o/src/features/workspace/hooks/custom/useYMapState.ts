@@ -14,6 +14,9 @@ export const useYMapState = <TValue,>(
 ): Record<string, TValue> => {
   const [state, setState] = useState<Record<string, TValue>>({});
 
+  // ✅ 중복 감지 카운터 (진단용)
+  const nodeInsertCount = new Map<string, number>();
+
   useEffect(() => {
     if (!yMap) {
       setState({});
@@ -26,13 +29,30 @@ export const useYMapState = <TValue,>(
 
     // 이후에는 증분 업데이트로 성능 최적화
     const observer = (event: Y.YMapEvent<TValue>, transaction: Y.Transaction) => {
+      // 🛡️ GUARD: event, transaction, yMap이 유효한지 확인
+      if (!event || !transaction || !yMap) {
+        console.warn(`⚠️ [Y.Map Observer] Invalid observer call: event=${!!event}, transaction=${!!transaction}, yMap=${!!yMap}`);
+        return;
+      }
+
       // 📊 [LOG] Y.Map 옵저버 트리거
       console.log(`📊 [Y.Map Observer] Transaction origin="${transaction.origin}", keys changed=${event.keysChanged.size}`);
       console.log(`📊 [Y.Map Observer] Changed keys:`, Array.from(event.keysChanged));
 
       // 변경사항이 없으면 조기 반환
-      if (event.keysChanged.size === 0) {
+      if (!event.keysChanged || event.keysChanged.size === 0) {
         return;
+      }
+
+      // ✅ 정상적인 업데이트 origin은 중복 체크에서 제외
+      const shouldSkipDuplicateCheck =
+        transaction.origin === 'position-update' ||
+        transaction.origin === 'mindmap-bootstrap' ||
+        transaction.origin === 'remote' ||
+        typeof transaction.origin === 'object'; // Y.js 내부 sync (origin이 객체인 경우)
+
+      if (shouldSkipDuplicateCheck) {
+        console.log(`📊 [Y.Map Observer] Skipping duplicate check for origin="${transaction.origin}" (type: ${typeof transaction.origin})`);
       }
 
       // ⚠️ IMPORTANT: event.changes는 동기적으로만 접근 가능
@@ -41,22 +61,61 @@ export const useYMapState = <TValue,>(
       const changesToApply: Array<{ key: string; action: 'delete' | 'update'; value?: TValue }> = [];
 
       for (const key of event.keysChanged) {
-        const action = event.changes.keys.get(key);
+        // 🛡️ GUARD: key가 유효한지 확인
+        if (!key || typeof key !== 'string') {
+          console.warn(`⚠️ [Y.Map Observer] Invalid key:`, key);
+          continue;
+        }
+
+        const action = event.changes?.keys?.get(key);
 
         if (action?.action === 'delete') {
           changesToApply.push({ key, action: 'delete' });
+          // 삭제 시 카운터 초기화
+          nodeInsertCount.delete(key);
         } else {
           const value = yMap.get(key);
 
-          // 🛡️ GUARD: WebSocket에서 keyword 없는 불완전한 데이터가 오면 무시
-          // @ts-ignore
-          if (value !== undefined && (!value || !('keyword' in value))) {
+          // 🛡️ GUARD: value가 undefined이거나 null인 경우 건너뜀
+          if (value === undefined || value === null) {
+            console.warn(`⚠️ [Y.Map Observer] Skipping undefined/null value for key="${key}"`);
             continue;
           }
 
-          if (value !== undefined) {
-            changesToApply.push({ key, action: 'update', value });
+          // 🛡️ GUARD: value가 객체가 아닌 경우 건너뜀
+          if (typeof value !== 'object') {
+            console.warn(`⚠️ [Y.Map Observer] Skipping non-object value for key="${key}", type=${typeof value}`);
+            continue;
           }
+
+          // ✅ 중복 감지: add/update 액션 추적 (정상 origin 제외)
+          if (!shouldSkipDuplicateCheck && (action?.action === 'add' || action?.action === 'update')) {
+            const count = (nodeInsertCount.get(key) || 0) + 1;
+            nodeInsertCount.set(key, count);
+
+            if (count > 1) {
+              console.error(`🚨 [DUPLICATE DETECTED] Node "${key}" inserted/updated ${count} times!`);
+              console.error(`   Transaction origin: "${transaction.origin}"`);
+              console.error(`   Action: ${action.action}`);
+              console.error(`   Stack trace:`, new Error(`Duplicate detection for key: ${key}`).stack);
+            }
+          }
+
+          // 🛡️ GUARD: keyword 필드 검증
+          // @ts-ignore
+          if (!('keyword' in value)) {
+            console.warn(`⚠️ [Y.Map Observer] Skipping node without keyword field, key="${key}"`);
+            continue;
+          }
+
+          // 🛡️ GUARD: id 필드 검증
+          // @ts-ignore
+          if (!('id' in value)) {
+            console.warn(`⚠️ [Y.Map Observer] Skipping node without id field, key="${key}"`);
+            continue;
+          }
+
+          changesToApply.push({ key, action: 'update', value });
         }
       }
 
