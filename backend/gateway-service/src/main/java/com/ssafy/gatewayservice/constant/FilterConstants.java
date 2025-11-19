@@ -47,7 +47,7 @@ public class FilterConstants {
             "/mindmap/voice",
             "/trend/top",
             "/trend/search",
-            "/trend/"
+            "/trend"
     );
 
     // ========== Error Messages ==========

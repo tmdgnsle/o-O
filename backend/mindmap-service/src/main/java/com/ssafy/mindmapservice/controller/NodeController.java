@@ -1,15 +1,15 @@
 package com.ssafy.mindmapservice.controller;
 
 import com.ssafy.mindmapservice.domain.MindmapNode;
+import com.ssafy.mindmapservice.dto.request.AddIdeaRequest;
 import com.ssafy.mindmapservice.dto.request.AiAnalysisRequest;
 import com.ssafy.mindmapservice.dto.request.BatchPositionUpdateRequest;
 import com.ssafy.mindmapservice.dto.request.InitialMindmapRequest;
 import com.ssafy.mindmapservice.dto.request.VoiceIdeaRequest;
 import com.ssafy.mindmapservice.dto.request.ImageNodeCreateRequest;
-import com.ssafy.mindmapservice.dto.response.InitialMindmapResponse;
-import com.ssafy.mindmapservice.dto.response.NodeSimpleResponse;
-import com.ssafy.mindmapservice.dto.response.NodeResponse;
+import com.ssafy.mindmapservice.dto.response.*;
 import com.ssafy.mindmapservice.dto.request.WorkspaceCloneRequest;
+import com.ssafy.mindmapservice.service.NodeAiService;
 import com.ssafy.mindmapservice.service.NodeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -37,6 +37,7 @@ import java.util.List;
 public class NodeController {
 
     private final NodeService nodeService;
+    private final NodeAiService nodeAiService;
 
     @Operation(
             summary = "초기 마인드맵 생성",
@@ -94,18 +95,19 @@ public class NodeController {
                     examples = {
                             @ExampleObject(
                                     name = "텍스트 프롬프트 예시",
-                                    summary = "텍스트로 마인드맵 생성",
+                                    summary = "텍스트로 마인드맵 생성, New Project로 들어갔을 떄의 값",
                                     value = """
                                             {
                                               "contentUrl": null,
                                               "contentType": "TEXT",
-                                              "startPrompt": "고기랑 관련된 아이디어 없을까?"
+                                              "startPrompt": "고기랑 관련된 아이디어 없을까?",
+                                              "workspaceId": 1
                                             }
                                             """
                             ),
                             @ExampleObject(
                                     name = "영상 콘텐츠 예시",
-                                    summary = "유튜브 영상으로 마인드맵 생성",
+                                    summary = "유튜브 영상으로 마인드맵 생성, 홈 화면에서의 값",
                                     value = """
                                             {
                                               "contentUrl": "https://youtu.be/qDG3auuSb1E",
@@ -133,8 +135,8 @@ public class NodeController {
             @Parameter(hidden = true)
             @RequestHeader("X-USER-ID") String userId,
             @RequestBody InitialMindmapRequest request) {
-        log.info("POST /mindmap/initial - userId={}, contentType={}, startPrompt={}",
-                userId, request.contentType(), request.startPrompt());
+        log.info("POST /mindmap/initial - userId={}, contentType={}, startPrompt={}, workspaceId={}",
+                userId, request.contentType(), request.startPrompt(), request.workspaceId());
 
         InitialMindmapResponse response = nodeService.createInitialMindmap(Long.parseLong(userId), request);
 
@@ -187,13 +189,16 @@ public class NodeController {
             @RequestHeader("X-USER-ID") String userId,
             @Parameter(description = "업로드할 이미지 파일", required = true)
             @RequestParam("file") MultipartFile file,
-            @Parameter(description = "사용자 프롬프트", required = true)
-            @RequestParam("startPrompt") String startPrompt) {
+            @Parameter(description = "사용자 프롬프트")
+            @RequestParam(value = "startPrompt", defaultValue = "") String startPrompt,
+            @Parameter(description = "방 번호, null 가능")
+            @RequestParam(value = "workspaceId", required = false) Long workspaceId
+            ) {
         log.info("POST /mindmap/initial/image - userId={}, fileName={}, startPrompt={}",
                 userId, file.getOriginalFilename(), startPrompt);
 
         InitialMindmapResponse response = nodeService.createInitialMindmapWithImageFile(
-                file, Long.parseLong(userId), startPrompt);
+                file, Long.parseLong(userId), startPrompt, workspaceId);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
@@ -396,7 +401,7 @@ public class NodeController {
             @ApiResponse(responseCode = "404", description = "워크스페이스를 찾을 수 없음", content = @Content)
     })
     @PostMapping(value = "/{workspaceId}/node/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MindmapNode> createImageNode(
+    public ResponseEntity<CreatedNodeInfo> createImageNode(
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
             @Parameter(description = "업로드할 이미지 파일", required = true)
@@ -405,7 +410,7 @@ public class NodeController {
             @RequestPart("request") ImageNodeCreateRequest request) {
         log.info("POST /mindmap/{}/node/image - fileName={}", workspaceId, file.getOriginalFilename());
 
-        MindmapNode created = nodeService.createImageNode(workspaceId, file, request);
+        CreatedNodeInfo created = nodeService.createImageNode(workspaceId, file, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -524,7 +529,6 @@ public class NodeController {
                                     value = """
                                             {
                                               "workspaceName": "복제된 워크스페이스",
-                                              "workspaceDescription": "원본의 복사본"
                                             }
                                             """
                             )
@@ -536,112 +540,87 @@ public class NodeController {
         List<MindmapNode> clonedNodes = nodeService.cloneWorkspace(
                 userIdLong,
                 workspaceId,
-                request.workspaceName(),
-                request.workspaceDescription()
+                request.workspaceName()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(clonedNodes);
     }
 
     @Operation(
-            summary = "AI 분석 요청",
+            summary = "맥락 기반 AI+트렌드 확장 추천 요청 (CONTEXTUAL 전용)",
             description = """
-                    ## AI 기반 마인드맵 노드 분석 요청
+                ## 🧠 맥락 기반 AI + 트렌드 확장 추천 요청
 
-                    콘텐츠(이미지/영상/텍스트)를 분석하여 마인드맵 노드를 자동 생성합니다.
-                    요청은 Kafka를 통해 비동기로 처리되며, 결과는 WebSocket으로 실시간 전달됩니다.
+                특정 노드를 기준으로 **AI 확장 추천 키워드 + 트렌드 키워드**를 한 번에 받아옵니다.
 
-                    ### 📌 분석 타입
+                이 API는 다음과 같은 플로우로 동작합니다:
 
-                    #### 1️⃣ INITIAL (최초 분석)
-                    - **사용 시점**: 홈 화면에서 새 워크스페이스의 첫 노드 생성 시
-                    - **입력**: contentUrl, contentType, prompt, analysisType
-                    - **출력**: AI 요약(memo 업데이트) + 6개의 키워드 노드 (2단계 계층 구조)
-                    - **nodes 필드**: null (생략)
+                1. 클라이언트가 `workspaceId`, `nodeId`로 이 API를 호출
+                2. 서버가 해당 노드의 조상 경로를 수집해서 **CONTEXTUAL 모드**로 AI 서버에 Kafka 요청 발행
+                3. AI 서버에서 분석 완료 → `ai-analysis-result` 토픽으로 결과 발행
+                4. Mindmap 서비스 Consumer가 결과를 수신
+                   - AI가 추천한 키워드 목록을 `aiList`로 정리
+                   - Trend 서비스(`/trend/{parentKeyword}`)를 호출하여 연관 트렌드 키워드를 `trendList`로 조회
+                   - 두 리스트를 `AiTrendSuggestionResponse` 형태로 합쳐서 Kafka(`mindmap.ai.suggestion` 등)로 전송
+                5. Node.js WebSocket 서버가 Kafka 메시지를 받아
+                   같은 `workspaceId`에 접속한 클라이언트들에게 브로드캐스트
 
-                    #### 2️⃣ CONTEXTUAL (맥락 기반 확장)
-                    - **사용 시점**: 기존 노드를 확장할 때
-                    - **입력**: nodes (조상 경로), analysisType
-                    - **출력**: 3개의 자식 노드 (keyword + memo)
-                    - **contentUrl, prompt**: null (생략)
+                클라이언트에서는 WebSocket을 통해 다음과 같은 payload를 수신합니다:
 
-                    ### ⚠️ 주의사항
-                    - INITIAL 요청 시 `nodes` 필드는 반드시 null이어야 합니다
-                    - CONTEXTUAL 요청 시 `nodes` 필드에 nodeId부터 루트까지의 조상 경로를 포함해야 합니다
-                    - 응답은 202 Accepted로 즉시 반환되며, 실제 결과는 Kafka Consumer를 통해 비동기 처리됩니다
-                    """
+                ```json
+                {
+                  "type": "ai_suggestion",
+                  "workspaceId": 123,
+                  "targetNodeId": 15,
+                  "aiList": [
+                    { "tempId": "ai-1", "parentId": 15, "keyword": "굽기 정도별 레시피", "memo": "..." },
+                    { "tempId": "ai-2", "parentId": 15, "keyword": "부위별 특징", "memo": "..." }
+                  ],
+                  "trendList": [
+                    { "keyword": "스테이크 굽기", "score": 982, "rank": 1 },
+                    { "keyword": "고기 레시피", "score": 754, "rank": 2 },
+                    { "keyword": "바비큐 파티", "score": 621, "rank": 3 }
+                  ]
+                }
+                ```
+
+                ### 📌 이 엔드포인트의 특징
+
+                - **CONTEXTUAL 전용**입니다.  
+                  - `analysisType`은 클라이언트에서 보낼 필요가 없고,
+                    서버 내부에서 항상 `"CONTEXTUAL"`로 설정합니다.
+                - 요청 바디에서 `contentUrl`, `contentType`, `prompt`는 사용하지 않습니다.
+                  - 컨텍스트는 서버가 `nodeId` 기준으로 MongoDB에서 조상 경로를 자동 수집합니다.
+                - HTTP 응답은 항상 **202 Accepted**이고,
+                  실제 추천 결과는 WebSocket으로 비동기 전송됩니다.
+                """
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "202",
-                    description = "분석 요청이 정상적으로 접수되었습니다. 결과는 Kafka를 통해 비동기로 처리됩니다.",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "잘못된 요청 (필수 필드 누락, 분석 타입 불일치 등)",
+                    description = "분석 요청이 정상적으로 접수되었습니다. 결과는 WebSocket으로 비동기 전송됩니다.",
                     content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "노드를 찾을 수 없음",
+                    description = "해당 워크스페이스 또는 노드를 찾을 수 없음",
                     content = @Content
             )
     })
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "AI 분석 요청 정보",
-            required = true,
+            description = "CONTEXTUAL 분석 요청 정보 (현재는 바디를 사용하지 않음, 빈 객체 `{}`로 호출 권장)",
             content = @Content(
                     mediaType = "application/json",
                     schema = @Schema(implementation = AiAnalysisRequest.class),
                     examples = {
                             @ExampleObject(
-                                    name = "INITIAL 요청 예시",
-                                    summary = "최초 분석 요청 (영상 콘텐츠)",
+                                    name = "기본 CONTEXTUAL 요청",
+                                    summary = "기존 노드 확장 추천 요청 (바디 없이 호출하거나 `{}`로 호출)",
                                     value = """
-                                            {
-                                              "workspaceId": 123,
-                                              "nodeId": 1,
-                                              "contentUrl": "https://youtu.be/qDG3auuSb1E",
-                                              "contentType": "VIDEO",
-                                              "prompt": "고기랑 관련된 아이디어 없을까?",
-                                              "analysisType": "INITIAL",
-                                              "nodes": null
-                                            }
-                                            """
-                            ),
-                            @ExampleObject(
-                                    name = "CONTEXTUAL 요청 예시",
-                                    summary = "맥락 기반 확장 요청",
-                                    value = """
-                                            {
-                                              "workspaceId": 123,
-                                              "nodeId": 15,
-                                              "contentUrl": null,
-                                              "contentType": "TEXT",
-                                              "prompt": null,
-                                              "analysisType": "CONTEXTUAL",
-                                              "nodes": [
-                                                {
-                                                  "nodeId": 2,
-                                                  "parentId": 1,
-                                                  "keyword": "굽기 정도별 레시피",
-                                                  "memo": "레어~웰던 단계별 조리 시간 비교"
-                                                },
-                                                {
-                                                  "nodeId": 3,
-                                                  "parentId": 2,
-                                                  "keyword": "부위별 특징",
-                                                  "memo": "안심, 등심 등 질감 및 맛 차이 설명"
-                                                },
-                                                {
-                                                  "nodeId": 15,
-                                                  "parentId": 3,
-                                                  "keyword": "고기",
-                                                  "memo": "고기 종류"
-                                                }
-                                              ]
-                                            }
-                                            """
+                                        {
+                                          // 현재 버전에서는 필수 필드 없음.
+                                          // 추후 확장을 위해 빈 JSON으로 호출하는 형태를 권장합니다.
+                                        }
+                                        """
                             )
                     }
             )
@@ -651,24 +630,25 @@ public class NodeController {
             @Parameter(description = "워크스페이스 ID", required = true, example = "123")
             @PathVariable Long workspaceId,
 
-            @Parameter(description = "노드 ID (INITIAL: 첫 노드, CONTEXTUAL: 확장할 노드)", required = true, example = "1")
+            @Parameter(description = "기준 노드 ID (이 노드를 기준으로 AI+트렌드 확장 추천을 생성)", required = true, example = "15")
             @PathVariable Long nodeId,
 
-            @RequestBody AiAnalysisRequest request) {
-        log.info("POST /mindmap/{}/node/{}/analyze - type={}, contentType={}",
-                workspaceId, nodeId, request.analysisType(), request.contentType());
+            @RequestBody(required = false) AiAnalysisRequest request) {
 
+        log.info("POST /mindmap/{}/node/{}/analyze [CONTEXTUAL]", workspaceId, nodeId);
+
+        // 현재는 바디 내용에 상관없이 CONTEXTUAL 로직 고정
         nodeService.requestAiAnalysis(
                 workspaceId,
                 nodeId,
-                request.contentUrl(),
-                request.contentType(),
-                request.prompt(),
-                request.analysisType()
+                request.contentUrl(),   // contentUrl 사용 안 함
+                request.contentType(),   // contentType 사용 안 함
+                request.prompt()    // prompt 사용 안 함
         );
 
         return ResponseEntity.accepted().build();
     }
+
 
     @Operation(
             summary = "음성 아이디어 추가 (모바일)",
@@ -807,5 +787,114 @@ public class NodeController {
         nodeService.batchUpdatePositions(workspaceId, request.positions());
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "기존 워크스페이스에 아이디어 추가 (GPT 키워드 자동 추출)",
+            description = """
+                    ## 💡 아이디어 기반 마인드맵 확장
+
+                    사용자가 입력한 텍스트 아이디어를 GPT를 통해 분석하여 핵심 키워드를 자동으로 추출하고,
+                    기존 마인드맵에 자동으로 연결합니다.
+
+                    ### 📌 처리 흐름
+                    1. **기존 노드 조회**: 워크스페이스의 모든 노드 정보 수집
+                    2. **GPT 분석**: 입력한 아이디어에서 1~10개의 핵심 키워드 추출
+                    3. **자동 연결**: GPT가 각 키워드를 가장 적절한 기존 노드에 자동 연결 (parentId 설정)
+                    4. **노드 생성**: 추출된 키워드로 새 노드 생성 (MongoDB 저장)
+                    5. **실시간 전송**: WebSocket을 통해 클라이언트에 변경사항 전달
+
+                    ### ⚡ 동기 처리
+                    - GPT API를 동기적으로 호출하여 즉시 결과를 반환합니다
+                    - 생성된 노드 정보는 200 OK와 함께 반환됩니다
+                    - WebSocket으로도 동시에 전달되어 실시간 업데이트됩니다
+
+                    ### 🔒 중요 사항
+                    - **기존 노드는 절대 수정되지 않습니다** - 오직 새 키워드 노드만 추가됩니다
+                    - GPT가 잘못된 parentId를 반환하면 루트 노드에 자동 연결됩니다
+                    - 텍스트 아이디어만 입력 가능합니다 (이미지/영상 미지원)
+
+                    ### 📝 GPT 추출 예시
+                    입력: "삼겹살 맛집 추천 앱을 만들고 싶어"
+
+                    GPT 추출 키워드:
+                    - "맛집 검색" (기존 "앱 기능" 노드에 연결)
+                    - "리뷰 시스템" (기존 "사용자 기능" 노드에 연결)
+                    - "위치 기반 서비스" (기존 "기술 스택" 노드에 연결)
+                    - "음식점 정보 관리" (기존 "데이터베이스" 노드에 연결)
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "아이디어 추가 성공. GPT가 키워드를 추출하여 마인드맵에 추가했습니다.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AddIdeaResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "잘못된 요청 (아이디어가 비어있음, 워크스페이스에 노드가 없음 등)",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "워크스페이스를 찾을 수 없음",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "서버 오류 (GPT API 호출 실패, 노드 생성 실패 등)",
+                    content = @Content
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "추가할 아이디어 텍스트",
+            required = true,
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = AddIdeaRequest.class),
+                    examples = {
+                            @ExampleObject(
+                                    name = "맛집 앱 아이디어",
+                                    summary = "새로운 서비스 아이디어 추가",
+                                    value = """
+                                            {
+                                              "idea": "삼겹살 맛집 추천 앱을 만들고 싶어. 사용자 위치 기반으로 주변 맛집을 찾고, 리뷰를 공유할 수 있으면 좋겠어."
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "기능 추가 아이디어",
+                                    summary = "기존 프로젝트에 기능 추가",
+                                    value = """
+                                            {
+                                              "idea": "알림 기능, 즐겨찾기, 공유하기 기능도 필요할 것 같아"
+                                            }
+                                            """
+                            ),
+                            @ExampleObject(
+                                    name = "기술적 아이디어",
+                                    summary = "기술 스택 관련 아이디어",
+                                    value = """
+                                            {
+                                              "idea": "백엔드는 Spring Boot로 하고, 프론트는 React Native로 모바일 앱을 만들자"
+                                            }
+                                            """
+                            )
+                    }
+            )
+    )
+    @PostMapping("/{workspaceId}/add-idea")
+    public ResponseEntity<AddIdeaResponse> addIdea(
+            @Parameter(description = "워크스페이스 ID", required = true, example = "123")
+            @PathVariable Long workspaceId,
+            @RequestBody AddIdeaRequest request) {
+        log.info("POST /mindmap/{}/add-idea - idea length: {}", workspaceId, request.idea().length());
+
+        AddIdeaResponse response = nodeAiService.addIdeaToWorkspace(workspaceId, request);
+
+        return ResponseEntity.ok(response);
     }
 }

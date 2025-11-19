@@ -1,11 +1,14 @@
 package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.mindmapservice.client.TrendServiceClient;
 import com.ssafy.mindmapservice.client.WorkspaceServiceClient;
 import com.ssafy.mindmapservice.domain.MindmapNode;
 import com.ssafy.mindmapservice.dto.kafka.AiAnalysisResult;
 import com.ssafy.mindmapservice.dto.kafka.AiContextualSuggestion;
 import com.ssafy.mindmapservice.dto.kafka.AiSuggestionNode;
+import com.ssafy.mindmapservice.dto.response.AiTrendSuggestionResponse;
+import com.ssafy.mindmapservice.dto.response.TrendResponse;
 import com.ssafy.mindmapservice.repository.NodeRepository;
 import com.ssafy.mindmapservice.service.NodeService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ public class AiAnalysisConsumer {
     private final ObjectMapper objectMapper;
     private final WorkspaceServiceClient workspaceServiceClient;
     private final AiSuggestionProducer aiSuggestionProducer;
+    private final TrendServiceClient trendServiceClient;
 
     /**
      * AI 서버로부터 분석 결과를 받아서 처리합니다.
@@ -129,25 +133,44 @@ public class AiAnalysisConsumer {
                     }
 
                 } else {
-                    // ✅ CONTEXTUAL: MongoDB에 새 노드 안 만들고, 추천 이벤트만 발행
-                    log.info("🧪 [CONTEXTUAL RESULT] Skip MongoDB node creation. Sending suggestions only.");
+                    // ✅ CONTEXTUAL: MongoDB 저장 없음. AI + 트렌드 합쳐서 보내기
+                    log.info("🧪 [CONTEXTUAL RESULT] Skip MongoDB node creation. Sending AI + Trend suggestions only.");
 
-                    var suggestionNodes = result.nodes().stream()
+                    // 1) AI 추천 리스트
+                    var aiNodes = result.nodes().stream()
                             .map(n -> new AiSuggestionNode(
                                     n.tempId(),
-                                    parseLongSafe(n.parentId()),   // parentId 문자열이면 Long으로 파싱
+                                    parseLongSafe(n.parentId()),
                                     n.keyword(),
                                     n.memo()
                             ))
                             .toList();
 
-                    AiContextualSuggestion suggestion = new AiContextualSuggestion(
-                            result.workspaceId(),
-                            originalNodeId,      // 사용자가 확장 눌렀던 기준 노드
-                            suggestionNodes
+                    // 2) TrendService 호출
+                    //    기준 키워드는 "확장한 노드의 keyword" 사용하는 게 자연스럽다
+                    MindmapNode baseNode = nodeRepository.findByWorkspaceIdAndNodeId(
+                            result.workspaceId(), originalNodeId
+                    ).orElseThrow(() -> new IllegalArgumentException(
+                            "Base node not found: workspaceId=" + result.workspaceId() + ", nodeId=" + originalNodeId));
+
+                    String parentKeyword = baseNode.getKeyword();
+
+                    TrendResponse trend = trendServiceClient.getParentTrend(
+                            parentKeyword, // 부모 키워드
+                            "7d",          // 집계 기간
+                            3              // 상위 3개만
                     );
 
-                    aiSuggestionProducer.sendContextualSuggestion(suggestion);
+                    // 3) 최종 WebSocket 전송 payload (AI 리스트 + Trend 리스트)
+                    AiTrendSuggestionResponse merged = AiTrendSuggestionResponse.builder()
+                            .workspaceId(result.workspaceId())
+                            .targetNodeId(originalNodeId)
+                            .aiList(aiNodes)
+                            .trendList(trend.getItems()) // TrendItem 그대로
+                            .build();
+
+                    // 4) Node.js로 브로드캐스트 (Kafka 통해)
+                    aiSuggestionProducer.sendContextualSuggestion(merged);
                 }
             } else {
                 log.warn("⚠️ [NO NODES] AI result has no nodes to create: workspaceId={}, nodes={}",
@@ -180,9 +203,13 @@ public class AiAnalysisConsumer {
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Node not found: workspaceId=" + workspaceId + ", nodeId=" + nodeId));
 
-            node.setKeyword(keyword);
             node.setMemo(aiSummary);
             node.setUpdatedAt(LocalDateTime.now());
+
+            if(node.getType().equals("text")) {
+                node.setKeyword(keyword);
+            }
+
             nodeRepository.save(node);
 
         } catch (Exception e) {

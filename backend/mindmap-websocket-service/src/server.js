@@ -292,27 +292,41 @@ wss.on('connection', (conn, req) => {
  *
  * Kafka에서 mindmap.node.update 토픽을 수신하면 호출됨
  * 해당 workspace의 모든 사용자에게 initial-create-done 이벤트를 전송
- * 클라이언트는 이 메시지를 받고 workspace 데이터를 다시 조회함
+ * 클라이언트는 이 메시지를 받고 생성된 노드를 화면에 렌더링
  *
  * @param {string|number} workspaceId - workspace ID
+ * @param {Array<object>} nodes - 생성된 노드 정보 배열 (옵션)
+ *   예: [{ nodeId: 10, parentId: 3, keyword: '맛집 검색', memo: '...', type: 'text', color: '#FFE5E5', x: null, y: null }]
  */
-function handleInitialCreateDone(workspaceId) {
+function handleInitialCreateDone(workspaceId, nodes = null) {
   const workspaceIdStr = workspaceId.toString();
 
   logger.info(`[InitialCreateDone] Initial node creation completed`, {
     workspaceId: workspaceIdStr,
+    hasNodes: nodes !== null,
+    nodeCount: nodes ? nodes.length : 0,
   });
 
   // workspace의 모든 사용자에게 initial-create-done 이벤트 전송
-  const sentCount = sendToWorkspace(workspaceIdStr, {
+  const payload = {
     type: 'initial-create-done',
     workspaceId: workspaceIdStr,
-  });
+  };
+
+  // 생성된 노드 정보가 있으면 포함
+  if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+    payload.nodes = nodes;  // 전체 노드 정보
+    payload.nodeCount = nodes.length;
+  }
+
+  const sentCount = sendToWorkspace(workspaceIdStr, payload);
 
   if (sentCount > 0) {
     logger.info(`[InitialCreateDone] Notification sent successfully`, {
       workspaceId: workspaceIdStr,
       sentCount,
+      includedNodeData: nodes !== null,
+      nodeCount: nodes ? nodes.length : 0,
     });
   } else {
     logger.warn(`[InitialCreateDone] No users connected to workspace`, {
@@ -431,7 +445,7 @@ function handleVoiceConnection(conn, req, url) {
   }
 
   // 메시지 핸들러 등록
-  conn.on('message', (data) => {
+  conn.on('message', async (data) => {
     try {
       const message = JSON.parse(data.toString());
       logger.info(`[VoiceChat] Message received from user ${userId}`, {
@@ -475,6 +489,21 @@ function handleVoiceConnection(conn, req, url) {
 
         case 'gpt-stop-recording':
           signalingManager.handleGptStop(workspaceId, userId);
+          break;
+
+        // 회의록 생성 관련 메시지
+        case 'voice-transcript':
+          signalingManager.handleVoiceTranscript(
+            workspaceId,
+            userId,
+            message.userName,
+            message.text,
+            message.timestamp
+          );
+          break;
+
+        case 'generate-meeting-minutes':
+          await signalingManager.handleGenerateMeetingMinutes(workspaceId, userId, conn);
           break;
 
         case 'role-changed':
@@ -728,14 +757,21 @@ async function startServer() {
 
     // 2. Kafka consumer 초기화 및 시작 (AI 업데이트 수신용)
     await kafkaConsumer.initialize();
+
     // 초기 노드 생성 완료 이벤트 핸들러 등록
     kafkaConsumer.setInitialCreateDoneHandler(handleInitialCreateDone);
 
-    // ✅ CONTEXTUAL AI 추천 핸들러 등록
+// ✅ CONTEXTUAL AI + Trend 추천 핸들러 등록 (워크스페이스 전체 브로드캐스트 버전)
     kafkaConsumer.setAiSuggestionHandler((data) => {
-        const { workspaceId, targetNodeId, suggestions } = data;
+        const {
+            workspaceId,
+            targetNodeId,
+            aiList,
+            trendList,
+        } = data;
 
-        if (!workspaceId || !targetNodeId || !Array.isArray(suggestions)) {
+      // 기본 검증
+        if (!workspaceId || !targetNodeId || !Array.isArray(aiList)) {
             logger.warn('[AiSuggestion] Invalid suggestion payload', { data });
             return;
         }
@@ -743,21 +779,164 @@ async function startServer() {
         const workspaceIdStr = workspaceId.toString();
 
         const payload = {
-            type: 'ai_suggestion',
+            type: 'ai_suggestion',     // 프론트에서 이 타입으로 구분해서 쓰면 됨
             workspaceId: workspaceIdStr,
             targetNodeId,
-            suggestions,
+            aiList,                          // List<AiSuggestionNode>
+            trendList: Array.isArray(trendList) ? trendList : [],  // List<TrendItem>
         };
 
+      // 🔥 워크스페이스 전체 브로드캐스트
         const sentCount = sendToWorkspace(workspaceIdStr, payload);
 
-        logger.info('[AiSuggestion] Broadcasted suggestions', {
+        logger.info('[AiSuggestion] Broadcasted AI+Trend suggestions', {
             workspaceId: workspaceIdStr,
             targetNodeId,
-            suggestionCount: suggestions.length,
+            aiCount: aiList.length,
+            trendCount: payload.trendList.length,
             sentCount,
         });
     });
+
+    kafkaConsumer.setRestructureHandler((data) => {
+        const { workspaceId, nodes, eventType } = data;
+
+        if (!workspaceId) {
+            logger.warn('Invalid restructure message: missing workspaceId', { data });
+            return;
+        }
+
+        const workspaceIdStr = workspaceId.toString();
+
+        // Y.Doc 가져오기
+        // const ydoc = ydocManager.docs.get(workspaceIdStr);
+        // if (!ydoc) {
+        //     logger.debug(`Workspace ${workspaceId} not in memory, skipping Y.Doc restructure`);
+        //
+        //     // 필요하면 여기서도 그냥 브로드캐스트만 해줄 수 있음
+        //     // (지금은 일단 완전 스킵)
+        //     return;
+        // }
+        //
+        // const metaMap = ydoc.getMap('meta');
+        // const nodesMap = ydoc.getMap('mindmap:nodes');
+
+        // 1) LOCK
+        if (eventType === 'LOCK') {
+            // if (!metaMap.get('locked')) {
+            //     metaMap.set('locked', true);
+            //     logger.info(`Workspace ${workspaceId} locked for restructure`);
+            // }
+
+            const payload = {
+                type: 'restructure_lock',
+                workspaceId: workspaceIdStr,
+            };
+
+            const sentCount = sendToWorkspace(workspaceIdStr, payload);
+
+            logger.info('[Restructure] LOCK broadcasted via WebSocket', {
+                workspaceId: workspaceIdStr,
+                sentCount,
+            });
+
+            return;
+        }
+
+        // 2) APPLY
+        if (eventType === 'APPLY') {
+            if (!Array.isArray(nodes)) {
+                logger.warn('APPLY event without nodes array', { data });
+                return;
+            }
+
+            logger.info('Received restructure APPLY from Kafka', {
+                workspaceId,
+                nodeCount: nodes.length,
+            });
+
+            // let success = false;
+            //
+            // try {
+            //     // Yjs 트랜잭션으로 묶기 (선택 사항이지만 있으면 더 안전)
+            //     ydoc.transact(() => {
+            //         nodesMap.clear();
+            //
+            //         for (const node of nodes) {
+            //             nodesMap.set(String(node.nodeId), {
+            //                 nodeId: node.nodeId,
+            //                 parentId: node.parentId ?? null,
+            //                 keyword: node.keyword,
+            //                 memo: node.memo,
+            //                 type: node.type || 'text',
+            //                 color: node.color,
+            //                 x: node.x ?? null,
+            //                 y: node.y ?? null,
+            //             });
+            //         }
+            //
+            //         metaMap.set('locked', false);
+            //     });
+            //
+            //     success = true;
+            //
+            //     logger.info(
+            //         `Workspace ${workspaceId} Y.Doc restructured with ${nodes.length} nodes`,
+            //     );
+            // } catch (error) {
+            //     logger.error(
+            //         `Failed to apply restructure update to Y.Doc for workspace ${workspaceId}`,
+            //         { error: error.message },
+            //     );
+            // }
+            //
+            // if (!success) {
+            //     // 실패: 프론트에 실패 알리고 lock 풀어줄지 말지 결정
+            //     // 여기서는 일단 풀어주는 버전 예시
+            //     metaMap.set('locked', false);
+            //
+            //     const failPayload = {
+            //         type: 'restructure_failed',
+            //         workspaceId: workspaceIdStr,
+            //     };
+            //
+            //     const sentCount = sendToWorkspace(workspaceIdStr, failPayload);
+            //
+            //     logger.warn('[Restructure] APPLY failed, broadcasted FAIL', {
+            //         workspaceId: workspaceIdStr,
+            //         sentCount,
+            //     });
+            //
+            //     return;
+            // }
+
+            // 성공한 경우에만 APPLY 브로드캐스트
+            const payload = {
+                type: 'restructure_apply',
+                workspaceId: workspaceIdStr,
+                nodes,
+            };
+
+            const sentCount = sendToWorkspace(workspaceIdStr, payload);
+
+            logger.info(
+                `[Restructure] APPLY broadcasted via WebSocket (unlock) for workspace ${workspaceIdStr}`,
+                {
+                    nodeCount: nodes.length,
+                    sentCount,
+                },
+            );
+
+            return;
+        }
+
+        // 3) FAIL 같은 추가 타입 처리도 여기에 추가 가능
+        logger.warn('Unknown restructure eventType', { eventType, data });
+    });
+
+
+
+
     await kafkaConsumer.start();
 
     // 3. 배치 전송 스케줄러 시작 (5초마다 자동으로 변경사항 전송)

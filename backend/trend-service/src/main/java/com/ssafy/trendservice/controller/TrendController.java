@@ -130,14 +130,14 @@ public class TrendController {
                     content = @Content(schema = @Schema(implementation = com.ssafy.trendservice.dto.response.ErrorResponse.class))
             )
     })
-    @GetMapping("/{parentKeyword}")
+    @GetMapping("")
     @Timed(value = "trend.query.parent", description = "Parent trend query time")
     public ResponseEntity<TrendResponse> getParentTrend(
             @Parameter(
                     description = "부모 키워드 (예: '알고리즘', 'spring', 'java')",
                     example = "알고리즘"
             )
-            @PathVariable String parentKeyword,
+            @RequestParam String parentKeyword,
 
             @Parameter(
                     description = "집계 기간 (7일/30일)",

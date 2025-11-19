@@ -245,30 +245,52 @@ public class WorkspaceService {
 
 
 
-    // 워크스페이스 삭제
+
+    @Transactional
     public void delete(Long workspaceId, Long userId) {
         // 1. 워크스페이스 존재 확인
-        workspaceRepository.findById(workspaceId)
+        Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.WORKSPACE_NOT_FOUND));
 
         // 2. 멤버 여부 확인
         WorkspaceMember member = workspaceMemberRepository.findByWorkspaceIdAndUserId(workspaceId, userId)
                 .orElseThrow(() -> new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MEMBER));
 
-        // 3. MAINTAINER 권한 확인
-        if (member.getRole() != WorkspaceRole.MAINTAINER) {
-            throw new ForbiddenException(ErrorCode.FORBIDDEN_NOT_MAINTAINER);
+        // 3. 역할에 따른 분기
+        if (member.getRole() == WorkspaceRole.MAINTAINER) {
+            // MAINTAINER인 경우: 워크스페이스 전체 삭제
+
+            // (1) 멤버 전체 삭제
+            workspaceMemberRepository.deleteByWorkspaceId(workspaceId);
+
+            // (2) TODO: Mindmap-Service에 workspaceId의 모든 마인드맵 노드 삭제 요청
+            // mindmapClient.deleteAllNodesByWorkspaceId(workspaceId);
+
+            // (3) 워크스페이스 삭제
+            workspaceRepository.delete(workspace);
+
+        } else {
+            // MAINTAINER가 아닌 경우: 워크스페이스 나가기 (본인만 탈퇴)
+            workspaceMemberRepository.delete(member);
+
+            // 나간 뒤 남은 인원 수 확인
+            long remaining = workspaceMemberRepository.countByWorkspaceId(workspaceId);
+
+            if (remaining == 0) {
+                // 아무도 안 남았으면 워크스페이스 삭제 + 마인드맵 정리
+                // mindmapClient.deleteAllNodesByWorkspaceId(workspaceId);
+                workspaceRepository.delete(workspace);
+            } else if (remaining == 1) {
+                // 한 명만 남았으면 PERSONAL로 변경 (TEAM일 때만 바꿔도 됨)
+                if (workspace.getType() != WorkspaceType.PERSONAL) {
+                    workspace.changeType(WorkspaceType.PERSONAL);
+                    // @Transactional + 영속 상태라 save() 안 해도 dirty checking으로 반영됨
+                }
+            }
         }
-
-        // 4. Cascade 삭제: WorkspaceMember 먼저 삭제
-        workspaceMemberRepository.deleteByWorkspaceId(workspaceId);
-
-        // 5. TODO: Mindmap-Service에 workspaceId의 모든 마인드맵 노드 삭제 요청
-        // mindmapClient.deleteAllNodesByWorkspaceId(workspaceId);
-
-        // 6. 워크스페이스 삭제
-        workspaceRepository.deleteById(workspaceId);
     }
+
+
 
     // 토큰으로 워크스페이스 참여
     public WorkspaceJoinResponse joinByToken(String token, Long userId) {

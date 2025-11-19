@@ -65,9 +65,14 @@ workspace:
     url: ${WORKSPACE_SERVICE_URL:http://localhost:8082}
 
 elasticsearch:
-  host: ${ELASTICSEARCH_URL:http://k13d202.p.ssafy.io:9200}
+  host: ${ELASTICSEARCH_URL}
 
 feign:
+  client:
+    config:
+      gms-client:
+        connectTimeout: 5000
+        readTimeout: 150000
   httpclient:
     enabled: false
   okhttp:
@@ -83,3 +88,7 @@ cloud:
 gms:
   base-url: https://gms.ssafy.io/gmsapi
   api-key: ${GMS_KEY}
+
+service:
+  trend:
+    url: ${TREND_SERVICE_URL:http://trend-svc:8085}

@@ -22,12 +22,28 @@ class GptSessionManager {
       return session;
     }
 
+    // ✅ 초기 마인드맵 컨텍스트 로드 (세션 시작 시 1회만)
+    const mindmapContext = this.getMindmapContext(workspaceId);
+
     const session = {
       workspaceId,
       transcripts: [], // { userId, userName, text, timestamp }
       connections: new Set(),
       isProcessing: false,
       updateTimer: null,
+      // ✅ GPT 대화 히스토리 (최대 20개 유지)
+      conversationHistory: [
+        {
+          role: 'developer',
+          content: '당신은 마인드맵 노드를 제안하는 AI입니다. 사용자 대화에서 키워드를 추출하고, 반드시 JSON 배열 형식으로만 답변하세요. 마크다운 코드블록(```)이나 설명 텍스트는 포함하지 마세요. 순수 JSON만 출력하세요. 한국어로 답변하세요.'
+        },
+        {
+          role: 'user',
+          content: this.buildInitialMindmapPrompt(mindmapContext)
+        }
+      ],
+      lastProcessedIndex: 0, // 마지막으로 처리한 transcript 인덱스
+      initialMindmapContext: mindmapContext, // 초기 마인드맵 정보 저장 (참조용)
     };
 
     // 2초마다 GPT 호출
@@ -40,6 +56,8 @@ class GptSessionManager {
       workspaceId,
       processingInterval: '2000ms',
       totalSessions: this.sessions.size,
+      initialNodeCount: mindmapContext?.nodeCount || 0,
+      conversationHistoryLength: session.conversationHistory.length,
     });
     return session;
   }
@@ -86,59 +104,68 @@ class GptSessionManager {
   // GPT 처리
   async processSession(workspaceId) {
     const session = this.sessions.get(workspaceId);
-    if (!session || session.isProcessing || session.transcripts.length === 0) {
+    if (!session || session.isProcessing) {
       return;
+    }
+
+    // ✅ 새로운 transcript가 있는지 확인
+    const newTranscripts = session.transcripts.slice(session.lastProcessedIndex);
+    if (newTranscripts.length === 0) {
+      return; // 처리할 새로운 대화 없음
     }
 
     session.isProcessing = true;
 
     try {
-      // 1. 현재 마인드맵 노드 정보 가져오기
-      const mindmapContext = this.getMindmapContext(workspaceId);
-
-      logger.info(`[GPT] Mindmap context loaded`, {
-        workspaceId,
-        nodeCount: mindmapContext?.nodeCount || 0,
-        providedNodes: mindmapContext?.nodes?.length || 0,
-      });
-
-      // 2. 대화 내역 포맷팅
-      const conversation = session.transcripts
+      // 1. 새로운 대화 내용만 포맷팅
+      const newConversation = newTranscripts
         .sort((a, b) => a.timestamp - b.timestamp)
         .map(t => `${t.userName}: ${t.text}`)
         .join('\n');
 
-      logger.info(`[GPT] Conversation formatted`, {
+      logger.info(`[GPT] New conversation formatted`, {
         workspaceId,
-        transcriptCount: session.transcripts.length,
-        conversationLength: conversation.length,
-        conversationPreview: conversation.substring(0, 100) + (conversation.length > 100 ? '...' : ''),
+        newTranscriptCount: newTranscripts.length,
+        totalTranscripts: session.transcripts.length,
+        conversationPreview: newConversation.substring(0, 100) + (newConversation.length > 100 ? '...' : ''),
+        conversationHistoryLength: session.conversationHistory.length,
       });
 
-      // 3. GPT 프롬프트 생성
-      const prompt = this.buildPrompt(mindmapContext, conversation);
+      // 2. ✅ 현재 노드 구조 실시간 조회
+      const currentNodesSummary = this.getCurrentNodesSummary(workspaceId);
+
+      // 3. ✅ 새로운 대화를 히스토리에 추가 (parentId 규칙 강화)
+      session.conversationHistory.push({
+        role: 'user',
+        content: `# 새로운 대화\n\n${newConversation}\n\n# 현재 마인드맵 노드 (parentId 참조용)\n\n${currentNodesSummary}\n\n# 지침\n\n위 대화에서 **회의 내용과 관련된 핵심 키워드만** 추출하여 마인드맵 노드를 제안하세요.\n\n**추출 규칙:**\n- 인사말("안녕하세요", "반갑습니다" 등)은 제외하세요.\n- 참석자 이름, 메타 정보는 제외하세요.\n- 실제 논의된 주제, 아이디어, 작업 항목, 결정 사항만 포함하세요.\n- **이전에 제안했거나 이미 존재하는 키워드와 중복되지 않는 새로운 키워드만 제안하세요.**\n- 대화 내용이 인사나 잡담뿐이거나 새로운 키워드가 없으면 빈 배열 []을 반환하세요.\n\n**parentId 규칙 (매우 중요!):**\n- **완전히 새로운 주제/카테고리**: parentId를 null로 설정\n- **위 목록의 기존 노드와 관련된 하위 개념**: 해당 노드의 ID 숫자를 parentId로 사용\n- **절대 문자열로 감싸지 마세요**: ❌ "null", "123" 같은 문자열 금지, ✅ null, 123 같이 숫자나 null만 사용\n- **예시**: 위 목록에 "AI 기술"(ID: 42)이 있고, 대화에서 "머신러닝"이 나오면 → parentId: 42\n\n**응답 형식:**\nJSON 배열로만 답변하세요 (마크다운 코드블록 없이).\n각 노드: {"parentId": 숫자 또는 null, "keyword": "키워드", "memo": "설명"}`
+      });
+
+      // 3. ✅ 슬라이딩 윈도우: 최대 20개 메시지 유지 (토큰 제한)
+      const MAX_HISTORY_LENGTH = 20;
+      if (session.conversationHistory.length > MAX_HISTORY_LENGTH) {
+        // 시스템 프롬프트(developer) + 초기 마인드맵(user)는 유지, 나머지는 최근 18개만
+        session.conversationHistory = [
+          session.conversationHistory[0], // developer prompt
+          session.conversationHistory[1], // initial mindmap context
+          ...session.conversationHistory.slice(-18) // 최근 18개 (user + assistant 쌍)
+        ];
+
+        logger.info(`[GPT] Conversation history trimmed to ${session.conversationHistory.length} messages`, {
+          workspaceId,
+        });
+      }
 
       logger.info(`[GPT] Starting GPT API request`, {
         workspaceId,
         model: GPT_MODEL,
-        promptLength: prompt.length,
-        transcripts: session.transcripts.length,
-        mindmapNodes: mindmapContext?.nodeCount || 0,
+        conversationHistoryLength: session.conversationHistory.length,
+        newTranscripts: newTranscripts.length,
       });
 
-      // 4. GMS API 호출 (스트리밍)
+      // 4. ✅ GMS API 호출 (전체 대화 히스토리 전달)
       const requestBody = {
         model: GPT_MODEL,
-        messages: [
-          {
-            role: 'developer',
-            content: '당신은 마인드맵 노드를 제안하는 AI입니다. 사용자 대화에서 키워드를 추출하고, 반드시 JSON 배열 형식으로만 답변하세요. 마크다운 코드블록(```)이나 설명 텍스트는 포함하지 마세요. 순수 JSON만 출력하세요. 한국어로 답변하세요.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+        messages: session.conversationHistory, // 전체 히스토리
         stream: true,
         // temperature 제거: gpt-5-mini 모델은 기본값 1만 지원
       };
@@ -187,7 +214,31 @@ class GptSessionManager {
       });
 
       // 5. 스트리밍 응답 처리
-      await this.handleStreamResponse(workspaceId, response.body);
+      const gptResponse = await this.handleStreamResponse(workspaceId, response.body);
+
+      // 6. ✅ GPT 응답을 히스토리에 추가 (다음 요청 시 컨텍스트로 사용)
+      if (gptResponse) {
+        session.conversationHistory.push({
+          role: 'assistant',
+          content: gptResponse
+        });
+
+        logger.info(`[GPT] Response added to conversation history`, {
+          workspaceId,
+          responseLength: gptResponse.length,
+          totalHistoryLength: session.conversationHistory.length,
+        });
+      }
+
+      // 7. ✅ 처리된 transcript 인덱스 업데이트
+      session.lastProcessedIndex = session.transcripts.length;
+
+      logger.info(`[GPT] Session processing completed`, {
+        workspaceId,
+        processedTranscripts: newTranscripts.length,
+        totalTranscripts: session.transcripts.length,
+        conversationHistoryLength: session.conversationHistory.length,
+      });
 
     } catch (error) {
       logger.error(`[GPT] Error processing session:`, error);
@@ -382,6 +433,9 @@ class GptSessionManager {
         nodeCount: validatedNodes.length,
       });
 
+      // ✅ GPT 응답 반환 (히스토리에 저장하기 위해)
+      return fullResponse;
+
     } catch (error) {
       logger.error(`[GPT] Failed to parse JSON`, {
         workspaceId,
@@ -398,6 +452,9 @@ class GptSessionManager {
         rawText: fullResponse,
         timestamp: Date.now(),
       });
+
+      // ✅ 파싱 실패해도 응답 반환 (히스토리에 남김)
+      return fullResponse;
     }
   }
 
@@ -405,7 +462,10 @@ class GptSessionManager {
   getMindmapContext(workspaceId) {
     try {
       const ydoc = ydocManager.getDoc(workspaceId);
-      if (!ydoc) return null;
+      if (!ydoc) {
+        logger.warn(`[GPT] No Y.Doc found for workspace ${workspaceId}`);
+        return null;
+      }
 
       const nodesMap = ydoc.getMap('mindmap:nodes');
       const nodes = [];
@@ -420,6 +480,12 @@ class GptSessionManager {
         keywords.push(node.keyword);
       });
 
+      logger.info(`[GPT] Mindmap context loaded for workspace ${workspaceId}`, {
+        nodeCount: nodes.length,
+        nodes: nodes.slice(0, 10).map(n => ({ id: n.id, keyword: n.keyword, parentId: n.parentId })),
+        totalKeywords: keywords.length,
+      });
+
       return {
         nodeCount: nodes.length,
         nodes: nodes.slice(0, 50), // 최대 50개만 (토큰 절약)
@@ -431,6 +497,104 @@ class GptSessionManager {
     }
   }
 
+  // 현재 노드 목록 간결하게 요약 (매 요청마다 GPT에게 제공)
+  getCurrentNodesSummary(workspaceId) {
+    try {
+      const ydoc = ydocManager.getDoc(workspaceId);
+      if (!ydoc) {
+        return '현재 노드 없음. 새 주제는 parentId: null로 시작하세요.';
+      }
+
+      const nodesMap = ydoc.getMap('mindmap:nodes');
+      const nodes = [];
+
+      nodesMap.forEach((node, id) => {
+        nodes.push(`  - ID: ${id}, 키워드: "${node.keyword}"`);
+      });
+
+      if (nodes.length === 0) {
+        return '현재 노드 없음. 새 주제는 parentId: null로 시작하세요.';
+      }
+
+      // 최대 20개만 표시 (토큰 절약)
+      const displayNodes = nodes.slice(0, 20).join('\n');
+      const summary = `현재 ${nodes.length}개 노드 존재:\n${displayNodes}`;
+
+      if (nodes.length > 20) {
+        return summary + `\n  ... 외 ${nodes.length - 20}개 더 있음`;
+      }
+
+      return summary;
+    } catch (error) {
+      logger.error(`[GPT] Error getting current nodes summary:`, error);
+      return '노드 정보를 가져올 수 없습니다. parentId: null 사용을 권장합니다.';
+    }
+  }
+
+  // ✅ 초기 마인드맵 컨텍스트 프롬프트 생성 (세션 시작 시 1회)
+  buildInitialMindmapPrompt(mindmapContext) {
+    let prompt = '# 초기 마인드맵 정보\n\n';
+
+    if (mindmapContext && mindmapContext.nodes.length > 0) {
+      prompt += `현재 ${mindmapContext.nodeCount}개의 노드가 있습니다:\n`;
+      mindmapContext.nodes.forEach(node => {
+        prompt += `- ID: ${node.id}, 키워드: "${node.keyword}", 부모ID: ${node.parentId || 'null'}\n`;
+      });
+      prompt += '\n';
+
+      // 기존 키워드 목록 명시
+      if (mindmapContext.existingKeywords && mindmapContext.existingKeywords.length > 0) {
+        prompt += '**기존 키워드 목록 (중복 금지):**\n';
+        prompt += mindmapContext.existingKeywords.map(k => `"${k}"`).join(', ') + '\n\n';
+      }
+    } else {
+      prompt += '아직 노드가 없습니다. 루트 노드(parentId: null)부터 시작하세요.\n\n';
+    }
+
+    prompt += '# JSON 응답 형식\n\n';
+    prompt += '각 노드는 다음 구조를 따릅니다:\n';
+    prompt += '[\n';
+    prompt += '  {\n';
+    prompt += '    "parentId": 기존_노드_ID_숫자 또는 null,\n';
+    prompt += '    "keyword": "핵심 키워드 (3-10자, 간결하게)",\n';
+    prompt += '    "memo": "상세 설명 (1-2문장)"\n';
+    prompt += '  }\n';
+    prompt += ']\n\n';
+
+    prompt += '# parentId 규칙\n\n';
+    prompt += '- parentId는 반드시 **숫자(number)** 또는 **null**이어야 합니다.\n';
+    prompt += '- 문자열로 감싸지 마세요. ❌ "null", "root", "n1" 같은 형식 금지\n';
+    prompt += '- 루트 노드(최상위)는 parentId를 null로 설정\n';
+    prompt += '- 기존 노드의 하위 노드는 위에 나열된 기존 노드 ID 숫자를 사용\n\n';
+
+    prompt += '# 올바른 예시\n\n';
+    if (mindmapContext && mindmapContext.nodes.length > 0) {
+      const firstNode = mindmapContext.nodes[0];
+      prompt += '[\n';
+      prompt += `  {"parentId": null, "keyword": "AI 기술 도입", "memo": "업무 자동화를 위한 AI 기술 검토"},\n`;
+      prompt += `  {"parentId": ${firstNode.id}, "keyword": "데이터 수집", "memo": "학습용 데이터셋 구축 계획"}\n`;
+      prompt += ']\n\n';
+    } else {
+      prompt += '[\n';
+      prompt += '  {"parentId": null, "keyword": "프로젝트 기획", "memo": "신규 프로젝트 전체 기획안"},\n';
+      prompt += '  {"parentId": null, "keyword": "일정 관리", "memo": "마일스톤 및 주요 일정 정리"}\n';
+      prompt += ']\n\n';
+    }
+
+    prompt += '# 잘못된 예시 (사용 금지)\n\n';
+    prompt += '❌ {"parentId": "null", ...}  // 문자열 "null" 금지\n';
+    prompt += '❌ {"parentId": "root", ...}  // "root" 문자열 금지\n';
+    prompt += '❌ {"parentId": "n1", ...}    // 문자열 ID 금지\n';
+    prompt += '❌ {"keyword": "안녕하세요", ...}  // 인사말 금지\n';
+    prompt += '❌ {"keyword": "참석자: 홍길동", ...}  // 메타 정보 금지\n';
+    if (mindmapContext && mindmapContext.existingKeywords && mindmapContext.existingKeywords.length > 0) {
+      prompt += `❌ {"keyword": "${mindmapContext.existingKeywords[0]}", ...}  // 이미 존재하는 키워드 금지\n`;
+    }
+
+    return prompt;
+  }
+
+  // ⚠️ 이 함수는 더 이상 사용되지 않음 (대화 히스토리 방식으로 변경)
   // GPT 프롬프트 생성
   buildPrompt(mindmapContext, conversation) {
     let prompt = '# 현재 마인드맵 정보\n\n';

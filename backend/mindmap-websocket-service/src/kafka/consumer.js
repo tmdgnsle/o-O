@@ -29,7 +29,9 @@ class KafkaConsumerService {
     this.onInitialCreateDone = null;  // 초기 노드 생성 완료 이벤트 핸들러
     this.nodeUpdateTopic = process.env.KAFKA_TOPIC_NODE_UPDATE || 'mindmap.node.update';
     this.aiSuggestionTopic = process.env.KAFKA_TOPIC_AI_SUGGESTION || 'mindmap.ai.suggestion';
+    this.nodeRestructureTopic  = process.env.KAFKA_TOPIC_RESTRUCTURE || 'mindmap.restructure.update';
     this.onAiSuggestion = null;
+    this.onRestructure = null;
   }
 
   /**
@@ -46,7 +48,13 @@ class KafkaConsumerService {
       logger.info('AI suggestion handler registered');
   }
 
-  /**
+  setRestructureHandler(handler) {
+      this.onRestructure = handler;
+      logger.info('Restructure handler registered');
+  }
+
+
+    /**
    * Kafka Consumer 초기화 및 연결
    * 환경변수 KAFKA_BROKERS가 설정되어 있으면 실제 Kafka에 연결
    * 없으면 비활성화 (stub mode)
@@ -88,8 +96,18 @@ class KafkaConsumerService {
           fromBeginning: false,
       });
 
+      await this.consumer.subscribe({
+          topic: this.nodeRestructureTopic ,
+          fromBeginning: false,
+      });
 
-      logger.info(`Kafka consumer subscribed to ${topic}`, { brokers });
+
+
+      logger.info(
+          `Kafka consumer subscribed to topics: [` +
+          `${this.nodeUpdateTopic}, ${this.aiSuggestionTopic}, ${this.nodeRestructureTopic}]`,
+          { brokers }
+      );
     } catch (error) {
       // 연결 실패 시 비활성화 (서비스 중단 방지)
       logger.error('Failed to initialize Kafka consumer', {
@@ -128,7 +146,9 @@ class KafkaConsumerService {
                           this.handleNodeUpdate(data);
                       } else if (topic === this.aiSuggestionTopic) {
                           this.handleAiSuggestion(data);
-                      } else {
+                      } else if (topic === this.nodeRestructureTopic) {
+                          this.handleNodeRestructure(data);
+                      }  else {
                           logger.warn('Received message from unknown topic', { topic, data });
                       }
                   } catch (error) {
@@ -170,14 +190,43 @@ class KafkaConsumerService {
    *   workspaceId: 197
    * }
    *
+   * 메시지 형식 예시 (아이디어 추가로 노드 생성):
+   * {
+   *   message: '새로운 노드가 추가되었습니다.',
+   *   workspaceId: 123,
+   *   nodes: [
+   *     { nodeId: 10, parentId: 3, keyword: '맛집 검색', memo: '...', type: 'text', color: '#FFE5E5', x: null, y: null },
+   *     { nodeId: 11, parentId: 3, keyword: '리뷰 시스템', memo: '...', type: 'text', color: '#E5F5FF', x: null, y: null }
+   *   ],
+   *   nodeCount: 2
+   * }
+   *
    * @param {object} data - Kafka 메시지 데이터
    */
   handleNodeUpdate(data) {
-    const { workspaceId, nodeId, updates, message } = data;
+    const { workspaceId, nodeId, updates, message, nodes, nodeCount } = data;
 
     // 필수 필드 검증: workspaceId는 항상 필요
     if (!workspaceId) {
       logger.warn('Invalid node update message: missing workspaceId', { data });
+      return;
+    }
+
+    // 아이디어 추가로 노드가 생성된 경우 (nodes 배열 포함)
+    if (message && nodes && Array.isArray(nodes)) {
+      logger.info(`Received nodes created message from Kafka`, {
+        workspaceId,
+        message,
+        nodeCount,
+        nodeKeywords: nodes.map(n => n.keyword),
+      });
+
+      // 등록된 핸들러 호출 (생성된 노드 전체 정보 포함)
+      if (this.onInitialCreateDone) {
+        this.onInitialCreateDone(workspaceId, nodes);
+      } else {
+        logger.warn('No initial create done handler registered');
+      }
       return;
     }
 
@@ -221,7 +270,7 @@ class KafkaConsumerService {
 
     try {
       // Y.Doc 업데이트 → 모든 연결된 클라이언트에게 자동 전파
-      const nodesMap = ydoc.getMap('nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
       const currentNode = nodesMap.get(nodeId.toString());
 
       if (currentNode) {
@@ -255,7 +304,15 @@ class KafkaConsumerService {
       }
   }
 
-  /**
+  handleNodeRestructure(data){
+      if (this.onRestructure) {
+          this.onRestructure(data);
+      } else {
+          logger.warn('Restructure message received but no handler registered', { data });
+      }
+  }
+
+    /**
    * Kafka consumer 연결 종료 (graceful shutdown)
    * 서버 종료 시 호출되어 안전하게 연결을 끊음
    */
