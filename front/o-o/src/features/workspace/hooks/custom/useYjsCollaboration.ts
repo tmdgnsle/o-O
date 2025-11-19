@@ -318,6 +318,7 @@ export function useYjsCollaboration(
         // JSON 메시지 핸들러 등록
         client.onJsonMessage(async (data) => {
           console.log("💬 [useYjsCollaboration] Received JSON message:", data);
+          console.log(`📨 [Message Stats] type="${data.type}", nodes count=${data.nodes?.length || 0}`);
 
           // 아이디어 추가 완료 (GPT 키워드 추출) - 두 가지 타입 모두 지원
           if ((data.type === "add-idea-done" || data.type === "initial-create-done") && data.nodes && Array.isArray(data.nodes)) {
@@ -336,28 +337,49 @@ export function useYjsCollaboration(
               }
             });
 
+            // 📊 [LOG] Y.Map 상태 확인 (삽입 전)
+            console.log(`📊 [Y.Map Before Insert] Total nodes in Y.Map: ${nodesMap.size}`);
+            console.log(`📊 [Y.Map Before Insert] Nodes to insert: ${nodeDatas.length}`, nodeDatas.map(n => ({ id: n.id, nodeId: n.nodeId })));
+            console.log(`📊 [Y.Map Before Insert] Existing nodeIds:`, Array.from(existingNodeIds.entries()));
+
             // Y.Doc에 새 노드 추가 (origin: "remote"로 설정하여 useMindmapSync 재진입 방지)
             client.doc.transact(() => {
               for (const nodeData of nodeDatas) {
                 if (nodeData.nodeId && existingNodeIds.has(nodeData.nodeId as number)) {
                   const existingId = existingNodeIds.get(nodeData.nodeId as number)!;
 
+                  console.log(`🔍 [Duplicate Check] nodeId=${nodeData.nodeId} already exists with id="${existingId}"`);
+
                   // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
                   if (existingId !== nodeData.id && existingId.includes("-")) {
                     // 로컬 노드를 제거하고 서버 노드로 교체
+                    console.log(`🔄 [Replace] Replacing temp node "${existingId}" with server node "${nodeData.id}"`);
                     nodesMap.delete(existingId);
                     nodesMap.set(nodeData.id, nodeData);
                     existingNodeIds.set(nodeData.nodeId as number, nodeData.id);
+                  } else {
+                    console.log(`⏭️ [Skip] Server node already exists, skipping`);
                   }
                   // 이미 서버 노드가 있으면 건너뜀
                   continue;
                 }
 
                 if (!nodesMap.has(nodeData.id)) {
+                  console.log(`➕ [Insert] Inserting new node id="${nodeData.id}", nodeId=${nodeData.nodeId}`);
                   nodesMap.set(nodeData.id, nodeData);
+                } else {
+                  console.log(`⚠️ [Warning] Node id="${nodeData.id}" already exists in Y.Map, skipping`);
                 }
               }
             }, "remote");
+
+            // 📊 [LOG] Y.Map 상태 확인 (삽입 후)
+            console.log(`📊 [Y.Map After Insert] Total nodes in Y.Map: ${nodesMap.size}`);
+            const allNodesAfter: Array<{ id: string; nodeId: number | null }> = [];
+            nodesMap.forEach((node, id) => {
+              allNodesAfter.push({ id, nodeId: node.nodeId ?? null });
+            });
+            console.log(`📊 [Y.Map After Insert] All nodes:`, allNodesAfter);
 
             console.log(`✅ ${data.type} nodes synced to Y.Map`);
 

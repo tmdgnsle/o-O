@@ -25,7 +25,11 @@ export const useYMapState = <TValue,>(
     setState(initialState);
 
     // 이후에는 증분 업데이트로 성능 최적화
-    const observer = (event: Y.YMapEvent<TValue>) => {
+    const observer = (event: Y.YMapEvent<TValue>, transaction: Y.Transaction) => {
+      // 📊 [LOG] Y.Map 옵저버 트리거
+      console.log(`📊 [Y.Map Observer] Transaction origin="${transaction.origin}", keys changed=${event.keysChanged.size}`);
+      console.log(`📊 [Y.Map Observer] Changed keys:`, Array.from(event.keysChanged));
+
       // 변경사항이 없으면 조기 반환
       if (event.keysChanged.size === 0) {
         return;
@@ -69,12 +73,14 @@ export const useYMapState = <TValue,>(
         for (const change of changesToApply) {
           if (change.action === 'delete') {
             if (change.key in next) {
+              console.log(`🗑️ [Y.Map Observer] Deleting key="${change.key}"`);
               delete next[change.key];
               hasChanges = true;
             }
           } else {
             // 값이 실제로 변경되었는지 체크 (shallow equality)
             if (next[change.key] !== change.value) {
+              console.log(`📝 [Y.Map Observer] Updating key="${change.key}"`);
               next[change.key] = change.value!;
               hasChanges = true;
             }
@@ -82,6 +88,7 @@ export const useYMapState = <TValue,>(
         }
 
         // 실제 변경사항이 없으면 이전 상태 반환 (참조 유지)
+        console.log(`📊 [Y.Map Observer] State update: hasChanges=${hasChanges}, total nodes=${Object.keys(next).length}`);
         return hasChanges ? next : prev;
       });
     };

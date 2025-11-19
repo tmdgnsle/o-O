@@ -107,7 +107,9 @@ export function useCollaborativeNodes(
 
     const run = async () => {
       try {
+        console.log(`📊 [Bootstrap] Fetching nodes from REST API for workspace="${workspaceId}"`);
         const restNodes = await fetchMindmapNodes(workspaceId);
+        console.log(`📊 [Bootstrap] Fetched ${restNodes.length} nodes from REST`);
 
         if (cancelled || restNodes.length === 0) {
           setIsBootstrapping(false);
@@ -150,6 +152,11 @@ export function useCollaborativeNodes(
           }
         });
 
+        // 📊 [LOG] Y.Map 상태 확인 (Bootstrap 삽입 전)
+        console.log(`📊 [Bootstrap Before Insert] Y.Map size: ${collab.map.size}`);
+        console.log(`📊 [Bootstrap Before Insert] Nodes to insert: ${processedNodes.length}`);
+        console.log(`📊 [Bootstrap Before Insert] Existing nodeIds:`, Array.from(existingNodeIds.entries()));
+
         collab.client.doc.transact(() => {
           for (const node of processedNodes) {
             const { _wasClamped, ...cleanNode } = node as any;
@@ -157,22 +164,33 @@ export function useCollaborativeNodes(
             if (node.nodeId && existingNodeIds.has(node.nodeId as number)) {
               const existingId = existingNodeIds.get(node.nodeId as number)!;
 
+              console.log(`🔍 [Bootstrap Duplicate Check] nodeId=${node.nodeId} already exists with id="${existingId}"`);
+
               // 서버 노드(MongoDB ID)가 아닌 로컬 노드(타임스탬프 ID)만 교체
               if (existingId !== node.id && existingId.includes("-")) {
                 // 로컬 노드를 제거하고 서버 노드로 교체
+                console.log(`🔄 [Bootstrap Replace] Replacing temp node "${existingId}" with server node "${node.id}"`);
                 collab.map.delete(existingId);
                 collab.map.set(cleanNode.id, cleanNode);
                 existingNodeIds.set(node.nodeId as number, node.id);
+              } else {
+                console.log(`⏭️ [Bootstrap Skip] Server node already exists, skipping`);
               }
               // 이미 서버 노드가 있으면 건너뜀
               continue;
             }
 
             if (!collab.map.has(node.id)) {
+              console.log(`➕ [Bootstrap Insert] Inserting new node id="${node.id}", nodeId=${node.nodeId}`);
               collab.map.set(cleanNode.id, cleanNode);
+            } else {
+              console.log(`⚠️ [Bootstrap Warning] Node id="${node.id}" already exists in Y.Map, skipping`);
             }
           }
         }, "mindmap-bootstrap");
+
+        // 📊 [LOG] Y.Map 상태 확인 (Bootstrap 삽입 후)
+        console.log(`📊 [Bootstrap After Insert] Y.Map size: ${collab.map.size}`);
 
         // 정규화/자동 계산된 좌표를 서버에 저장
         if (nodesToUpdate.length > 0) {
