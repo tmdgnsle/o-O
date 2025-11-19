@@ -65,10 +65,24 @@ export default function NodeDetailModal({
 
   const renderContent = () => {
     if (type === "image") {
+      const imageUrl = node.keyword;
+
+      // 이미지 업로드 중일 때 로딩 표시
+      if (!imageUrl) {
+        return (
+          <div className="flex items-center justify-center rounded-lg p-4">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/50 mx-auto mb-2"></div>
+              <p className="text-sm">이미지 업로드 중...</p>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="flex items-center justify-center rounded-lg p-4">
           <img
-            src={keyword}
+            src={imageUrl}
             alt="Node content"
             className="max-w-full max-h-[300px] object-contain rounded"
             onError={(e) => {
