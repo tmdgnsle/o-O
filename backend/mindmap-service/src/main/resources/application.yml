@@ -70,7 +70,7 @@ elasticsearch:
 feign:
   client:
     config:
-      gms-client:
+      gmsOpenAiClient:
         connectTimeout: 5000
         readTimeout: 150000
   httpclient:
