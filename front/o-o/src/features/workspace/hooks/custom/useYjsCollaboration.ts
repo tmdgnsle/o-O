@@ -339,7 +339,7 @@ export function useYjsCollaboration(
 
             // 📊 [LOG] Y.Map 상태 확인 (삽입 전)
             console.log(`📊 [Y.Map Before Insert] Total nodes in Y.Map: ${nodesMap.size}`);
-            console.log(`📊 [Y.Map Before Insert] Nodes to insert: ${nodeDatas.length}`, nodeDatas.map(n => ({ id: n.id, nodeId: n.nodeId })));
+            console.log(`📊 [Y.Map Before Insert] Nodes to insert: ${nodeDatas.length}`, nodeDatas.map((n: NodeData) => ({ id: n.id, nodeId: n.nodeId })));
             console.log(`📊 [Y.Map Before Insert] Existing nodeIds:`, Array.from(existingNodeIds.entries()));
 
             // Y.Doc에 새 노드 추가 (origin: "remote"로 설정하여 useMindmapSync 재진입 방지)
