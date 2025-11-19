@@ -1,5 +1,6 @@
 // components/ContentDialog/ContentDialog.tsx
 import React from "react";
+import { createPortal } from "react-dom";
 import type { ContentDialogProps } from "../../../features/mindmap/types";
 import DialogHeader from "./DialogHeader";
 import DialogContent from "./DialogContent";
@@ -19,8 +20,8 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4 backdrop-blur-sm">
+  const modalContent = (
+    <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/50 p-4 backdrop-blur-sm">
       {/* 배경 클릭 시 닫기 */}
       {onClose && (
         <button
@@ -48,6 +49,8 @@ const ContentDialog: React.FC<ContentDialogProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ContentDialog;

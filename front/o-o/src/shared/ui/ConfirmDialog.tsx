@@ -55,7 +55,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-[100] max-w-4xl w-[min(90vw,56rem)] p-0 bg-transparent"
+      className="fixed inset-0 z-[9999] max-w-4xl w-[min(90vw,56rem)] p-0 bg-transparent"
       aria-labelledby="confirm-dialog-title"
       aria-describedby="confirm-dialog-desc"
       onCancel={handleClose} // Esc

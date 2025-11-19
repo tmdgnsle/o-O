@@ -11,10 +11,9 @@ import type { NodeData } from "../../../mindmap/types";
 import type { GptNodeSuggestion } from "../../types/voice.types";
 import { getProfileImageUrl } from "@/shared/utils/imageMapper";
 import type { YClient } from "../../hooks/custom/yjsClient";
-import {
-  ConfirmEndVoiceChatDialog,
-  MeetingMinutesContentDialog,
-} from "../MeetingMinutes/MeetingMinutesDialogs";
+import ConfirmDialog from "@/shared/ui/ConfirmDialog";
+import ContentDialog from "@/shared/ui/ContentDialog/ContentDialog";
+import popoImage from "@/shared/assets/images/organize_popo.webp";
 import { useWorkspaceAccessQuery } from "../../hooks/query/useWorkspaceAccessQuery";
 
 interface YjsCRUD {
@@ -514,20 +513,65 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
       </div>
 
       {/* Meeting Minutes Dialogs */}
-      <ConfirmEndVoiceChatDialog
+      <ConfirmDialog
         isOpen={meetingMinutesState.showConfirmDialog}
         onClose={() => setMeetingMinutesState((prev) => ({ ...prev, showConfirmDialog: false }))}
-        onViewMindmap={handleViewMindmap}
-        onViewMeetingMinutes={handleViewMeetingMinutes}
+        characterImage={popoImage}
+        title="회의가 종료되었습니다."
+        description={`회의 내용은 Popo가 정리해드렸어요.\n생성된 회의록을 확인하시겠습니까?`}
+        buttons={[
+          {
+            id: "view-mindmap",
+            text: "마인드맵 보기",
+            onClick: handleViewMindmap,
+            variant: "outline",
+          },
+          {
+            id: "view-meeting-minutes",
+            text: "회의록 확인하기",
+            onClick: handleViewMeetingMinutes,
+            variant: "default",
+          },
+        ]}
       />
 
-      <MeetingMinutesContentDialog
+      <ContentDialog
         isOpen={meetingMinutesState.showContentDialog}
         onClose={handleMeetingMinutesClose}
-        content={meetingMinutesState.content}
-        isGenerating={meetingMinutesState.isGenerating}
-        error={meetingMinutesState.error}
-        workspaceTitle={workspace?.title}
+        characterImage={popoImage}
+        title={workspace?.title ? `${workspace.title} 회의` : "회의록"}
+        content={
+          meetingMinutesState.error
+            ? `# ❌ 오류 발생\n\n${meetingMinutesState.error}`
+            : meetingMinutesState.content || "# 📝 회의록\n\n회의록이 아직 생성되지 않았습니다."
+        }
+        isLoading={meetingMinutesState.isGenerating}
+        buttons={[
+          {
+            id: "copy",
+            text: "복사하기",
+            onClick: () => {
+              if (meetingMinutesState.content) {
+                navigator.clipboard
+                  .writeText(meetingMinutesState.content)
+                  .then(() => {
+                    alert("회의록이 클립보드에 복사되었습니다!");
+                  })
+                  .catch((err) => {
+                    console.error("[VoiceChat] Failed to copy:", err);
+                    alert("복사에 실패했습니다.");
+                  });
+              }
+            },
+            variant: "outline",
+          },
+          {
+            id: "close",
+            text: "닫기",
+            onClick: handleMeetingMinutesClose,
+            variant: "default",
+          },
+        ]}
       />
     </>
   );
