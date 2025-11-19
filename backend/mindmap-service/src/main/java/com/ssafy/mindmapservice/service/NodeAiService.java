@@ -76,7 +76,7 @@ public class NodeAiService {
                         new ChatMessage("developer",
                                 "한국어로만 답변해 주세요. " +
                                         "반드시 항상 구조화된 Markdown 형식으로 답변하고, 불필요한 서론은 생략하세요." +
-                                "절대로 Markdown 이외의 포맷으로 작성하지 마십시오."),
+                                "절대로 Markdown 이외의 포맷으로 작성하지 마십시오, ``` 금지."),
                         new ChatMessage("system",
                                 "You are an expert product planner who analyzes mindmap structures " +
                                         "and extracts insights for service planning."),
@@ -106,7 +106,7 @@ public class NodeAiService {
                         new ChatMessage("developer",
                                 "한국어 비즈니스 문체로 답변하고, 반드시 지정된 목차 구조를 지키세요. " +
                                         "목차 제목은 그대로 사용하고, 각 항목 아래에 구체적인 내용을 작성하세요." +
-                                "항상 구조화된 Markdown 형식으로 답변"),
+                                "항상 구조화된 Markdown 형식으로 답변, ``` 금지."),
                         new ChatMessage("system",
                                 "You are a senior product manager who writes real-world service planning documents " +
                                         "based on analysis summaries."),
