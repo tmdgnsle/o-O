@@ -401,6 +401,10 @@ export function useYjsCollaboration(
             }, "remote");
 
             console.log(`✅ restructure_apply: Y.Map completely replaced with ${processedNodes.length} nodes`);
+
+            // 재구조화 완료 - 로딩 해제
+            setIsLoading(false);
+            console.log("🎉 Restructure apply done - loading cleared");
           }
           // AI + 트렌드 통합 추천 결과
           else if (data.type === "ai_suggestion" && data.targetNodeId) {

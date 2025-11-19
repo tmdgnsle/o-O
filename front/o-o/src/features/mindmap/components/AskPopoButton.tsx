@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRestructureMindmapMutation } from '../hooks/mutation/useRestructureMindmapMutation';
 import { useToast } from '@/shared/ui/ToastProvider';
+import { useLoadingStore } from '@/shared/store/loadingStore';
 
 interface AskPopoProps {
   workspaceId: string;
@@ -18,14 +19,18 @@ export default function AskPopo({ workspaceId }: AskPopoProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { showToast } = useToast();
   const { mutate, isPending } = useRestructureMindmapMutation(workspaceId);
+  const setIsLoading = useLoadingStore((state) => state.setIsLoading);
 
   const handleOrganize = () => {
+    setIsLoading(true); // 전체 화면 로딩 시작
     mutate(undefined, {
       onSuccess: () => {
+        // 성공 시에는 로딩을 끄지 않음 - WebSocket restructure_apply 메시지가 오면 자동으로 꺼짐
         showToast('아이디어가 정리되었습니다!', 'success');
         setIsOpen(false);
       },
       onError: (error) => {
+        setIsLoading(false); // 에러 시에는 즉시 로딩 종료
         console.error('Restructure failed:', error);
         showToast('정리에 실패했습니다. 다시 시도해주세요.', 'error');
       },
