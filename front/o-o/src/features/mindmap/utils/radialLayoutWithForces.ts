@@ -117,22 +117,26 @@ function countEdgeCrossings(
  *    - forceCollide: 노드 반지름 기반 충돌 방지
  *    - forceRadial: 각 depth의 radius 유지
  * 4. Edge crossing 검증 및 각도 조정
+ * 5. 기존 노드와의 충돌 회피 (고정 장애물로 처리)
  *
  * @param nodes - 노드 배열
  * @param centerX - 중심 X 좌표
  * @param centerY - 중심 Y 좌표
  * @param baseRadius - depth당 반지름 증가량
+ * @param existingPositions - 기존 노드의 고정 위치 (충돌 회피용)
  * @returns Promise<PositionedNode[]> - 최종 노드 위치
  */
 export async function calculateRadialLayoutWithForces(
   nodes: Array<{ id: string; parentId: string | null | undefined }>,
   centerX: number = CANVAS_CENTER_X,
   centerY: number = CANVAS_CENTER_Y,
-  baseRadius: number = 200
+  baseRadius: number = 200,
+  existingPositions: Map<string, { x: number; y: number }> = new Map()
 ): Promise<PositionedNode[]> {
   if (nodes.length === 0) return [];
 
   console.log("[RadialForces] Starting layout calculation for", nodes.length, "nodes");
+  console.log("[RadialForces] Existing fixed nodes:", existingPositions.size);
 
   // ===== 1. 계층 구조 생성 =====
   interface HierarchyNode {
@@ -242,6 +246,24 @@ export async function calculateRadialLayoutWithForces(
   });
 
   console.log("[RadialForces] Initial positions calculated");
+
+  // ===== 3.5. 기존 노드를 고정 장애물로 추가 =====
+  // 기존 노드들을 고정 위치(fx, fy)로 simulation에 포함시켜서
+  // 새 노드들이 기존 노드와 겹치지 않도록 함
+  existingPositions.forEach((pos, nodeId) => {
+    simNodes.push({
+      id: nodeId,
+      x: pos.x,
+      y: pos.y,
+      fx: pos.x, // 고정 X 좌표
+      fy: pos.y, // 고정 Y 좌표
+      depth: -1, // 기존 노드는 depth -1로 표시 (구분용)
+      angle: 0,
+      radius: 0,
+    });
+  });
+
+  console.log("[RadialForces] Total nodes in simulation:", simNodes.length, "(including", existingPositions.size, "fixed obstacles)");
 
   // Edge 정보 생성 (교차 검증용)
   const edges: EdgeInfo[] = [];
@@ -427,16 +449,19 @@ export async function calculateRadialLayoutWithForces(
       console.log(`[RadialForces] After uniform distribution: ${adjustedCrossings} crossings`);
 
       // 결과 반환 (경계 제약 적용)
-      const result: PositionedNode[] = simNodes.map((n) => {
-        const clamped = clampNodePosition(n.x ?? centerX, n.y ?? centerY);
-        return {
-          id: n.id,
-          x: clamped.x,
-          y: clamped.y,
-        };
-      });
+      // ✅ 고정 장애물 노드(depth === -1)는 제외하고 새로 계산된 노드만 반환
+      const result: PositionedNode[] = simNodes
+        .filter((n) => n.depth !== -1) // 기존 노드 제외
+        .map((n) => {
+          const clamped = clampNodePosition(n.x ?? centerX, n.y ?? centerY);
+          return {
+            id: n.id,
+            x: clamped.x,
+            y: clamped.y,
+          };
+        });
 
-      console.log("[RadialForces] Layout complete:", result.length, "nodes positioned");
+      console.log("[RadialForces] Layout complete:", result.length, "nodes positioned (excluded", existingPositions.size, "fixed obstacles)");
       resolve(result);
     });
 
@@ -451,22 +476,44 @@ export async function calculateRadialLayoutWithForces(
 
 /**
  * API 응답 형식의 노드에 레이아웃 적용
+ * ✅ 기존 좌표가 있는 노드는 보존하고, null 좌표만 새로 계산
  */
 export async function applyRadialLayoutWithForcesToNodes(
-  apiNodes: Array<{ id: string; parentId: string | null | undefined; [key: string]: any }>,
+  apiNodes: Array<{ id: string; parentId: string | null | undefined; x?: number | null; y?: number | null; [key: string]: any }>,
   centerX: number = CANVAS_CENTER_X,
   centerY: number = CANVAS_CENTER_Y,
   baseRadius: number = 350
 ): Promise<any[]> {
   if (apiNodes.length === 0) return [];
 
-  console.log("[RadialForces] Applying layout to API nodes:", apiNodes.length);
+  // 기존 좌표가 있는 노드 저장
+  const existingPositions = new Map<string, { x: number; y: number }>();
+  const nullPositionNodes = apiNodes.filter((node) => {
+    if (node.x != null && node.y != null) {
+      existingPositions.set(node.id, { x: node.x, y: node.y });
+      return false; // 좌표가 있는 노드는 레이아웃 계산에서 제외
+    }
+    return true; // null 좌표만 계산
+  });
 
-  const positions = await calculateRadialLayoutWithForces(apiNodes, centerX, centerY, baseRadius);
+  console.log(`[RadialForces] Applying layout - ${nullPositionNodes.length} null nodes, ${existingPositions.size} preserved nodes`);
 
+  // null 좌표 노드만 레이아웃 계산 (기존 노드를 고정 장애물로 전달)
+  const positions = await calculateRadialLayoutWithForces(apiNodes, centerX, centerY, baseRadius, existingPositions);
   const positionMap = new Map(positions.map((p) => [p.id, p]));
 
   const result = apiNodes.map((node) => {
+    // 기존 좌표가 있으면 보존
+    const existing = existingPositions.get(node.id);
+    if (existing) {
+      return {
+        ...node,
+        x: existing.x,
+        y: existing.y,
+      };
+    }
+
+    // null 좌표는 새로 계산된 위치 사용
     const position = positionMap.get(node.id);
     return {
       ...node,
@@ -475,6 +522,6 @@ export async function applyRadialLayoutWithForcesToNodes(
     };
   });
 
-  console.log("[RadialForces] Layout applied to all nodes");
+  console.log("[RadialForces] Layout complete - all nodes positioned");
   return result;
 }

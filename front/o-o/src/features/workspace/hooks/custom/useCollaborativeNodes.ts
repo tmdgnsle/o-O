@@ -34,26 +34,14 @@ export async function calculateNodePositions(nodes: NodeData[]): Promise<NodeDat
   const CANVAS_CENTER_X = 2500;
   const CANVAS_CENTER_Y = 2500;
 
-  // 조건: null 좌표 노드가 5개 이하면 parentCenteredLayout 사용
-  if (nullPositionNodes.length <= 5) {
-    console.log(`[calculateNodePositions] Using parentCenteredLayout for ${nullPositionNodes.length} new nodes`);
-
-    const { calculateParentCenteredPositions } = await import(
-      "../../../mindmap/utils/parentCenteredLayout"
-    );
-
-    const processedNodes = await calculateParentCenteredPositions(nodes);
-    return processedNodes;
-  }
-
-  // 대규모 업데이트: radialLayout + Force Simulation 사용
+  // 항상 전역 방사형 레이아웃 사용 (null 좌표 노드를 전체 트리 기준으로 배치)
   console.log(`[calculateNodePositions] Using radialLayoutWithForces for ${nullPositionNodes.length} new nodes`);
 
   const { applyRadialLayoutWithForcesToNodes } = await import(
     "../../../mindmap/utils/radialLayoutWithForces"
   );
 
-  const BASE_RADIUS = 200; // depth당 기본 반경 (350 → 200으로 축소)
+  const BASE_RADIUS = 200; // depth당 기본 반경
 
   // parentId를 string으로 변환 (radialLayoutWithForces 타입 요구사항)
   const nodesWithStringParentId = nodes.map((node) => ({
