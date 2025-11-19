@@ -71,11 +71,12 @@ public class NodeAiService {
         String prompt = buildAnalysisPrompt(nodes);
 
         ChatCompletionRequest gmsRequest = new ChatCompletionRequest(
-                MODEL,
+                "gpt-4o",
                 List.of(
                         new ChatMessage("developer",
                                 "한국어로만 답변해 주세요. " +
-                                        "항상 구조화된 Markdown 형식으로 답변하고, 불필요한 서론은 생략하세요."),
+                                        "반드시 항상 구조화된 Markdown 형식으로 답변하고, 불필요한 서론은 생략하세요." +
+                                "절대로 Markdown 이외의 포맷으로 작성하지 마십시오."),
                         new ChatMessage("system",
                                 "You are an expert product planner who analyzes mindmap structures " +
                                         "and extracts insights for service planning."),
@@ -104,7 +105,8 @@ public class NodeAiService {
                 List.of(
                         new ChatMessage("developer",
                                 "한국어 비즈니스 문체로 답변하고, 반드시 지정된 목차 구조를 지키세요. " +
-                                        "목차 제목은 그대로 사용하고, 각 항목 아래에 구체적인 내용을 작성하세요."),
+                                        "목차 제목은 그대로 사용하고, 각 항목 아래에 구체적인 내용을 작성하세요." +
+                                "항상 구조화된 Markdown 형식으로 답변"),
                         new ChatMessage("system",
                                 "You are a senior product manager who writes real-world service planning documents " +
                                         "based on analysis summaries."),
@@ -544,8 +546,6 @@ public class NodeAiService {
             - Markdown 형식 사용
             - 아래 목차를 그대로 포함하고, 각 항목 아래에 구체적인 내용을 채울 것
 
-            # %s
-
             ## 1. 서비스 개요
             - 서비스 한 줄 정의
             - 서비스 설명
@@ -584,7 +584,7 @@ public class NodeAiService {
             --- 분석 내용 시작 ---
             %s
             --- 분석 내용 끝 ---
-            """.formatted(finalTitle, analysis);
+            """.formatted(analysis);
     }
 
     // ===== 간단 유틸 =====
@@ -762,14 +762,16 @@ public class NodeAiService {
                 String keywordFromGpt = n.get("keyword").asText();
                 String memoFromGpt = n.get("memo").asText();
 
-                if (!original.getKeyword().equals(keywordFromGpt)) {
+                String originalKeyword = original.getKeyword() != null ? original.getKeyword() : "";
+                String originalMemo = original.getMemo() != null ? original.getMemo() : "";
+
+                if (!originalKeyword.equals(keywordFromGpt)) {
                     log.warn("GPT가 keyword를 변경함: nodeId={}, original='{}', gpt='{}'",
-                            nodeId, original.getKeyword(), keywordFromGpt);
-                    // 필요하면 여기서 예외 던져도 됨
+                            nodeId, originalKeyword, keywordFromGpt);
                 }
-                if (!original.getMemo().equals(memoFromGpt)) {
+                if (!originalMemo.equals(memoFromGpt)) {
                     log.warn("GPT가 memo를 변경함: nodeId={}, original='{}', gpt='{}'",
-                            nodeId, original.getMemo(), memoFromGpt);
+                            nodeId, originalMemo, memoFromGpt);
                 }
 
                 result.add(
