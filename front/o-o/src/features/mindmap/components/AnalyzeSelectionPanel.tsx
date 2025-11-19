@@ -106,11 +106,7 @@ export default function AnalyzeSelectionPanel({
     setIsPlanLoading(true);
 
     try {
-      const result = await createPlan(
-        workspaceId,
-        apiAnalysisResult,
-        "AI 기반 마인드맵 서비스 기획안"
-      );
+      const result = await createPlan(workspaceId, apiAnalysisResult);
       setApiPlan(result.plan);
     } catch (error) {
       console.error("[AnalyzeSelectionPanel] 기획안 생성 실패:", error);
@@ -210,7 +206,7 @@ export default function AnalyzeSelectionPanel({
       {planDialogOpen && (
         <ContentDialog
           characterImage={planningPopoImage}
-          title="AI 기반 마인드맵 서비스 기획안"
+          title="마인드맵 기반 AI 서비스 기획안"
           content={apiPlan || planContent}
           isLoading={isPlanLoading}
           onClose={() => setPlanDialogOpen(false)}

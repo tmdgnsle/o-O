@@ -77,7 +77,7 @@ export const createMindmapNode = async (
 // Creates a new mindmap node from image file
 export const createMindmapNodeFromImage = async (
   workspaceId: string,
-  request: Omit<CreateImageNodeRequest, 'file'> & { file: File }
+  request: Omit<CreateImageNodeRequest, "file"> & { file: File }
 ): Promise<NodeData> => {
   const formData = new FormData();
   formData.append("file", request.file);
@@ -105,7 +105,6 @@ export const createMindmapNodeFromImage = async (
     "request",
     new Blob([JSON.stringify(requestBody)], { type: "application/json" })
   );
-
 
   const { data } = await apiClient.post<NodeDTO>(
     `/mindmap/${workspaceId}/node/image`,
@@ -185,7 +184,7 @@ export const analyzeSelectedNodes = async (
       nodeIds,
     } as AnalyzeNodesRequestDTO,
     {
-      timeout: 50000  // 50초 timeout (AI 분석은 시간이 오래 걸릴 수 있음)
+      timeout: 50000, // 50초 timeout (AI 분석은 시간이 오래 걸릴 수 있음)
     }
   );
   return data;
@@ -194,14 +193,12 @@ export const analyzeSelectedNodes = async (
 // 기획안 생성
 export const createPlan = async (
   workspaceId: string,
-  analysisText: string,
-  title: string
+  analysisText: string
 ): Promise<CreatePlanResponseDTO> => {
   const { data } = await apiClient.post<CreatePlanResponseDTO>(
     `/mindmap/${workspaceId}/ai/create-plan`,
     {
       analysisText,
-      title,
     },
     { timeout: 60000 }
   );
@@ -219,7 +216,7 @@ export const addIdeaToMindmap = async (
       idea,
     } as AddIdeaRequestDTO,
     {
-      timeout: 60000  // GPT 키워드 추출 + 노드 생성은 시간이 오래 걸릴 수 있음 (60초)
+      timeout: 60000, // GPT 키워드 추출 + 노드 생성은 시간이 오래 걸릴 수 있음 (60초)
     }
   );
   return data;
@@ -269,7 +266,7 @@ export const restructureMindmap = async (
     `/mindmap/${workspaceId}/ai/restructure`,
     {},
     {
-      timeout: 60000  // 60초 timeout (GPT 재구성 작업 소요 시간 고려)
+      timeout: 60000, // 60초 timeout (GPT 재구성 작업 소요 시간 고려)
     }
   );
   return data;
