@@ -46,6 +46,15 @@ public class PublicIndexSyncService {
             return;
         }
 
+        List<MindmapNode> textNodes = nodes.stream()
+                .filter(n -> "TEXT".equalsIgnoreCase(n.getType()))
+                .toList();
+
+        if (textNodes.isEmpty()) {
+            log.info("[ES] workspace {} has no TEXT nodes, skip bulk index", workspaceId);
+            return;
+        }
+
         // 2. parentKeyword 채워서 도큐먼트로 변환
         List<PublicNodeDocument> docs = toDocumentsWithParentKeyword(nodes);
 
@@ -79,6 +88,13 @@ public class PublicIndexSyncService {
     @Transactional(readOnly = true)
     public void indexNodeIfWorkspacePublic(MindmapNode node, boolean isPublic) {
         Long workspaceId = node.getWorkspaceId();
+
+        // TEXT 타입만 인덱싱
+        if (!"TEXT".equalsIgnoreCase(node.getType())) {
+            log.debug("[ES] skip index (not TEXT). workspaceId={}, nodeId={}, type={}",
+                    workspaceId, node.getNodeId(), node.getType());
+            return;
+        }
 
         if (!isPublic) {
             log.debug("[ES] workspace {} is PRIVATE, skip node index. nodeId={}", workspaceId, node.getNodeId());

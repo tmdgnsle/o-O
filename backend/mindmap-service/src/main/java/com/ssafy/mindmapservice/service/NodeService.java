@@ -165,35 +165,42 @@ public class NodeService {
         log.info("Created node with auto-generated nodeId: workspaceId={}, nodeId={}",
                 saved.getWorkspaceId(), saved.getNodeId());
 
+        boolean isTextNode = "text".equalsIgnoreCase(saved.getType());
+
         // 2) 여기서 한 번만 PUBLIC 여부 조회
         boolean isPublic = workspaceServiceClientAdapter.isPublic(workspaceId);
 
-        // 3) 트렌드 집계 이벤트 발행 (PUBLIC인 경우에만)
-        try {
-            String childKeyword = saved.getKeyword();
+        // 3) 트렌드 집계 이벤트 발행 (TEXT 타입 + PUBLIC인 경우에만)
+        if (isTextNode && isPublic) {
+            try {
+                String childKeyword = saved.getKeyword();
 
-            // 부모 키워드 계산
-            String parentKeyword;
-            if (saved.getParentId() == null) {
-                parentKeyword = "__root__";
-            } else {
-                MindmapNode parent = nodeRepository
-                        .findByWorkspaceIdAndNodeId(workspaceId, saved.getParentId())
-                        .orElse(null);
-
-                if (parent != null) {
-                    parentKeyword = parent.getKeyword();
-                } else {
+                // 부모 키워드 계산
+                String parentKeyword;
+                if (saved.getParentId() == null) {
                     parentKeyword = "__root__";
+                } else {
+                    MindmapNode parent = nodeRepository
+                            .findByWorkspaceIdAndNodeId(workspaceId, saved.getParentId())
+                            .orElse(null);
+
+                    if (parent != null) {
+                        parentKeyword = parent.getKeyword();
+                    } else {
+                        parentKeyword = "__root__";
+                    }
                 }
+
+                trendEventPublisher.publishRelationAdd(workspaceId, parentKeyword, childKeyword, true);
+                log.debug("Published trend relation add event: ws={}, parent={}, child={}, isPublic={}",
+                        workspaceId, parentKeyword, childKeyword, true);
+
+            } catch (Exception e) {
+                log.error("Failed to publish trend relation add event for nodeId={}", saved.getNodeId(), e);
             }
-
-            trendEventPublisher.publishRelationAdd(workspaceId, parentKeyword, childKeyword, isPublic);
-            log.debug("Published trend relation add event: ws={}, parent={}, child={}, isPublic={}",
-                    workspaceId, parentKeyword, childKeyword, isPublic);
-
-        } catch (Exception e) {
-            log.error("Failed to publish trend relation add event for nodeId={}", saved.getNodeId(), e);
+        } else {
+            log.debug("Skip trend event. workspaceId={}, nodeId={}, type={}, isPublic={}",
+                    workspaceId, saved.getNodeId(), saved.getType(), isPublic);
         }
 
         // 4) ES 인덱싱 (PUBLIC일 때만)
