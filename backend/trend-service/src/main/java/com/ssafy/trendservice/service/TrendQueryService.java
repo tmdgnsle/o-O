@@ -91,13 +91,18 @@ public class TrendQueryService {
         List<PublicNodeSearchService.ChildNode> childNodes =
                 publicNodeSearchService.searchChildrenByParent(parentKeyword, 500);
 
-        if (childNodes.isEmpty()) {
-            log.info("No public children found for parentKeyword='{}'", parentKeyword);
+        // 📌 여기서 먼저 TEXT 타입만 필터링
+        List<PublicNodeSearchService.ChildNode> textChildNodes = childNodes.stream()
+                .filter(c -> "text".equalsIgnoreCase(c.type()))   // <-- 중요
+                .toList();
+
+        if (textChildNodes.isEmpty()) {
+            log.info("No public TEXT children found for parentKeyword='{}'", parentKeyword);
             return buildResponse(period, normalizedParent, List.of());
         }
 
         // 🔥 2. 자식 키워드만 뽑아서 중복 제거
-        List<String> publicChildKeywords = childNodes.stream()
+        List<String> publicChildKeywords = textChildNodes.stream()
                 .map(PublicNodeSearchService.ChildNode::keyword)
                 .filter(Objects::nonNull)
                 .map(String::trim)
@@ -106,7 +111,7 @@ public class TrendQueryService {
                 .toList();
 
         if (publicChildKeywords.isEmpty()) {
-            log.info("Public children exist but all childKeyword blank for parent='{}'", parentKeyword);
+            log.info("Public TEXT children exist but all childKeyword blank for parent='{}'", parentKeyword);
             return buildResponse(period, normalizedParent, List.of());
         }
 
@@ -140,6 +145,7 @@ public class TrendQueryService {
 
         return buildResponse(period, normalizedParent, merged);
     }
+
 
 
 

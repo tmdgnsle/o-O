@@ -97,7 +97,8 @@ public class PublicNodeSearchService {
                             doc.getNodeId(),
                             doc.getParentNodeId(),
                             doc.getKeyword(),
-                            doc.getParentKeyword()
+                            doc.getParentKeyword(),
+                            doc.getType()
                     ))
                     .collect(Collectors.toList());
 
@@ -114,6 +115,7 @@ public class PublicNodeSearchService {
             Long nodeId,
             Long parentNodeId,
             String keyword,
-            String parentKeyword
+            String parentKeyword,
+            String type
     ) {}
 }
