@@ -158,9 +158,10 @@ public class NodeAiService {
                                 "You must respond ONLY with valid JSON format. " +
                                         "Do not include any markdown code blocks, explanations, or extra text. " +
                                         "Just pure JSON array. " +
-                                        "Extract only the single most relevant keyword. " +
-                                        "If identifying only one keyword is truly impossible, extract up to three keywords as a maximum. " +
-                                        "The JSON array must contain at least one and at most three objects."
+                                        "Extract the most relevant 5 to 8 keywords from the content. " +
+                                        "Minimum: 5 keywords. " +
+                                        "Maximum: 8 keywords. " +
+                                        "The JSON array must contain at least five and at most eight objects."
                         ),
                         new ChatMessage("system",
                                 "You are an AI assistant that extracts keywords from ideas and connects them to existing mindmap nodes. " +
@@ -416,7 +417,7 @@ public class NodeAiService {
 
             ## Your Task
             1. Analyze the user's new idea
-            2. Extract 1–3 key concepts/keywords from the idea (prefer extracting exactly 1 if possible)
+            2. Extract 5–8 key concepts/keywords from the idea
             3. For each keyword, determine the most appropriate parent node from the existing mindmap
             4. Create a brief description (memo) for each keyword in Korean
 
@@ -425,8 +426,7 @@ public class NodeAiService {
             - Each keyword must have a valid parentId from the existing nodes
             - Choose the most semantically related parent node for each keyword
             - If no clear parent exists, use the root node (nodeId with parentId=null)
-            - Prefer extracting exactly 1 keyword. Only if it is truly necessary, extract up to 3 keywords.
-            - Never extract more than 3 keywords.
+            - Never extract more than 8 keywords.
             - Keywords and memos must be in Korean
 
             ## Existing Mindmap Nodes
@@ -479,7 +479,7 @@ public class NodeAiService {
               }
             ]
 
-            Now extract 1–3 keywords from the new idea (prefer 1 if possible) and respond with JSON only.
+            Now extract 5–8 keywords from the new idea and respond with JSON only.
             """);
 
         return sb.toString();
