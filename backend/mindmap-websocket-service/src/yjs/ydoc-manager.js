@@ -83,6 +83,14 @@ class YDocManager {
         // 노드가 추가되거나 수정된 경우
         if (change.action === 'add' || change.action === 'update') {
           const nodeData = nodesMap.get(key);  // 현재 노드 데이터 가져오기
+
+            logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
+                workspaceId,
+                nodeId: key,
+                action: change.action,
+                nodeData,                    // keyword, memo, x, y, color 등 전부
+            });
+
           changes.push({
             operation: change.action === 'add' ? 'ADD' : 'UPDATE',  // 작업 타입
             nodeId: key,  // 노드 ID

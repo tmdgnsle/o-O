@@ -13,7 +13,7 @@ const LOG_LEVELS = {
 
 // 환경변수에서 현재 로그 레벨 가져오기 (기본값: info)
 // LOG_LEVEL=debug로 설정하면 모든 로그 표시, error로 설정하면 에러만 표시
-const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'info'];
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'debug'];
 
 // 로그 메시지를 포맷팅하는 함수
 // 형식: [2025-01-15T10:30:45.123Z] [INFO] 메시지 내용 {"추가": "데이터"}
