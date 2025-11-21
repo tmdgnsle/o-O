@@ -106,21 +106,19 @@ export const createYClient = (
   }
 
   // Y.Doc 업데이트 감지 (실제 WebSocket으로 데이터가 올 때)
-  // doc.on("update", (update: Uint8Array, origin: any) => {
-  //   console.log("🔥 [WebSocket] Y.Doc Update received!", {
-  //     updateSize: update.length,
-  //     origin: origin,
-  //     isFromWebSocket: origin === provider,
-  //     timestamp: new Date().toISOString(),
-  //   });
+  doc.on("update", (update: Uint8Array, origin: any) => {
+    console.log("🔥 [Y.Doc] Update received!", {
+      updateSize: update.length,
+      origin: origin,
+      isFromWebSocket: origin === provider,
+      timestamp: new Date().toISOString(),
+    });
 
-  //   // WebSocket에서 온 업데이트인 경우 Y.Map 내용 확인
-  //   if (origin === provider) {
-  //     const mindmapNodes = doc.getMap("mindmap:nodes");
-  //     console.log("📊 [WebSocket] Current Y.Map size:", mindmapNodes.size);
-  //     console.log("📊 [WebSocket] All nodes in Y.Map:", mindmapNodes.toJSON());
-  //   }
-  // });
+    // Y.Map 내용 확인
+    const mindmapNodes = doc.getMap("mindmap:nodes");
+    console.log("📊 [Y.Doc] Current Y.Map size:", mindmapNodes.size);
+    console.log("📊 [Y.Doc] All nodes in Y.Map:", mindmapNodes.toJSON());
+  });
 
   const connect = () => provider.connect();
   const disconnect = () => provider.disconnect();
