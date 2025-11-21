@@ -57,6 +57,7 @@ class YDocManager {
               workspaceId,
               updateSize: update.length,
               originType: typeof origin,
+              origin,
           });
       });
 
