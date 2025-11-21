@@ -52,6 +52,14 @@ class YDocManager {
       // 문서 변경 감지 설정 (노드 추가/수정/삭제 감지)
       this.setupChangeObserver(workspaceId, ydoc);
 
+      ydoc.on('update', (update, origin) => {
+          logger.info('[YDOC_UPDATE]', {
+              workspaceId,
+              updateSize: update.length,
+              originType: typeof origin,
+          });
+      });
+
       // Map에 저장
       this.docs.set(workspaceId, ydoc);
       this.pendingChanges.set(workspaceId, []);  // 빈 변경사항 배열 초기화
