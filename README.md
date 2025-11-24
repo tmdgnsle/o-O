@@ -77,9 +77,8 @@
 ![D3.js](https://img.shields.io/badge/D3.js-EE8447?style=flat&logo=D3.js&logoColor=white)
 
 ### Mobile
-![Kotlin](https://img.shields.io/badge/Kotlin-B916DD?style=flat&logo=Kotlin&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-B916DD?style=flat&logo=Kotlin&logoColor=white)
 ![Retrofit](https://img.shields.io/badge/Retrofit-45B37F?style=flat&logo=Retrofit&logoColor=white)
-![KotlinCoroutines](https://img.shields.io/badge/KotlinCoroutines-5468F1?style=flat&logo=KotlinCoroutines&logoColor=white)
 ![Android](https://img.shields.io/badge/android-3DDC84?style=flat&logo=android&logoColor=white)
 ![Androidstudio](https://img.shields.io/badge/Android%20studio-3DDC84?style=flat&logo=androidstudio&logoColor=white)
 
@@ -95,10 +94,9 @@
 ![Jenkins](https://img.shields.io/badge/Jenkins-CC3631?style=flat&logo=Jenkins&logoColor=white)
 
 ### AI
-![FASTAPI](https://img.shields.io/badge/fastapi-009688?style=flat&logo=fastapi&logoColor=white)
-![PANDAS](https://img.shields.io/badge/pandas-150458?style=flat&logo=pandas&logoColor=white)
-![SCIPY](https://img.shields.io/badge/scipy-8CAAE6?style=flat&logo=scipy&logoColor=white)
-![SQLALCHEMY](https://img.shields.io/badge/sqlalchemy-D71F00?style=flat&logo=sqlalchemy&logoColor=white)
+![LLAMA](https://img.shields.io/badge/llama-009688?style=flat&logo=fastapi&logoColor=white)
+
+
 
 ### Communication
 ![GitLab](https://img.shields.io/badge/GitLab-E34124?style=flat&logo=Gitlab&logoColor=white)
