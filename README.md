@@ -94,7 +94,7 @@
 ![Jenkins](https://img.shields.io/badge/Jenkins-CC3631?style=flat&logo=Jenkins&logoColor=white)
 
 ### AI
-![LLAMA](https://img.shields.io/badge/llama?style=flat&logo=fastapi&logoColor=white)
+![LLAMA](https://img.shields.io/badge/Llama-0081FB?style=flat&logo=meta&logoColor=white)
 
 
 
