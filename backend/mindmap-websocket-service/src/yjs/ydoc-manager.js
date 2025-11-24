@@ -247,44 +247,52 @@ class YDocManager {
    * - 그런 다음 Y.applyUpdate를 호출하면, 기존 observe 로직이 그대로 동작하면서
    *   NODE_CHANGE_DETECTED + Kafka 전송이 그대로 걸린다.
    */
-  handleUpdateFromYWebsocket(workspaceId, update) {
-      const workspaceIdStr = workspaceId.toString();
+    /**
+     * y-websocket(setPersistence.bindState)에서 전달해 준 Y.Doc을
+     * 내부 docs 맵에 등록하고, change observer를 붙여주는 헬퍼.
+     *
+     * - workspaceId: "53" 같은 문자열/숫자 모두 허용
+     * - ydoc: y-websocket이 실제로 사용하는 Y.Doc 인스턴스
+     */
+    registerExternalDoc(workspaceId, ydoc) {
+        const id = workspaceId.toString();
 
-      // 1) 해당 워크스페이스의 Y.Doc 가져오기 (없으면 생성)
-      let ydoc = this.docs.get(workspaceIdStr);
-      if (!ydoc) {
-          logger.info('[YDocManager] Creating mirror Y.Doc for websocket update', {
-              workspaceId: workspaceIdStr,
-          });
+        const existing = this.docs.get(id);
 
-          ydoc = new Y.Doc({
-              gc: process.env.YDOC_GC_ENABLED === 'true',
-          });
+        if (existing === ydoc) {
+            // 이미 같은 인스턴스가 등록돼 있으면 그냥 로그만 찍고 끝
+            logger.debug(`[YDocManager] registerExternalDoc called but same doc already registered for workspace ${id}`);
+            return;
+        }
 
-          // 기존에 쓰던 변경 감지 + Kafka 로직 재사용
-          this.setupChangeObserver(workspaceIdStr, ydoc);
+        if (existing) {
+            // 예전에 getDoc()에서 만들었던 다른 doc이 있을 수 있음
+            logger.warn(`[YDocManager] Overriding existing Y.Doc with external doc for workspace ${id}`);
+        } else {
+            logger.info(`[YDocManager] Registering external Y.Doc from y-websocket for workspace ${id}`);
+        }
 
-          // 디버깅용: mirror doc 자체 update 로그도 보고 싶으면
-          ydoc.on('update', (u) => {
-              logger.debug?.('[YDocManager] MIRROR_DOC_UPDATE', {
-                  workspaceId: workspaceIdStr,
-                  size: u.length,
-              });
-          });
+        // docs 맵에 y-websocket의 ydoc을 저장
+        this.docs.set(id, ydoc);
 
-          this.docs.set(workspaceIdStr, ydoc);
-      }
+        // pendingChanges 배열 없으면 초기화
+        if (!this.pendingChanges.has(id)) {
+            this.pendingChanges.set(id, []);
+        }
 
-      // 2) 들어온 update를 mirror Y.Doc에 적용
-      try {
-          Y.applyUpdate(ydoc, update);
-      } catch (error) {
-          logger.error('[YDocManager] Failed to apply external Y update', {
-              workspaceId: workspaceIdStr,
-              error: error.message,
-          });
-      }
-  }
+        // 이 문서에 대해 변경 감지 observer 붙이기
+        this.setupChangeObserver(id, ydoc);
+
+        // 디버깅용으로도 업데이트 로그 보고 싶으면 (이미 getDoc에서 on('update') 붙여놨으면 생략 가능)
+        ydoc.on('update', (update, origin) => {
+            logger.info('[YDOC_UPDATE][EXTERNAL]', {
+                workspaceId: id,
+                updateSize: update.length,
+                originType: typeof origin,
+            });
+        });
+    }
+
 
 }
 

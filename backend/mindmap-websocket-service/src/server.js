@@ -24,7 +24,7 @@
 import 'dotenv/config';  // .env 파일에서 환경변수 로드
 import express from 'express';
 import { WebSocketServer } from 'ws';
-import { setupWSConnection } from 'y-websocket/bin/utils';  // Y.js WebSocket 유틸
+import { setupWSConnection, setPersistence } from 'y-websocket/bin/utils';  // Y.js WebSocket 유틸
 import * as Y from 'yjs';
 import http from 'http';
 import { logger } from './utils/logger.js';
@@ -250,6 +250,35 @@ const wss = new WebSocketServer({
 });
 
 logger.info('WebSocket server created (accepts /mindmap/ws for Y.js sync and /mindmap/voice for voice chat)');
+
+setPersistence({
+    // 문서에 첫 클라이언트가 붙을 때마다 한 번씩 호출됨
+    bindState: async (docName, ydoc) => {
+        // docName 예: "workspace:53"
+        const workspaceId = docName.replace(/^workspace:/, '');
+
+        logger.info('[YWS][PERSIST] bindState called', {
+            docName,
+            workspaceId,
+        });
+
+        // y-websocket 내부에서 쓰는 ydoc을 우리 매니저에 등록 + observer 붙이기
+        ydocManager.registerExternalDoc(workspaceId, ydoc);
+    },
+
+    // 마지막 클라이언트가 떠나서 문서가 닫힐 때 호출됨
+    writeState: async (docName, ydoc) => {
+        const workspaceId = docName.replace(/^workspace:/, '');
+
+        logger.info('[YWS][PERSIST] writeState called (no clients left)', {
+            docName,
+            workspaceId,
+        });
+
+        // 필요하면 여기서 flush / 정리 작업 추가
+        // 지금은 그냥 로그만 찍고 끝
+    },
+});
 
 /**
  * ============================================
@@ -620,19 +649,8 @@ function handleYjsConnection(conn, req, url) {
   setupWSConnection(conn, req, {
       docName: `workspace:${workspaceId}`,
       gc: process.env.YDOC_GC_ENABLED === 'true',
-
-      // ✅ 2단계: y-websocket이 받은 모든 Yjs 업데이트를 ydocManager로 넘겨줌
-      onUpdate: (update, originDoc) => {
-          // update: Uint8Array (Yjs 업데이트)
-          logger.info('[YWS] onUpdate fired', {
-              workspaceId,
-              size: update.length,
-          });
-
-          // 🔥 여기서 ydocManager 쪽 mirror Y.Doc에 update 적용
-          ydocManager.handleUpdateFromYWebsocket(workspaceId, update);
-      },
   }, ydoc, awareness);
+
 
 
   // 커스텀 메시지 핸들러
