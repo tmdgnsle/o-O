@@ -81,6 +81,14 @@
 ![Dart](https://img.shields.io/badge/dart-0175C2?style=flat&logo=Dart&logoColor=white)
 ![Android](https://img.shields.io/badge/android-3DDC84?style=flat&logo=android&logoColor=white)
 ![Androidstudio](https://img.shields.io/badge/Android%20studio-3DDC84?style=flat&logo=androidstudio&logoColor=white)
+![Dio](https://img.shields.io/badge/Dio-02569B?style=flat&logo=flutter&logoColor=white)
+![Freezed](https://img.shields.io/badge/Freezed-4FC3F7?style=flat&logo=snowflake&logoColor=white)
+![Bloc](https://img.shields.io/badge/Bloc-0175C2?style=flat&logo=flutter&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-000000?style=flat&logo=apple&logoColor=white)
+![Flame](https://img.shields.io/badge/Flame-F44336?style=flat&logo=flame&logoColor=white)
+![go_router](https://img.shields.io/badge/go__router-7E57C2?style=flat&logo=flutter&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=white)
+
 
 ### Database
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-306091?style=flat&logo=PostgreSQL&logoColor=white)
