@@ -618,9 +618,22 @@ function handleYjsConnection(conn, req, url) {
   // 이 함수가 Y.js 프로토콜을 처리해줌 (동기화, 업데이트 전파 등)
   // awareness를 주입하면 클라이언트 간 커서/채팅 자동 동기화됨
   setupWSConnection(conn, req, {
-    docName: `workspace:${workspaceId}`,           // 문서 이름 제거: docName 대신 workspaceId로 관리
-    gc: process.env.YDOC_GC_ENABLED === 'true',    // 가비지 컬렉션 활성화 여부
-  }, ydoc, awareness);  // ydoc과 awareness 명시적으로 전달
+      docName: `workspace:${workspaceId}`,
+      gc: process.env.YDOC_GC_ENABLED === 'true',
+
+      // ✅ 2단계: y-websocket이 받은 모든 Yjs 업데이트를 ydocManager로 넘겨줌
+      onUpdate: (update, originDoc) => {
+          // update: Uint8Array (Yjs 업데이트)
+          logger.info('[YWS] onUpdate fired', {
+              workspaceId,
+              size: update.length,
+          });
+
+          // 🔥 여기서 ydocManager 쪽 mirror Y.Doc에 update 적용
+          ydocManager.handleUpdateFromYWebsocket(workspaceId, update);
+      },
+  }, ydoc, awareness);
+
 
   // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {

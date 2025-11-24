@@ -237,6 +237,55 @@ class YDocManager {
 
     return stats;
   }
+
+  /**
+   * y-websocket 서버(onUpdate 훅)에서 들어온 Yjs update를
+   * YDocManager 내부 Y.Doc에 적용해주는 헬퍼.
+   *
+   * - workspaceId 기준으로 내부 Y.Doc을 찾아서 없으면 새로 만든 뒤
+   *   setupChangeObserver를 붙인다.
+   * - 그런 다음 Y.applyUpdate를 호출하면, 기존 observe 로직이 그대로 동작하면서
+   *   NODE_CHANGE_DETECTED + Kafka 전송이 그대로 걸린다.
+   */
+  handleUpdateFromYWebsocket(workspaceId, update) {
+      const workspaceIdStr = workspaceId.toString();
+
+      // 1) 해당 워크스페이스의 Y.Doc 가져오기 (없으면 생성)
+      let ydoc = this.docs.get(workspaceIdStr);
+      if (!ydoc) {
+          logger.info('[YDocManager] Creating mirror Y.Doc for websocket update', {
+              workspaceId: workspaceIdStr,
+          });
+
+          ydoc = new Y.Doc({
+              gc: process.env.YDOC_GC_ENABLED === 'true',
+          });
+
+          // 기존에 쓰던 변경 감지 + Kafka 로직 재사용
+          this.setupChangeObserver(workspaceIdStr, ydoc);
+
+          // 디버깅용: mirror doc 자체 update 로그도 보고 싶으면
+          ydoc.on('update', (u) => {
+              logger.debug?.('[YDocManager] MIRROR_DOC_UPDATE', {
+                  workspaceId: workspaceIdStr,
+                  size: u.length,
+              });
+          });
+
+          this.docs.set(workspaceIdStr, ydoc);
+      }
+
+      // 2) 들어온 update를 mirror Y.Doc에 적용
+      try {
+          Y.applyUpdate(ydoc, update);
+      } catch (error) {
+          logger.error('[YDocManager] Failed to apply external Y update', {
+              workspaceId: workspaceIdStr,
+              error: error.message,
+          });
+      }
+  }
+
 }
 
 // Export singleton instance
