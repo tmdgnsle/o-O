@@ -77,7 +77,7 @@
 ![D3.js](https://img.shields.io/badge/D3.js-EE8447?style=flat&logo=D3.js&logoColor=white)
 
 ### Mobile
-![Flutter](https://img.shields.io/badge/Flutter-B916DD?style=flat&logo=Kotlin&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter?style=flat&logo=Kotlin&logoColor=white)
 ![Retrofit](https://img.shields.io/badge/Retrofit-45B37F?style=flat&logo=Retrofit&logoColor=white)
 ![Android](https://img.shields.io/badge/android-3DDC84?style=flat&logo=android&logoColor=white)
 ![Androidstudio](https://img.shields.io/badge/Android%20studio-3DDC84?style=flat&logo=androidstudio&logoColor=white)
@@ -94,7 +94,7 @@
 ![Jenkins](https://img.shields.io/badge/Jenkins-CC3631?style=flat&logo=Jenkins&logoColor=white)
 
 ### AI
-![LLAMA](https://img.shields.io/badge/llama-009688?style=flat&logo=fastapi&logoColor=white)
+![LLAMA](https://img.shields.io/badge/llama?style=flat&logo=fastapi&logoColor=white)
 
 
 
