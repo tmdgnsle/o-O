@@ -625,11 +625,17 @@ function handleYjsConnection(conn, req, url) {
   // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {
       const isBuffer = Buffer.isBuffer(msg);
+      const isArrayBuffer = msg instanceof ArrayBuffer;
       logger.info('[YJS][RAW] WS message received', {
           workspaceId,
           isBuffer,
+          isArrayBuffer,
           type: typeof msg,
-          size: isBuffer ? msg.length : undefined,
+          size: isBuffer
+              ? msg.length
+              : isArrayBuffer
+                  ? msg.byteLength
+                  : undefined,
       });
 
       // 1) 바이너리면 → Yjs sync 메시지라고 보고, 그냥 통과 (우리는 관여 X)
