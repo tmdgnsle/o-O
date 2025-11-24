@@ -600,6 +600,12 @@ function handleYjsConnection(conn, req, url) {
   // 클라이언트가 이미 HTTP로 초기 데이터를 로드한 상태에서 연결함
   const ydoc = ydocManager.getDoc(workspaceId);
 
+
+  logger.info('[YJS] Using Y.Doc from manager', {
+      workspaceId,
+      guid: ydoc.guid,
+  });
+
   // 해당 워크스페이스의 Awareness 가져오기 또는 생성
   // Awareness: 커서 위치, 사용자 정보 등 임시 상태 공유
   const awareness = awarenessManager.getAwareness(workspaceId, ydoc);
@@ -618,49 +624,62 @@ function handleYjsConnection(conn, req, url) {
 
   // 커스텀 메시지 핸들러
   conn.on('message', (msg) => {
-    // Buffer/ArrayBuffer를 문자열로 변환
-    let msgString;
-    try {
-      msgString = msg.toString();
-    } catch (e) {
-      // toString 실패 시 바이너리로 간주 (Y.js 메시지)
-      return;
-    }
-
-    // JSON으로 파싱 시도
-    try {
-      const data = JSON.parse(msgString);
-
-      logger.info(`[YJS] Custom JSON message received`, {
-        workspaceId,
-        userId: userId || 'anonymous',
-        type: data.type,
-        fullData: data,
+      const isBuffer = Buffer.isBuffer(msg);
+      logger.info('[YJS][RAW] WS message received', {
+          workspaceId,
+          isBuffer,
+          type: typeof msg,
+          size: isBuffer ? msg.length : undefined,
       });
 
-      switch (data.type) {
-        case 'role-changed':
-          logger.info(`[YJS] Routing to handleRoleChanged`, {
-            workspaceId,
-            userId,
-            targetUserId: data.targetUserId,
-          });
-          handleRoleChanged(workspaceId, userId, data);
-          break;
-
-        default:
-          logger.warn(`[YJS] Unknown custom message type: ${data.type}`, {
-            workspaceId,
-            userId: userId || 'anonymous',
-            availableTypes: ['role-changed'],
-            receivedData: data,
-          });
+      // 1) 바이너리면 → Yjs sync 메시지라고 보고, 그냥 통과 (우리는 관여 X)
+      if (isBuffer) {
+          // setupWSConnection 쪽 리스너가 따로 처리하니까 여기선 손 안댐
+          return;
       }
-    } catch (error) {
-      // JSON 파싱 실패 시 Y.js 바이너리 메시지로 간주 (로그 없이 무시)
-      return;
-    }
+
+      // 2) 문자열이면 → 커스텀 JSON 메시지로 시도
+      let msgString;
+      try {
+          msgString = msg.toString();
+      } catch (e) {
+          return;
+      }
+
+      try {
+          const data = JSON.parse(msgString);
+
+          logger.info(`[YJS] Custom JSON message received`, {
+              workspaceId,
+              userId: userId || 'anonymous',
+              type: data.type,
+              fullData: data,
+          });
+
+          switch (data.type) {
+              case 'role-changed':
+                  logger.info(`[YJS] Routing to handleRoleChanged`, {
+                      workspaceId,
+                      userId,
+                      targetUserId: data.targetUserId,
+                  });
+                  handleRoleChanged(workspaceId, userId, data);
+                  break;
+
+              default:
+                  logger.warn(`[YJS] Unknown custom message type: ${data.type}`, {
+                      workspaceId,
+                      userId: userId || 'anonymous',
+                      availableTypes: ['role-changed'],
+                      receivedData: data,
+                  });
+          }
+      } catch (error) {
+          // JSON 파싱 실패 → Yjs 바이너리였던 거면 이미 위에서 걸렸음
+          return;
+      }
   });
+
   const t3 = Date.now();
 
   logger.info(`[PROFILE][YJS] workspace=${workspaceId} timings(ms)`, {
