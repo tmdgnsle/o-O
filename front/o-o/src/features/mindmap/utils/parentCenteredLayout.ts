@@ -285,25 +285,39 @@ function findAvailableAngles(
 }
 
 /**
- * 충돌하지 않는 위치 찾기 (반지름 증가 전략)
+ * 충돌하지 않는 위치 찾기 (반지름 증가 + 360도 탐색 전략)
+ *
+ * 알고리즘:
+ * 1. 현재 반지름(200px)에서 360도 전체를 30도씩 탐색
+ * 2. 빈 공간을 못 찾으면 반지름 증가(250px)하고 다시 360도 탐색
+ * 3. 최대 10번 반복 (200px ~ 650px)
  */
 function findNonCollidingPosition(
   parentX: number,
   parentY: number,
-  angle: number,
+  preferredAngle: number,
   existingNodes: NodeData[],
   params: LayoutParams
 ): { x: number; y: number } | null {
   let radius = params.baseRadius;
+  const angleStep = Math.PI / 6; // 30도씩 회전
 
-  for (let attempt = 0; attempt < params.maxAttempts; attempt++) {
-    const x = parentX + radius * Math.cos(angle);
-    const y = parentY + radius * Math.sin(angle);
+  // 반지름 증가 루프 (최대 10번)
+  for (let radiusAttempt = 0; radiusAttempt < params.maxAttempts; radiusAttempt++) {
+    // 🔥 현재 반지름에서 360도 전체 탐색 (30도씩 12번)
+    for (let angleOffset = 0; angleOffset < 2 * Math.PI; angleOffset += angleStep) {
+      const angle = preferredAngle + angleOffset;
+      const x = parentX + radius * Math.cos(angle);
+      const y = parentY + radius * Math.sin(angle);
 
-    if (!isPositionOccupied(x, y, existingNodes, params.minDistance)) {
-      return { x, y };
+      if (!isPositionOccupied(x, y, existingNodes, params.minDistance)) {
+        console.log(`[findNonCollidingPosition] ✅ Found position at radius ${radius.toFixed(0)}px, angle ${((angle * 180 / Math.PI) % 360).toFixed(0)}°`);
+        return { x, y };
+      }
     }
 
+    // 360도 전부 충돌 → 반지름 증가
+    console.log(`[findNonCollidingPosition] ⚠️ Radius ${radius.toFixed(0)}px full (360°) - trying ${(radius + params.radiusStep).toFixed(0)}px`);
     radius += params.radiusStep;
   }
 
