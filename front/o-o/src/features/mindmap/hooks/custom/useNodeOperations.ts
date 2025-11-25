@@ -219,7 +219,7 @@ export function useNodeOperations(params: {
 
       const newNode: NodeData = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-        parentId: parentNode.id, // 부모 노드의 클라이언트 ID 사용 (Y.doc 기반)
+        parentId: parentNode.nodeId, // 부모 노드의 클라이언트 ID 사용 (Y.doc 기반)
         workspaceId: parseInt(workspaceId, 10),
         type: nodeType,
         analysisStatus: "NONE",
@@ -236,7 +236,7 @@ export function useNodeOperations(params: {
 
       console.log("[handleCreateChildNode] Creating new child node:", {
         id: newNode.id,
-        parentId: newNode.parentId,
+        // parentId: newNode.parentId,
         parentNodeId: parentNode.nodeId,
         keyword: newNode.keyword,
         type: nodeType,
