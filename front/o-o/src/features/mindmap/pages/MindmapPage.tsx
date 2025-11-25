@@ -1,7 +1,6 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from "react";
 import type { RecommendNodeData } from "../types";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import type { Core } from "cytoscape";
 import * as d3 from "d3";
 import type { Transform } from "../types";
 import { useWorkspaceAccessQuery } from "../../workspace/hooks/query/useWorkspaceAccessQuery";
@@ -56,8 +55,8 @@ const MindmapPageContent: React.FC = () => {
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const { myRole, canEdit, canManage } = useWorkspacePermissions(workspaceId);
 
-  // 3. Refs for Cytoscape (mock API for backward compatibility)
-  const cyRef = useRef<Core | null>(null);
+  // 3. Refs for D3 canvas
+  const cyRef = useRef<any>(null); // Mock ref for backward compatibility
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [cyReady, setCyReady] = useState(false);
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
@@ -602,51 +601,8 @@ const MindmapPageContent: React.FC = () => {
     return () => clearInterval(interval);
   }, [cyReady]);
 
-  // 🔥 Cytoscape mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
-  useEffect(() => {
-    if (!collab) return;
-    if (!cyReady) return;
-
-    const cy = cyRef.current;
-    if (!cy) {
-      return;
-    }
-
-    const awareness = collab.client.provider.awareness;
-    if (!awareness) {
-      return;
-    }
-
-    let raf = 0;
-
-    const handleMouseMove = (event: cytoscape.EventObject) => {
-      if (raf) cancelAnimationFrame(raf);
-
-      raf = requestAnimationFrame(() => {
-        const position = event.position;
-        if (!position) return;
-
-        // 1) ChatInput 위치 업데이트 (모델 좌표)
-        chatInput.updateCursorPosition({ x: position.x, y: position.y });
-
-        // 2) Awareness cursor 브로드캐스트
-        const cursorData = {
-          x: position.x,
-          y: position.y,
-          color: cursorColorRef.current,
-        };
-
-        awareness.setLocalStateField("cursor", cursorData);
-      });
-    };
-
-    cy.on("mousemove", handleMouseMove);
-
-    return () => {
-      cy.off("mousemove", handleMouseMove);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [collab, cyReady, chatInput]);
+  // D3 mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
+  // Note: D3Canvas 컴포넌트에서 onPointerMove prop으로 처리됨
 
   // 11. Loading state - collab/crud만 체크 (isBootstrapping은 백그라운드에서 진행)
   if (!collab || !crud) {

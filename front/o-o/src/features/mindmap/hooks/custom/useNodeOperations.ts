@@ -1,5 +1,4 @@
 import { useCallback, type RefObject } from "react";
-import type { Core } from "cytoscape";
 import type * as Y from "yjs";
 import type { YMapCrud } from "../../../workspace/hooks/custom/yMapCrud";
 import type {
@@ -37,7 +36,7 @@ import { useLoadingStore } from "@/shared/store/loadingStore";
  *
  * @param params.crud - Y.Map CRUD 작업 래퍼
  * @param params.nodes - 현재 노드 배열
- * @param params.cyRef - Cytoscape 인스턴스 참조
+ * @param params.cyRef - D3 canvas ref (backward compatibility)
  * @param params.mode - 현재 마인드맵 모드 (edit/analyze)
  * @param params.myRole - 현재 사용자의 워크스페이스 역할
  * @param params.getRandomThemeColor - 랜덤 테마 색상 생성 함수
@@ -48,7 +47,7 @@ import { useLoadingStore } from "@/shared/store/loadingStore";
 export function useNodeOperations(params: {
   crud: YMapCrud<NodeData> | null;
   nodes: NodeData[];
-  cyRef: RefObject<Core | null>;
+  cyRef: RefObject<any>;
   mode: MindmapMode;
   workspaceId: string;
   myRole: WorkspaceRole | undefined;
