@@ -144,17 +144,49 @@ export const createYClient = (
 
   // Y.Doc 업데이트 감지 (실제 WebSocket으로 데이터가 올 때)
   doc.on("update", (update: Uint8Array, origin: any) => {
-    console.log("🔥 [Y.Doc] Update received!", {
-      updateSize: update.length,
-      origin: origin,
-      isFromWebSocket: origin === provider,
-      timestamp: new Date().toISOString(),
-    });
+    console.log("\n🔥 ============ Yjs Update Received ============");
+    console.log("📏 Size:", update.length, "bytes");
+    console.log("🔑 Origin:", origin);
+    console.log("🌐 From WebSocket:", origin === provider ? "YES" : "NO");
+    console.log("⏰ Time:", new Date().toISOString());
 
-    // Y.Map 내용 확인
+    // 실제 변경된 내용 분석
     const mindmapNodes = doc.getMap("mindmap:nodes");
-    console.log("📊 [Y.Doc] Current Y.Map size:", mindmapNodes.size);
-    console.log("📊 [Y.Doc] All nodes in Y.Map:", mindmapNodes.toJSON());
+
+    console.log("\n📊 Current State:");
+    console.log("  - Total nodes in Y.Map:", mindmapNodes.size);
+
+    if (mindmapNodes.size > 0) {
+      console.log("\n📝 All Nodes Content:");
+      const allNodes = mindmapNodes.toJSON();
+      Object.entries(allNodes).forEach(([key, value]) => {
+        console.log(`\n  Node ID: ${key}`);
+        console.log("  Full data:", JSON.stringify(value, null, 2));
+      });
+    }
+
+    // 업데이트 구조 디코딩
+    try {
+      const decoded = Y.decodeUpdate(update);
+      console.log("\n🔍 Update Details:");
+      console.log("  - Number of changes:", decoded.structs?.length || 0);
+      console.log("  - Has deletions:", decoded.ds ? "YES" : "NO");
+
+      // 변경 타입 분석
+      if (origin === provider) {
+        console.log("  📥 Type: RECEIVED from server/other clients");
+      } else if (origin === "mindmap-bootstrap") {
+        console.log("  🚀 Type: INITIAL BOOTSTRAP");
+      } else if (origin === "local") {
+        console.log("  📤 Type: LOCAL CHANGE (will be sent to server)");
+      } else {
+        console.log("  ❓ Type:", origin);
+      }
+    } catch (err) {
+      console.error("❌ Failed to decode:", err);
+    }
+
+    console.log("============================================\n");
   });
 
   const connect = () => provider.connect();
