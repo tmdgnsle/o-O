@@ -2,6 +2,7 @@ package com.ssafy.mindmapservice.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.mindmapservice.domain.MindmapNode;
+import com.ssafy.mindmapservice.service.SequenceGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -23,6 +24,7 @@ public class NodeEventConsumer {
 
     private final MongoTemplate mongoTemplate;
     private final ObjectMapper objectMapper;
+    private final SequenceGeneratorService sequenceGeneratorService;
 
     @KafkaListener(topics = "${kafka.topics.node-events}", groupId = "${spring.kafka.consumer.group-id}")
     public void consumeNodeEvents(String message) {
@@ -46,32 +48,36 @@ public class NodeEventConsumer {
 
                 switch (operation) {
                     case "ADD":
+                        // SequenceGeneratorService를 사용해서 자동 증가된 nodeId 생성
+                        Long generatedNodeId = sequenceGeneratorService.generateNextNodeId(workspaceId);
+                        log.debug("Generated nodeId {} for y.doc key {} in workspace {}", generatedNodeId, nodeId, workspaceId);
+
                         // parentId 변환
                         Object parentIdObj = event.get("parentId");
                         Long parentId = parentIdObj == null ? null : getLong(parentIdObj);
 
                         LocalDateTime now = LocalDateTime.now();
 
-                        // (workspaceId, nodeId) 기준으로 upsert
+                        // (workspaceId, nodeId) 기준으로 upsert - 생성된 nodeId 사용
                         Query addQuery = new Query(
                                 Criteria.where("workspaceId").is(workspaceId)
-                                        .and("nodeId").is(nodeId)
+                                        .and("nodeId").is(generatedNodeId)
                         );
 
                         Update addUpdate = new Update()
                                 // 이미 있는 노드여도 최신 값으로 덮어쓰기
                                 .set("parentId", parentId)
-                                .set("type", (String) event.get("type"))
-                                .set("keyword", (String) event.get("keyword"))
-                                .set("memo", (String) event.get("memo"))
+                                .set("type", event.get("type"))
+                                .set("keyword", event.get("keyword"))
+                                .set("memo", event.get("memo"))
                                 .set("x", getDouble(event.get("x")))
                                 .set("y", getDouble(event.get("y")))
-                                .set("color", (String) event.get("color"))
+                                .set("color", event.get("color"))
                                 .set("analysisStatus", MindmapNode.AnalysisStatus.NONE)
                                 .set("updatedAt", now)
                                 // ⬇처음 생길 때만 넣고 싶은 값은 setOnInsert
                                 .setOnInsert("workspaceId", workspaceId)
-                                .setOnInsert("nodeId", nodeId)
+                                .setOnInsert("nodeId", generatedNodeId)
                                 .setOnInsert("createdAt", now);
 
                         //  bulkOps.insert(newNode);
