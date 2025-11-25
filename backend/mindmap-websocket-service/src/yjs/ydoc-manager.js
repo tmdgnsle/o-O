@@ -89,53 +89,50 @@ class YDocManager {
 
       // 변경된 키(nodeId)들을 순회
       event.changes.keys.forEach((change, key) => {
-        // 노드가 추가되거나 수정된 경우
-        if (change.action === 'add' || change.action === 'update') {
-          const nodeData = nodesMap.get(key) || {};
+          if (change.action === 'add' || change.action === 'update') {
+              const nodeData = nodesMap.get(key) || {};
 
-          // nodeData 안에서 진짜 도메인 nodeId를 우선적으로 찾기
-          // (없으면 null)
-          const domainNodeId = nodeData.nodeId ?? null;
+              // 1️⃣ 진짜 DB nodeId (숫자) 우선 사용
+              let domainNodeId =
+                  typeof nodeData.nodeId === 'number' ? nodeData.nodeId : key;
 
-          // ⚠️ Mongo _id(id) / 기존 nodeId 필드는 제거하고 나머지만 사용
-          const { id, nodeId: _ignoredNodeId, ...rest } = nodeData;
+              // 2️⃣ parentId 정리: 숫자 아니면 null
+              let parentId = nodeData.parentId ?? null;
 
-          logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
-              workspaceId,
-              nodeId: key,
-              action: change.action,
-              nodeData,                    // keyword, memo, x, y, color 등 전부
-          });
+              if (typeof parentId === 'string') {
+                  if (/^\d+$/.test(parentId)) {
+                      // "123" 같은 건 숫자로 파싱
+                      parentId = Number(parentId);
+                  } else {
+                      // 24자리 hex 같은 건 Mongo _id → DB에서는 못 쓰니까 null 처리
+                      logger.warn('[YDocManager] Non-numeric parentId in Y.Doc, forcing null for DB', {
+                          workspaceId,
+                          key,
+                          parentId,
+                      });
+                      parentId = null;
+                  }
+              }
 
-          // 숫자로만 이루어진 nodeId만 Long으로 쓸 수 있게 보정 (선택)
-          let safeNodeId = domainNodeId;
-          if (typeof safeNodeId === 'string' && !/^\d+$/.test(safeNodeId)) {
-              // 문자열인데 숫자가 아니면 null로 버림
-              safeNodeId = null;
+              logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
+                  workspaceId,
+                  nodeKey: key,
+                  nodeId: domainNodeId,
+                  action: change.action,
+                  nodeData,
+              });
+
+              changes.push({
+                  operation: change.action === 'add' ? 'ADD' : 'UPDATE',
+                  workspaceId,
+                  ...nodeData,     // 일단 쫙 깔고
+                  nodeId: domainNodeId, // ✅ 덮어쓰기
+                  parentId,             // ✅ 덮어쓰기
+                  timestamp: new Date().toISOString(),
+              });
           }
-
-          const changeEvent = {
-              operation: change.action === 'add' ? 'ADD' : 'UPDATE',
-              nodeId: safeNodeId,       // 🔥 최종 nodeId는 여기 값만 사용
-              workspaceId,
-              ...rest,                  // 🔥 더 이상 rest 안에는 nodeId / id 없음
-              timestamp: new Date().toISOString(),
-          };
-
-          changes.push(changeEvent);
-          logger.debug(`[YDocManager] ${change.action.toUpperCase()} detected: node ${key} in workspace ${workspaceId}`);
-        }
-        // 노드가 삭제된 경우
-        else if (change.action === 'delete') {
-          changes.push({
-            operation: 'DELETE',
-            nodeId: key,
-            workspaceId: workspaceId,
-            timestamp: new Date().toISOString(),
-          });
-          logger.debug(`[YDocManager] DELETE detected: node ${key} in workspace ${workspaceId}`);
-        }
       });
+
 
       // 변경사항이 있으면 pending 큐에 추가 (나중에 배치로 Kafka 전송)
       if (changes.length > 0) {
