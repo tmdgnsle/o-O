@@ -85,6 +85,38 @@ class YDocManager {
           const changes= [];
 
           event.changes.keys.forEach((change, key) => {
+
+              if (change.action === "delete") {
+                  const prevData = change.oldValue || {};      //  삭제 전 값
+                  const deletedNodeId = prevData.nodeId;
+
+                  if (typeof deletedNodeId !== "number") {
+                      logger.warn("[YDocManager] DELETE event received but nodeId is not numeric", {
+                          workspaceId,
+                          key,
+                          prevData,
+                      });
+                      return;
+                  }
+
+                  logger.info("[YDocManager] NODE_DELETED", {
+                      workspaceId,
+                      nodeId: deletedNodeId,
+                      ydocKey: key,
+                  });
+
+                  changes.push({
+                      operation: "DELETE",
+                      workspaceId,
+                      nodeId: deletedNodeId,
+                      timestamp: new Date().toISOString(),
+                  });
+
+                  return; // ⬅ 이 키에 대해서는 여기서 끝
+              }
+
+
+
               if (change.action === "add" || change.action === "update") {
                   const nodeData = nodesMap.get(key) || {};
                   const isAdd = change.action === "add";
