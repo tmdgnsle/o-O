@@ -45,11 +45,12 @@ public class NodeEventConsumer {
                 switch (operation) {
                     case "ADD": {
                         Object nodeIdObj = event.get("nodeId");
-                        Long nodeId = getLong(nodeIdObj);
+                        Long nodeId = getLongOrNull(nodeIdObj); // null 허용 버전
 
                         if (nodeId == null) {
-                            log.error("ADD event without valid nodeId. workspaceId={}, event={}", workspaceId, event);
-                            break; // 안전하게 스킵
+                            // 🔥 여기서 시퀀스로 새로운 nodeId 생성
+                            nodeId = sequenceGeneratorService.generateNextNodeId(workspaceId);
+                            log.debug("Generated nodeId {} for ADD without nodeId. workspaceId={}", nodeId, workspaceId);
                         }
 
                         Object parentIdObj = event.get("parentId");
@@ -79,6 +80,7 @@ public class NodeEventConsumer {
                         bulkOps.upsert(addQuery, addUpdate);
                         break;
                     }
+
 
 
                     case "UPDATE": {
@@ -173,6 +175,20 @@ public class NodeEventConsumer {
             return null; // Mongo _id 같은 거 날아오면 그냥 null로 저장
         }
     }
+
+    private Long getLongOrNull(Object value) {
+        if (value == null) return null;
+
+        if (value instanceof Long) return (Long) value;
+        if (value instanceof Integer) return ((Integer) value).longValue();
+        if (value instanceof String) return Long.parseLong((String) value);
+
+        // 이상한 타입이면 그냥 예외 던져서 상위 try-catch에서 잡게
+        throw new IllegalArgumentException(
+                "Cannot convert value to Long: " + value + " (" + value.getClass() + ")"
+        );
+    }
+
 
 
 }

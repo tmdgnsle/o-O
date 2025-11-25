@@ -82,54 +82,62 @@ class YDocManager {
       const nodesMap = ydoc.getMap('mindmap:nodes');
 
       nodesMap.observe((event) => {
-          const changes = [];
+          const changes= [];
 
           event.changes.keys.forEach((change, key) => {
-              if (change.action === 'add' || change.action === 'update') {
+              if (change.action === "add" || change.action === "update") {
                   const nodeData = nodesMap.get(key) || {};
+                  const isAdd = change.action === "add";
 
-                  // ✅ 도메인 nodeId는 value 안의 nodeData.nodeId만 사용
-                  const rawNodeId = nodeData.nodeId;
+                  let rawNodeId = nodeData.nodeId;
 
-                  if (typeof rawNodeId !== 'number') {
-                      // 여기가 터지면 설계가 꼬인 거라서, 아예 이벤트를 스킵해버리는 게 안전함
-                      logger.error('[YDocManager] INVALID nodeId in Y.Doc value - must be number', {
-                          workspaceId,
-                          key,
-                          rawNodeId,
-                          nodeData,
-                      });
-                      return; // 이 노드는 Kafka에 안 보냄
+                  if (!isAdd) {
+                      // ✅ UPDATE일 때는 반드시 number여야 함
+                      if (typeof rawNodeId !== "number") {
+                          logger.error(
+                              "[YDocManager] INVALID nodeId in Y.Doc value - must be number for UPDATE",
+                              { workspaceId, key, rawNodeId, nodeData }
+                          );
+                          return; // 이 노드는 Kafka에 안 보냄
+                      }
+                  } else {
+                      // ✅ ADD일 때 nodeId가 없으면 백엔드 시퀀스에 맡길 준비
+                      if (typeof rawNodeId !== "number") {
+                          logger.warn(
+                              "[YDocManager] ADD event without numeric nodeId. Let backend generate one.",
+                              { workspaceId, key, rawNodeId, nodeData }
+                          );
+                          rawNodeId = null; // 백엔드에서 감지할 수 있게 null로 보냄
+                      }
                   }
 
-                  // ✅ parentId 정리 (숫자 or null만 허용)
+                  // parentId 정리
                   let parentId = nodeData.parentId ?? null;
-                  if (typeof parentId === 'string') {
+                  if (typeof parentId === "string") {
                       if (/^\d+$/.test(parentId)) {
                           parentId = Number(parentId);
                       } else {
-                          logger.warn('[YDocManager] Non-numeric parentId in Y.Doc, forcing null for DB', {
-                              workspaceId,
-                              key,
-                              parentId,
-                          });
+                          logger.warn(
+                              "[YDocManager] Non-numeric parentId in Y.Doc, forcing null for DB",
+                              { workspaceId, key, parentId }
+                          );
                           parentId = null;
                       }
                   }
 
-                  logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
+                  logger.info("[YDocManager] NODE_CHANGE_DETECTED", {
                       workspaceId,
-                      ydocKey: key,    // 🔹 Y.Doc key는 따로 로깅
+                      ydocKey: key,
                       nodeId: rawNodeId,
                       action: change.action,
                       nodeData,
                   });
 
                   changes.push({
-                      operation: change.action === 'add' ? 'ADD' : 'UPDATE',
+                      operation: isAdd ? "ADD" : "UPDATE",
                       workspaceId,
-                      ...nodeData,     // 여기에 nodeId, parentId 다 들어있지만
-                      nodeId: rawNodeId, // ✅ nodeId는 숫자로 강제
+                      ...nodeData,
+                      nodeId: rawNodeId, // ADD면 null일 수도 있음
                       parentId,
                       timestamp: new Date().toISOString(),
                   });
@@ -138,9 +146,12 @@ class YDocManager {
 
           if (changes.length > 0) {
               this.addPendingChanges(workspaceId, changes);
-              logger.info(`[YDocManager] Detected ${changes.length} changes in workspace ${workspaceId}`);
+              logger.info(
+                  `[YDocManager] Detected ${changes.length} changes in workspace ${workspaceId}`
+              );
           }
       });
+
 
       logger.debug(`[YDocManager] Change observer setup complete for workspace ${workspaceId}`);
   }
