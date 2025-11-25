@@ -276,65 +276,56 @@ export function useCollaborativeNodes(
   //   }
   // }, [collab, nodes]);
 
-  // 🔥 좌표가 null인 노드들을 자동으로 재계산하여 업데이트
+  // 🔥 좌표가 null인 노드들을 자동으로 재계산하여 업데이트 (Bootstrap 직후에만)
   const isCalculatingRef = useRef(false);
+  const hasCalculatedPositionsRef = useRef(false); // Bootstrap 직후 1회만 실행
 
+  // Bootstrap이 완료된 후 좌표 계산 (1회만)
   useEffect(() => {
+    // Bootstrap이 완료되지 않았거나 이미 계산했으면 스킵
+    if (isBootstrapping || hasCalculatedPositionsRef.current) return;
     if (!collab || nodes.length === 0) return;
 
     const nullPositionNodes = nodes.filter((n) => n.x == null || n.y == null);
+    if (nullPositionNodes.length === 0) return;
 
-    if (nullPositionNodes.length === 0) {
-      // 모든 노드에 좌표가 있으면 스킵
-      return;
-    }
-
-    // 이미 계산 중이면 스킵 (중복 실행 방지)
+    // 이미 계산 중이면 스킵
     if (isCalculatingRef.current) {
       console.log("[useCollaborativeNodes] 🔧 Position calculation already in progress, skipping...");
       return;
     }
 
-    // 전체 노드에 대해 좌표 재계산 (async)
+    // ✅ 1회 실행 플래그 설정
+    hasCalculatedPositionsRef.current = true;
+
     const updatePositions = async () => {
       isCalculatingRef.current = true;
-      console.log("[useCollaborativeNodes] 🔧 Starting position calculation for", nullPositionNodes.length, "nodes");
+      console.log("[useCollaborativeNodes] 🔧 Starting position calculation for", nullPositionNodes.length, "nodes (Bootstrap)");
 
       try {
         const processedNodes = await calculateNodePositions(nodes);
 
         let updatedCount = 0;
 
-        // Yjs map에 업데이트 (실제로 변경된 좌표만)
-        // 백엔드가 Y.doc 변경을 감지하여 자동으로 DB에 저장함
+        // Yjs map에 업데이트 (null 좌표인 노드만)
         collab.client.doc.transact(() => {
           for (const node of processedNodes) {
             if (node.x != null && node.y != null) {
               const existingNode = collab.map.get(node.id);
 
-              // ✅ 조건 1: 노드가 존재해야 함
+              // 노드가 존재하고 좌표가 null인 경우만 업데이트
               if (!existingNode) continue;
+              if (existingNode.x != null && existingNode.y != null) continue;
 
-              // ✅ 조건 2: 좌표가 없거나 실제로 변경된 경우만 업데이트
-              const needsUpdate =
-                existingNode.x == null ||
-                existingNode.y == null ||
-                existingNode.x !== node.x ||
-                existingNode.y !== node.y;
+              console.log(`🔧 [Position Update] Updating node "${node.id}" from (${existingNode.x}, ${existingNode.y}) to (${node.x}, ${node.y})`);
 
-              if (needsUpdate) {
-                console.log(`🔧 [Position Update] Updating node "${node.id}" from (${existingNode.x}, ${existingNode.y}) to (${node.x}, ${node.y})`);
+              collab.map.set(node.id, {
+                ...existingNode,
+                x: node.x,
+                y: node.y,
+              });
 
-                collab.map.set(node.id, {
-                  ...existingNode,
-                  x: node.x,
-                  y: node.y,
-                });
-
-                updatedCount++;
-              } else {
-                console.log(`⏭️ [Position Update] Skipping node "${node.id}" - coordinates unchanged`);
-              }
+              updatedCount++;
             }
           }
         }, "position-update");
@@ -344,7 +335,6 @@ export function useCollaborativeNodes(
           console.log("[useCollaborativeNodes] ✅ Position calculation complete, updated", updatedCount, "nodes (auto-synced to backend via Y.doc)");
 
           // Textbox 아이디어 추가 로딩 해제 (triple rAF로 완전한 렌더링 완료 후 실행)
-          // Y.Map 업데이트 → React re-render → DOM paint → NodeOverlay mount 완료 대기
           requestAnimationFrame(() => {
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
@@ -360,7 +350,12 @@ export function useCollaborativeNodes(
     };
 
     updatePositions();
-  }, [collab, nodes]); // workspaceId 불필요 (REST API 호출 제거됨)
+  }, [collab, nodes, isBootstrapping]); // Bootstrap 완료 시 1회만 실행
+
+  // workspaceId 변경 시 계산 플래그 리셋
+  useEffect(() => {
+    hasCalculatedPositionsRef.current = false;
+  }, [workspaceId]);
 
   // 서버에서 노드 목록을 다시 가져와서 Y.Map에 추가하는 함수
   const refetchAndMergeNodes = async () => {
