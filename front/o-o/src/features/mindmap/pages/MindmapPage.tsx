@@ -69,7 +69,7 @@ const MindmapPageContent: React.FC = () => {
 
 
   // 4. Helper hooks
-  const { getRandomThemeColor } = useColorTheme();
+  const { getRandomThemeColor } = useColorTheme(workspace?.theme ?? "PASTEL");
   const { findNonOverlappingPosition, findEmptySpace } = useNodePositioning();
 
   // 5. Stable cursor color (once per session) - separate from node theme colors
