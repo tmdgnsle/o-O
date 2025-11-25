@@ -39,33 +39,27 @@ public class NodeEventConsumer {
             for (Map<String, Object> event : events) {
                 String operation = (String) event.get("operation");
 
-                // nodeId 변환 (Integer, Long, String 모두 지원)
-                Object nodeIdObj = event.get("nodeId");
-                Long nodeId = getLong(nodeIdObj);
-
                 Object workspaceIdObj = event.get("workspaceId");
                 Long workspaceId = getLong(workspaceIdObj);
 
                 switch (operation) {
-                    case "ADD":
-                        // SequenceGeneratorService를 사용해서 자동 증가된 nodeId 생성
+                    case "ADD": {
+                        // ❌ nodeId 파싱 안 함 (Y.Doc key일 수도 있으니까)
                         Long generatedNodeId = sequenceGeneratorService.generateNextNodeId(workspaceId);
-                        log.debug("Generated nodeId {} for y.doc key {} in workspace {}", generatedNodeId, nodeId, workspaceId);
+                        log.debug("Generated nodeId {} for y.doc key {} in workspace {}",
+                                generatedNodeId, event.get("nodeId"), workspaceId);
 
-                        // parentId 변환
                         Object parentIdObj = event.get("parentId");
-                        Long parentId = parentIdObj == null ? null : getLong(parentIdObj);
+                        Long parentId = safeGetLongOrNull(parentIdObj, "parentId", workspaceId);
 
                         LocalDateTime now = LocalDateTime.now();
 
-                        // (workspaceId, nodeId) 기준으로 upsert - 생성된 nodeId 사용
                         Query addQuery = new Query(
                                 Criteria.where("workspaceId").is(workspaceId)
                                         .and("nodeId").is(generatedNodeId)
                         );
 
                         Update addUpdate = new Update()
-                                // 이미 있는 노드여도 최신 값으로 덮어쓰기
                                 .set("parentId", parentId)
                                 .set("type", event.get("type"))
                                 .set("keyword", event.get("keyword"))
@@ -75,19 +69,20 @@ public class NodeEventConsumer {
                                 .set("color", event.get("color"))
                                 .set("analysisStatus", MindmapNode.AnalysisStatus.NONE)
                                 .set("updatedAt", now)
-                                // ⬇처음 생길 때만 넣고 싶은 값은 setOnInsert
                                 .setOnInsert("workspaceId", workspaceId)
                                 .setOnInsert("nodeId", generatedNodeId)
                                 .setOnInsert("createdAt", now);
 
-                        //  bulkOps.insert(newNode);
-                        //  upsert로 변경
                         bulkOps.upsert(addQuery, addUpdate);
                         break;
+                    }
 
+                    case "UPDATE": {
+                        Object nodeIdObj = event.get("nodeId");
+                        Long nodeId = getLong(nodeIdObj);  // ✅ UPDATE에서만
 
-                    case "UPDATE":
-                        Query query = new Query(Criteria.where("nodeId").is(nodeId).and("workspaceId").is(workspaceId));
+                        Query query = new Query(Criteria.where("nodeId").is(nodeId)
+                                .and("workspaceId").is(workspaceId));
                         Update update = new Update();
 
                         if (event.containsKey("keyword")) {
@@ -107,7 +102,7 @@ public class NodeEventConsumer {
                         }
                         if (event.containsKey("parentId")) {
                             Object updateParentIdObj = event.get("parentId");
-                            Long updateParentId = updateParentIdObj == null ? null : getLong(updateParentIdObj);
+                            Long updateParentId = safeGetLongOrNull(updateParentIdObj, "parentId", workspaceId);
                             update.set("parentId", updateParentId);
                         }
                         if (event.containsKey("contentUrl")) {
@@ -117,11 +112,17 @@ public class NodeEventConsumer {
                         update.set("updatedAt", LocalDateTime.now());
                         bulkOps.updateOne(query, update);
                         break;
+                    }
 
-                    case "DELETE":
-                        Query deleteQuery = new Query(Criteria.where("nodeId").is(nodeId).and("workspaceId").is(workspaceId));
+                    case "DELETE": {
+                        Object nodeIdObj = event.get("nodeId");
+                        Long nodeId = getLong(nodeIdObj);  // ✅ DELETE에서도 숫자만 허용
+
+                        Query deleteQuery = new Query(Criteria.where("nodeId").is(nodeId)
+                                .and("workspaceId").is(workspaceId));
                         bulkOps.remove(deleteQuery);
                         break;
+                    }
 
                     default:
                         log.warn("Unknown operation: {}", operation);
@@ -135,6 +136,7 @@ public class NodeEventConsumer {
             log.error("Failed to process Kafka message", e);
         }
     }
+
 
     private Double getDouble(Object value) {
         if (value == null) return null;
@@ -155,5 +157,18 @@ public class NodeEventConsumer {
                 "Cannot convert value to Long: " + value + " (" + value.getClass() + ")"
         );
     }
+
+    private Long safeGetLongOrNull(Object value, String fieldName, Long workspaceId) {
+        if (value == null) return null;
+
+        try {
+            return getLong(value);
+        } catch (NumberFormatException ex) {
+            log.warn("Non-numeric {} value in Kafka event. workspaceId={}, value={}",
+                    fieldName, workspaceId, value);
+            return null; // Mongo _id 같은 거 날아오면 그냥 null로 저장
+        }
+    }
+
 
 }
