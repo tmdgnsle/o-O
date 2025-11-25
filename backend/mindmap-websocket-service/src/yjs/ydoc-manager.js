@@ -91,23 +91,38 @@ class YDocManager {
       event.changes.keys.forEach((change, key) => {
         // 노드가 추가되거나 수정된 경우
         if (change.action === 'add' || change.action === 'update') {
-          const nodeData = nodesMap.get(key);  // 현재 노드 데이터 가져오기
-          const domainNodeId = nodeData.nodeId;   // 진짜 DB nodeId
+          const nodeData = nodesMap.get(key) || {};
 
-            logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
-                workspaceId,
-                nodeId: key,
-                action: change.action,
-                nodeData,                    // keyword, memo, x, y, color 등 전부
-            });
+          // nodeData 안에서 진짜 도메인 nodeId를 우선적으로 찾기
+          // (없으면 null)
+          const domainNodeId = nodeData.nodeId ?? null;
 
-          changes.push({
-            operation: change.action === 'add' ? 'ADD' : 'UPDATE',  // 작업 타입
-            nodeId: domainNodeId,  // 노드 ID
-            workspaceId: workspaceId,  // 워크스페이스 ID
-            ...nodeData,  // 노드의 모든 데이터 (keyword, memo, x, y, color 등)
-            timestamp: new Date().toISOString(),  // 변경 시각
+          // ⚠️ Mongo _id(id) / 기존 nodeId 필드는 제거하고 나머지만 사용
+          const { id, nodeId: _ignoredNodeId, ...rest } = nodeData;
+
+          logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
+              workspaceId,
+              nodeId: key,
+              action: change.action,
+              nodeData,                    // keyword, memo, x, y, color 등 전부
           });
+
+          // 숫자로만 이루어진 nodeId만 Long으로 쓸 수 있게 보정 (선택)
+          let safeNodeId = domainNodeId;
+          if (typeof safeNodeId === 'string' && !/^\d+$/.test(safeNodeId)) {
+              // 문자열인데 숫자가 아니면 null로 버림
+              safeNodeId = null;
+          }
+
+          const changeEvent = {
+              operation: change.action === 'add' ? 'ADD' : 'UPDATE',
+              nodeId: safeNodeId,       // 🔥 최종 nodeId는 여기 값만 사용
+              workspaceId,
+              ...rest,                  // 🔥 더 이상 rest 안에는 nodeId / id 없음
+              timestamp: new Date().toISOString(),
+          };
+
+          changes.push(changeEvent);
           logger.debug(`[YDocManager] ${change.action.toUpperCase()} detected: node ${key} in workspace ${workspaceId}`);
         }
         // 노드가 삭제된 경우
