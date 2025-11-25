@@ -44,10 +44,13 @@ public class NodeEventConsumer {
 
                 switch (operation) {
                     case "ADD": {
-                        // ❌ nodeId 파싱 안 함 (Y.Doc key일 수도 있으니까)
-                        Long generatedNodeId = sequenceGeneratorService.generateNextNodeId(workspaceId);
-                        log.debug("Generated nodeId {} for y.doc key {} in workspace {}",
-                                generatedNodeId, event.get("nodeId"), workspaceId);
+                        Object nodeIdObj = event.get("nodeId");
+                        Long nodeId = getLong(nodeIdObj);
+
+                        if (nodeId == null) {
+                            log.error("ADD event without valid nodeId. workspaceId={}, event={}", workspaceId, event);
+                            break; // 안전하게 스킵
+                        }
 
                         Object parentIdObj = event.get("parentId");
                         Long parentId = safeGetLongOrNull(parentIdObj, "parentId", workspaceId);
@@ -56,7 +59,7 @@ public class NodeEventConsumer {
 
                         Query addQuery = new Query(
                                 Criteria.where("workspaceId").is(workspaceId)
-                                        .and("nodeId").is(generatedNodeId)
+                                        .and("nodeId").is(nodeId)
                         );
 
                         Update addUpdate = new Update()
@@ -70,12 +73,13 @@ public class NodeEventConsumer {
                                 .set("analysisStatus", MindmapNode.AnalysisStatus.NONE)
                                 .set("updatedAt", now)
                                 .setOnInsert("workspaceId", workspaceId)
-                                .setOnInsert("nodeId", generatedNodeId)
+                                .setOnInsert("nodeId", nodeId)
                                 .setOnInsert("createdAt", now);
 
                         bulkOps.upsert(addQuery, addUpdate);
                         break;
                     }
+
 
                     case "UPDATE": {
                         Object nodeIdObj = event.get("nodeId");
