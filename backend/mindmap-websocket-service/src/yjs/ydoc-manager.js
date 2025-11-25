@@ -92,6 +92,7 @@ class YDocManager {
         // 노드가 추가되거나 수정된 경우
         if (change.action === 'add' || change.action === 'update') {
           const nodeData = nodesMap.get(key);  // 현재 노드 데이터 가져오기
+          const domainNodeId = nodeData.nodeId;   // 진짜 DB nodeId
 
             logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
                 workspaceId,
@@ -102,7 +103,7 @@ class YDocManager {
 
           changes.push({
             operation: change.action === 'add' ? 'ADD' : 'UPDATE',  // 작업 타입
-            nodeId: key,  // 노드 ID
+            nodeId: domainNodeId,  // 노드 ID
             workspaceId: workspaceId,  // 워크스페이스 ID
             ...nodeData,  // 노드의 모든 데이터 (keyword, memo, x, y, color 등)
             timestamp: new Date().toISOString(),  // 변경 시각
