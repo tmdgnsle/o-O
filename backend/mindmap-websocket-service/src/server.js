@@ -760,21 +760,31 @@ function handleYjsConnection(conn, req, url) {
       kafkaProducer.sendImmediately(workspaceId);
     }
 
-    // 메모리 누수 방지: 해당 workspace에 연결된 클라이언트가 0명이면 메모리 정리
-    // Awareness에서 현재 접속 중인 클라이언트 수 확인
-    const connectedClients = awarenessManager.getConnectedClients(workspaceId);
-    if (connectedClients.length === 0) {
-      logger.info(`No clients left in workspace ${workspaceId}, cleaning up memory`);
+    // 메모리 누수 방지: 해당 workspace에 연결된 유저가 0명이면 메모리 정리
+    // 1차 기준: workspaceConnections(Map)에 남은 유저 수
+   const users = workspaceConnections.get(workspaceId);
+    const remainingUsers = users ? users.size : 0;
 
-      // Y.Doc 및 Awareness 인스턴스 삭제 (메모리 해제)
-      ydocManager.destroyDoc(workspaceId);
-      awarenessManager.destroyAwareness(workspaceId);
+    if (remainingUsers === 0) {
+        // 참고용으로 awareness 상태도 같이 로깅 (꼬였는지 디버깅용)
+        const awarenessClients = awarenessManager.getConnectedClients(workspaceId);
 
-      logger.info(`Memory cleanup completed for workspace ${workspaceId}`);
+        logger.info(
+            `No users left in workspace ${workspaceId}, cleaning up memory (connections=${remainingUsers}, awarenessStates=${awarenessClients.length})`
+        );
+
+        // Y.Doc 및 Awareness 인스턴스 삭제 (메모리 해제)
+        ydocManager.destroyDoc(workspaceId);
+        awarenessManager.destroyAwareness(workspaceId);
+
+        logger.info(`Memory cleanup completed for workspace ${workspaceId}`);
     } else {
-      logger.info(`Workspace ${workspaceId} still has ${connectedClients.length} connected client(s)`);
+        // 아직 접속해 있는 유저가 있으므로 정리하지 않음
+        logger.info(
+            `Workspace ${workspaceId} still has ${remainingUsers} connected user(s)`
+        );
     }
-  });
+    });
 
   /**
    * WebSocket 에러 핸들러
