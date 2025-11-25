@@ -77,72 +77,74 @@ class YDocManager {
    * 노드 추가/수정/삭제를 실시간으로 감지하여 Kafka로 전송할 준비
    */
   setupChangeObserver(workspaceId, ydoc) {
-    logger.debug(`[YDocManager] Setting up change observer for workspace ${workspaceId}`);
+      logger.debug(`[YDocManager] Setting up change observer for workspace ${workspaceId}`);
 
-    // Y.Doc에서 'mindmap:nodes'라는 이름의 Map 가져오기
-    // Map 구조: { nodeId1: {data...}, nodeId2: {data...}, ... }
-    const nodesMap = ydoc.getMap('mindmap:nodes');
+      const nodesMap = ydoc.getMap('mindmap:nodes');
 
-    // Map이 변경될 때마다 실행되는 콜백 등록
-    nodesMap.observe((event) => {
-      const changes = [];  // 이번에 발생한 모든 변경사항 저장
+      nodesMap.observe((event) => {
+          const changes = [];
 
-      // 변경된 키(nodeId)들을 순회
-      event.changes.keys.forEach((change, key) => {
-          if (change.action === 'add' || change.action === 'update') {
-              const nodeData = nodesMap.get(key) || {};
+          event.changes.keys.forEach((change, key) => {
+              if (change.action === 'add' || change.action === 'update') {
+                  const nodeData = nodesMap.get(key) || {};
 
-              // 1️⃣ 진짜 DB nodeId (숫자) 우선 사용
-              let domainNodeId =
-                  typeof nodeData.nodeId === 'number' ? nodeData.nodeId : key;
+                  // ✅ 도메인 nodeId는 value 안의 nodeData.nodeId만 사용
+                  const rawNodeId = nodeData.nodeId;
 
-              // 2️⃣ parentId 정리: 숫자 아니면 null
-              let parentId = nodeData.parentId ?? null;
-
-              if (typeof parentId === 'string') {
-                  if (/^\d+$/.test(parentId)) {
-                      // "123" 같은 건 숫자로 파싱
-                      parentId = Number(parentId);
-                  } else {
-                      // 24자리 hex 같은 건 Mongo _id → DB에서는 못 쓰니까 null 처리
-                      logger.warn('[YDocManager] Non-numeric parentId in Y.Doc, forcing null for DB', {
+                  if (typeof rawNodeId !== 'number') {
+                      // 여기가 터지면 설계가 꼬인 거라서, 아예 이벤트를 스킵해버리는 게 안전함
+                      logger.error('[YDocManager] INVALID nodeId in Y.Doc value - must be number', {
                           workspaceId,
                           key,
-                          parentId,
+                          rawNodeId,
+                          nodeData,
                       });
-                      parentId = null;
+                      return; // 이 노드는 Kafka에 안 보냄
                   }
+
+                  // ✅ parentId 정리 (숫자 or null만 허용)
+                  let parentId = nodeData.parentId ?? null;
+                  if (typeof parentId === 'string') {
+                      if (/^\d+$/.test(parentId)) {
+                          parentId = Number(parentId);
+                      } else {
+                          logger.warn('[YDocManager] Non-numeric parentId in Y.Doc, forcing null for DB', {
+                              workspaceId,
+                              key,
+                              parentId,
+                          });
+                          parentId = null;
+                      }
+                  }
+
+                  logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
+                      workspaceId,
+                      ydocKey: key,    // 🔹 Y.Doc key는 따로 로깅
+                      nodeId: rawNodeId,
+                      action: change.action,
+                      nodeData,
+                  });
+
+                  changes.push({
+                      operation: change.action === 'add' ? 'ADD' : 'UPDATE',
+                      workspaceId,
+                      ...nodeData,     // 여기에 nodeId, parentId 다 들어있지만
+                      nodeId: rawNodeId, // ✅ nodeId는 숫자로 강제
+                      parentId,
+                      timestamp: new Date().toISOString(),
+                  });
               }
+          });
 
-              logger.info('[YDocManager] NODE_CHANGE_DETECTED', {
-                  workspaceId,
-                  nodeKey: key,
-                  nodeId: domainNodeId,
-                  action: change.action,
-                  nodeData,
-              });
-
-              changes.push({
-                  operation: change.action === 'add' ? 'ADD' : 'UPDATE',
-                  workspaceId,
-                  ...nodeData,     // 일단 쫙 깔고
-                  nodeId: domainNodeId, // ✅ 덮어쓰기
-                  parentId,             // ✅ 덮어쓰기
-                  timestamp: new Date().toISOString(),
-              });
+          if (changes.length > 0) {
+              this.addPendingChanges(workspaceId, changes);
+              logger.info(`[YDocManager] Detected ${changes.length} changes in workspace ${workspaceId}`);
           }
       });
 
-
-      // 변경사항이 있으면 pending 큐에 추가 (나중에 배치로 Kafka 전송)
-      if (changes.length > 0) {
-        this.addPendingChanges(workspaceId, changes);
-        logger.info(`[YDocManager] Detected ${changes.length} changes in workspace ${workspaceId}`);
-      }
-    });
-
-    logger.debug(`[YDocManager] Change observer setup complete for workspace ${workspaceId}`);
+      logger.debug(`[YDocManager] Change observer setup complete for workspace ${workspaceId}`);
   }
+
 
   /**
    * Kafka로 전송 대기중인 변경사항 추가
