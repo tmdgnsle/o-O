@@ -448,24 +448,30 @@ export function useYjsCollaboration(
             const processedNodes = await calculateNodePositions(nodeDatas);
 
             // Y.Map 완전 교체 (기존 노드 전부 삭제 후 새로운 노드로 재구성)
-            safeTransact(() => {
-              for (const nodeData of processedNodes) {
-                const existing = nodesMap.get(nodeData.id);
-                if (!existing) {
-                  // 서버 Y.Doc에서 아직 안 내려온 노드일 수도 있으니 로그만 찍고 패스
-                  console.log(
-                    `⚠️ [Restructure] Node id="${nodeData.id}" not found in Y.Map, skip position update`,
-                  );
-                  continue;
-                }
+            const posByNodeId = new Map<number, { x: number | null; y: number | null }>();
+            for (const node of processedNodes) {
+              if (node.nodeId == null) continue;
+              posByNodeId.set(Number(node.nodeId), {
+                x: node.x ?? null,
+                y: node.y ?? null,
+              });
+            }
 
-                // x, y 만 갱신 (필요하면 color 정도까지)
-                nodesMap.set(nodeData.id, {
+            // 3) Y.Map 전체를 돌면서, 값 안의 nodeId 기준으로 x,y 갱신
+            safeTransact(() => {
+              nodesMap.forEach((existing, key) => {
+                const nodeId = existing.nodeId;
+                if (nodeId == null) return;
+
+                const pos = posByNodeId.get(Number(nodeId));
+                if (!pos) return;
+
+                nodesMap.set(key, {
                   ...existing,
-                  x: nodeData.x ?? existing.x,
-                  y: nodeData.y ?? existing.y,
+                  x: pos.x ?? existing.x,
+                  y: pos.y ?? existing.y,
                 });
-              }
+              });
             }, "remote");
 
             console.log(`✅ restructure_apply: Y.Map completely replaced with ${processedNodes.length} nodes`);
