@@ -602,7 +602,43 @@ const MindmapPageContent: React.FC = () => {
   }, [cyReady]);
 
   // D3 mousemove → chatInput 위치 + awareness.cursor 브로드캐스트
-  // Note: D3Canvas 컴포넌트에서 onPointerMove prop으로 처리됨
+  useEffect(() => {
+    if (!collab || !cyReady) return;
+
+    const cy = cyRef.current;
+    const awareness = collab.client.provider.awareness;
+    if (!cy || !awareness) return;
+
+    let raf = 0;
+
+    const handleMouseMove = (event: any) => {
+      // requestAnimationFrame으로 throttle (성능 최적화)
+      if (raf) cancelAnimationFrame(raf);
+
+      raf = requestAnimationFrame(() => {
+        const position = event.position; // D3Canvas가 모델 좌표로 변환해줌
+        if (!position) return;
+
+        // 1) 채팅 입력 위치 업데이트
+        chatInput.updateCursorPosition({ x: position.x, y: position.y });
+
+        // 2) Awareness에 커서 위치 브로드캐스트
+        awareness.setLocalStateField("cursor", {
+          x: position.x,
+          y: position.y,
+          color: cursorColorRef.current,
+        });
+      });
+    };
+
+    // D3Canvas의 mock cy API를 통해 핸들러 등록
+    cy.on("mousemove", handleMouseMove);
+
+    return () => {
+      cy.off("mousemove", handleMouseMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [collab, cyReady, chatInput]);
 
   // 11. Loading state - collab/crud만 체크 (isBootstrapping은 백그라운드에서 진행)
   if (!collab || !crud) {
