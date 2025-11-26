@@ -527,6 +527,56 @@ export function useYjsCollaboration(
     const awareness = collab.client.provider.awareness;
     if (!awareness) return;
 
+    // 🔍 Awareness 변경 로그 리스너
+    const handleAwarenessChange = (changes: { added: number[]; updated: number[]; removed: number[] }) => {
+      const selfId = awareness.clientID;
+      const states = awareness.getStates();
+
+      console.group("🌐 [Awareness] 상태 변경 감지");
+      console.log("├── 📌 내 clientID:", selfId);
+      console.log("├── 📊 변경 내역:", {
+        추가됨: changes.added,
+        업데이트됨: changes.updated,
+        제거됨: changes.removed,
+      });
+      console.log("├── 👥 전체 참가자 수:", states.size);
+      console.log("└── 📋 모든 참가자 상태:");
+
+      states.forEach((state, clientId) => {
+        const isMe = clientId === selfId;
+        const prefix = isMe ? "    ├── 👤 [나]" : "    └── 👻 [다른 사용자]";
+
+        console.group(`${prefix} clientID: ${clientId}`);
+        console.log("    ├── 🧑 사용자 정보:", {
+          userId: state?.user?.userId,
+          name: state?.user?.name,
+          email: state?.user?.email,
+          color: state?.user?.color,
+          role: state?.user?.role,
+          profileImage: state?.user?.profileImage ? "있음" : "없음",
+        });
+        console.log("    ├── 🖱️ 커서 위치:", state?.cursor ? {
+          x: state.cursor.x?.toFixed(2),
+          y: state.cursor.y?.toFixed(2),
+          color: state.cursor.color,
+        } : "없음");
+        console.log("    ├── 💬 채팅 상태:", state?.chat ? {
+          isTyping: state.chat.isTyping,
+          currentText: state.chat.currentText?.substring(0, 50) + (state.chat.currentText?.length > 50 ? "..." : ""),
+          timestamp: state.chat.timestamp ? new Date(state.chat.timestamp).toLocaleTimeString() : "없음",
+        } : "없음");
+        console.log("    └── 🎙️ GPT 상태:", state?.gpt ? {
+          isRecording: state.gpt.isRecording,
+          startedBy: state.gpt.startedBy,
+          keywordsCount: state.gpt.keywords?.length || 0,
+        } : "없음");
+        console.groupEnd();
+      });
+      console.groupEnd();
+    };
+
+    awareness.on("change", handleAwarenessChange);
+
     const setAwarenessState = () => {
       const initialState = {
         user: {
@@ -540,7 +590,9 @@ export function useYjsCollaboration(
         cursor: null, // mousemove에서 갱신
         chat: null, // 채팅 입력 시 갱신
       };
-      console.log("[useYjsCollaboration] set initial awareness state:", initialState);
+      console.group("🚀 [Awareness] 초기 상태 설정");
+      console.log("└── 📝 설정할 상태:", initialState);
+      console.groupEnd();
       awareness.setLocalState(initialState);
     };
 
@@ -557,11 +609,14 @@ export function useYjsCollaboration(
 
       return () => {
         collab.client.provider.off("status", handleStatus);
+        awareness.off("change", handleAwarenessChange);
       };
     }
 
     return () => {
+      awareness.off("change", handleAwarenessChange);
       awareness.setLocalState(null);
+      console.log("🔌 [Awareness] 연결 해제 및 상태 초기화");
     };
   }, [collab, cursorColor, currentUser, myRole]);
 
@@ -572,6 +627,11 @@ export function useYjsCollaboration(
     if (!collab) return;
     const awareness = collab.client.provider.awareness;
     if (!awareness) return;
+    console.log("💬 [Awareness] 채팅 상태 업데이트:", chatData ? {
+      isTyping: chatData.isTyping,
+      currentText: chatData.currentText?.substring(0, 30) + (chatData.currentText?.length > 30 ? "..." : ""),
+      timestamp: new Date(chatData.timestamp).toLocaleTimeString(),
+    } : "null (초기화)");
     awareness.setLocalStateField("chat", chatData);
   }, [collab]);
 
@@ -587,6 +647,13 @@ export function useYjsCollaboration(
     if (!collab) return;
     const awareness = collab.client.provider.awareness;
     if (!awareness) return;
+    console.log("🎙️ [Awareness] GPT 상태 업데이트:", gptData ? {
+      isRecording: gptData.isRecording,
+      startedBy: gptData.startedBy,
+      keywordsCount: gptData.keywords?.length || 0,
+      keywords: gptData.keywords?.map(k => k.label).join(", ") || "없음",
+      timestamp: new Date(gptData.timestamp).toLocaleTimeString(),
+    } : "null (초기화)");
     awareness.setLocalStateField("gpt", gptData);
   }, [collab]);
 
