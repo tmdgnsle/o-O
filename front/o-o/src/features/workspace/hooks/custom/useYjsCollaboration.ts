@@ -449,12 +449,22 @@ export function useYjsCollaboration(
 
             // Y.Map 완전 교체 (기존 노드 전부 삭제 후 새로운 노드로 재구성)
             safeTransact(() => {
-              // 1. 기존 노드 모두 제거
-              nodesMap.clear();
-
-              // 2. 새 노드 추가
               for (const nodeData of processedNodes) {
-                nodesMap.set(nodeData.id, nodeData);
+                const existing = nodesMap.get(nodeData.id);
+                if (!existing) {
+                  // 서버 Y.Doc에서 아직 안 내려온 노드일 수도 있으니 로그만 찍고 패스
+                  console.log(
+                    `⚠️ [Restructure] Node id="${nodeData.id}" not found in Y.Map, skip position update`,
+                  );
+                  continue;
+                }
+
+                // x, y 만 갱신 (필요하면 color 정도까지)
+                nodesMap.set(nodeData.id, {
+                  ...existing,
+                  x: nodeData.x ?? existing.x,
+                  y: nodeData.y ?? existing.y,
+                });
               }
             }, "remote");
 
