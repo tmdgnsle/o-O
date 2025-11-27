@@ -41,6 +41,8 @@ import {
 import { captureThumbnailAsFile } from "../utils/canvasCapture";
 import { mindmapApi } from "../api/mindmapApi";
 import { useAppSelector } from "@/store/hooks";
+import { useUpdateWorkspaceThemeMutation } from "@/features/workspace/hooks/mutation/useUpdateWorkspaceThemeMutation";
+import { mapColorThemeToWorkspaceTheme } from "@/services/dto/workspace.dto";
 
 const MindmapPageContent: React.FC = () => {
   const currentUser = useAppSelector((state) => state.user.user);
@@ -54,6 +56,24 @@ const MindmapPageContent: React.FC = () => {
   // 2. Get workspace info and permissions
   const { workspace } = useWorkspaceAccessQuery(workspaceId);
   const { myRole, canEdit, canManage } = useWorkspacePermissions(workspaceId);
+
+  // 🔥 워크스페이스 정보 로그
+  useEffect(() => {
+    if (workspace) {
+      console.log("[MindmapPage] 📋 워크스페이스 정보:", {
+        id: workspace.id,
+        title: workspace.title,
+        theme: workspace.theme,
+        type: workspace.type,
+        visibility: workspace.visibility,
+        myRole: workspace.myRole,
+        isMember: workspace.isMember,
+        memberCount: workspace.memberCount,
+        createdAt: workspace.createdAt,
+        thumbnail: workspace.thumbnail,
+      });
+    }
+  }, [workspace]);
 
   // 3. Refs for D3 canvas
   const cyRef = useRef<any>(null); // Mock ref for backward compatibility
@@ -69,7 +89,7 @@ const MindmapPageContent: React.FC = () => {
 
 
   // 4. Helper hooks
-  const { getRandomThemeColor } = useColorTheme(workspace?.theme ?? "PASTEL");
+  const { themeName, getRandomThemeColor } = useColorTheme(workspace?.theme ?? "PASTEL");
   const { findNonOverlappingPosition, findEmptySpace } = useNodePositioning();
 
   // 5. Stable cursor color (once per session) - separate from node theme colors
@@ -355,6 +375,25 @@ const MindmapPageContent: React.FC = () => {
     yMap: collab?.map ?? null,
     isEmptyWorkspace,
   });
+
+  // 7a. Workspace theme mutation
+  const { mutate: updateWorkspaceTheme } = useUpdateWorkspaceThemeMutation();
+
+  // 7b. 테마 적용 핸들러 (노드 색상 + DB 저장)
+  const handleApplyTheme = useCallback(
+    (colors: string[], themeNameParam: string) => {
+      // 1) 노드 색상 변경 (기존 로직)
+      nodeOperations.handleApplyTheme(colors);
+
+      // 2) 워크스페이스 테마 DB에 저장
+      const backendTheme = mapColorThemeToWorkspaceTheme(themeNameParam);
+      updateWorkspaceTheme({
+        workspaceId,
+        theme: backendTheme,
+      });
+    },
+    [nodeOperations, updateWorkspaceTheme, workspaceId]
+  );
 
   // 8. Analyze mode hook
   const analyzeMode = useAnalyzeMode(nodes, mode);
@@ -749,6 +788,7 @@ const MindmapPageContent: React.FC = () => {
             mode={mode}
             analyzeSelection={analyzeMode.analyzeSelection}
             selectedNodeId={selectedNodeId}
+            currentTheme={themeName}
             aiRecommendationsMap={aiRecommendationsMap}
             trendRecommendationsMap={trendRecommendationsMap}
             isLoadingRecommendationsMap={isLoadingRecommendationsMap}
@@ -757,7 +797,7 @@ const MindmapPageContent: React.FC = () => {
             isReadOnly={!canEdit}
             onNodeSelect={setSelectedNodeId}
             onNodeUnselect={() => setSelectedNodeId(null)}
-            onApplyTheme={nodeOperations.handleApplyTheme}
+            onApplyTheme={handleApplyTheme}
             onDeleteNode={nodeOperations.handleDeleteNode}
             onEditNode={nodeOperations.handleEditNode}
             onBatchNodePositionChange={nodeOperations.handleBatchNodePositionChange}
