@@ -427,54 +427,11 @@ export function useYjsCollaboration(
             // add-idea-done인 경우: 로딩 해제는 position calculation 완료 후 (useCollaborativeNodes에서 처리)
             // 노드들이 0,0에 모였다가 → calculate position → 진짜 position 렌더링 → 로딩 해제
           }
-          // Ask Popo 재구조화 완료 - Y.Map 완전 교체
-          else if (data.type === "restructure_apply" && data.nodes && Array.isArray(data.nodes)) {
-            console.log(`🔄 restructure_apply: replacing entire Y.Map with`, data.nodes.length, "nodes");
-
-            const nodesMap = client.doc.getMap<NodeData>(NODES_YMAP_KEY);
-
-            // DTO를 NodeData로 변환 및 parentId 타입 정규화
-            const nodeDatas = data.nodes.map((nodeDto: any) => {
-              const nodeData = mapDtoToNodeData(nodeDto);
-              return {
-                ...nodeData,
-                // parentId를 숫자로 정규화 (null 제외)
-                parentId: nodeData.parentId === null ? null : Number(nodeData.parentId),
-              };
-            });
-
-            // position 계산 필요 여부 확인
-            const { calculateNodePositions } = await import("./useCollaborativeNodes");
-            const processedNodes = await calculateNodePositions(nodeDatas);
-
-            // Y.Map 완전 교체 (기존 노드 전부 삭제 후 새로운 노드로 재구성)
-            const posByNodeId = new Map<number, { x: number | null; y: number | null }>();
-            for (const node of processedNodes) {
-              if (node.nodeId == null) continue;
-              posByNodeId.set(Number(node.nodeId), {
-                x: node.x ?? null,
-                y: node.y ?? null,
-              });
-            }
-
-            // 3) Y.Map 전체를 돌면서, 값 안의 nodeId 기준으로 x,y 갱신
-            safeTransact(() => {
-              nodesMap.forEach((existing, key) => {
-                const nodeId = existing.nodeId;
-                if (nodeId == null) return;
-
-                const pos = posByNodeId.get(Number(nodeId));
-                if (!pos) return;
-
-                nodesMap.set(key, {
-                  ...existing,
-                  x: pos.x ?? existing.x,
-                  y: pos.y ?? existing.y,
-                });
-              });
-            }, "remote");
-
-            console.log(`✅ restructure_apply: Y.Map completely replaced with ${processedNodes.length} nodes`);
+          // Ask Popo 재구조화 완료
+          // 서버가 Y.Doc을 직접 수정하고 바이너리로 동기화해줌
+          // 클라이언트는 로딩 해제만 담당 (Y.Map은 바이너리 sync로 자동 반영)
+          else if (data.type === "restructure_apply") {
+            console.log(`🔄 restructure_apply: 서버 Y.Doc 바이너리 동기화로 자동 반영`);
 
             // 재구조화 완료 - 로딩 해제
             setIsLoading(false);
