@@ -448,14 +448,30 @@ export function useYjsCollaboration(
             const processedNodes = await calculateNodePositions(nodeDatas);
 
             // Y.Map 완전 교체 (기존 노드 전부 삭제 후 새로운 노드로 재구성)
-            safeTransact(() => {
-              // 1. 기존 노드 모두 제거
-              nodesMap.clear();
+            const posByNodeId = new Map<number, { x: number | null; y: number | null }>();
+            for (const node of processedNodes) {
+              if (node.nodeId == null) continue;
+              posByNodeId.set(Number(node.nodeId), {
+                x: node.x ?? null,
+                y: node.y ?? null,
+              });
+            }
 
-              // 2. 새 노드 추가
-              for (const nodeData of processedNodes) {
-                nodesMap.set(nodeData.id, nodeData);
-              }
+            // 3) Y.Map 전체를 돌면서, 값 안의 nodeId 기준으로 x,y 갱신
+            safeTransact(() => {
+              nodesMap.forEach((existing, key) => {
+                const nodeId = existing.nodeId;
+                if (nodeId == null) return;
+
+                const pos = posByNodeId.get(Number(nodeId));
+                if (!pos) return;
+
+                nodesMap.set(key, {
+                  ...existing,
+                  x: pos.x ?? existing.x,
+                  y: pos.y ?? existing.y,
+                });
+              });
             }, "remote");
 
             console.log(`✅ restructure_apply: Y.Map completely replaced with ${processedNodes.length} nodes`);
