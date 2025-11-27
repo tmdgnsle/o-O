@@ -251,7 +251,7 @@ const MindmapPageContent: React.FC = () => {
 
     // MAINTAINER만 Awareness 업데이트 (다른 사용자는 Awareness 구독으로 자동 동기화)
     if (myRole !== 'MAINTAINER') {
-      console.log('[MindmapPage] ℹ️ 다른 역할 → Awareness 업데이트 스킵 (MAINTAINER가 업데이트함)');
+      // console.log('[MindmapPage] ℹ️ 다른 역할 → Awareness 업데이트 스킵 (MAINTAINER가 업데이트함)');
       return;
     }
 
@@ -266,11 +266,11 @@ const MindmapPageContent: React.FC = () => {
     // Awareness 업데이트 (모든 참여자에게 동기화) - null-safe 처리
     // Use ref to avoid recreating this callback when gptState changes
     if (updateGptState && gptStateRef.current) {
-      console.log('[MindmapPage] 📡 MAINTAINER가 Awareness에 키워드 추가:', {
-        existingKeywords: gptStateRef.current.keywords?.length || 0,
-        newKeywords: newKeywords.length,
-        totalAfterUpdate: (gptStateRef.current.keywords?.length || 0) + newKeywords.length,
-      });
+      // console.log('[MindmapPage] 📡 MAINTAINER가 Awareness에 키워드 추가:', {
+      //   existingKeywords: gptStateRef.current.keywords?.length || 0,
+      //   newKeywords: newKeywords.length,
+      //   totalAfterUpdate: (gptStateRef.current.keywords?.length || 0) + newKeywords.length,
+      // });
       updateGptState({
         ...gptStateRef.current, // ref로 접근 (기존 상태 유지)
         keywords: [...(gptStateRef.current.keywords ?? []), ...newKeywords], // 키워드만 추가
@@ -311,7 +311,7 @@ const MindmapPageContent: React.FC = () => {
 
       const filteredKeywords = removeNodeById(gptState.keywords);
 
-      console.log('[MindmapPage] 📡 Awareness에서 키워드 제거');
+      // console.log('[MindmapPage] 📡 Awareness에서 키워드 제거');
       updateGptState({
         ...gptState,
         keywords: filteredKeywords,
