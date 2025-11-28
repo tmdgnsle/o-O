@@ -161,6 +161,7 @@ export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Re
 
   // Combine current user and online peers into collaborators list
   const activeUsers = useMemo<Collaborator[]>(() => {
+    console.log(`🔍 [StatusBox] activeUsers 계산 - onlinePeers: ${onlinePeers.length}명`);
     const users: Collaborator[] = [];
 
     // Add current user
@@ -177,6 +178,8 @@ export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Re
 
     // Add online peers (excluding self)
     onlinePeers.forEach((peer) => {
+      console.log(`  👤 peer 체크:`, { email: peer.email, userId: peer.userId, name: peer.name });
+      console.log(`    조건: email=${!!peer.email}, notSelf=${peer.email !== currentUser?.email}, hasUserId=${!!peer.userId}`);
       if (peer.email && peer.email !== currentUser?.email && peer.userId) {
         // 우선순위: 1) 로컬 상태 2) awareness에서 받은 role 3) 기본값 VIEW
         const peerRole = memberRoles.get(peer.userId) || peer.role || "VIEW";
@@ -192,6 +195,7 @@ export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Re
       }
     });
 
+    console.log(`🔍 [StatusBox] 최종 activeUsers: ${users.length}명`, users.map(u => u.email));
     return users;
   }, [currentUser, workspace, onlinePeers, memberRoles]);
 
