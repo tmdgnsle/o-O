@@ -126,11 +126,15 @@ export function PeerCursorProvider({
       setOnlinePeers(Array.from(onlineMap.values()));
     };
 
+    // "change" 이벤트: 다른 클라이언트의 상태가 추가/업데이트/제거 되었을 때
     awareness.on("change", updatePeers);
+    // "update" 이벤트: awareness 프로토콜의 상태 동기화가 일어날 때 (새 피어가 자신의 상태를 브로드캐스트할 때)
+    awareness.on("update", updatePeers);
     updatePeers();
 
     return () => {
       awareness.off("change", updatePeers);
+      awareness.off("update", updatePeers);
     };
   }, [awareness, currentUserEmail]);
 
