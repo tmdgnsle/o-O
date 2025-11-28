@@ -67,8 +67,17 @@ export function PeerCursorProvider({
       const onlineMap = new Map<string, OnlinePeer>(); // 이메일 기준 중복 제거
       const selfId = awareness.clientID;
 
-      for (const [id, state] of awareness.getStates()) {
+      const allStates = awareness.getStates();
+      console.log(`🔍 [PeerCursorProvider] updatePeers 호출됨 - 전체 클라이언트 수: ${allStates.size}, 내 ID: ${selfId}`);
+
+      for (const [id, state] of allStates) {
+        console.log(`  👤 Client ${id}:`, {
+          user: state?.user,
+          hasCursor: !!state?.cursor,
+        });
+
         if (id === selfId) {
+          console.log(`    ↳ 내 자신이므로 스킵`);
           continue;
         }
 
@@ -94,7 +103,9 @@ export function PeerCursorProvider({
         }
 
         // 온라인 사용자 목록: user 정보가 있으면 추가 (이메일로 중복 제거)
+        console.log(`    ↳ 조건 체크: userState=${!!userState}, email="${email}", currentUserEmail="${currentUserEmail}"`);
         if (userState && email) {
+          console.log(`    ✅ onlineMap에 추가: ${email}`);
           onlineMap.set(email, {
             id,
             userId: userState.userId,
@@ -122,8 +133,12 @@ export function PeerCursorProvider({
         }
       }
 
-      setPeers(Array.from(cursorMap.values()));
-      setOnlinePeers(Array.from(onlineMap.values()));
+      const peersArray = Array.from(cursorMap.values());
+      const onlinePeersArray = Array.from(onlineMap.values());
+      console.log(`🔍 [PeerCursorProvider] 최종 결과 - peers: ${peersArray.length}명, onlinePeers: ${onlinePeersArray.length}명`);
+      console.log(`    onlinePeers:`, onlinePeersArray.map(p => ({ email: p.email, name: p.name, userId: p.userId })));
+      setPeers(peersArray);
+      setOnlinePeers(onlinePeersArray);
     };
 
     // "change" 이벤트: 다른 클라이언트의 상태가 추가/업데이트/제거 되었을 때
