@@ -106,9 +106,14 @@ const userSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
-        state.user = action.payload;
+        // 기존 id 유지하면서 나머지 정보 갱신 (백엔드 /users 응답에 id가 없을 수 있음)
+        const existingId = state.user?.id;
+        state.user = {
+          ...action.payload,
+          id: action.payload.id ?? existingId,
+        } as User;
         state.loading = false;
-        localStorage.setItem("user", JSON.stringify(action.payload));
+        localStorage.setItem("user", JSON.stringify(state.user));
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;
