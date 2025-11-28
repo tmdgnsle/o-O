@@ -349,14 +349,19 @@ function NodeOverlay({
       if (nearestNode && nearestNode.id !== node.parentId) {
         const targetNode = allNodes.find((n) => n.id === nearestNode.id);
 
+        // targetNode가 없거나 nodeId가 없으면 연결하지 않음
+        if (!targetNode || targetNode.nodeId === undefined) {
+          return;
+        }
+
         // 루트 노드(nodeId가 1)를 드래그한 경우
         if (node.nodeId === 1) {
           // 루트 노드는 부모가 변경되지 않고, 대상 노드의 부모를 루트로 변경
           onEditNode({
             nodeId: nearestNode.id,
-            newText: targetNode?.keyword,
-            newMemo: targetNode?.memo,
-            newParentId: node.id, // 대상 노드의 부모를 루트로 변경
+            newText: targetNode.keyword,
+            newMemo: targetNode.memo,
+            newParentId: node.nodeId, // 🔥 nodeId (숫자)를 사용해야 함
           });
         } else {
           // 일반 노드를 드래그한 경우: 기존처럼 드래그한 노드의 부모 변경
@@ -364,7 +369,7 @@ function NodeOverlay({
             nodeId: node.id,
             newText: node.keyword,
             newMemo: node.memo,
-            newParentId: nearestNode.id,
+            newParentId: targetNode.nodeId, // 🔥 nodeId (숫자)를 사용해야 함
           });
         }
       }

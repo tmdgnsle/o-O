@@ -206,7 +206,7 @@ export type EditNodePayload = {
   newText?: string;
   newMemo?: string;
   newColor?: string;
-  newParentId?: string | null;
+  newParentId?: string | number | null; // nodeId (숫자)를 사용해야 Y.doc과 호환됨
 };
 
 export type DetachedSelectionState = {
