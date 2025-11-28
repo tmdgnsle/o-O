@@ -14,6 +14,7 @@ import { mapDtoToNodeData } from "@/services/dto/mindmap.dto";
 import {
   isInitialCreateDoneNotification,
   isRoleUpdateNotification,
+  isVisibilityUpdateNotification,
 } from "../../types/websocket.types";
 import { useLoadingStore } from "@/shared/store/loadingStore";
 
@@ -265,6 +266,14 @@ export function useYjsCollaboration(
           queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
         }
 
+        // 공개여부 변경 알림 처리
+        if (isVisibilityUpdateNotification(message)) {
+          console.log("[useYjsCollaboration] visibility-update notification received, refetching workspace data");
+
+          // workspace 데이터 재조회하여 visibility 갱신
+          queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
+        }
+
         // initial-create-done: nodes 배열이 없을 때만 REST API 호출
         // nodes가 포함되어 있으면 onJsonMessage 핸들러에서 처리
         if (isInitialCreateDoneNotification(message)) {
@@ -463,6 +472,11 @@ export function useYjsCollaboration(
           // 역할 변경 알림 처리
           else if (data.type === "role-update") {
             console.log("[useYjsCollaboration] role-update received via onJsonMessage, refetching workspace data");
+            queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
+          }
+          // 공개여부 변경 알림 처리
+          else if (data.type === "visibility-update") {
+            console.log("[useYjsCollaboration] visibility-update received via onJsonMessage, refetching workspace data");
             queryClient.invalidateQueries({ queryKey: ["workspace", roomId] });
           }
           else {

@@ -76,7 +76,7 @@ export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Re
   const { onlinePeers } = usePeerCursors();
   const queryClient = useQueryClient();
   const { mutate: updateRole } = useUpdateMemberRoleMutation(yclient);
-  const { mutate: updateVisibility } = useUpdateWorkspaceVisibilityMutation();
+  const { mutate: updateVisibility } = useUpdateWorkspaceVisibilityMutation(yclient);
 
   // 로컬 상태로 멤버 역할 관리 (userId → WorkspaceRole)
   const [memberRoles, setMemberRoles] = useState<Map<number, WorkspaceRole>>(new Map());
