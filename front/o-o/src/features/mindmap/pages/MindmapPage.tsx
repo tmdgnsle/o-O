@@ -666,6 +666,7 @@ const MindmapPageContent: React.FC = () => {
           x: position.x,
           y: position.y,
           color: cursorColorRef.current,
+          timestamp: Date.now(),
         });
       });
     };
@@ -690,7 +691,7 @@ const MindmapPageContent: React.FC = () => {
 
   // 12. Render
   return (
-    <PeerCursorProvider awareness={collab.client.provider.awareness}>
+    <PeerCursorProvider awareness={collab.client.provider.awareness} currentUserEmail={currentUser?.email}>
       <div className="bg-dotted font-paperlogy h-screen relative overflow-hidden">
         {/* Fixed UI Elements */}
         <div className="fixed top-1 left-1 md:top-4 md:left-4 z-50">
