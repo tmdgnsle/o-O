@@ -179,10 +179,11 @@ export default function StatusBox({ onStartVoiceChat, workspaceId, yclient }: Re
     // Add online peers (excluding self)
     onlinePeers.forEach((peer) => {
       console.log(`  👤 peer 체크:`, { email: peer.email, userId: peer.userId, name: peer.name });
-      console.log(`    조건: email=${!!peer.email}, notSelf=${peer.email !== currentUser?.email}, hasUserId=${!!peer.userId}`);
-      if (peer.email && peer.email !== currentUser?.email && peer.userId) {
+      console.log(`    조건: email=${!!peer.email}, notSelf=${peer.email !== currentUser?.email}`);
+      // userId 체크 제거 - awareness 설정 타이밍에 따라 userId가 늦게 올 수 있음
+      if (peer.email && peer.email !== currentUser?.email) {
         // 우선순위: 1) 로컬 상태 2) awareness에서 받은 role 3) 기본값 VIEW
-        const peerRole = memberRoles.get(peer.userId) || peer.role || "VIEW";
+        const peerRole = (peer.userId && memberRoles.get(peer.userId)) || peer.role || "VIEW";
 
         users.push({
           id: peer.email,
